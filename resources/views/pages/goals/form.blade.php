@@ -42,15 +42,13 @@
           @endforeach
           <!-- Content Row -->
           <div class="container-card">
-            <div class="card col-md-12 mb-4 border-top shadow-sm">
-                <div class="card-header border-0 bg-white d-flex align-items-center pb-0">
-                    <h4>KPI {{ $index + 1 }}</h4>
-                </div>
+            <div class="card col-md-12 mb-3 shadow">
                 <div class="card-body">
+                    <h5 class="card-title fs-16 mb-3">Goal {{ $index + 1 }}</h5>
                     <div class="row">
                         <div class="col-md-4">
                             <div class="mb-3">
-                                <label class="form-label" for="kpi">KPI {{ $index + 1 }}</label>
+                                <label class="form-label" for="kpi">KPI</label>
                                 <textarea name="kpi[]" id="kpi" class="form-control" required>{{ old('kpi.0') }}</textarea>
                             </div>
                         </div>
