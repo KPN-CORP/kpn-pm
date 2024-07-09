@@ -1,0 +1,12 @@
+{
+    "name": "Appraisal Form",
+    "category": "Appraisal",
+    "data": {
+        "formType": "Step Form",
+        "formNumber": 3, 
+        "form": ["Self Review", "Culture", "Leadership"]
+    },
+    "restrict": {
+        "job level": ["4A", "4B"]
+    }
+}
