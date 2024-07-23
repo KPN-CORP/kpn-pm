@@ -36,7 +36,7 @@
                     <div class="card-body">
                         <form id="stepperForm" action="{{ route('form.submit') }}" method="POST">
                         @csrf
-                        <input type="hidden" name="employee_id" value="{{ $goal->employee_id }}">
+                        <input type="hidden" name="employee_id" value="{{ $appraisal->employee_id }}">
                         <input type="hidden" class="form-control" name="approver_id" value="{{ $approval->approver_id }}">
                         <input type="hidden" name="formGroupName" value="{{ $formGroupData['name'] }}">
                         @foreach ($filteredFormData as $index => $row)

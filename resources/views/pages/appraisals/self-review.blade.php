@@ -8,44 +8,37 @@
         @forelse ($goalData as $index => $data)
         <tr>
             <td scope="row fs-16">
-                <div class="row p-2">
-                    <div class="col-lg col-sm-12 p-2">
-                        <div class="form-group">
-                            <h5>KPI {{ $index + 1 }}</h5>
-                            <p class="mt-1 mb-0 text-muted">{{ $data['kpi'] }}</p>
-                        </div>
+                <div class="row">
+                    <label for="kpi" class="col-md-3 col-6 col-form-label">KPI {{ $index + 1 }}</label>
+                    <div class="col-9 col-form-label">
+                        <p class="text-muted">{{ $data['kpi'] }}</p>
                     </div>
-                    <div class="col-lg col-sm-12 p-2">
-                        <div class="form-group">
-                            <h5>Target</h5>
-                            <p class="mt-1 mb-0 text-muted">{{ $data['target'] }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</p>
-                        </div>
+                </div>
+                <div class="row">
+                    <label for="weightage" class="col-md-3 col-6 col-form-label">Weightage</label>
+                    <div class="col-9 col-form-label">
+                        <p class="text-muted">{{ $data['weightage'] }}%</p>
                     </div>
-                    <div class="col-lg col-sm-12 p-2">
-                        <div class="form-group">
-                            <h5>Type</h5>
-                            <p class="mt-1 mb-0 text-muted">{{ $data['type'] }}</p>
-                        </div>
+                </div>
+                <div class="row">
+                    <label for="type" class="col-md-3 col-6 col-form-label">Type</label>
+                    <div class="col-9 col-form-label">
+                        <p class="text-muted">{{ $data['type'] }}</p>
                     </div>
-                    <div class="col-lg col-sm-12 p-2">
-                        <div class="form-group">
-                            <h5>Weightage</h5>
-                            <p class="mt-1 mb-0 text-muted">{{ $data['weightage'] }}%</p>
-                        </div>
+                </div>
+                <div class="row">
+                    <label for="target" class="col-md-3 col-6 col-form-label">Target</label>
+                    <div class="col-9 col-form-label">
+                        <p class="text-muted">{{ $data['target'] }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</p>
                     </div>
-                    <div class="col-lg col-sm-12 p-2">
-                        <div class="form-group">
-                            <h5>Score</h5>
-                            <select class="form-select" name="formData[{{ $formIndex }}][{{ $index }}][score]" id="score" required>
-                                <option value="" disabled >select</option>
-                                <option value="1"selected>1</option>
-                                <option value="2">2</option>
-                                <option value="3">3</option>
-                                <option value="4">4</option>
-                                <option value="5">5</option>
-                            </select>
+                </div>
+                <div class="row">
+                    <div class="col-md-3 col-6">
+                        <label for="achievement" class="col-form-label">Achievement ({{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }})</label>
+                    </div>
+                    <div class="col-9 col-md-4 col-form-label">
+                        <input type="text" id="achievement-{{ $index + 1 }}" name="formData[{{ $formIndex }}][{{ $index }}][achievement]" placeholder="Enter achievement.." class="form-control w-75" />
                             <div class="text-danger error-message"></div>
-                        </div>
                     </div>
                 </div>
             </td>

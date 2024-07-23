@@ -3,6 +3,8 @@
 namespace App\Exports;
 
 use App\Models\ApprovalRequest;
+use App\Models\Company;
+use App\Models\Location;
 use Illuminate\Contracts\View\View;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromView;
@@ -16,13 +18,21 @@ class GoalExport implements FromView, WithStyles
     protected $location;
     protected $company;
     protected $admin;
+    protected $permissionGroupCompanies;
+    protected $permissionCompanies;
+    protected $permissionLocations;
 
-    public function __construct($groupCompany, $location, $company, $admin)
+    public function __construct($groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies)
     {
         $this->groupCompany = $groupCompany;
         $this->location = $location;
         $this->company = $company;
         $this->admin = $admin;
+
+        $this->permissionLocations = $permissionLocations;
+        $this->permissionCompanies = $permissionCompanies;
+        $this->permissionGroupCompanies = $permissionGroupCompanies;
+  
     }
 
     public function view(): View
@@ -54,6 +64,27 @@ class GoalExport implements FromView, WithStyles
                 $query->where('contribution_level_code', $this->company);
             });
         }
+
+        $permissionLocations = $this->permissionLocations;
+        $permissionCompanies = $this->permissionCompanies;
+        $permissionGroupCompanies = $this->permissionGroupCompanies;
+
+        $criteria = [
+            'work_area_code' => $permissionLocations,
+            'group_company' => $permissionGroupCompanies,
+            'contribution_level_code' => $permissionCompanies,
+        ];
+
+        // Update query to include criteria
+        $query->where(function ($query) use ($criteria) {
+            foreach ($criteria as $key => $value) {
+                if ($value !== null && !empty($value)) {
+                    $query->orWhereHas('employee', function ($subquery) use ($key, $value) {
+                        $subquery->whereIn($key, $value);
+                    });
+                }
+            }
+        });
 
         $goals = $query->with(['employee', 'manager', 'goal', 'initiated', 'approvalLayer'])->get();
 

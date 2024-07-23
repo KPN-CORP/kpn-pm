@@ -5,6 +5,11 @@ function adminReportType(val) {
     const reportContentDiv = $("#report_content");
     const customsearch = $("#customsearch");
     const formData = reportForm.serialize();
+
+    function initializePopovers() {
+        $('[data-bs-toggle="popover"]').popover();
+    }
+
     showLoader();
     if (val) {
         exportButton.removeClass("disabled"); // Enable export button
@@ -23,6 +28,9 @@ function adminReportType(val) {
                 dom: "lrtip",
                 pageLength: 50,
             });
+            reportGoalsTable.on('draw', function () {
+                initializePopovers();
+            });
             customsearch.keyup(function () {
                 reportGoalsTable.search($(this).val()).draw();
             });
@@ -37,7 +45,7 @@ function adminReportType(val) {
                 }
             });
 
-            $('[data-bs-toggle="popover"]').popover();
+            initializePopovers();
 
             hideLoader();
         },
@@ -56,6 +64,9 @@ function reportType(val) {
     const reportContentDiv = $("#report_content");
     const customsearch = $("#customsearch");
     const formData = reportForm.serialize();
+    function initializePopovers() {
+        $('[data-bs-toggle="popover"]').popover();
+    }
     showLoader();
     if (val) {
         exportButton.removeClass("disabled"); // Enable export button
@@ -73,6 +84,9 @@ function reportType(val) {
                 dom: "lrtip",
                 pageLength: 50,
             });
+            reportGoalsTable.on('draw', function () {
+                initializePopovers();
+            });
             customsearch.keyup(function () {
                 reportGoalsTable.search($(this).val()).draw();
             });
@@ -87,7 +101,7 @@ function reportType(val) {
                 }
             });
 
-            $('[data-bs-toggle="popover"]').popover();
+            initializePopovers();
 
             hideLoader();
         },

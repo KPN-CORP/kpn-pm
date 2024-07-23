@@ -175,6 +175,7 @@ document.addEventListener("DOMContentLoaded", function () {
                         reportGoalsTable.search(filterValue).draw();
                     }
                 });
+                $('[data-bs-toggle="popover"]').popover();
                 hideLoader();
 
                 $("#offcanvas-cancel").click();
@@ -219,8 +220,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
                 const reportGoalsTable = $("#adminReportTable").DataTable({
                     dom: "lrtip",
-                    pageLength: 50,
+                    pageLength: 25,
                 });
+                
                 customsearch.on("keyup", function () {
                     reportGoalsTable.search($(this).val()).draw();
                 });
@@ -234,6 +236,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         reportGoalsTable.search(filterValue).draw();
                     }
                 });
+
+                $('[data-bs-toggle="popover"]').popover();
+
                 hideLoader();
 
                 $("#offcanvas-cancel").click();
@@ -260,6 +265,10 @@ document.addEventListener("DOMContentLoaded", function () {
     const contentOnBehalf = $("#contentOnBehalf");
     const customsearch = $("#customsearch");
 
+    function initializePopovers() {
+        $('[data-bs-toggle="popover"]').popover();
+    }
+    
     // Submit form event handler
     form.on("submit", function (event) {
         event.preventDefault(); // Prevent default form submission behavior
@@ -278,6 +287,11 @@ document.addEventListener("DOMContentLoaded", function () {
                     dom: "lrtip",
                     pageLength: 25,
                 });
+                
+                onBehalfTable.on('draw', function () {
+                    initializePopovers();
+                });
+                
                 customsearch.on("keyup", function () {
                     onBehalfTable.search($(this).val()).draw();
                 });
@@ -291,6 +305,9 @@ document.addEventListener("DOMContentLoaded", function () {
                         onBehalfTable.search(filterValue).draw();
                     }
                 });
+                
+                initializePopovers();
+                
                 hideLoader();
 
                 $("#offcanvas-cancel").click();
@@ -313,6 +330,10 @@ function changeCategory(val) {
     const contentOnBehalf = $("#contentOnBehalf");
     const customsearch = $("#customsearch");
     const formData = form.serialize();
+    
+    function initializePopovers() {
+        $('[data-bs-toggle="popover"]').popover();
+    }
 
     showLoader();
 
@@ -328,6 +349,11 @@ function changeCategory(val) {
                 dom: "lrtip",
                 pageLength: 25,
             });
+            
+            onBehalfTable.on('draw', function () {
+                    initializePopovers();
+                });
+                
             customsearch.keyup(function () {
                 onBehalfTable.search($(this).val()).draw();
             });
@@ -342,7 +368,7 @@ function changeCategory(val) {
                 }
             });
 
-            $('[data-bs-toggle="popover"]').popover();
+            initializePopovers();
 
             hideLoader();
         },

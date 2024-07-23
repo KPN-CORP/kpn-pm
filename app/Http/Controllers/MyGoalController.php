@@ -171,8 +171,8 @@ class MyGoalController extends Controller
     
     function create($id) {
 
-        $goal = Goal::where('employee_id', $id)->get(); 
         $year = Carbon::now()->year;
+        $goal = Goal::where('employee_id', $id)->whereYear('created_at', $year)->get();
         if ($goal->isNotEmpty()) {
             // User ID doesn't match the condition, show error message
             Session::flash('error', "You already initiated Goals for $year.");
@@ -257,6 +257,8 @@ class MyGoalController extends Controller
 
     function store(Request $request)
     {
+        $year = Carbon::now()->year;
+
         if ($request->submit_type === 'save_draft') {
             // Tangani logika penyimpanan sebagai draft
             $submit_status = 'Draft';
@@ -298,6 +300,17 @@ class MyGoalController extends Controller
             if ($validator->fails()) {
                 return back()->withErrors($validator)->withInput();
             }
+        }
+
+        // Check for duplicate data
+        $existingGoal = Goal::where('employee_id', $request->employee_id)
+            ->where('category', $request->category)
+            ->whereYear('created_at', $year)
+            ->first();
+
+        if ($existingGoal) {
+            Session::flash('error', "You already initiated Goals for $year.");
+            return redirect()->back();
         }
 
         // Inisialisasi array untuk menyimpan data KPI

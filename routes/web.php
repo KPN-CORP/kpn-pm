@@ -112,6 +112,7 @@ Route::middleware('auth')->group(function () {
     Route::get('/appraisals-360', [MyAppraisalController::class, 'index'])->name('appraisals-360');
     
     Route::get('/appraisals/create/{id}', [MyAppraisalController::class, 'create'])->name('form.appraisal');
+    Route::get('/appraisals/edit/{id}', [MyAppraisalController::class, 'edit'])->name('edit.appraisal');
     Route::post('/appraisals', [MyAppraisalController::class, 'store'])->name('form.submit');
     
     // Approval

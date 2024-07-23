@@ -21,6 +21,10 @@ class ApprovalRequest extends Model
     {
         return $this->hasMany(ApprovalLayer::class, 'employee_id', 'employee_id');
     }
+    public function approvalLayerAppraisal()
+    {
+        return $this->hasMany(ApprovalLayerAppraisal::class, 'employee_id', 'employee_id');
+    }
     public function employee()
     {
         return $this->belongsTo(Employee::class, 'employee_id', 'employee_id');
@@ -45,6 +49,10 @@ class ApprovalRequest extends Model
     public function adjustedBy()
     {
         return $this->belongsTo(ModelHasRole::class, 'updated_by', 'model_id')->select(['model_id']);
+    }
+    public function appraisal()
+    {
+        return $this->hasOne(Appraisal::class, 'employee_id', 'employee_id');
     }
 
 }

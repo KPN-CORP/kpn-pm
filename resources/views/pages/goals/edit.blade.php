@@ -43,7 +43,12 @@
           @foreach ($data as $index => $row)
               <div class="card col-md-12 mb-3 shadow">
                   <div class="card-body">
-                      <h5 class="card-title fs-16 mb-3">Goal {{ $index + 1 }}</h5>
+                      <div class='row card-title fs-16 mb-3'>
+                        <div class='col'><h5>Goal {{ $index + 1 }}</h5></div>
+                        @if ($index >= 1)
+                            <div class='col-auto'><a class='btn-close remove_field' type='button'></a></div>
+                        @endif
+                      </div>
                       <div class="row mt-2">
                           <div class="col-md-4">
                             <div class="mb-3">

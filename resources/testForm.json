@@ -1,5 +1,6 @@
 [
     {
+        "id": 1,
         "name": "Self Review",
         "category": "Appraisal",
         "title": "Score Guideline",
@@ -8,6 +9,7 @@
         "blade": "pages/appraisals/self-review"
     },
     {
+        "id": 2,
         "name": "Culture",
         "category": "Appraisal",
         "title": "Indicator level",
@@ -48,6 +50,7 @@
         "blade": "pages/appraisals/culture"
     },
     {
+        "id": 3,
         "name": "Leadership",
         "category": "Appraisal",
         "title": "",
