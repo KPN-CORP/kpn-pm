@@ -13,15 +13,13 @@ class ApprovalLayerAppraisal extends Model
     {
         return $this->belongsTo(Employee::class, 'employee_id', 'employee_id');
     }
-
+    public function approver()
+    {
+        return $this->belongsTo(Employee::class, 'approver_id', 'employee_id');
+    }
     public function subordinates()
     {
         return $this->hasMany(ApprovalRequest::class, 'employee_id', 'employee_id');
-    }
-
-    public function manager()
-    {
-        return $this->belongsTo(ApprovalLayer::class, 'approver_id');
     }
     public function previousApprovers()
     {

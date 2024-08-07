@@ -27,10 +27,22 @@ document.addEventListener("DOMContentLoaded", function () {
         },
         dom: "frtip",
     });
+
     $("#tableInitiate").DataTable({
         initComplete: function (settings, json) {
             hideLoader();
         },
+    });
+
+    $("#tableAppraisal360").DataTable({
+        stateSave: true,
+        fixedColumns: {
+            start: 0,
+            end: 1
+        },
+        paging: false,
+        scrollCollapse: true,
+        scrollX: true,
     });
 
     const layerTable = $("#layerTable").DataTable({

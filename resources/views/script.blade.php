@@ -6,6 +6,9 @@
 <script src="{{ asset('vendor/datatables/dataTables.min.js') }}?v={{ config('app.version') }}"></script>
 <script src="{{ asset('vendor/datatables/dataTables.bootstrap5.min.js') }}?v={{ config('app.version') }}"></script>
 
+<script src="{{ asset('vendor/datatables.net-fixedcolumns/js/dataTables.fixedColumns.min.js') }}?v={{ config('app.version') }}"></script>
+<script src="{{ asset('vendor/datatables.net-fixedcolumns-bs5/js/fixedColumns.bootstrap5.min.js') }}?v={{ config('app.version') }}"></script>
+
 <script src="{{ asset('assets/js/popper.min.js') }}?v={{ config('app.version') }}"></script>
 <script src="{{ asset('assets/js/tippy.min.js') }}?v={{ config('app.version') }}"></script>
 

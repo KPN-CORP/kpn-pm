@@ -1,3 +1,4 @@
+
 .circle {
     width: 40px;
     height: 40px;
@@ -11,15 +12,25 @@
     z-index: 1;
     font-size: 1.075rem;
 }
+
 .circle.active {
     border: 2px solid $primary;
     color: $primary;
 }
+
 .circle.completed {
     border: 2px solid $primary;
     background-color: $primary;
     color: $white;
 }
+
+.connector {
+    width: 30px; /* Adjust as needed */
+    height: 2px; /* Adjust thickness as needed */
+    background-color: #000; /* Adjust color as needed */
+    align-self: center;
+}
+
 .label {
     font-size: 14px;
 }

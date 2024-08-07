@@ -34,8 +34,9 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <form id="stepperForm" action="{{ route('form.submit') }}" method="POST">
+                        <form id="stepperForm" action="{{ route('appraisal.update') }}" method="POST">
                         @csrf
+                        <input type="hidden" class="form-control" name="id" value="{{ $appraisal->id }}">
                         <input type="hidden" name="employee_id" value="{{ $appraisal->employee_id }}">
                         <input type="hidden" class="form-control" name="approver_id" value="{{ $approval->approver_id }}">
                         <input type="hidden" name="formGroupName" value="{{ $formGroupData['name'] }}">

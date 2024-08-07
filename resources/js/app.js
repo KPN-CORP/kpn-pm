@@ -1,10 +1,25 @@
 import "./bootstrap";
 
-import DataTable from "datatables.net-bs5";
-window.DataTable = DataTable;
-
 import Swal from "sweetalert2";
 window.Swal = Swal;
+
+import $ from 'jquery';
+
+import jszip from 'jszip';
+import pdfmake from 'pdfmake';
+import DataTable from 'datatables.net-bs5';
+import 'datatables.net-buttons-bs5';
+import 'datatables.net-buttons/js/buttons.colVis.mjs';
+import 'datatables.net-buttons/js/buttons.html5.mjs';
+import 'datatables.net-buttons/js/buttons.print.mjs';
+import DateTime from 'datatables.net-datetime';
+import 'datatables.net-fixedcolumns-bs5';
+import 'datatables.net-fixedheader-bs5';
+import 'datatables.net-responsive-bs5';
+import 'datatables.net-scroller-bs5';
+import 'datatables.net-searchbuilder-bs5';
+import 'datatables.net-searchpanes-bs5';
+import 'datatables.net-staterestore-bs5';
 
 import './plugins/bootstrap-wizard.js';
 import { Tab } from "bootstrap";

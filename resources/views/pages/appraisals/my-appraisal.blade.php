@@ -64,7 +64,7 @@
                         <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
                             <h4 class="m-0 font-weight-bold text-primary">Appraisals {{ $row->request->appraisal->period }}</h4>
                             @if ($row->request->status == 'Pending' && count($row->request->approval) == 0 || $row->request->sendback_to == $row->request->employee_id)
-                                <a class="btn btn-info rounded-pill" href="{{ route('edit.appraisal', $row->request->appraisal->id) }}">Edit</a>
+                                <a class="btn btn-outline-warning border-2 fw-semibold rounded-pill" href="{{ route('edit.appraisal', $row->request->appraisal->id) }}">Edit</a>
                             @endif
                         </div>
                         <div class="card-body mb-2" style="background-color: ghostwhite">
@@ -101,12 +101,12 @@
                             </div>
                             @forelse ($appraisalData['formData'] as $indexItem => $item)
                             <div class="row">
-                                <div class="col mb-2 d-flex align-items-center justify-content-between">
-                                    <span class="fs-16">{{ $item['formName'] }}</span>                                 
-                                    <button class="btn btn-sm rounded-pill" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ $indexItem }}" aria-expanded="false" aria-controls="collapse-{{ $indexItem }}">
-                                        <span>Details</span><i class="ri-arrow-down-s-line ms-1"></i>
-                                    </button>
-                                </div>
+                                <button class="btn btn-sm rounded-pill mb-2 py-1 bg-danger bg-opacity-10 text-danger align-items-center d-flex justify-content-between" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ $indexItem }}" aria-expanded="false" aria-controls="collapse-{{ $indexItem }}">
+                                    <span class="fs-16 ms-1">{{ $item['formName'] }}</span>  
+                                    <span>
+                                        <p class="d-none d-md-inline me-1">Details</p><i class="ri-arrow-down-s-line"></i>
+                                    </span>                               
+                                </button>
                                 @if ($item['formName'] == 'Leadership')
                                 <div class="collapse" id="collapse-{{ $indexItem }}">
                                     <div class="card card-body mb-3">
@@ -206,7 +206,7 @@
                                                             <p class="mt-1 mb-0">{{ $key + 1 }}</p>
                                                         </td>
                                                         <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
-                                                            <p class="mt-1 mb-0 text-muted">{{ $data['kpi'] }}</p>
+                                                            <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['kpi'] }}</p>
                                                         </td>
                                                         <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
                                                             <p class="mt-1 mb-0 text-muted">{{ $data['type'] }}</p>

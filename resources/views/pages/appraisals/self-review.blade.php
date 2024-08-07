@@ -11,7 +11,7 @@
                 <div class="row">
                     <label for="kpi" class="col-md-3 col-6 col-form-label">KPI {{ $index + 1 }}</label>
                     <div class="col-9 col-form-label">
-                        <p class="text-muted">{{ $data['kpi'] }}</p>
+                        <p class="text-muted" @style('white-space: pre-line')>{{ $data['kpi'] }}</p>
                     </div>
                 </div>
                 <div class="row">
@@ -27,17 +27,17 @@
                     </div>
                 </div>
                 <div class="row">
-                    <label for="target" class="col-md-3 col-6 col-form-label">Target</label>
+                    <label for="target" class="col-md-3 col-6 col-form-label">Target in {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</label>
                     <div class="col-9 col-form-label">
-                        <p class="text-muted">{{ $data['target'] }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</p>
+                        <p class="text-muted">{{ $data['target'] }}</p>
                     </div>
                 </div>
                 <div class="row">
                     <div class="col-md-3 col-6">
-                        <label for="achievement" class="col-form-label">Achievement ({{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }})</label>
+                        <label for="achievement" class="col-form-label">Achievement in {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</label>
                     </div>
                     <div class="col-9 col-md-4 col-form-label">
-                        <input type="text" id="achievement-{{ $index + 1 }}" name="formData[{{ $formIndex }}][{{ $index }}][achievement]" placeholder="Enter achievement.." class="form-control w-75" />
+                        <input type="text" id="achievement-{{ $index + 1 }}" name="formData[{{ $formIndex }}][{{ $index }}][achievement]" placeholder="Enter achievement.." value="{{ isset($data['actual']) ? $data['actual'] : "" }}" class="form-control w-75" />
                             <div class="text-danger error-message"></div>
                     </div>
                 </div>
@@ -48,12 +48,4 @@
         @endforelse
         </tbody>
     </table>
-    @if (auth()->user()->employee_id != $goal->employee_id)
-    <div class="row">
-        <div class="col-md-5">
-            <label for="messages">Komentar</label>
-            <textarea class="form-control" name="messages" id="messages" rows="3" placeholder="masukkan komentar anda.."></textarea>
-        </div>
-    </div>
-    @endif
 </div>

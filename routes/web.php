@@ -3,6 +3,7 @@
 use App\Http\Controllers\Admin\OnBehalfController as AdminOnBehalfController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\SendbackController as AdminSendbackController;
+use App\Http\Controllers\Appraisal360;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
@@ -109,12 +110,17 @@ Route::middleware('auth')->group(function () {
 
     // My Appraisals
     Route::get('/appraisals', [MyAppraisalController::class, 'index'])->name('appraisals');
-    Route::get('/appraisals-360', [MyAppraisalController::class, 'index'])->name('appraisals-360');
     
     Route::get('/appraisals/create/{id}', [MyAppraisalController::class, 'create'])->name('form.appraisal');
     Route::get('/appraisals/edit/{id}', [MyAppraisalController::class, 'edit'])->name('edit.appraisal');
-    Route::post('/appraisals', [MyAppraisalController::class, 'store'])->name('form.submit');
-    
+    Route::post('/appraisals/submit', [MyAppraisalController::class, 'store'])->name('appraisal.submit');
+    Route::post('/appraisals/update', [MyAppraisalController::class, 'update'])->name('appraisal.update');
+
+    // Appraisal 360
+    Route::get('/appraisals-360', [Appraisal360::class, 'index'])->name('appraisals-360');
+    Route::get('/appraisals-360/review/{id}', [Appraisal360::class, 'review'])->name('appraisals-360.review');
+    Route::get('/appraisals-360/initiate/{id}', [Appraisal360::class, 'initiate'])->name('appraisals-360.initiate');
+
     // Approval
     Route::post('/approval/goal', [ApprovalController::class, 'store'])->name('approval.goal');
 

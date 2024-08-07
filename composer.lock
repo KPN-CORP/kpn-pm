@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "8640b6f90828b581e40e431c8c6f3224",
+    "content-hash": "80396e5d73fe3e131d30b88edd9cf9d1",
     "packages": [
         {
             "name": "anourvalar/eloquent-serialize",
@@ -617,16 +617,16 @@
         },
         {
             "name": "datatables.net/datatables.net-bs5",
-            "version": "2.0.8",
+            "version": "2.1.2",
             "source": {
                 "type": "git",
                 "url": "https://github.com/DataTables/Dist-DataTables-Bootstrap5.git",
-                "reference": "b6cce12376f469268edf717e8a82e440a610db31"
+                "reference": "4fa63605fd00549e1dc1e7b88dfd114a91da88aa"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/DataTables/Dist-DataTables-Bootstrap5/zipball/b6cce12376f469268edf717e8a82e440a610db31",
-                "reference": "b6cce12376f469268edf717e8a82e440a610db31",
+                "url": "https://api.github.com/repos/DataTables/Dist-DataTables-Bootstrap5/zipball/4fa63605fd00549e1dc1e7b88dfd114a91da88aa",
+                "reference": "4fa63605fd00549e1dc1e7b88dfd114a91da88aa",
                 "shasum": ""
             },
             "require": {
@@ -658,7 +658,687 @@
                 "issues": "https://github.com/DataTables/Dist-DataTables-Bootstrap5/issues",
                 "source": "https://github.com/DataTables/Dist-DataTables-Bootstrap5"
             },
-            "time": "2024-05-28T15:36:34+00:00"
+            "time": "2024-07-24T13:21:50+00:00"
+        },
+        {
+            "name": "datatables.net/datatables.net-buttons",
+            "version": "3.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/DataTables/Dist-DataTables-Buttons.git",
+                "reference": "68fc52d0385f164024686b456c84c387cca595fa"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/DataTables/Dist-DataTables-Buttons/zipball/68fc52d0385f164024686b456c84c387cca595fa",
+                "reference": "68fc52d0385f164024686b456c84c387cca595fa",
+                "shasum": ""
+            },
+            "require": {
+                "datatables.net/datatables.net": ">=1.12.1"
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "SpryMedia",
+                    "homepage": "https://datatables.net"
+                }
+            ],
+            "description": "The Buttons extension for DataTables provides a common set of options, API methods and styling to display buttons on a page that will interact with a DataTable. It also provides plug-ins for file export (HTML5 and Flash), print view and column visibility. Other libraries, such as Editor and Select also provide buttons specific to their use cases. This is Buttons for DataTables",
+            "homepage": "http://www.datatables.net/",
+            "keywords": [
+                "Column Visibility",
+                "buttons",
+                "csv",
+                "datatables",
+                "excel",
+                "jquery",
+                "pdf",
+                "print",
+                "table"
+            ],
+            "support": {
+                "forum": "https://datatables.net/forums",
+                "source": "https://github.com/DataTables/Dist-DataTables-Buttons"
+            },
+            "time": "2024-07-19T08:00:18+00:00"
+        },
+        {
+            "name": "datatables.net/datatables.net-buttons-bs5",
+            "version": "3.1.0",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/DataTables/Dist-DataTables-Buttons-Bootstrap5.git",
+                "reference": "2fcd96ef8397d3bdb9053326f7a1253e14560011"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/DataTables/Dist-DataTables-Buttons-Bootstrap5/zipball/2fcd96ef8397d3bdb9053326f7a1253e14560011",
+                "reference": "2fcd96ef8397d3bdb9053326f7a1253e14560011",
+                "shasum": ""
+            },
+            "require": {
+                "datatables.net/datatables.net-bs5": ">=1.12.1",
+                "datatables.net/datatables.net-buttons": ">=2.2.3"
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "SpryMedia",
+                    "homepage": "https://datatables.net"
+                }
+            ],
+            "description": "The Buttons extension for DataTables provides a common set of options, API methods and styling to display buttons on a page that will interact with a DataTable. It also provides plug-ins for file export (HTML5 and Flash), print view and column visibility. Other libraries, such as Editor and Select also provide buttons specific to their use cases. This is Buttons for DataTables with styling for [Bootstrap5](https://getbootstrap.com/)",
+            "homepage": "http://www.datatables.net/",
+            "keywords": [
+                "Column Visibility",
+                "bootstrap",
+                "bootstrap5",
+                "buttons",
+                "csv",
+                "datatables",
+                "excel",
+                "jquery",
+                "pdf",
+                "print",
+                "table"
+            ],
+            "support": {
+                "forum": "https://datatables.net/forums",
+                "issues": "https://github.com/DataTables/Dist-DataTables-Buttons-Bootstrap5/issues",
+                "source": "https://github.com/DataTables/Dist-DataTables-Buttons-Bootstrap5"
+            },
+            "time": "2024-07-19T08:01:42+00:00"
+        },
+        {
+            "name": "datatables.net/datatables.net-datetime",
+            "version": "1.5.3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/DataTables/DateTime.git",
+                "reference": "7bda40522aba79dbc24bd0e06c545133eaeb21dd"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/DataTables/DateTime/zipball/7bda40522aba79dbc24bd0e06c545133eaeb21dd",
+                "reference": "7bda40522aba79dbc24bd0e06c545133eaeb21dd",
+                "shasum": ""
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "SpryMedia",
+                    "homepage": "https://datatables.net"
+                }
+            ],
+            "description": "DateTime picker for DataTables.net",
+            "homepage": "http://www.datatables.net/extensions/datetime",
+            "keywords": [
+                "datatables",
+                "date",
+                "time"
+            ],
+            "support": {
+                "forum": "https://datatables.net/forums",
+                "issues": "https://github.com/DataTables/DateTime/issues",
+                "source": "https://github.com/DataTables/DateTime"
+            },
+            "time": "2024-07-24T11:35:22+00:00"
+        },
+        {
+            "name": "datatables.net/datatables.net-fixedcolumns",
+            "version": "5.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/DataTables/Dist-DataTables-FixedColumns.git",
+                "reference": "f08c182378061c9f3c2ced684eafc261bbe60747"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/DataTables/Dist-DataTables-FixedColumns/zipball/f08c182378061c9f3c2ced684eafc261bbe60747",
+                "reference": "f08c182378061c9f3c2ced684eafc261bbe60747",
+                "shasum": ""
+            },
+            "require": {
+                "datatables.net/datatables.net": ">=1.12.1"
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "SpryMedia",
+                    "homepage": "https://datatables.net"
+                }
+            ],
+            "description": "FixedColumns provides the ability to fix one or more columns to the left and / or right hand side of a DataTable that scrolls along the x-axis. This can be used if the columns show grouping, index or similar information. This is FixedColumns for DataTables",
+            "homepage": "http://www.datatables.net/",
+            "keywords": [
+                "datatables",
+                "fixedcolumns",
+                "jquery",
+                "table"
+            ],
+            "support": {
+                "forum": "https://datatables.net/forums",
+                "source": "https://github.com/DataTables/Dist-DataTables-FixedColumns"
+            },
+            "time": "2024-05-28T15:20:15+00:00"
+        },
+        {
+            "name": "datatables.net/datatables.net-fixedcolumns-bs5",
+            "version": "5.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/DataTables/Dist-DataTables-FixedColumns-Bootstrap5.git",
+                "reference": "00981fa0e83cf1450b581e499a32e55224b0ad99"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/DataTables/Dist-DataTables-FixedColumns-Bootstrap5/zipball/00981fa0e83cf1450b581e499a32e55224b0ad99",
+                "reference": "00981fa0e83cf1450b581e499a32e55224b0ad99",
+                "shasum": ""
+            },
+            "require": {
+                "datatables.net/datatables.net-bs5": ">=1.12.1",
+                "datatables.net/datatables.net-fixedcolumns": ">=4.1.0"
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "SpryMedia",
+                    "homepage": "https://datatables.net"
+                }
+            ],
+            "description": "FixedColumns provides the ability to fix one or more columns to the left and / or right hand side of a DataTable that scrolls along the x-axis. This can be used if the columns show grouping, index or similar information. This is FixedColumns for DataTables with styling for [Bootstrap5](https://getbootstrap.com/)",
+            "homepage": "http://www.datatables.net/",
+            "keywords": [
+                "bootstrap",
+                "bootstrap5",
+                "datatables",
+                "fixedcolumns",
+                "jquery",
+                "table"
+            ],
+            "support": {
+                "forum": "https://datatables.net/forums",
+                "issues": "https://github.com/DataTables/Dist-DataTables-FixedColumns-Bootstrap5/issues",
+                "source": "https://github.com/DataTables/Dist-DataTables-FixedColumns-Bootstrap5"
+            },
+            "time": "2024-05-28T15:20:55+00:00"
+        },
+        {
+            "name": "datatables.net/datatables.net-fixedheader",
+            "version": "4.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/DataTables/Dist-DataTables-FixedHeader.git",
+                "reference": "cd5de8d584e38c35fff8e87704d30725ba2a36da"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/DataTables/Dist-DataTables-FixedHeader/zipball/cd5de8d584e38c35fff8e87704d30725ba2a36da",
+                "reference": "cd5de8d584e38c35fff8e87704d30725ba2a36da",
+                "shasum": ""
+            },
+            "require": {
+                "datatables.net/datatables.net": ">=1.12.1"
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "SpryMedia",
+                    "homepage": "https://datatables.net"
+                }
+            ],
+            "description": "When displaying large amounts of data in a table, it can often be useful for the end user to have the column titles always visible. This is particularly true if using DataTables with pagination disabled, or the display length is set to a high value. The FixedHeader extension provides this ability. This is FixedHeader for DataTables",
+            "homepage": "http://www.datatables.net/",
+            "keywords": [
+                "Fixed Headers",
+                "datatables",
+                "fixedHeader",
+                "jquery",
+                "sticky",
+                "table"
+            ],
+            "support": {
+                "forum": "https://datatables.net/forums",
+                "source": "https://github.com/DataTables/Dist-DataTables-FixedHeader"
+            },
+            "time": "2024-03-07T10:10:14+00:00"
+        },
+        {
+            "name": "datatables.net/datatables.net-fixedheader-bs5",
+            "version": "4.0.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/DataTables/Dist-DataTables-FixedHeader-Bootstrap5.git",
+                "reference": "896b5e8d1f677f2c1b57dfbcd517b2cc21bac634"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/DataTables/Dist-DataTables-FixedHeader-Bootstrap5/zipball/896b5e8d1f677f2c1b57dfbcd517b2cc21bac634",
+                "reference": "896b5e8d1f677f2c1b57dfbcd517b2cc21bac634",
+                "shasum": ""
+            },
+            "require": {
+                "datatables.net/datatables.net-bs5": ">=1.12.1",
+                "datatables.net/datatables.net-fixedheader": ">=3.2.4"
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "SpryMedia",
+                    "homepage": "https://datatables.net"
+                }
+            ],
+            "description": "When displaying large amounts of data in a table, it can often be useful for the end user to have the column titles always visible. This is particularly true if using DataTables with pagination disabled, or the display length is set to a high value. The FixedHeader extension provides this ability. This is FixedHeader for DataTables with styling for [Bootstrap5](https://getbootstrap.com/)",
+            "homepage": "http://www.datatables.net/",
+            "keywords": [
+                "Fixed Headers",
+                "bootstrap",
+                "bootstrap5",
+                "datatables",
+                "fixedHeader",
+                "jquery",
+                "sticky",
+                "table"
+            ],
+            "support": {
+                "forum": "https://datatables.net/forums",
+                "issues": "https://github.com/DataTables/Dist-DataTables-FixedHeader-Bootstrap5/issues",
+                "source": "https://github.com/DataTables/Dist-DataTables-FixedHeader-Bootstrap5"
+            },
+            "time": "2024-03-07T10:10:50+00:00"
+        },
+        {
+            "name": "datatables.net/datatables.net-responsive",
+            "version": "3.0.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/DataTables/Dist-DataTables-Responsive.git",
+                "reference": "0a2404823deddab0a2dc866f3a1168147e3d38c4"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/DataTables/Dist-DataTables-Responsive/zipball/0a2404823deddab0a2dc866f3a1168147e3d38c4",
+                "reference": "0a2404823deddab0a2dc866f3a1168147e3d38c4",
+                "shasum": ""
+            },
+            "require": {
+                "datatables.net/datatables.net": ">=1.12.1"
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "SpryMedia",
+                    "homepage": "https://datatables.net"
+                }
+            ],
+            "description": "In the modern world of responsive web design tables can often cause a particular problem for designers due to their row based layout. Responsive is an extension for DataTables that resolves that problem by optimising the table's layout for different screen sizes through the dynamic insertion and removal of columns from the table. This is Responsive for DataTables",
+            "homepage": "http://www.datatables.net/",
+            "keywords": [
+                "datatables",
+                "jquery",
+                "responsive",
+                "table"
+            ],
+            "support": {
+                "forum": "https://datatables.net/forums",
+                "source": "https://github.com/DataTables/Dist-DataTables-Responsive"
+            },
+            "time": "2024-04-16T11:15:30+00:00"
+        },
+        {
+            "name": "datatables.net/datatables.net-responsive-bs5",
+            "version": "3.0.2",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/DataTables/Dist-DataTables-Responsive-Bootstrap5.git",
+                "reference": "d0488fc50ba4a3d34ab4fd7bfd54351bbf04e0a5"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/DataTables/Dist-DataTables-Responsive-Bootstrap5/zipball/d0488fc50ba4a3d34ab4fd7bfd54351bbf04e0a5",
+                "reference": "d0488fc50ba4a3d34ab4fd7bfd54351bbf04e0a5",
+                "shasum": ""
+            },
+            "require": {
+                "datatables.net/datatables.net-bs5": ">=1.12.1",
+                "datatables.net/datatables.net-responsive": ">=2.3.0"
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "SpryMedia",
+                    "homepage": "https://datatables.net"
+                }
+            ],
+            "description": "In the modern world of responsive web design tables can often cause a particular problem for designers due to their row based layout. Responsive is an extension for DataTables that resolves that problem by optimising the table's layout for different screen sizes through the dynamic insertion and removal of columns from the table. This is Responsive for DataTables with styling for [Bootstrap5](https://getbootstrap.com/)",
+            "homepage": "http://www.datatables.net/",
+            "keywords": [
+                "bootstrap",
+                "bootstrap5",
+                "datatables",
+                "jquery",
+                "responsive",
+                "table"
+            ],
+            "support": {
+                "forum": "https://datatables.net/forums",
+                "issues": "https://github.com/DataTables/Dist-DataTables-Responsive-Bootstrap5/issues",
+                "source": "https://github.com/DataTables/Dist-DataTables-Responsive-Bootstrap5"
+            },
+            "time": "2024-04-16T11:17:14+00:00"
+        },
+        {
+            "name": "datatables.net/datatables.net-scroller",
+            "version": "2.4.3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/DataTables/Dist-DataTables-Scroller.git",
+                "reference": "994dbdb9bbc7823e469c60bf05dbeefd2f3df8a5"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/DataTables/Dist-DataTables-Scroller/zipball/994dbdb9bbc7823e469c60bf05dbeefd2f3df8a5",
+                "reference": "994dbdb9bbc7823e469c60bf05dbeefd2f3df8a5",
+                "shasum": ""
+            },
+            "require": {
+                "datatables.net/datatables.net": ">=1.12.1"
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "SpryMedia",
+                    "homepage": "https://datatables.net"
+                }
+            ],
+            "description": "Scroller is a virtual rendering plug-in for DataTables which allows large datasets to be drawn on screen very quickly. Virtual rendering means is that only the visible portion of the table is drawn, while the scrolling container gives the visual impression that the whole table is visible, allowing excellent browser performance. This is Scroller for DataTables",
+            "homepage": "http://www.datatables.net/",
+            "keywords": [
+                "Virtual Scrolling",
+                "datatables",
+                "jquery",
+                "scroller",
+                "table"
+            ],
+            "support": {
+                "forum": "https://datatables.net/forums",
+                "source": "https://github.com/DataTables/Dist-DataTables-Scroller"
+            },
+            "time": "2024-05-17T10:40:13+00:00"
+        },
+        {
+            "name": "datatables.net/datatables.net-scroller-bs5",
+            "version": "2.4.3",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/DataTables/Dist-DataTables-Scroller-Bootstrap5.git",
+                "reference": "e4870d0069cfee5df1d3dd09eb34d65bebe91a41"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/DataTables/Dist-DataTables-Scroller-Bootstrap5/zipball/e4870d0069cfee5df1d3dd09eb34d65bebe91a41",
+                "reference": "e4870d0069cfee5df1d3dd09eb34d65bebe91a41",
+                "shasum": ""
+            },
+            "require": {
+                "datatables.net/datatables.net-bs5": ">=1.12.1",
+                "datatables.net/datatables.net-scroller": ">=2.0.7"
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "SpryMedia",
+                    "homepage": "https://datatables.net"
+                }
+            ],
+            "description": "Scroller is a virtual rendering plug-in for DataTables which allows large datasets to be drawn on screen very quickly. Virtual rendering means is that only the visible portion of the table is drawn, while the scrolling container gives the visual impression that the whole table is visible, allowing excellent browser performance. This is Scroller for DataTables with styling for [Bootstrap5](https://getbootstrap.com/)",
+            "homepage": "http://www.datatables.net/",
+            "keywords": [
+                "Virtual Scrolling",
+                "bootstrap",
+                "bootstrap5",
+                "datatables",
+                "jquery",
+                "scroller",
+                "table"
+            ],
+            "support": {
+                "forum": "https://datatables.net/forums",
+                "issues": "https://github.com/DataTables/Dist-DataTables-Scroller-Bootstrap5/issues",
+                "source": "https://github.com/DataTables/Dist-DataTables-Scroller-Bootstrap5"
+            },
+            "time": "2024-05-17T10:40:52+00:00"
+        },
+        {
+            "name": "datatables.net/datatables.net-searchbuilder",
+            "version": "1.7.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/DataTables/Dist-DataTables-SearchBuilder.git",
+                "reference": "61046a915ae5cac1fb8ef98cb584c5a7af78598f"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/DataTables/Dist-DataTables-SearchBuilder/zipball/61046a915ae5cac1fb8ef98cb584c5a7af78598f",
+                "reference": "61046a915ae5cac1fb8ef98cb584c5a7af78598f",
+                "shasum": ""
+            },
+            "require": {
+                "datatables.net/datatables.net": ">=1.12.1"
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "SpryMedia",
+                    "homepage": "https://datatables.net"
+                }
+            ],
+            "description": "SearchBuilder adds user defined complex search to the DataTable with the capability to search the DataTable by creating groups and conditions. This is SearchBuilder for DataTables",
+            "homepage": "http://www.datatables.net/",
+            "keywords": [
+                "datatables",
+                "filtering",
+                "jquery",
+                "search",
+                "searchbuilder",
+                "table"
+            ],
+            "support": {
+                "forum": "https://datatables.net/forums",
+                "issues": "https://github.com/DataTables/Dist-DataTables-SearchBuilder/issues",
+                "source": "https://github.com/DataTables/Dist-DataTables-SearchBuilder"
+            },
+            "time": "2024-04-11T15:55:18+00:00"
+        },
+        {
+            "name": "datatables.net/datatables.net-searchbuilder-bs5",
+            "version": "1.7.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/DataTables/Dist-DataTables-SearchBuilder-Bootstrap5.git",
+                "reference": "80567070531c86880dcc34933ab99ef8d57e32c8"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/DataTables/Dist-DataTables-SearchBuilder-Bootstrap5/zipball/80567070531c86880dcc34933ab99ef8d57e32c8",
+                "reference": "80567070531c86880dcc34933ab99ef8d57e32c8",
+                "shasum": ""
+            },
+            "require": {
+                "datatables.net/datatables.net-bs5": ">=1.12.1",
+                "datatables.net/datatables.net-searchbuilder": ">=1.3.4"
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "SpryMedia",
+                    "homepage": "https://datatables.net"
+                }
+            ],
+            "description": "SearchBuilder adds user defined complex search to the DataTable with the capability to search the DataTable by creating groups and conditions. This is SearchBuilder for DataTables with styling for [Bootstrap5](https://getbootstrap.com/)",
+            "homepage": "http://www.datatables.net/",
+            "keywords": [
+                "bootstrap",
+                "bootstrap5",
+                "datatables",
+                "filtering",
+                "jquery",
+                "search",
+                "searchbuilder",
+                "table"
+            ],
+            "support": {
+                "forum": "https://datatables.net/forums",
+                "issues": "https://github.com/DataTables/Dist-DataTables-SearchBuilder-Bootstrap5/issues",
+                "source": "https://github.com/DataTables/Dist-DataTables-SearchBuilder-Bootstrap5"
+            },
+            "time": "2024-04-11T15:55:59+00:00"
+        },
+        {
+            "name": "datatables.net/datatables.net-searchpanes",
+            "version": "2.3.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/DataTables/Dist-DataTables-SearchPanes.git",
+                "reference": "b563b8f5f34e41917b7b45efb4f9b66a48690bd6"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/DataTables/Dist-DataTables-SearchPanes/zipball/b563b8f5f34e41917b7b45efb4f9b66a48690bd6",
+                "reference": "b563b8f5f34e41917b7b45efb4f9b66a48690bd6",
+                "shasum": ""
+            },
+            "require": {
+                "datatables.net/datatables.net": ">=1.12.1"
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "SpryMedia",
+                    "homepage": "https://datatables.net"
+                }
+            ],
+            "description": "The SearchPanes extension for DataTables provides improved Searching functionality allowing users to select options from a Pane which will then in turn search the DataTable and return the relevant results. There are multiple configuration options available to enhance SearchPanes. This is SearchPanes for DataTables",
+            "homepage": "http://www.datatables.net/",
+            "keywords": [
+                "datatables",
+                "filtering",
+                "jquery",
+                "search",
+                "searchpanes",
+                "table"
+            ],
+            "support": {
+                "forum": "https://datatables.net/forums",
+                "source": "https://github.com/DataTables/Dist-DataTables-SearchPanes"
+            },
+            "time": "2024-04-11T16:02:22+00:00"
+        },
+        {
+            "name": "datatables.net/datatables.net-searchpanes-bs5",
+            "version": "2.3.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/DataTables/Dist-DataTables-SearchPanes-Bootstrap5.git",
+                "reference": "d4b8c59fc2be9cee820a19b146ba3d611abd0ebc"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/DataTables/Dist-DataTables-SearchPanes-Bootstrap5/zipball/d4b8c59fc2be9cee820a19b146ba3d611abd0ebc",
+                "reference": "d4b8c59fc2be9cee820a19b146ba3d611abd0ebc",
+                "shasum": ""
+            },
+            "require": {
+                "datatables.net/datatables.net-bs5": ">=1.12.1",
+                "datatables.net/datatables.net-searchpanes": ">=2.0.2"
+            },
+            "type": "library",
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "SpryMedia",
+                    "homepage": "https://datatables.net"
+                }
+            ],
+            "description": "The SearchPanes extension for DataTables provides improved Searching functionality allowing users to select options from a Pane which will then in turn search the DataTable and return the relevant results. There are multiple configuration options available to enhance SearchPanes. This is SearchPanes for DataTables with styling for [Bootstrap5](https://getbootstrap.com/)",
+            "homepage": "http://www.datatables.net/",
+            "keywords": [
+                "bootstrap",
+                "bootstrap5",
+                "datatables",
+                "filtering",
+                "jquery",
+                "search",
+                "searchpanes",
+                "table"
+            ],
+            "support": {
+                "forum": "https://datatables.net/forums",
+                "issues": "https://github.com/DataTables/Dist-DataTables-SearchPanes-Bootstrap5/issues",
+                "source": "https://github.com/DataTables/Dist-DataTables-SearchPanes-Bootstrap5"
+            },
+            "time": "2024-04-11T16:02:57+00:00"
         },
         {
             "name": "dflydev/dot-access-data",

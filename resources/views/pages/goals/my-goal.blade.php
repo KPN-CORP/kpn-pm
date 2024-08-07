@@ -110,10 +110,10 @@
                                 <tr>
                                     <td  scope="row">
                                         <div class="row p-2">
-                                            <div class="col-lg col-sm-12 p-2">
+                                            <div class="col-lg-4 col-sm-12 p-2">
                                                 <div class="form-group">
                                                     <h5>KPI {{ $index + 1 }}</h5>
-                                                    <p class="mt-1 mb-0 text-muted">{{ $data['kpi'] }}</p>
+                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['kpi'] }}</p>
                                                 </div>
                                             </div>
                                             <div class="col-lg col-sm-12 p-2">
@@ -125,8 +125,7 @@
                                             <div class="col-lg col-sm-12 p-2">
                                                 <div class="form-group">
                                                     <h5>UoM</h5>
-                                                    <p class="mt-1 mb-0 text-muted">{{ $data['uom'] }}</p>
-                                                    <p class="mt-1 mb-0 text-muted">{{ is_null($data['custom_uom']) ? '': $data['custom_uom'] }}</p>
+                                                    <p class="mt-1 mb-0 text-muted">{{ is_null($data['custom_uom']) ? $data['uom'] : $data['custom_uom'] }}</p>
                                                 </div>
                                             </div>
                                             <div class="col-lg col-sm-12 p-2">

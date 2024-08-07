@@ -19,12 +19,12 @@
                                         </div>
                                         <div class="col-md-auto justify-content-end">
                                             <select class="form-select" name="formData[{{ $formIndex }}][{{ $index }}][{{ $indexItem }}][score]" id="score" required>
-                                                <option value="" disabled >select</option>
-                                                <option value="5"selected>Expert</option>
-                                                <option value="4">Advanced</option>
-                                                <option value="3">Practitioner</option>
-                                                <option value="2">Comprehension</option>
-                                                <option value="1">Basic</option>
+                                                <option value="">select</option>
+                                                <option value="5" {{ isset($dataItem['score'][$indexItem]) && $dataItem['score'][$indexItem] == "5" ? 'selected' : '' }}>Expert</option>
+                                                <option value="4" {{ isset($dataItem['score'][$indexItem]) && $dataItem['score'][$indexItem] == "4" ? 'selected' : '' }}>Advanced</option>
+                                                <option value="3" {{ isset($dataItem['score'][$indexItem]) && $dataItem['score'][$indexItem] == "3" ? 'selected' : '' }}>Practitioner</option>
+                                                <option value="2" {{ isset($dataItem['score'][$indexItem]) && $dataItem['score'][$indexItem] == "2" ? 'selected' : '' }}>Comprehension</option>
+                                                <option value="1" {{ isset($dataItem['score'][$indexItem]) && $dataItem['score'][$indexItem] == "1" ? 'selected' : '' }}>Basic</option>
                                             </select>
                                             <div class="text-danger error-message"></div>
                                         </div>
