@@ -1,4 +1,10 @@
+import jQuery from 'jquery';
+window.$ = jQuery;
+
 import "./bootstrap";
+
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+
 
 import DataTable from "datatables.net-bs5";
 window.DataTable = DataTable;
@@ -10,6 +16,7 @@ window.Swal = Swal;
 import { Tab } from "bootstrap";
 window.Tab = Tab;
 
+import 'popper.js';
 
 // import select2 from "select2/dist/js/select2.min.js";
 // window.select2 = select2;

@@ -1,3 +1,11 @@
+document.addEventListener('DOMContentLoaded', function () {
+    // Initialize all popovers on the page
+    const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
+    const popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
+        return new bootstrap.Popover(popoverTriggerEl);
+    });
+});
+
 function adminReportType(val) {
     $("#report_type").val(val);
     const reportForm = $("#admin_report_filter");
@@ -36,9 +44,7 @@ function adminReportType(val) {
                     reportGoalsTable.search(filterValue).draw();
                 }
             });
-
-            $('[data-bs-toggle="popover"]').popover();
-
+            
             hideLoader();
         },
         error: function (xhr, status, error) {
