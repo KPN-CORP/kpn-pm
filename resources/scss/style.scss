@@ -1,3 +1,4 @@
+
 .circle {
     width: 40px;
     height: 40px;
@@ -10,22 +11,49 @@
     position: relative;
     z-index: 1;
     font-size: 1.075rem;
+    transition: background-color 0.2s;
 }
+
 .circle.active {
     border: 2px solid $primary;
     color: $primary;
 }
+
 .circle.completed {
     border: 2px solid $primary;
     background-color: $primary;
     color: $white;
 }
+
+.connector {
+    width: 30px; /* Adjust as needed */
+    height: 2px; /* Adjust thickness as needed */
+    background-color: #ddd; /* Default color */
+    align-self: center;
+    transition: background-color 0.5s; /* Smooth transition for color change */
+}
+
+.connector.completed {
+    background-color: $primary; /* Primary color */
+}
+
 .label {
     font-size: 14px;
+}
+.label.active {
+    color: $primary;
 }
 .form-step {
     display: none;
 }
 .form-step.active {
     display: block;
+}
+
+.detail-employee {
+    transition: padding-top 0s ease;
+  }
+  
+.sticky-padding {
+    padding-top: 140px;
 }

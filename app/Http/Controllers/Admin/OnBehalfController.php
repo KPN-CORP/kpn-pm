@@ -162,12 +162,12 @@ class OnBehalfController extends Controller
                 // Format created_at
                 $createdDate = Carbon::parse($item->created_at);
 
-                    $item->formatted_created_at = $createdDate->format('d M Y g:ia');
+                    $item->formatted_created_at = $createdDate->format('d M Y');
     
                 // Format updated_at
                 $updatedDate = Carbon::parse($item->updated_at);
 
-                    $item->formatted_updated_at = $updatedDate->format('d M Y g:ia');
+                    $item->formatted_updated_at = $updatedDate->format('d M Y');
 
                 // Determine name and approval layer
                 if ($item->sendback_to == $item->employee->employee_id) {

@@ -20,7 +20,7 @@
             </form>
             </div>
             <div class="modal-footer">
-                <a class="btn btn-outline-secondary me-3" data-dismiss="modal">Cancel</a>
+                <a class="btn btn-outline-secondary me-3" data-dismiss="modal">{{ __('Cancel') }}</a>
                 <button type="submit" class="btn btn-primary" form="report_filter">Apply</button>
             </div>
         </div><!-- /.modal-content -->

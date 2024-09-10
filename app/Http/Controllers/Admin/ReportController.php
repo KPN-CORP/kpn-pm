@@ -77,7 +77,7 @@ class ReportController extends Controller
     
     function index(Request $request) {
         $parentLink = 'Admin';
-        $link = 'Reports';
+        $link = __('Report');
 
         $locations = Location::select('company_name', 'area', 'work_area')->orderBy('area')->get();
         $groupCompanies = Location::select('company_name')
@@ -238,7 +238,7 @@ class ReportController extends Controller
             $route = 'reports-admin.empty';
         }
 
-        $link = 'reports';
+        $link = __('Report');
 
         return view($route, compact('data', 'link', 'filters'));
     }
@@ -252,6 +252,9 @@ class ReportController extends Controller
         $groupCompany = $request->export_group_company;
         $company = $request->export_company;
         $location = $request->export_location;
+        $permissionLocations = $this->permissionLocations;
+        $permissionCompanies = $this->permissionCompanies;
+        $permissionGroupCompanies = $this->permissionGroupCompanies;
         $admin = 1;
 
         $directory = 'report/excel'; // Direktori tempat file akan disimpan
@@ -260,7 +263,7 @@ class ReportController extends Controller
         $fileName = $reportType.'_'.$date.'.xlsx'; // Nama file yang akan disimpan
 
         if($reportType==='Goal'){
-            $export = new GoalExport($groupCompany, $location, $company, $admin);
+            $export = new GoalExport($groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
             $fileContent = Excel::download($export, $fileName)->getFile();
         }
         return false;

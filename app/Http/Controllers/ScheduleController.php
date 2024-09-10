@@ -156,7 +156,7 @@ class ScheduleController extends Controller
     function edit($id)
     {
         $parentLink = 'Schedule';
-        $link = 'Edit';
+        $link = __('Edit');
         $model = Schedule::find($id);
  
         if(!$model)

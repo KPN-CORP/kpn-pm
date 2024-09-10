@@ -23,10 +23,12 @@ use stdClass;
 class MyGoalController extends Controller
 {
     protected $category;
+    protected $user;
 
     public function __construct()
     {
         $this->category = 'Goals';
+        $this->user = Auth::user()->employee_id;;
     }
 
     function formatDate($date)
@@ -43,7 +45,7 @@ class MyGoalController extends Controller
     }
 
     function index(Request $request) {
-        $user = Auth::user()->employee_id;
+        $user = $this->user;
     
         // Retrieve the selected year from the request
         $filterYear = $request->input('filterYear');
@@ -148,8 +150,8 @@ class MyGoalController extends Controller
         $uomOption = $options['UoM'];
         $typeOption = $options['Type'];
     
-        $parentLink = 'Goals';
-        $link = 'My Goals';
+        $parentLink = __('Goal');
+        $link = __('My Goal');
     
         $employee = Employee::where('employee_id', $user)->first();
         $access_menu = json_decode($employee->access_menu, true);
@@ -163,6 +165,7 @@ class MyGoalController extends Controller
     
         return view('pages.goals.my-goal', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'goals', 'selectYear', 'adjustByManager'));
     }
+
     function show($id) {
         $data = Goal::find($id);
         
@@ -171,8 +174,8 @@ class MyGoalController extends Controller
     
     function create($id) {
 
-        $goal = Goal::where('employee_id', $id)->get(); 
         $year = Carbon::now()->year;
+        $goal = Goal::where('employee_id', $id)->whereYear('created_at', $year)->get();
         if ($goal->isNotEmpty()) {
             // User ID doesn't match the condition, show error message
             Session::flash('error', "You already initiated Goals for $year.");
@@ -198,7 +201,7 @@ class MyGoalController extends Controller
 
         $uomOption = $uomOptions['UoM'];
         
-        $parentLink = 'Goals';
+        $parentLink = __('Goal');
         $link = 'Create';
 
         return view('pages.goals.form', compact('layer', 'link', 'parentLink', 'uomOption'));
@@ -212,8 +215,8 @@ class MyGoalController extends Controller
 
         $approvalRequest = ApprovalRequest::where('form_id', $goal->id)->first();
 
-        $parentLink = 'Goals';
-        $link = 'Edit';
+        $parentLink = __('Goal');
+        $link = __('Edit');
 
         $path = storage_path('../resources/goal.json');
 
@@ -257,6 +260,11 @@ class MyGoalController extends Controller
 
     function store(Request $request)
     {
+        $user = $this->user;
+        $year = Carbon::now()->year;
+
+        $layer = ApprovalLayer::select('approver_id')->where('employee_id', $user)->where('layer', 1)->first();
+
         if ($request->submit_type === 'save_draft') {
             // Tangani logika penyimpanan sebagai draft
             $submit_status = 'Draft';
@@ -298,6 +306,17 @@ class MyGoalController extends Controller
             if ($validator->fails()) {
                 return back()->withErrors($validator)->withInput();
             }
+        }
+
+        // Check for duplicate data
+        $existingGoal = Goal::where('employee_id', $request->employee_id)
+            ->where('category', $request->category)
+            ->whereYear('created_at', $year)
+            ->first();
+
+        if ($existingGoal) {
+            Session::flash('error', "You already initiated Goals for $year.");
+            return redirect('goals');
         }
 
         // Inisialisasi array untuk menyimpan data KPI
@@ -355,7 +374,7 @@ class MyGoalController extends Controller
         $approval->form_id = $model->id;
         $approval->category = $this->category;
         $approval->employee_id = $request->employee_id;
-        $approval->current_approval_id = $request->approver_id;
+        $approval->current_approval_id = $layer->approver_id;
         $approval->created_by = Auth::user()->id;
         // Set other attributes as needed
         $approval->save();

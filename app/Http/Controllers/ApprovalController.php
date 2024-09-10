@@ -103,7 +103,6 @@ class ApprovalController extends Controller
                 $index++;
             }
         }
-
         // Simpan data KPI ke dalam file JSON
         $jsonData = json_encode($kpiData);
 

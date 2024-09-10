@@ -41,13 +41,13 @@
                                     </div>
                                     <div class="col-lg-2 mb-3">
                                         <div class="form-group">
-                                            <label class="form-label" for="uom">UoM</label>
+                                            <label class="form-label" for="uom">{{ __('Uom') }}</label>
                                             <input type="text" value="{{ $data['uom'] }}" class="form-control bg-gray-100" disabled>
                                         </div>
                                     </div>
                                     <div class="col-lg-2 mb-3">
                                         <div class="form-group">
-                                            <label class="form-label" for="weightage">Weightage</label>
+                                            <label class="form-label" for="weightage">{{ __('Weightage') }}</label>
                                             <div class="input-group">
                                                 <input type="text" class="form-control bg-gray-100" value="{{ $data['weightage'] }}" disabled>
                                                 <div class="input-group-append">
@@ -62,7 +62,7 @@
                                     </div>
                                     <div class="col-lg-2 mb-3">
                                         <div class="form-group">
-                                            <label class="form-label" for="type">Type</label>
+                                            <label class="form-label" for="type">{{ __('Type') }}</label>
                                             <input type="text" value="{{ $data['type'] }}" class="form-control bg-gray-100" disabled>
                                         </div>
                                     </div>

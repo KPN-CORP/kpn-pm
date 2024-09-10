@@ -13,20 +13,46 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class ExportExcelController extends Controller
 {
+    protected $permissionGroupCompanies;
+    protected $permissionCompanies;
+    protected $permissionLocations;
+    protected $roles;
+    
+    public function __construct()
+    {
+        $this->roles = Auth()->user()->roles;
+        
+        $restrictionData = [];
+
+        if(!$this->roles->isEmpty()){
+            $restrictionData = json_decode($this->roles->first()->restriction, true);
+        }
+        
+        $this->permissionGroupCompanies = $restrictionData['group_company'] ?? [];
+        $this->permissionCompanies = $restrictionData['contribution_level_code'] ?? [];
+        $this->permissionLocations = $restrictionData['work_area_code'] ?? [];
+
+    }
+
     public function export(Request $request) 
     {
         $reportType = $request->export_report_type;
         $groupCompany = $request->export_group_company;
         $company = $request->export_company;
         $location = $request->export_location;
+
+        $permissionGroupCompanies = $this->permissionGroupCompanies;
+        $permissionCompanies = $this->permissionCompanies;
+        $permissionLocations = $this->permissionLocations;
+
         $admin = 0;
 
         if($reportType==='Goal'){
-            $goal = new GoalExport($groupCompany, $location, $company, $admin);
+            $goal = new GoalExport($groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
             return Excel::download($goal, 'goals.xlsx');
         }
         if($reportType==='Employee'){
-            $employee = new EmployeeExport($groupCompany, $location, $company);
+            $employee = new EmployeeExport($groupCompany, $location, $company, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
             return Excel::download($employee, 'employee.xlsx');
         }
         return;
@@ -39,14 +65,19 @@ class ExportExcelController extends Controller
         $groupCompany = $request->export_group_company;
         $company = $request->export_company;
         $location = $request->export_location;
+
+        $permissionGroupCompanies = $this->permissionGroupCompanies;
+        $permissionCompanies = $this->permissionCompanies;
+        $permissionLocations = $this->permissionLocations;
+        
         $admin = 1;
 
         if($reportType==='Goal'){
-            $goal = new GoalExport($groupCompany, $location, $company, $admin);
+            $goal = new GoalExport($groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
             return Excel::download($goal, 'goals.xlsx');
         }
         if($reportType==='Employee'){
-            $employee = new EmployeeExport($groupCompany, $location, $company);
+            $employee = new EmployeeExport($groupCompany, $location, $company, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
             return Excel::download($employee, 'employee.xlsx');
         }
         return;

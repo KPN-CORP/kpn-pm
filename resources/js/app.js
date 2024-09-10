@@ -1,25 +1,61 @@
 import jQuery from 'jquery';
 window.$ = jQuery;
 
-import "./bootstrap";
 
-import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import 'popper.js';
 
-
-import DataTable from "datatables.net-bs5";
-window.DataTable = DataTable;
+// import "bootstrap";
+// import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 import Swal from "sweetalert2";
 window.Swal = Swal;
 
-//import './plugins/bootstrap-wizard.js';
-import { Tab } from "bootstrap";
-window.Tab = Tab;
 
-import 'popper.js';
+import jszip from 'jszip';
+import pdfmake from 'pdfmake';
+import 'datatables.net-dt';
+import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
+import 'datatables.net-fixedcolumns-bs5';
+import 'datatables.net-fixedcolumns-bs5/css/fixedColumns.bootstrap5.min.css';
 
-// import select2 from "select2/dist/js/select2.min.js";
-// window.select2 = select2;
+import 'datatables.net-buttons-bs5';
+import 'datatables.net-buttons/js/buttons.colVis.mjs';
+import 'datatables.net-buttons/js/buttons.html5.mjs';
+import 'datatables.net-buttons/js/buttons.print.mjs';
+import 'datatables.net-fixedcolumns-bs5';
+import 'datatables.net-fixedheader-bs5';
+import 'datatables.net-responsive-bs5';
+import 'datatables.net-scroller-bs5';
+import 'datatables.net-searchbuilder-bs5';
+import 'datatables.net-searchpanes-bs5';
+import 'datatables.net-staterestore-bs5';
+import 'select2/dist/css/select2.css';
+import 'select2-bootstrap-5-theme/dist/select2-bootstrap-5-theme.css';
+import 'quill/dist/quill.snow.css';
+
+import './tippy.min.js';
+
+import './script.js';
+import './quill.min.js';
+
+import './goal-form.js';
+import './goal-approval.js';
+import './team-goal.js';
+
+import './appraisal-task.js';
+import './layer-appraisal.js';
+import './rating.js';
+import './report.js';
+
+function googleTranslateElementInit() {
+    new google.translate.TranslateElement({
+      pageLanguage: 'en',
+      includedLanguages: 'id,fr,de,it,pt', // Add the languages you need
+      layout: google.translate.TranslateElement.InlineLayout.SIMPLE
+    }, 'content');
+  }
+
+//   window.googleTranslateElementInit = googleTranslateElementInit;
 
 import Alpine from "alpinejs";
 
@@ -448,137 +484,6 @@ $(document).ready(() => {
             });
         }
 
-        // Form Advance
-        function initFormAdvance() {
-            // Select2
-            // new select2($('[data-toggle="select2"]')[0])
-
-            if (jQuery().select2) {
-                $('[data-toggle="select2"]').select2();
-            }
-
-            // Input Mask
-            if (jQuery().mask) {
-                $('[data-toggle="input-mask"]').each(function (idx, obj) {
-                    var maskFormat = $(obj).data("maskFormat");
-                    var reverse = $(obj).data("reverse");
-                    if (reverse != null)
-                        $(obj).mask(maskFormat, { reverse: reverse });
-                    else $(obj).mask(maskFormat);
-                });
-            }
-
-            // Date-Range-Picker
-            if (jQuery().daterangepicker) {
-                //date pickers ranges only
-                var start = moment().subtract(29, "days");
-                var end = moment();
-                var defaultRangeOptions = {
-                    startDate: start,
-                    endDate: end,
-                    ranges: {
-                        Today: [moment(), moment()],
-                        Yesterday: [
-                            moment().subtract(1, "days"),
-                            moment().subtract(1, "days"),
-                        ],
-                        "Last 7 Days": [moment().subtract(6, "days"), moment()],
-                        "Last 30 Days": [
-                            moment().subtract(29, "days"),
-                            moment(),
-                        ],
-                        "This Month": [
-                            moment().startOf("month"),
-                            moment().endOf("month"),
-                        ],
-                        "Last Month": [
-                            moment().subtract(1, "month").startOf("month"),
-                            moment().subtract(1, "month").endOf("month"),
-                        ],
-                    },
-                };
-
-                $('[data-toggle="date-picker-range"]').each(function (
-                    idx,
-                    obj
-                ) {
-                    var objOptions = $.extend(
-                        {},
-                        defaultRangeOptions,
-                        $(obj).data()
-                    );
-                    var target = objOptions["targetDisplay"];
-                    //rendering
-                    $(obj).daterangepicker(objOptions, function (start, end) {
-                        if (target)
-                            $(target).html(
-                                start.format("MMMM D, YYYY") +
-                                    " - " +
-                                    end.format("MMMM D, YYYY")
-                            );
-                    });
-                });
-
-                // Datetime and date range picker
-                var defaultOptions = {
-                    cancelClass: "btn-light",
-                    applyButtonClasses: "btn-success",
-                };
-
-                $('[data-toggle="date-picker"]').each(function (idx, obj) {
-                    var objOptions = $.extend(
-                        {},
-                        defaultOptions,
-                        $(obj).data()
-                    );
-                    $(obj).daterangepicker(objOptions);
-                });
-            }
-
-            // Bootstrap Timepicker
-            if ($.timepicker) {
-                var defaultOptions = {
-                    showSeconds: true,
-                    icons: {
-                        up: "mdi-chevron-up",
-                        down: "mdi-chevron-down",
-                    },
-                };
-
-                $('[data-toggle="timepicker"]').each(function (idx, obj) {
-                    var objOptions = $.extend(
-                        {},
-                        defaultOptions,
-                        $(obj).data()
-                    );
-                    $(obj).timepicker(objOptions);
-                });
-            }
-
-            // Bootstrap Touchspin
-
-            // Bootstrap Maxlength
-            if (jQuery().maxlength) {
-                var defaultOptions = {
-                    warningClass: "badge bg-success",
-                    limitReachedClass: "badge bg-danger",
-                    separator: " out of ",
-                    preText: "You typed ",
-                    postText: " chars available.",
-                    placement: "bottom",
-                };
-
-                $('[data-toggle="maxlength"]').each(function (idx, obj) {
-                    var objOptions = $.extend(
-                        {},
-                        defaultOptions,
-                        $(obj).data()
-                    );
-                    $(obj).maxlength(objOptions);
-                });
-            }
-        }
-
         function init() {
             initComponents();
             initPortletCard();
@@ -589,9 +494,8 @@ $(document).ready(() => {
             initfullScreenListener();
             initShowHidePassword();
             initFormValidation();
-            initFormAdvance();
         }
 
         init();
-    })(jQuery);
+    })($);
 });

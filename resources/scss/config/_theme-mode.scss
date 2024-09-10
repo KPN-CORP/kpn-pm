@@ -44,9 +44,17 @@ html[data-menu-color="light"] {
     --#{$prefix}menu-condensed-link-bg:                #313a46;
     --#{$prefix}help-box-bg:                           #{$primary};
 }
+html[data-menu-color="dark"] {
+    --#{$prefix}menu-bg:                             #ffffff;
+    --#{$prefix}menu-item-color:                       #{$gray-700};
+    --#{$prefix}menu-item-hover-color:                 #{$primary};
+    --#{$prefix}menu-item-active-color:                #{$primary};
+    --#{$prefix}menu-condensed-link-bg:                #313a46;
+    --#{$prefix}help-box-bg:                           #{$primary};
+}
 
 // Dark Left Sidebar
-html[data-menu-color="dark"] {
+html[data-menu-color="_dark"] {
     --#{$prefix}menu-bg:                                 #{$gray-900};
     --#{$prefix}menu-item-color:                       #8391a2;
     --#{$prefix}menu-item-hover-color:                 #bccee4;

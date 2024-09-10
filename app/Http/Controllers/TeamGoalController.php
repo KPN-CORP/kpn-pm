@@ -39,7 +39,7 @@ class TeamGoalController extends Controller
                 $query->with('approverName');
             }])->whereHas('approvalLayer', function ($query) use ($user) {
                 $query->where('employee_id', $user)->orWhere('approver_id', $user);
-            });
+            })->where('category', $this->category);
         }])->where('approver_id', Auth::user()->employee_id)->get();
         
         $tasks = ApprovalLayer::with(['employee','subordinates' => function ($query) use ($user, $filterYear){
@@ -48,13 +48,13 @@ class TeamGoalController extends Controller
             }])->whereHas('approvalLayer', function ($query) use ($user) {
                 $query->where('employee_id', $user)->orWhere('approver_id', $user);
             })->whereYear('created_at', $filterYear);
-        }])
+        }])->where('category', $this->category)
         ->leftJoin('approval_requests', 'approval_layers.employee_id', '=', 'approval_requests.employee_id')
         ->select('approval_layers.employee_id', 'approval_layers.approver_id', 'approval_layers.layer', 'approval_requests.created_at')
         ->whereYear('approval_requests.created_at', $filterYear)
         ->whereHas('subordinates')->where('approver_id', Auth::user()->employee_id)
         ->get();
-
+        
         $tasks->each(function($item) {
             $item->subordinates->map(function($subordinate) {
                 // Format created_at
@@ -92,7 +92,7 @@ class TeamGoalController extends Controller
         ->leftJoin('employees', 'approval_layers.employee_id', '=', 'employees.employee_id')
         ->where('approval_layers.approver_id', $user)
         ->whereDoesntHave('subordinates', function ($query) use ($user, $filterYear) {
-            $query->whereYear('created_at', $filterYear) // Add this line to filter by the current year
+            $query->whereYear('created_at', $filterYear)->where('category', $this->category)
                 ->with([
                     'goal', 
                     'updatedBy', 
@@ -173,8 +173,8 @@ class TeamGoalController extends Controller
         $uomOption = $options['UoM'];
         $typeOption = $options['Type'];
 
-        $parentLink = 'Goals';
-        $link = 'Team Goals';
+        $parentLink = __('Goal');
+        $link = __('Task Box');
 
         $selectYear = ApprovalRequest::where('employee_id', $user)->where('category', $this->category)->select('created_at')->get();
 
@@ -216,7 +216,7 @@ class TeamGoalController extends Controller
 
         $uomOption = $uomOptions['UoM'];
         
-        $link = 'Goals';
+        $Link = __('Goal');
 
         return view('pages.goals.form', compact('layer', 'link', 'uomOption'));
 
@@ -227,7 +227,7 @@ class TeamGoalController extends Controller
         $goals = Goal::with(['approvalRequest'])->where('id', $id)->get();
         $goal =  $goals->first();
 
-        $link = 'Goals';
+        $Link = __('Goal');
 
         $path = storage_path('../resources/goal.json');
 
@@ -317,7 +317,7 @@ class TeamGoalController extends Controller
         $uomOption = $options['UoM'];
         $typeOption = $options['Type'];
 
-        $parentLink = 'Goals';
+        $parentLink = __('Goal');
         $link = 'Approval';
 
         return view('pages.goals.approval', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption'));

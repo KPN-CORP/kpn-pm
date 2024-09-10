@@ -1,27 +1,27 @@
 <!-- ========== Topbar Start ========== -->
-<div class="navbar-custom">
-    <div class="topbar container-fluid p-0">
+<div class="navbar-custom shadow-none p-0" style="z-index: 999;">
+    <div class="topbar container-fluid">
         <div class="d-flex align-items-center gap-lg-2 gap-1">
 
             <!-- Topbar Brand Logo -->
             <div class="logo-topbar d-none">
                 <!-- Logo light -->
-                <a href="/" class="logo-light">
+                <a href="{{ Url('/') }}" class="logo-light">
                     <span class="logo-lg">
-                        <img src="{{ asset('images/logo.png') }}" alt="logo">
+                        <img src="{{ asset('storage/img/logo.png') }}" alt="logo">
                     </span>
                     <span class="logo-sm">
-                        <img src="{{ asset('images/logo-sm.png') }}" alt="small logo">
+                        <img src="{{ asset('storage/img/logo-sm.png') }}" alt="small logo">
                     </span>
                 </a>
 
                 <!-- Logo Dark -->
-                <a href="/" class="logo-dark">
+                <a href="{{ Url('/') }}" class="logo-dark">
                     <span class="logo-lg">
-                        <img src="{{ asset('images/logo-dark.png') }}" alt="dark logo">
+                        <img src="{{ asset('storage/img/logo-dark.png') }}" alt="dark logo">
                     </span>
                     <span class="logo-sm">
-                        <img src="{{ asset('images/logo-sm.png') }}" alt="small logo">
+                        <img src="{{ asset('storage/img/logo-sm.png') }}" alt="small logo">
                     </span>
                 </a>
             </div>
@@ -66,11 +66,25 @@
                     <i class="ri-fullscreen-line fs-22"></i>
                 </a>
             </li>
+            <li class="dropdown">
+                <a class="nav-link dropdown-toggle arrow-none" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
+                    <img src="{{ asset('storage/img/flags/' . (session('locale') ? session('locale') : 'en') . '.jpg')}}" alt="user-image" class="me-0 me-sm-1" height="12">
+                    <span class="align-middle d-none d-lg-inline-block">{{ session('locale') == 'id' ? 'Bahasa' : 'English' }}</span> <i class="ri-arrow-down-s-line d-none d-sm-inline-block align-middle"></i>
+                </a>
+                <div class="dropdown-menu dropdown-menu-end dropdown-menu-animated" style="">
+                    <a href="{{ route('language.switch', ['locale' => 'en']) }}" class="dropdown-item"><img src="{{ asset('storage/img/flags/en.jpg') }}" alt="user-image" class="me-0 me-sm-1" height="12">
+                        <span class="align-middle d-none d-lg-inline-block">English</span>
+                    </a>
+                    <a href="{{ route('language.switch', ['locale' => 'id']) }}" class="dropdown-item">
+                        <img src="{{ asset('storage/img/flags/id.jpg') }}" alt="user-image" class="me-1" height="12"> <span class="align-middle">Bahasa</span>
+                    </a>
+                </div>
+            </li>
 
             <li class="dropdown">
                 <a class="nav-link dropdown-toggle arrow-none nav-user px-2" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">
                     <span class="account-user-avatar">
-                        <img src="{{ asset('img/profiles/user.png') }}?v={{ config('app.version') }}" alt="user-image" width="32" class="rounded-circle">
+                        <img src="{{ asset('storage/img/profiles/user.png') }}" alt="user-image" width="32" class="rounded-circle">
                     </span>
                     <span class="d-flex flex-column gap-1">
                         <h5 class="my-0">
@@ -99,5 +113,17 @@
             </li>
         </ul>
     </div>
+    <div class="container-fluid" style="background-color: #f2f2f7;">
+        <div class="page-title-box mx-2">
+            <div class="page-title-right">
+                <ol class="breadcrumb m-0">
+                    <li class="breadcrumb-item">{{ $parentLink }}</li>
+                    <li class="breadcrumb-item active">{{ $link }}</li>
+                </ol>
+            </div>
+            <h4 class="page-title">{{ $link }}</h4>
+        </div>
+    </div>
 </div>
+                
 <!-- ========== Topbar End ========== -->

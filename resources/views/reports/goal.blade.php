@@ -4,17 +4,16 @@
         <div class="card-header">
             <div class="row bg-primary-subtle rounded p-2">
               <div class="col-md-auto text-center">
-                  <button class="btn btn-outline-primary rounded-pill btn-sm px-2 my-1 me-2 filter-btn" data-id="all">All Task</button>
+                  <button class="btn btn-outline-primary rounded-pill btn-sm px-2 my-1 me-2 filter-btn" data-id="{{ __('All Task') }}">{{ __('All Task') }}</button>
                   <button class="btn btn-outline-primary rounded-pill btn-sm px-2 my-1 me-2 filter-btn" data-id="draft">Draft</button>
-                  <button class="btn btn-outline-primary rounded-pill btn-sm px-2 my-1 me-2 filter-btn" data-id="waiting for revision">Waiting For Revision</button>
-                  <button class="btn btn-outline-primary rounded-pill btn-sm px-2 my-1 me-2 filter-btn" data-id="waiting for approval">Waiting For Approval</button>
-                  <button class="btn btn-outline-primary rounded-pill btn-sm px-2 my-1 me-2 filter-btn" data-id="approved">Approved</button>
+                  <button class="btn btn-outline-primary rounded-pill btn-sm px-2 my-1 me-2 filter-btn" data-id="{{ __('Waiting For Revision') }}">{{ __('Waiting For Revision') }}</button>
+                  <button class="btn btn-outline-primary rounded-pill btn-sm px-2 my-1 me-2 filter-btn" data-id="{{ __('Pending') }}">{{ __('Pending') }}</button>
+                  <button class="btn btn-outline-primary rounded-pill btn-sm px-2 my-1 me-2 filter-btn" data-id="{{ __('Approved') }}">{{ __('Approved') }}</button>
               </div>
             </div>
           </div>
         <div class="card-body">
-            <div class="table-responsive">
-                <table class="table dt-responsive nowrap w-100" id="reportGoalsTable" width="100%" cellspacing="0">
+                <table class="table dt-responsive nowrap table-hover" id="reportGoalsTable" width="100%" cellspacing="0">
                     <thead class="thead-light">
                         <tr class="text-center">
                             <th>Employees</th>
@@ -22,8 +21,8 @@
                             <th>Goal Status</th>
                             <th>Approval Status</th>
                             <th>Initiated On</th>
-                            <th>Initiated By</th>
-                            <th>Last Updated On</th>
+                            <th>{{ __('Initiated By') }}</th>
+                            <th>{{ __('Last Updated On') }}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -36,7 +35,7 @@
                           <td class="text-center">
                             <span class="badge {{ $row->goal->form_status == 'Approved' ? 'bg-success' : ($row->goal->form_status == 'Draft' ? 'badge-outline-secondary' : 'bg-secondary')}} rounded-pill px-1">{{ $row->goal->form_status == 'Draft' ? 'Draft' : $row->goal->form_status }}</span></td>
                           <td class="text-center">
-                            <a href="javascript:void(0)" data-bs-id="{{ $row->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->goal->form_status=='Draft' ? 'Draft' : ($row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : $row->name) }}" class="badge {{ $row->status === 'Approved' ? 'bg-success' : ( $row->status=='Sendback' || $row->goal->form_status=='Draft' ? 'bg-secondary' : 'bg-warning' ) }} rounded-pill px-1">{{ $row->status == 'Pending' ? ($row->goal->form_status=='Draft' ? 'Not Started' : 'Waiting For Approval') : ( $row->status=='Sendback'? 'Waiting For Revision' : $row->status) }}</a>
+                            <a href="javascript:void(0)" data-bs-id="{{ $row->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->goal->form_status=='Draft' ? 'Draft' : ($row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : $row->name) }}" class="badge {{ $row->status === 'Approved' ? 'bg-success' : ( $row->status=='Sendback' || $row->goal->form_status=='Draft' ? 'bg-secondary' : 'bg-warning' ) }} rounded-pill px-1">{{ $row->status == 'Pending' ? ($row->goal->form_status=='Draft' ? 'Not Started' : __('Pending')) : ( $row->status=='Sendback'? 'Waiting For Revision' : $row->status) }}</a>
                           </td>
                           <td class="text-center">{{ $row->formatted_created_at }}</td>
                           <td class="text-center">{{ $row->initiated->name }}<br>{{ $row->initiated->employee_id }}</td>
@@ -81,13 +80,13 @@
                                                             </div>
                                                             <div class="col-md-2">
                                                                 <div class="form-group">
-                                                                    <label class="form-label" for="uom">UoM</label>
-                                                                    <input type="text" value="{{ $data['uom'] }}" class="form-control bg-gray-100" disabled>
+                                                                    <label class="form-label" for="uom">{{ __('Uom') }}</label>
+                                                                    <input type="text" value="{{ $data['uom'] == 'Other' ? $data['custom_uom'] : $data['uom'] }}" class="form-control bg-gray-100" disabled>
                                                                 </div>
                                                             </div>
                                                             <div class="col-md-2">
                                                                 <div class="form-group">
-                                                                    <label class="form-label" for="weightage">Weightage</label>
+                                                                    <label class="form-label" for="weightage">{{ __('Weightage') }}</label>
                                                                     <div class="input-group">
                                                                         <input type="text" class="form-control bg-gray-100" value="{{ $data['weightage'] }}" disabled>
                                                                         <div class="input-group-append">
@@ -102,7 +101,7 @@
                                                             </div>
                                                             <div class="col-md-2">
                                                                 <div class="form-group">
-                                                                    <label class="form-label" for="type">Type</label>
+                                                                    <label class="form-label" for="type">{{ __('Type') }}</label>
                                                                     <input type="text" value="{{ $data['type'] }}" class="form-control bg-gray-100" disabled>
                                                                 </div>
                                                             </div>
@@ -124,7 +123,6 @@
                       @endforeach
                     </tbody>
                 </table>
-            </div>
         </div>
       </div>
     </div>

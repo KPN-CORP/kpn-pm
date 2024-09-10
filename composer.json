@@ -10,7 +10,15 @@
     "require": {
         "php": "^8.2",
         "apalfrey/select2-bootstrap-5-theme": "^1.3",
-        "datatables.net/datatables.net-bs5": "^2.0",
+        "datatables.net/datatables.net-bs5": "^2.1",
+        "datatables.net/datatables.net-buttons-bs5": "^3.1",
+        "datatables.net/datatables.net-datetime": "^1.5",
+        "datatables.net/datatables.net-fixedcolumns-bs5": "^5.0",
+        "datatables.net/datatables.net-fixedheader-bs5": "^4.0",
+        "datatables.net/datatables.net-responsive-bs5": "^3.0",
+        "datatables.net/datatables.net-scroller-bs5": "^2.4",
+        "datatables.net/datatables.net-searchbuilder-bs5": "^1.7",
+        "datatables.net/datatables.net-searchpanes-bs5": "^2.3",
         "filament/forms": "^3.2",
         "laravel/framework": "^11.0",
         "laravel/sanctum": "^4.0",
@@ -18,7 +26,8 @@
         "maatwebsite/excel": "^3.1",
         "realrashid/sweet-alert": "^7.1",
         "spatie/laravel-permission": "^6.7",
-        "ttskch/select2-bootstrap4-theme": "^1.5"
+        "ttskch/select2-bootstrap4-theme": "^1.5",
+        "yajra/laravel-datatables": "^11.0"
     },
     "require-dev": {
         "fakerphp/faker": "^1.23",

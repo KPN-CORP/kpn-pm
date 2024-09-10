@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2010/07/nuspec.xsd">
+    <metadata>
+        <version>5.0.0</version>
+        <id>datatables.net-fixedcolumns</id>
+        <description>This is FixedColumns for DataTables</description>
+        <repository type="git" url="https://github.com/DataTables/Dist-DataTables-FixedColumns.git"/>
+        <authors>SpryMedia Ltd</authors>
+        <projectUrl>http://datatables.net</projectUrl>
+        <license type="expression">MIT</license>
+        <tags>FixedColumns  Datatables jQuery table</tags>
+        <dependencies>
+            <dependency id="datatables.net" version="1.12.1"/>
+        </dependencies>
+        <contentFiles>
+            <files include="**/*" buildAction="Content"/>
+        </contentFiles>
+    </metadata>
+    <files>
+        <file src="js/dataTables.fixedColumns.js" target="content\Scripts"/>
+        <file src="js/dataTables.fixedColumns.js" target="contentFiles\any\any\wwwroot\js"/>
+        <file src="js/dataTables.fixedColumns.min.js" target="content\Scripts"/>
+        <file src="js/dataTables.fixedColumns.min.js" target="contentFiles\any\any\wwwroot\js"/>
+        <file src="js/FixedColumns.js" target="content\Scripts"/>
+        <file src="js/FixedColumns.js" target="contentFiles\any\any\wwwroot\js"/>
+        <file src="js/index.js" target="content\Scripts"/>
+        <file src="js/index.js" target="contentFiles\any\any\wwwroot\js"/>
+    </files>
+</package>
+

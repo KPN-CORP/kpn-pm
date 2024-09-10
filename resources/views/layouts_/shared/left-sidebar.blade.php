@@ -4,52 +4,32 @@
     <!-- Brand Logo Light -->
     <a href="{{ Url('/') }}" class="logo logo-light">
         <span class="logo-lg">
-            <img src="/images/logo.png" alt="logo">
+            <img src="{{ asset('storage/img/logo.png') }}" alt="logo">
         </span>
         <span class="logo-sm">
-            <img src="/images/logo-sm.png" alt="small logo">
+            <img src="{{ asset('storage/img/logo-sm.png') }}" alt="small logo">
         </span>
     </a>
 
     <!-- Brand Logo Dark -->
     <a href="{{ Url('/') }}" class="logo logo-dark">
         <span class="logo-lg">
-            <img src="/images/logo-dark.png" alt="logo">
+            <img src="{{ asset('storage/img/logo-dark.png') }}" alt="logo">
         </span>
         <span class="logo-sm">
-            <img src="/images/logo-sm.png" alt="small logo">
-        </span>
-    </a>
-    @else
-    <!-- Brand Logo Light -->
-    <a href="" class="logo logo-light">
-        <span class="logo-lg">
-            <img src="/images/logo_hcis_ori.png" alt="logo">
-        </span>
-        <span class="logo-sm">
-            <img src="/images/logo-sm_ori.png" alt="small logo">
+            <img src="{{ asset('storage/img/logo-sm.png') }}" alt="small logo">
         </span>
     </a>
 
-    <!-- Brand Logo Dark -->
-    <a href="" class="logo logo-dark">
-        <span class="logo-lg">
-            <img src="/images/logo-dark_hcis_ori.png" alt="logo">
-        </span>
-        <span class="logo-sm">
-            <img src="/images/logo-sm_ori.png" alt="small logo">
-        </span>
-    </a>
-    @endif
     <!-- Sidebar Hover Menu Toggle Button -->
     <div class="button-sm-hover" data-bs-toggle="tooltip" data-bs-placement="right" title="Show Full Sidebar">
         <i class="ri-checkbox-blank-circle-line align-middle"></i>
     </div>
 
     <!-- Full Sidebar Menu Close Button -->
-    <div class="button-close-fullsidebar">
+    {{-- <div class="button-close-fullsidebar">
         <i class="ri-close-fill align-middle"></i>
-    </div>
+    </div> --}}
 
     <!-- Sidebar -left -->
     <div class="h-100" id="leftside-menu-container" data-simplebar>
@@ -74,39 +54,55 @@
                 </div>
             </li>
             @endif
-            @if(session('system') == 'kpnpm')
-                <li class="side-nav-item">
-                    <a data-bs-toggle="collapse" href="#sidebarEmail" aria-expanded="false" aria-controls="sidebarEmail" class="side-nav-link">
-                        <i class="ri-star-line"></i>
-                        <span> Goals </span>
-                        <span class="menu-arrow"></span>
-                    </a>
-                    <div class="collapse" id="sidebarEmail">
-                        <ul class="side-nav-second-level">
-                            <li>
-                                <a href="{{ route('goals') }}">My Goals</a>
-                            </li>
-                            @if(auth()->user()->isApprover())
-                            <li>
-                                <a href="{{ route('team-goals') }}">Team Goals</a>
-                            </li>
-                            @endif
-                        </ul>
-                    </div>
-                </li>
-            @elseif(session('system') == 'kpnreimburse')
-                <li class="side-nav-item">
-                    <a href="{{ route('reimbursements') }}"  aria-controls="sidebarEmail" class="side-nav-link">
-                        <i class="ri-star-line"></i>
-                        <span> Reimbursements </span>
-                    </a>
-                </li>
-            @endif
+            <li class="side-nav-item">
+                <a data-bs-toggle="collapse" href="#sidebarGoals" aria-expanded="false" aria-controls="sidebarGoals" class="side-nav-link">
+                    <i class="ri-star-line"></i>
+                    {{-- <span class="badge bg-success float-end">2</span> --}}
+                    <span>{{ __('Goal') }}</span>
+                    <span class="menu-arrow"></span>
+                </a>
+                <div class="collapse" id="sidebarGoals">
+                    <ul class="side-nav-second-level">
+                        <li>
+                            <a href="{{ route('goals') }}">{{ __('My Goal') }}</a>
+                        </li>
+                        @if(auth()->user()->isApprover())
+                        <li>
+                            <a href="{{ route('team-goals') }}">{{ __('Task Box') }}</a>
+                        </li>
+                        @endif
+                    </ul>
+                </div>
+            </li>
+            <li class="side-nav-item">
+                <a data-bs-toggle="collapse" href="#sidebarAppraisal" aria-expanded="false" aria-controls="sidebarAppraisal" class="side-nav-link">
+                    <i class="ri-star-line"></i>
+                    {{-- <span class="badge bg-success float-end">2</span> --}}
+                    <span>{{ __('Appraisal') }}</span>
+                    <span class="menu-arrow"></span>
+                </a>
+                <div class="collapse" id="sidebarAppraisal">
+                    <ul class="side-nav-second-level">
+                        <li>
+                            <a href="{{ route('appraisals') }}">{{ __('My Appraisal') }}</a>
+                        </li>
+                        <li>
+                            <a href="{{ route('appraisals-task') }}">{{ __('Task Box') }}</a>
+                        </li>
+                    </ul>
+                </div>
+            </li>
+            <li class="side-nav-item">
+                <a href="{{ route('rating') }}" class="side-nav-link">
+                    <i class="ri-star-line"></i>
+                    <span> Rating </span>
+                </a>
+            </li>
             @if (auth()->user()->isApprover())
             <li class="side-nav-item">
                 <a href="{{ url('/reports') }}" class="side-nav-link">
                     <i class="ri-file-chart-line"></i>
-                    <span> Reports </span>
+                    <span>{{ __('Report') }}</span>
                 </a>
             </li>
             @endif
@@ -144,7 +140,20 @@
                                     @endcan
                                     @can('viewlayer')
                                     <li>
-                                        <a href="{{ route('layer') }}">Layer</a>
+                                        <a data-bs-toggle="collapse" href="#sidebarLayer" aria-expanded="false" aria-controls="sidebarLayer" class="side-nav-link">
+                                            <span> Layer </span>
+                                            <span class="menu-arrow"></span>
+                                        </a>
+                                        <div class="collapse" id="sidebarLayer">
+                                            <ul class="side-nav-second-level">
+                                                <li>
+                                                    <a href="{{ route('layer') }}">Goals</a>
+                                                </li>
+                                                <li>
+                                                    <a href="{{ route('layer-appraisal') }}">{{ __('Appraisal') }}</a>
+                                                </li>
+                                            </ul>
+                                        </div>
                                     </li>
                                     @endcan
                                     @can('viewrole')
@@ -163,7 +172,7 @@
                         @endcan
                         @can('viewreport')
                         <li class="side-nav-item">
-                            <a href="{{ route('admin.reports') }}">Reports</a>
+                            <a href="{{ route('admin.reports') }}">{{ __('Report') }}</a>
                         </li>
                         @endcan
                     </ul>

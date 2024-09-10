@@ -6,20 +6,7 @@
 @section('content')
     <!-- Begin Page Content -->
     <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <div class="page-title-right">
-                        <ol class="breadcrumb m-0">
-                            <li class="breadcrumb-item"><a href="{{ route('goals') }}">{{ $parentLink }}</a></li>
-                            <li class="breadcrumb-item active">{{ $link }}</li>
-                        </ol>
-                    </div>
-                    <h4 class="page-title">{{ $link }}</h4>
-                </div>
-            </div>
-        </div>
-        
+
     @if ($errors->any())
     <div class="alert alert-danger">
             @foreach ($errors->all() as $error)
@@ -42,28 +29,27 @@
           @endforeach
           <!-- Content Row -->
           <div class="container-card">
-            <div class="card col-md-12 mb-4 border-top shadow-sm">
-                <div class="card-header border-0 bg-white d-flex align-items-center pb-0">
-                    <h4>KPI {{ $index + 1 }}</h4>
-                </div>
+            <div class="card col-md-12 mb-3 shadow">
                 <div class="card-body">
+                    <h5 class="card-title fs-16 mb-3">Goal {{ $index + 1 }}</h5>
                     <div class="row">
                         <div class="col-md-4">
                             <div class="mb-3">
-                                <label class="form-label" for="kpi">KPI {{ $index + 1 }}</label>
+                                <label class="form-label" for="kpi">KPI</label>
                                 <textarea name="kpi[]" id="kpi" class="form-control" required>{{ old('kpi.0') }}</textarea>
                             </div>
                         </div>
                         <div class="col-md-2">
                             <div class="mb-3">
                                 <label class="form-label" for="target">Target</label>
-                                <input  type="number" pattern="\d{1,10}" oninput="validateDigits(this)" name="target[]" value="{{ old('target.0') }}" id="target" class="form-control" required>
+                                <input  type="text" oninput="validateDigits(this, {{ $index }})" value="{{ number_format(old('target.0'), 0, '', ',') }}" class="form-control" required>
+                                <input type="hidden" name="target[]" id="target{{ $index }}" value="{{ old('target.0') }}">
                             </div>
                         </div>
                         <div class="col-md-2">
                             <div class="mb-3">
-                                <label class="form-label" for="uom">UoM</label>
-                                <select class="form-select select2 max-w-full" name="uom[]" id="uom{{ $index }}" onchange="otherUom('{{ $index }}')" title="Unit of Measure" required>
+                                <label class="form-label" for="uom">{{ __('Uom') }}</label>
+                                <select class="form-select select2 max-w-full select-uom" data-id="{{ $index }}" name="uom[]" id="uom{{ $index }}" title="Unit of Measure" required>
                                     <option value="">- Select -</option>
                                     @foreach ($uomOption as $label => $options)
                                     <optgroup label="{{ $label }}">
@@ -80,8 +66,8 @@
                         </div>
                         <div class="col-md-2">
                             <div class="mb-3">
-                                <label class="form-label" for="type">Type</label>
-                                <select class="form-select" name="type[]" id="type" required>
+                                <label class="form-label" for="type">{{ __('Type') }}</label>
+                                <select class="form-select select-type" name="type[]" id="type{{ $index }}" required>
                                     <option value="">- Select -</option>
                                     <option value="Higher Better">Higher Better</option>
                                     <option value="Lower Better">Lower Better</option>
@@ -91,7 +77,7 @@
                         </div>
                         <div class="col-md-2">
                             <div class="mb-3">
-                                <label class="form-label" for="weightage">Weightage</label>
+                                <label class="form-label" for="weightage">{{ __('Weightage') }}</label>
                                 <div class="input-group">
                                     <input type="number" min="5" max="100" class="form-control" name="weightage[]" value="{{ old('weightage.0') }}" required>
                                     <div class="input-group-append">
@@ -108,23 +94,30 @@
         <input type="hidden" id="count" value="{{ 1 }}">
         <div class="col-md text-end text-md-start">
             <div class="mb-4">
-                <a class="btn btn-outline-primary rounded-pill mb-4" id="addButton" data-id="input"><i class="ri-add-line me-1"></i><span>Add</span></a>
+                <a class="btn btn-outline-primary rounded-pill mb-4" id="addButton" data-id="input"><i class="ri-add-line me-1"></i><span>{{ __('Add') }}</span></a>
             </div>
         </div>
         <input type="hidden" name="submit_type" id="submitType" value=""> <!-- Hidden input to store the button clicked -->
         <div class="row">
             <div class="col-md d-md-flex align-items-center mb-3">
-                <h5>Total Weightage : <span class="font-weight-bold" id="totalWeightage">-</span></h5>
+                <h5>{{ __('Total Weightage') }} : <span class="font-weight-bold" id="totalWeightage">-</span></h5>
             </div>
             <div class="col-md-auto d-md-flex align-items-center justify-content-center text-center mb-3">
-                <button type="submit" name="save_draft" class="btn btn-info rounded-pill save-draft me-2" onclick="return setSubmitType('save_draft')"><i class="ri-save-line d-sm-none"></i><span class="d-sm-block d-none">Save as Draft</span></button>
-                <a href="{{ url()->previous() }}" class="btn btn-danger rounded-pill me-2">Cancel</a>
-                <button type="submit" id="submitButton" name="submit_form" class="btn btn-primary rounded-pill shadow" onclick="return setSubmitType('submit_form')"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Submit</button>
+                <a id="submitButton" data-id="save_draft" name="save_draft" class="btn btn-info rounded-pill save-draft me-2"><i class="ri-save-line d-sm-none"></i><span class="d-sm-block d-none">Save as Draft</span></a>
+                <a href="{{ url()->previous() }}" class="btn btn-outline-secondary rounded-pill me-2">{{ __('Cancel') }}</a>
+                <a id="submitButton" data-id="submit_form" name="submit_form" class="btn btn-primary rounded-pill shadow"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>{{ __('Submit') }}</a>
             </div>
         </div>
         </form>
     </div>
 @endsection
 @push('scripts')
-    <script src="{{ asset('js/goal-form.js') }}?v={{ config('app.version') }}"></script>
+    <script>
+        const uom = '{{ __('Uom') }}';
+        const type = '{{ __('Type') }}';
+        const weightage = '{{ __('Weightage') }}';
+        const errorMessages = '{{ __('Error Messages') }}';
+        const errorAlertMessages = '{{ __('Error Alert Messages') }}';
+        const errorConfirmMessages = '{{ __('Error Confirm Messages') }}';
+    </script>
 @endpush

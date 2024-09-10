@@ -27,19 +27,6 @@
 
 @section('content')
     <div class="container-fluid">
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <div class="page-title-right">
-                        <ol class="breadcrumb m-0">
-                            <li class="breadcrumb-item"><a href="{{ route('guides') }}">{{ $parentLink }}</a></li>
-                            <li class="breadcrumb-item active">{{ $link }}</li>
-                        </ol>
-                    </div>
-                    <h4 class="page-title">{{ $link }}</h4>
-                </div>
-            </div>
-        </div>
         @if(session('success'))
             <div class="alert alert-success mt-3">
                 {{ session('success') }}
@@ -219,13 +206,11 @@
                     </form>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-danger rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-danger rounded-pill" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
                         <button type="button" id="submit" class="btn btn-primary rounded-pill"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Save Guideline</button>
                     </div>
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
     </div>
 @endsection
-@push('scripts')
-    <script src="{{ asset('js/guide.js') }}"></script>
-@endpush
+@vite('resources/js/guide.js')
