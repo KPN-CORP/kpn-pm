@@ -1,6 +1,5 @@
 
 {{-- <script src="{{ asset('js/report.js') }}"></script> --}}
-{{-- @vite('resources/js/report.js') --}}
 <script type="text/javascript" src="//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
 
 @if(Session::has('toast'))

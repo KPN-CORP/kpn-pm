@@ -11,10 +11,10 @@
     <!-- Font Awesome Icons -->
     <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
     <!-- Nucleo Icons -->
-    @vite('resources/css/nucleo-icons.css')
-    @vite('resources/css/nucleo-svg.css')
+    <link href="{{ asset('assets/css/nucleo-icons.css') }}?v={{ config('app.version') }}" rel="stylesheet" />
+    <link href="{{ asset('assets/css/nucleo-svg.css') }}?v={{ config('app.version') }}" rel="stylesheet" />
     <!-- Main Styling -->
-    @vite('resources/css/soft-ui-dashboard-tailwind.css?v=1.0.5')
+    <link href="{{ asset('assets/css/soft-ui-dashboard-tailwind.css?v=1.0.5') }}?v={{ config('app.version') }}" rel="stylesheet" />
 
     <!-- Nepcha Analytics (nepcha.com) -->
     <!-- Nepcha is a easy-to-use web analytics. No cookies and fully compliant with GDPR, CCPA and PECR. -->
@@ -110,6 +110,8 @@
     </footer>
   </body>
   <!-- plugin for scrollbar  -->
-  @vite('resources/js/plugins/perfect-scrollbar.min.js')
-  @vite('resources/js/soft-ui-dashboard-tailwind.js?v=1.0.5')
+  <!-- plugin for scrollbar  -->
+  <script src="{{ asset('assets/js/plugins/perfect-scrollbar.min.js') }}?v={{ config('app.version') }}" async></script>
+  <!-- main script file  -->
+  <script src="{{ asset('assets/js/soft-ui-dashboard-tailwind.js?v=1.0.5') }}?v={{ config('app.version') }}" async></script>
 </html>
