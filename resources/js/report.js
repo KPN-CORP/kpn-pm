@@ -4,6 +4,8 @@ function hideLoader() {
     $("#preloader").hide();
 }
 
+import bootstrap from "bootstrap/dist/js/bootstrap.bundle.min.js";
+
 function adminReportType(val) {
     $("#report_type").val(val);
     const reportForm = $("#admin_report_filter");

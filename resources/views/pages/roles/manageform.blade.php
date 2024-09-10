@@ -11,8 +11,8 @@
       <div class="col">
         <input type="hidden" name="roleId" value="{{ $roleId }}">
         <div class="mb-4 text-end">
-            <a href="javascript:void(0)" onclick="deleteRole();" class="btn btn-outline-danger rounded-pill px-4 me-2"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Delete</a>
-          <button type="submit" id="submitButton" class="btn btn-primary rounded-pill px-4"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Update</button>
+            <a href="javascript:void(0)" onclick="deleteRole();" class="btn btn-outline-danger px-4 me-2"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Delete</a>
+          <button type="submit" id="submitButton" class="btn btn-primary px-4"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Update</button>
         </div>
       </div>
     </div>

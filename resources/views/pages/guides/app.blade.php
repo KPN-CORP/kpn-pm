@@ -38,7 +38,7 @@
                     <div class="card-body">
                         <div class="card-widgets">
                             @can('addguide')
-                                <button class="btn btn-primary btn-sm shadow rounded-pill me-1" data-bs-toggle="modal" data-bs-target="#add-guide-modal"><i class="ri-add-line col-md d-sm-none"></i> Add <span class="col-md d-none d-sm-inline">new Guideline</span></button>
+                                <button class="btn btn-primary btn-sm shadow me-1" data-bs-toggle="modal" data-bs-target="#add-guide-modal"><i class="ri-add-line col-md d-sm-none"></i> Add <span class="col-md d-none d-sm-inline">new Guideline</span></button>
                             @endcan
                         </div>
                         <h4 class="card-title mb-4">User Guide</h4>
@@ -206,11 +206,10 @@
                     </form>
                     </div>
                     <div class="modal-footer">
-                        <button type="button" class="btn btn-danger rounded-pill" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
-                        <button type="button" id="submit" class="btn btn-primary rounded-pill"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Save Guideline</button>
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">{{ __('Cancel') }}</button>
+                        <button type="button" id="submit" class="btn btn-primary"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Save Guideline</button>
                     </div>
             </div><!-- /.modal-content -->
         </div><!-- /.modal-dialog -->
     </div>
 @endsection
-@vite('resources/js/guide.js')

@@ -10,7 +10,7 @@
         <div class="row">
             <div class="col-lg">
                 <div class="mb-3 text-end">
-                    <button type="button" class="btn btn-primary rounded-pill open-import-modal" title="Import">Import Layer</button>
+                    <button type="button" class="btn btn-primary open-import-modal" title="Import">Import Layer</button>
                 </div>
             </div>
         </div>    
@@ -66,14 +66,14 @@
                                         @endforeach
                                     </td>
                                     <td class="text-center sorting_1">
-                                        <button type="button" class="btn btn-sm rounded-pill btn-primary open-edit-modal mb-1"
+                                        <button type="button" class="btn btn-sm btn-outline-warning open-edit-modal mb-1"
                                         data-bs-employee-id="{{ $approvalLayer->employee_id }}"
                                         data-bs-fullname="{{ $approvalLayer->fullname }}"
                                         data-bs-app="{{ $approvalLayer->approver_ids }}"
                                         data-bs-layer="{{ $approvalLayer->layers }}"
                                         data-bs-app-name="{{ $approvalLayer->approver_names }}"
                                         title="Edit"><i class="ri-edit-box-line"></i></button>
-                                        <button type="button" class="btn btn-sm rounded-pill btn-success open-view-modal mb-1" title="History"
+                                        <button type="button" class="btn btn-sm btn-outline-secondary open-view-modal mb-1" title="History"
                                             onclick="viewHistory('{{ $approvalLayer->employee_id }}')">
                                             <i class="ri-history-line"></i>
                                         </button>
@@ -144,7 +144,7 @@
                         <div class="col">
                             <div class="mb-2">
                                 <label class="form-label" for="fullname">Download Templete here : </label>
-                                <a href="{{ asset('storage/files/template.xls') }}" class="badge-outline-primary rounded-pill p-1" download><i class="ri-file-text-line me-1"></i>Import_Excel_Template</a>
+                                <a href="{{ asset('storage/files/template.xls') }}" class="badge-outline-primary p-1" download><i class="ri-file-text-line me-1"></i>Import_Excel_Template</a>
                             </div>
                         </div>
                     </div>
@@ -194,4 +194,3 @@
     var employeesData = {!! json_encode($employees) !!};
 </script>
 @endpush
-@vite('resources/js/layer.js')
