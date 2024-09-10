@@ -1929,6 +1929,11 @@ bootstrap-touchspin@^4.7.3:
   resolved "https://registry.npmjs.org/bootstrap-touchspin/-/bootstrap-touchspin-4.7.3.tgz"
   integrity sha512-VVyPKI05ybS4ciB0OJ8g4Jx4SU3rlrWa/ItSxIi7BWNVa0jUYt3eujeOiBWpkuEGukECwiAbwuzh3a+xLtxueQ==
 
+bootstrap-wizard@^1.4.2:
+  version "1.4.2"
+  resolved "https://registry.npmjs.org/bootstrap-wizard/-/bootstrap-wizard-1.4.2.tgz"
+  integrity sha512-1W05bYvDOuD3xyliFZaLRasu2mIB+AekDDfbzu4hCNb24vWQZ8g/1rjbEypzsgI7eml/yjIZah3uEjg5opI6Jw==
+
 bootstrap@^4.4.1:
   version "4.6.2"
   resolved "https://registry.npmjs.org/bootstrap/-/bootstrap-4.6.2.tgz"

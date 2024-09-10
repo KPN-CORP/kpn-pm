@@ -34,6 +34,8 @@ use App\Http\Controllers\MyGoalController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\TeamAppraisalController;
 use App\Http\Controllers\TeamGoalController;
+use App\Http\Controllers\ReimburseController;
+
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -45,6 +47,7 @@ Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['au
 Route::get('language/{locale}', [LanguageController::class, 'switchLanguage'])->name('language.switch');
 
 Route::get('dbauth', [SsoController::class, 'dbauth']);
+Route::get('sourcermb/dbauth', [SsoController::class, 'dbauthReimburse']);
 
 Route::get('fetch-employees', [EmployeeController::class, 'fetchAndStoreEmployees']);
 Route::get('updmenu-employees', [EmployeeController::class, 'updateEmployeeAccessMenu']);
@@ -96,6 +99,12 @@ Route::middleware('auth', 'locale')->group(function () {
     // Tasks
     Route::get('/tasks', [TaskController::class, 'task'])->name('tasks');
 
+    // My Reimbursement
+    Route::get('/reimbursements', [ReimburseController::class, 'reimbursements'])->name('reimbursements');
+    Route::get('/cashadvanced', [ReimburseController::class, 'cashadvanced'])->name('cashadvanced');
+    Route::get('/cashadvanced/form', [ReimburseController::class, 'cashadvancedCreate'])->name('cashadvanced.form');
+    
+
     // My Goals
     Route::get('/goals', [MyGoalController::class, 'index'])->name('goals');
     Route::get('/goals/detail/{id}', [MyGoalController::class, 'show'])->name('goals.detail');
@@ -111,6 +120,7 @@ Route::middleware('auth', 'locale')->group(function () {
     Route::post('/team-goals/submit', [TeamGoalController::class, 'store'])->name('team-goals.submit');
     Route::get('/team-goals/edit/{id}', [TeamGoalController::class, 'edit'])->name('team-goals.edit');
     Route::get('/team-goals/approval/{id}', [TeamGoalController::class, 'approval'])->name('team-goals.approval');
+    // Route::post('/goals/update', [TeamGoalController::class, 'update'])->name('goals.update');
     Route::get('/get-tooltip-content', [TeamGoalController::class, 'getTooltipContent']);
     Route::get('/units-of-measurement', [TeamGoalController::class, 'unitOfMeasurement']);
 

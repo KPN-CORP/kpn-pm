@@ -321,48 +321,87 @@ class ScheduleController extends Controller
         $schedules = DB::table('schedules')
             ->where('start_date', '<=', $today)
             ->where('end_date', '>=', $today)
+            ->where('checkbox_reminder', '=', 1)
             ->whereNull('deleted_at')
             ->get();
         
         foreach ($schedules as $schedule) {
             // Ambil data dari tabel employees yang sesuai dengan filter di tabel schedules
-            $sendReminder = false;
+            if($schedule->checkbox_reminder=='1'){
+                $sendReminder = false;
 
-            if ($schedule->inputState == 'beforeenddate') {
-                $reminderStartDate = Carbon::parse($schedule->end_date)->subDays($schedule->before_end_date);
-                if (Carbon::today()->between($reminderStartDate, Carbon::parse($schedule->end_date))) {
-                    $sendReminder = true;
+                if ($schedule->inputState == 'beforeenddate') {
+                    $reminderStartDate = Carbon::parse($schedule->end_date)->subDays($schedule->before_end_date);
+                    if (Carbon::today()->between($reminderStartDate, Carbon::parse($schedule->end_date))) {
+                        $sendReminder = true;
+                    }
+                } elseif ($schedule->inputState == 'repeaton') {
+                    $repeatDays = explode(',', $schedule->repeat_days);
+                    if (in_array($dayOfWeek, $repeatDays)) {
+                        $sendReminder = true;
+                    }
                 }
-            } elseif ($schedule->inputState == 'repeaton') {
-                $repeatDays = explode(',', $schedule->repeat_days);
-                if (in_array($dayOfWeek, $repeatDays)) {
-                    $sendReminder = true;
+
+                if ($sendReminder) {
+                    // $employees = DB::table('employees')
+                    //     ->leftJoin('goals', 'employees.employee_id', '=', 'goals.employee_id')
+                    //     ->whereNull('goals.employee_id')
+                    //     ->where('employees.employee_type', $schedule->employee_type)
+                    //     ->where('employees.group_company', $schedule->bisnis_unit)
+                    //     ->where('employees.contribution_level_code', $schedule->company_filter)
+                    //     ->where('employees.work_area_code', $schedule->location_filter)
+                    //     ->where('employees.date_of_joining', '<=', $schedule->last_join_date)
+                    //     ->whereNotIn('employees.job_level', ['9B', '10A', '10B'])
+                    //     ->select('employees.*')
+                    //     ->get();
+
+                    $query = Employee::query();
+
+                    // Memastikan employees yang tidak memiliki goals
+                    $query->doesntHave('goal');
+
+                    // Filter berdasarkan employee_type jika ada
+                    if ($schedule->employee_type) {
+                        $query->whereIn('employee_type', explode(',', $schedule->employee_type));
+                    }
+
+                    // Filter berdasarkan group_company jika ada
+                    if ($schedule->bisnis_unit) {
+                        $query->whereIn('group_company', explode(',', $schedule->bisnis_unit));
+                    }
+
+                    // Filter berdasarkan contribution_level_code jika ada
+                    if ($schedule->company_filter) {
+                        $query->whereIn('contribution_level_code', explode(',', $schedule->company_filter));
+                    }
+
+                    // Filter berdasarkan work_area_code jika ada
+                    if ($schedule->location_filter) {
+                        $query->whereIn('work_area_code', explode(',', $schedule->location_filter));
+                    }
+
+                    // Filter berdasarkan date_of_joining
+                    $query->where('date_of_joining', '<=', $schedule->last_join_date);
+
+                    // Exclude job levels
+                    $query->whereNotIn('job_level', ['9B', '10A', '10B']);
+
+                    // Get employees
+                    $employees = $query->get();
+                    // dd($employees);
+
+                    // Kirim email
+                    foreach ($employees as $employee) {
+                        //$email = $employee->email;
+                        $email = 'eriton.dewa@kpn-corp.com';
+                        $name = $employee->fullname;
+                        $message = $schedule->messages;
+
+                        dispatch(new SendReminderScheduleEmailJob($email, $name, $message));
+                        //echo "penerima : $email <br>nama : $name <br>isi email : $message <br>";
+                    }
                 }
-            }
 
-            if ($sendReminder) {
-                $employees = DB::table('employees')
-                    ->leftJoin('goals', 'employees.employee_id', '=', 'goals.employee_id')
-                    ->whereNull('goals.employee_id')
-                    ->where('employees.employee_type', $schedule->employee_type)
-                    ->where('employees.group_company', $schedule->bisnis_unit)
-                    ->where('employees.contribution_level_code', $schedule->company_filter)
-                    ->where('employees.work_area_code', $schedule->location_filter)
-                    ->where('employees.date_of_joining', '<=', $schedule->last_join_date)
-                    ->whereNotIn('employees.job_level', ['9B', '10A', '10B'])
-                    ->select('employees.*')
-                    ->get();
-
-                // Kirim email
-                foreach ($employees as $employee) {
-                    //$email = $employee->email;
-                    $email = 'eriton.dewa@kpn-corp.com';
-                    $name = $employee->fullname;
-                    $message = $schedule->messages;
-
-                    dispatch(new SendReminderScheduleEmailJob($email, $name, $message));
-                    //echo "penerima : $email <br>nama : $name <br>isi email : $message <br>";
-                }
             }
         }
     }

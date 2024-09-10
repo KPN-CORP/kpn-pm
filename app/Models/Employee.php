@@ -24,7 +24,7 @@ class Employee extends Model
     }
     public function goal()
     {
-        return $this->belongsTo(Goal::class, 'users_id', 'users_id');
+        return $this->belongsTo(Goal::class, 'employee_id', 'employee_id');
     }
     
     public function approvalRequest()
