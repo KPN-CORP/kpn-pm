@@ -10,7 +10,7 @@
         <div class="row">
             <div class="col-lg">
                 <div class="mb-3 text-end">
-                    <button type="button" class="btn btn-primary rounded-pill open-import-modal" title="Import">Import Layer</button>
+                    <button type="button" class="btn btn-primary open-import-modal" title="Import">Import Layer</button>
                 </div>
             </div>
         </div>    
@@ -118,7 +118,7 @@
                         <div class="col">
                             <div class="mb-2">
                                 <label class="form-label" for="fullname">Download Templete here : </label>
-                                <a href="{{ asset('storage/files/template.xls') }}" class="badge-outline-primary rounded-pill p-1" download><i class="ri-file-text-line me-1"></i>Import_Excel_Template</a>
+                                <a href="{{ asset('storage/files/template.xls') }}" class="badge-outline-primary p-1" download><i class="ri-file-text-line me-1"></i>Import_Excel_Template</a>
                             </div>
                         </div>
                     </div>

@@ -110,7 +110,7 @@
         <input type="hidden" id="count" value="{{ $formCount }}">
         
         <div class="col-md-2">
-            <a class="btn btn-outline-primary rounded-pill mb-4" id="addButton" data-id="edit"><i class="ri-add-line me-1"></i><span>{{ __('Add') }}</span></a>
+            <a class="btn btn-outline-primary mb-4" id="addButton" data-id="edit"><i class="ri-add-line me-1"></i><span>{{ __('Add') }}</span></a>
         </div>
         @if ($approvalRequest->sendback_messages)
             <div class="row">
@@ -132,10 +132,10 @@
             <div class="col-md-auto">
                 <div class="mb-3 text-center">
                     @if ($goal->form_status=='Draft')
-                    <a id="submitButton" name="save_draft" class="btn btn-info save-draft me-3 rounded-pill" data-id="save_draft" ><i class="fas fa-save d-sm-none"></i><span class="d-sm-block d-none">Save as Draft</span></a>  
+                    <a id="submitButton" name="save_draft" class="btn btn-info save-draft me-3" data-id="save_draft" ><i class="fas fa-save d-sm-none"></i><span class="d-sm-block d-none">Save as Draft</span></a>  
                     @endif
-                    <a href="{{ route('goals') }}" class="btn btn-outline-secondary px-3 me-2 rounded-pill">{{ __('Cancel') }}</a>
-                    <a id="submitButton" data-id="submit_form" name="submit_form" class="btn btn-primary px-3 rounded-pill shadow"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>{{ __('Submit') }}</a>
+                    <a href="{{ route('goals') }}" class="btn btn-outline-secondary px-3 me-2">{{ __('Cancel') }}</a>
+                    <a id="submitButton" data-id="submit_form" name="submit_form" class="btn btn-primary px-3 shadow"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>{{ __('Submit') }}</a>
                 </div>
             </div>
         </div>

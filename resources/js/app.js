@@ -5,7 +5,7 @@ window.$ = jQuery;
 import 'popper.js';
 
 // import "bootstrap";
-// import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 import Swal from "sweetalert2";
 window.Swal = Swal;
@@ -46,6 +46,10 @@ import './appraisal-task.js';
 import './layer-appraisal.js';
 import './rating.js';
 import './report.js';
+import './schedule.js';
+import './guide.js';
+import './role.js';
+import './layer.js';
 
 function googleTranslateElementInit() {
     new google.translate.TranslateElement({

@@ -9,7 +9,7 @@
         <div class="row">
             <div class="col">
                 <div class="mb-2 text-end">
-                    <a href="{{ route('schedules.form') }}" class="btn btn-primary rounded-pill shadow">Create Schedule</a>
+                    <a href="{{ route('schedules.form') }}" class="btn btn-primary shadow">Create Schedule</a>
                 </div>
             </div>
         </div>
@@ -66,9 +66,9 @@
                             <!--<td><span class="badge badge-success badge-pill w-100">Active</span></td>-->
                             <td class="text-center sorting_1">
                                 @if($schedule->created_by == $userId)
-                                    <a href="{{ route('edit-schedule', $schedule->id) }}" class="btn btn-sm rounded-pill btn-warning" title="Edit" ><i class="ri-edit-box-line"></i></a>
+                                    <a href="{{ route('edit-schedule', $schedule->id) }}" class="btn btn-sm btn-warning" title="Edit" ><i class="ri-edit-box-line"></i></a>
                                     
-                                    <a class="btn btn-sm rounded-pill btn-danger" title="Delete" onclick="handleDelete(this)" data-id="{{ $schedule->id }}"><i class="ri-delete-bin-line"></i></a>
+                                    <a class="btn btn-sm btn-danger" title="Delete" onclick="handleDelete(this)" data-id="{{ $schedule->id }}"><i class="ri-delete-bin-line"></i></a>
                                 @else
                                     <span>-</span>
                                 @endif
@@ -83,4 +83,3 @@
       </div>
     </div>
 @endsection
-@vite('resources/js/schedule.js')

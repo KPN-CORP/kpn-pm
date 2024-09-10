@@ -2,6 +2,8 @@ import $ from 'jquery';
 
 import numeral from 'numeral';
 
+import bootstrap from "bootstrap/dist/js/bootstrap.bundle.min.js";
+
 import select2 from "select2"
 select2(); 
 
