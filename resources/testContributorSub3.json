@@ -1,0 +1,17 @@
+{
+  "formGroupName":"Appraisal Form",
+  "formData":[
+    {
+      "formName":"Culture",
+      "0":[{"score":"3"},{"score":"3"},{"score":"3"}],
+      "1":[{"score":"4"},{"score":"4"},{"score":"4"}],
+      "2":[{"score":"3"},{"score":"3"},{"score":"3"}]
+    },
+    {
+      "formName":"Leadership",
+      "0":[{"score":"3"},{"score":"3"}],
+      "1":[{"score":"3"},{"score":"4"}],
+      "2":[{"score":"2"},{"score":"3"}]
+    }
+  ]
+}

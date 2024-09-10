@@ -22,7 +22,7 @@
         <!-- ============================================================== -->
 
         <div class="content-page">
-            <div class="content">
+            <div id="content" class="content">
                 <!-- Start Content-->
                 @yield('content')
             </div>

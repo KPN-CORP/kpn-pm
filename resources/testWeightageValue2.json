@@ -1,0 +1,34 @@
+[
+  {
+    "jobLevel": ["4A", "4B"],
+    "360": false,
+    "competencies": [
+      {
+        "competency": "Key Performance Indicator",
+        "weightage": 55,
+        "formName": ""
+      },
+      {
+        "competency": "Culture",
+        "weightage": 45,
+        "formName": "Competency Form Culture 1"
+      }
+    ]
+  },
+  {
+    "jobLevel": ["5A", "5B"],
+    "360": true,
+    "competencies": [
+      {
+        "competency": "Key Performance Indicator",
+        "weightage": 55,
+        "formName": ""
+      },
+      {
+        "competency": "Culture",
+        "weightage": 45,
+        "formName": "Competency Form Culture 1"
+      }
+    ]
+  }
+]

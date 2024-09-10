@@ -16,10 +16,10 @@ return new class extends Migration
             $table->uuid('appraisal_id');
             $table->string('employee_id');
             $table->string('contributor_id');
-            $table->string('contributor_category');
+            $table->string('contributor_type');
             $table->json('form_data');
             $table->unsignedInteger('rating');
-            $table->enum('status', ['Pending','Approved','Sendback'])->default('Pending');
+            $table->enum('status', ['Draft','Submitted','Approved','Rejected'])->default('Submitted');
             $table->unsignedInteger('period');
             $table->unsignedBigInteger('created_by');
             $table->unsignedBigInteger('updated_by')->nullable();

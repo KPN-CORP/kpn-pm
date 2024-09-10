@@ -1,0 +1,69 @@
+[
+    {
+      "jobLevel": ["4A", "4B"],
+      "360": false,
+      "competencies": [
+        {
+          "competency": "Key Performance Indicator",
+          "weightage": 45,
+          "formName": ""
+        },
+        {
+          "competency": "Culture",
+          "weightage": 30,
+          "weightage360": [
+            {"employee": 20},
+            {"manager": 30},
+            {"peers": 30},
+            {"subordinate": 20}
+          ],
+          "formName": "Competency Form Culture 1"
+        },
+        {
+          "competency": "Leadership",
+          "weightage": 25,
+          "weightage360": [
+            {"employee": 20},
+            {"manager": 30},
+            {"peers": 30},
+            {"subordinate": 20}
+          ],
+          "formName": "Competency Form Leadership 1"
+        }
+      ]
+    },
+    {
+      "jobLevel": ["5A", "5B"],
+      "360": true,
+      "competencies": [
+        {
+          "competency": "Key Performance Indicator",
+          "weightage": 45,
+          "formName": ""
+        },
+        {
+          "competency": "Culture",
+          "weightage": 30,
+          "weightage360": [
+            {"employee": 20},
+            {"manager": 30},
+            {"peers": 30},
+            {"subordinate": 20}
+          ],
+          "formName": "Competency Form Culture 1"
+        },
+        {
+          "competency": "Leadership",
+          "weightage": 25,
+          "weightage360": [
+            {"employee": 20},
+            {"manager": 30},
+            {"peers": 30},
+            {"subordinate": 20}
+          ],
+          "formName": "Competency Form Leadership 1"
+        }
+      ]
+    }
+]
+  

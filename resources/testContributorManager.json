@@ -1,0 +1,26 @@
+{
+  "formGroupName":"Appraisal Form",
+  "formData":[
+    {
+      "formName":"KPI",
+      "0":{"achievement":"90"},
+      "1":{"achievement":"3"},
+      "2":{"achievement":"100"},
+      "3":{"achievement":"95"},
+      "4":{"achievement":"95"},
+      "5":{"achievement":"100"}
+    },
+    {
+      "formName":"Culture",
+      "0":[{"score":"4"},{"score":"4"},{"score":"4"}],
+      "1":[{"score":"3"},{"score":"3"},{"score":"3"}],
+      "2":[{"score":"3"},{"score":"3"},{"score":"3"}]
+    },
+    {
+      "formName":"Leadership",
+      "0":[{"score":"4"},{"score":"4"}],
+      "1":[{"score":"3"},{"score":"3"}],
+      "2":[{"score":"1"},{"score":"3"}]
+    }
+  ]
+}

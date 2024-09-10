@@ -36,14 +36,15 @@ $grays: (
 // fusv-enable
 
 // scss-docs-start color-variables
-// $primarycolor: #AB2F2B;
+$primarycolor: #AB2F2B;
+$secondarycolor: #6C757D;
 $blue: #0D6EFD;
 $indigo: #6610F2;
 $purple: #6F42C1;
 $pink: #D63384;
-$red: #DC3545;
+$red: #FF0E0E;
 $orange: #fd7e14;
-$yellow: #ffc35a;
+$yellow: #FFC107;
 $green: #198754;
 $teal: #20C997;
 $cyan: #0DCAF0;
@@ -75,6 +76,17 @@ $min-contrast-ratio: 1.55;
 // Customize the light and dark text colors for use in our color contrast function.
 $color-contrast-dark: $gray-900;
 $color-contrast-light: $white;
+
+$primary-50: tint-color($primarycolor, 90%);
+$primary-100: tint-color($primarycolor, 80%);
+$primary-200: tint-color($primary, 60%);
+$primary-300: tint-color($primarycolor, 40%);
+$primary-400: tint-color($primarycolor, 20%);
+$primary-500: $primarycolor;
+$primary-600: shade-color($primarycolor, 10%);
+$primary-700: shade-color($primarycolor, 40%);
+$primary-800: shade-color($primarycolor, 60%);
+$primary-900: shade-color($primarycolor, 80%);
 
 // fusv-disable
 $blue-100: tint-color($blue, 80%);
@@ -177,6 +189,19 @@ $cyan-600: shade-color($cyan, 10%);
 $cyan-700: shade-color($cyan, 40%);
 $cyan-800: shade-color($cyan, 60%);
 $cyan-900: shade-color($cyan, 80%);
+
+$primaries: (
+    "primary-50": $primary-50,
+    "primary-100": $primary-100,
+    "primary-200": $primary-200,
+    "primary-300": $primary-300,
+    "primary-400": $primary-400,
+    "primary-500": $primary-500,
+    "primary-600": $primary-600,
+    "primary-700": $primary-700,
+    "primary-800": $primary-800,
+    "primary-900": $primary-900,
+);
 
 $blues: (
     "blue-100": $blue-100,
@@ -301,8 +326,8 @@ $cyans: (
 // fusv-enable
 
 // scss-docs-start theme-color-variables
-$primary: #AB2F2B;
-$secondary: #6C757D;
+$primary: $primarycolor;
+$secondary: $secondarycolor;
 $success: $green;
 $info: $blue;
 $warning: $yellow;
@@ -335,7 +360,7 @@ $light-text-emphasis: $gray-400;
 $dark-text-emphasis: $gray-700;
 // scss-docs-end theme-text-variables
 
-$primary-bg-subtle: $indigo-50;
+$primary-bg-subtle: $primary-50;
 $secondary-bg-subtle: $gray-100;
 $success-bg-subtle: $green-100;
 $info-bg-subtle: $cyan-100;
@@ -344,7 +369,7 @@ $danger-bg-subtle: $red-100;
 $light-bg-subtle: mix($gray-100, $white);
 $dark-bg-subtle: $gray-400;
 
-$primary-border-subtle: $indigo-200;
+$primary-border-subtle: $primary-200;
 $secondary-border-subtle: $gray-200;
 $success-border-subtle: $green-200;
 $info-border-subtle: $cyan-200;

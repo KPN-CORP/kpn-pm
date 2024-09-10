@@ -253,4 +253,132 @@ class LayerController extends Controller
 
         return response()->json($approvalLayers);
     }
+
+    function layerAppraisal() {
+
+        $roles = Auth()->user()->roles;
+
+        $restrictionData = [];
+        if(!is_null($roles)){
+            $restrictionData = json_decode($roles->first()->restriction, true);
+        }
+        
+        $permissionGroupCompanies = $restrictionData['group_company'] ?? [];
+        $permissionCompanies = $restrictionData['contribution_level_code'] ?? [];
+        $permissionLocations = $restrictionData['work_area_code'] ?? [];
+
+        $criteria = [
+            'work_area_code' => $permissionLocations,
+            'group_company' => $permissionGroupCompanies,
+            'contribution_level_code' => $permissionCompanies,
+        ];
+
+        $parentLink = 'Settings';
+        $link = 'Layers';
+
+        foreach ($criteria as $key => $value) {
+            if (!is_array($value)) {
+                $criteria[$key] = (array) $value;
+            }
+        }
+        
+        $approvalLayers = DB::table('approval_layers as al')
+        ->select('al.employee_id', 'emp.fullname', 'emp.job_level', 'emp.contribution_level_code', 'emp.group_company', 'emp.office_area')
+        ->selectRaw("GROUP_CONCAT(al.layer ORDER BY al.layer ASC SEPARATOR '|') AS layers")
+        ->selectRaw("GROUP_CONCAT(al.approver_id ORDER BY al.layer ASC SEPARATOR '|') AS approver_ids")
+        ->selectRaw("GROUP_CONCAT(emp1.fullname ORDER BY al.layer ASC SEPARATOR '|') AS approver_names")
+        ->selectRaw("GROUP_CONCAT(emp1.job_level ORDER BY al.layer ASC SEPARATOR '|') AS approver_job_levels")
+        ->leftJoin('employees as emp', 'emp.employee_id', '=', 'al.employee_id')
+        ->leftJoin('employees as emp1', 'emp1.employee_id', '=', 'al.approver_id')
+        ->groupBy('al.employee_id', 'emp.fullname', 'emp.job_level', 'emp.contribution_level_code', 'emp.group_company', 'emp.office_area')
+        ->orderBy('emp.fullname')
+        ->when(!empty($criteria), function ($query) use ($criteria) {
+            $query->where(function ($query) use ($criteria) {
+                foreach ($criteria as $key => $values) {
+                    if (!empty($values)) {
+                        $query->whereIn("emp.$key", $values);
+                    }
+                }
+            });
+        })
+        ->get();
+
+        $employees = Employee::select('employee_id', 'fullname')
+        ->whereNotIn('job_level', ['2A', '2B', '2C', '2D', '3A', '3B','4A'])
+        ->orderBy('fullname', 'asc')
+        ->get();
+
+    $employeeCount = $approvalLayers->unique('employee_id')->count();
+        return view('pages.layers.layer-appraisal', [
+            'parentLink' => $parentLink,
+            'link' => $link,
+            'approvalLayers' => $approvalLayers,
+            'employeeCount' => $employeeCount,
+            'employees' => $employees,
+        ]);
+    }
+
+    function layerAppraisalEdit() {
+
+        $roles = Auth()->user()->roles;
+
+        $restrictionData = [];
+        if(!is_null($roles)){
+            $restrictionData = json_decode($roles->first()->restriction, true);
+        }
+        
+        $permissionGroupCompanies = $restrictionData['group_company'] ?? [];
+        $permissionCompanies = $restrictionData['contribution_level_code'] ?? [];
+        $permissionLocations = $restrictionData['work_area_code'] ?? [];
+
+        $criteria = [
+            'work_area_code' => $permissionLocations,
+            'group_company' => $permissionGroupCompanies,
+            'contribution_level_code' => $permissionCompanies,
+        ];
+
+        $parentLink = 'Settings';
+        $link = 'Layers';
+
+        foreach ($criteria as $key => $value) {
+            if (!is_array($value)) {
+                $criteria[$key] = (array) $value;
+            }
+        }
+        
+        $approvalLayers = DB::table('approval_layers as al')
+        ->select('al.employee_id', 'emp.fullname', 'emp.job_level', 'emp.contribution_level_code', 'emp.group_company', 'emp.office_area')
+        ->selectRaw("GROUP_CONCAT(al.layer ORDER BY al.layer ASC SEPARATOR '|') AS layers")
+        ->selectRaw("GROUP_CONCAT(al.approver_id ORDER BY al.layer ASC SEPARATOR '|') AS approver_ids")
+        ->selectRaw("GROUP_CONCAT(emp1.fullname ORDER BY al.layer ASC SEPARATOR '|') AS approver_names")
+        ->selectRaw("GROUP_CONCAT(emp1.job_level ORDER BY al.layer ASC SEPARATOR '|') AS approver_job_levels")
+        ->leftJoin('employees as emp', 'emp.employee_id', '=', 'al.employee_id')
+        ->leftJoin('employees as emp1', 'emp1.employee_id', '=', 'al.approver_id')
+        ->groupBy('al.employee_id', 'emp.fullname', 'emp.job_level', 'emp.contribution_level_code', 'emp.group_company', 'emp.office_area')
+        ->orderBy('emp.fullname')
+        ->when(!empty($criteria), function ($query) use ($criteria) {
+            $query->where(function ($query) use ($criteria) {
+                foreach ($criteria as $key => $values) {
+                    if (!empty($values)) {
+                        $query->whereIn("emp.$key", $values);
+                    }
+                }
+            });
+        })
+        ->get();
+
+        $employees = Employee::select('employee_id', 'fullname')
+        ->whereNotIn('job_level', ['2A', '2B', '2C', '2D', '3A', '3B','4A'])
+        ->orderBy('fullname', 'asc')
+        ->get();
+
+    $employeeCount = $approvalLayers->unique('employee_id')->count();
+        return view('pages.layers.layer-appraisal-edit', [
+            'parentLink' => $parentLink,
+            'link' => $link,
+            'approvalLayers' => $approvalLayers,
+            'employeeCount' => $employeeCount,
+            'employees' => $employees,
+        ]);
+    }
 }

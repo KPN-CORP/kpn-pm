@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\OnBehalfController as AdminOnBehalfController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\SendbackController as AdminSendbackController;
 use App\Http\Controllers\Appraisal360;
+use App\Http\Controllers\AppraisalTaskController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
@@ -27,8 +28,11 @@ use App\Http\Controllers\TaskController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\GuideController;
 use App\Http\Controllers\HomeController;
+use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\MyAppraisalController;
 use App\Http\Controllers\MyGoalController;
+use App\Http\Controllers\RatingController;
+use App\Http\Controllers\TeamAppraisalController;
 use App\Http\Controllers\TeamGoalController;
 use Illuminate\Support\Facades\Route;
 
@@ -37,6 +41,8 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified', 'role:superadmin'])->name('dashboard');
+
+Route::get('language/{locale}', [LanguageController::class, 'switchLanguage'])->name('language.switch');
 
 Route::get('dbauth', [SsoController::class, 'dbauth']);
 
@@ -78,7 +84,7 @@ Route::middleware('guest')->group(function () {
 });
 
 
-Route::middleware('auth')->group(function () {
+Route::middleware('auth', 'locale')->group(function () {
 
     Route::get('reset-self', [PasswordResetLinkController::class, 'selfReset'])
                 ->name('password.reset.self');
@@ -108,19 +114,29 @@ Route::middleware('auth')->group(function () {
     Route::get('/get-tooltip-content', [TeamGoalController::class, 'getTooltipContent']);
     Route::get('/units-of-measurement', [TeamGoalController::class, 'unitOfMeasurement']);
 
-    // My Appraisals
+    // My Appraisal
     Route::get('/appraisals', [MyAppraisalController::class, 'index'])->name('appraisals');
     
     Route::get('/appraisals/create/{id}', [MyAppraisalController::class, 'create'])->name('form.appraisal');
     Route::get('/appraisals/edit/{id}', [MyAppraisalController::class, 'edit'])->name('edit.appraisal');
     Route::post('/appraisals/submit', [MyAppraisalController::class, 'store'])->name('appraisal.submit');
     Route::post('/appraisals/update', [MyAppraisalController::class, 'update'])->name('appraisal.update');
-
+    
+    // Team Appraisal
+    Route::get('/appraisals-task', [AppraisalTaskController::class, 'index'])->name('appraisals-task');
+    Route::get('/appraisals-task/detail/{id}', [AppraisalTaskController::class, 'detail'])->name('appraisals-task.detail');
+    Route::post('/appraisals-task/submit', [AppraisalTaskController::class, 'storeInitiate'])->name('appraisals-task.submit');
+    Route::post('/appraisals-task/submitReview', [AppraisalTaskController::class, 'storeReview'])->name('appraisals-task.submitReview');
+    Route::get('/appraisals-task/approval/{id}', [AppraisalTaskController::class, 'approval'])->name('appraisals-task.approval');
+    Route::get('/appraisals-task/initiate/{id}', [AppraisalTaskController::class, 'initiate'])->name('appraisals-task.initiate');
+    
     // Appraisal 360
-    Route::get('/appraisals-360', [Appraisal360::class, 'index'])->name('appraisals-360');
-    Route::get('/appraisals-360/review/{id}', [Appraisal360::class, 'review'])->name('appraisals-360.review');
-    Route::get('/appraisals-360/initiate/{id}', [Appraisal360::class, 'initiate'])->name('appraisals-360.initiate');
-
+    Route::get('/appraisals-task/review/{id}', [AppraisalTaskController::class, 'review'])->name('appraisals-360.review');
+    Route::get('/appraisals-task/submit360', [AppraisalTaskController::class, 'store360'])->name('appraisals-360.submit');
+    
+    // Rating | Calibration
+    Route::get('/rating', [RatingController::class, 'index'])->name('rating');
+    
     // Approval
     Route::post('/approval/goal', [ApprovalController::class, 'store'])->name('approval.goal');
 
@@ -190,6 +206,9 @@ Route::middleware('auth')->group(function () {
         Route::post('/update-layer', [LayerController::class, 'updatelayer'])->name('update-layer');
         Route::post('/import-layer', [LayerController::class, 'importLayer'])->name('import-layer');
         Route::post('/history-show', [LayerController::class, 'show'])->name('history-show');
+
+        Route::get('/layer-appraisal', [LayerController::class, 'layerAppraisal'])->name('layer-appraisal');
+        Route::get('/layer-appraisal/edit/{id}', [LayerController::class, 'layerAppraisalEdit'])->name('layer-appraisal.edit');
     });
     
     Route::middleware(['permission:viewrole'])->group(function () {

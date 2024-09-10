@@ -10,7 +10,7 @@
                         <th>NIK</th>
                         <th>Name</th>
                         <th>DOJ</th>
-                        <th>Type</th>
+                        <th>{{ __('Type') }}</th>
                         <th>Unit</th>
                         <th>Job</th>
                         <th>Grade</th>

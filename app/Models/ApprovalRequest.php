@@ -54,5 +54,9 @@ class ApprovalRequest extends Model
     {
         return $this->hasOne(Appraisal::class, 'employee_id', 'employee_id');
     }
+    public function contributor()
+    {
+        return $this->hasMany(AppraisalContributor::class, 'employee_id', 'employee_id');
+    }
 
 }

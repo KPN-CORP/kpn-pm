@@ -2,4 +2,4 @@
 @yield('script')
 @include('script')
 <!-- App js -->
-@yield('script-bottom')
+{{-- @yield('script-bottom') --}}

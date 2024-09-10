@@ -6,20 +6,6 @@
 @section('content')
     <!-- Begin Page Content -->
     <div class="container-fluid">
-        <!-- Page Heading -->
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <div class="page-title-right">
-                        <ol class="breadcrumb m-0">
-                            <li class="breadcrumb-item">{{ $parentLink }}</li>
-                            <li class="breadcrumb-item active">{{ $link }}</li>
-                        </ol>
-                    </div>
-                    <h4 class="page-title">{{ $link }}</h4>
-                </div>
-            </div>
-        </div>
         @if(session('success'))
             <div class="alert alert-success mt-3">
                 {{ session('success') }}
@@ -37,10 +23,10 @@
             @endphp
             <div class="row align-items-end">
                 <div class="col">
-                    <div class="mb-3 d-none">
-                        <label class="form-label" for="filterYear">Year</label>
+                    <div class="mb-3">
+                        <label class="form-label" for="filterYear">{{ __('Year') }}</label>
                         <select name="filterYear" id="filterYear" onchange="yearGoal()" class="form-select border-secondary" @style('width: 120px')>
-                            <option value="">select all</option>
+                            <option value="">{{ __('select all') }}</option>
                             @foreach ($selectYear as $year)
                                 <option value="{{ $year->year }}" {{ $year->year == $filterYear ? 'selected' : '' }}>{{ $year->year }}</option>
                             @endforeach
@@ -49,7 +35,7 @@
                 </div>
                 <div class="col-auto">
                     <div class="mb-3 mt-3">
-                        <a href="{{ route('form.appraisal', Auth::user()->employee_id) }}" class="btn rounded-pill btn-primary shadow">Initiate Appraisal</a>
+                        <a href="{{ route('form.appraisal', Auth::user()->employee_id) }}" class="btn btn-primary shadow">{{ __('Initiate Appraisal') }}</a>
                     </div>
                 </div>
             </div>
@@ -64,44 +50,39 @@
                         <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
                             <h4 class="m-0 font-weight-bold text-primary">Appraisals {{ $row->request->appraisal->period }}</h4>
                             @if ($row->request->status == 'Pending' && count($row->request->approval) == 0 || $row->request->sendback_to == $row->request->employee_id)
-                                <a class="btn btn-outline-warning border-2 fw-semibold rounded-pill" href="{{ route('edit.appraisal', $row->request->appraisal->id) }}">Edit</a>
+                                <a class="btn btn-outline-warning border-2 fw-semibold rounded-pill" href="{{ route('edit.appraisal', $row->request->appraisal->id) }}">{{ __('Edit') }}</a>
                             @endif
                         </div>
-                        <div class="card-body mb-2" style="background-color: ghostwhite">
+                        <div class="card-body mb-2 bg-light-subtle">
                             <div class="row px-2">
                                 <div class="col-lg col-sm-12 p-2">
-                                    <h5>Initiated By</h5>
+                                    <h5>{{ __('Initiated By') }}</h5>
                                     <p class="mt-2 mb-0 text-muted">{{ $row->request->initiated->name.' ('.$row->request->initiated->employee_id.')' }}</p>
                                 </div>
                                 <div class="col-lg col-sm-12 p-2">
-                                    <h5>Initiated Date</h5>
+                                    <h5>{{ __('Initiated Date') }}</h5>
                                     <p class="mt-2 mb-0 text-muted">{{ $row->request->formatted_created_at }}</p>
                                 </div>
                                 <div class="col-lg col-sm-12 p-2">
-                                    <h5>Last Updated On</h5>
+                                    <h5>{{ __('Last Updated On') }}</h5>
                                     <p class="mt-2 mb-0 text-muted">{{ $row->request->formatted_updated_at }}</p>
                                 </div>
                                 <div class="col-lg col-sm-12 p-2">
-                                    <h5>Adjusted By</h5>
+                                    <h5>Final Score</h5>
                                     <p class="mt-2 mb-0 text-muted">{{ $row->request->updatedBy ? $row->request->updatedBy->name.' '.$row->request->updatedBy->employee_id : '-' }}{{ $row->request->adjustedBy && empty($adjustByManager) ? ' (Admin)': '' }}</p>
                                 </div>
                                 <div class="col-lg col-sm-12 p-2">
                                     <h5>Status</h5>
                                     <div>
-                                        <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->request->goal->form_status == 'Draft' ? 'Draft' : ($row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : $row->name) }}" class="badge {{ $row->request->goal->form_status == 'Draft' || $row->request->sendback_to == $row->request->employee_id ? 'bg-secondary' : ($row->request->status === 'Approved' ? 'bg-success' : 'bg-warning')}} rounded-pill py-1 px-2">{{ $row->request->goal->form_status == 'Draft' ? 'Draft': ($row->request->status == 'Pending' ? 'Waiting For Approval' : ($row->request->sendback_to == $row->request->employee_id ? 'Waiting For Revision' : $row->request->status)) }}</a>
+                                        <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->request->goal->form_status == 'Draft' ? 'Draft' : ($row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : $row->name) }}" class="badge {{ $row->request->goal->form_status == 'Draft' || $row->request->sendback_to == $row->request->employee_id ? 'bg-secondary' : ($row->request->status === 'Approved' ? 'bg-success' : 'bg-warning')}} rounded-pill py-1 px-2">{{ $row->request->goal->form_status == 'Draft' ? 'Draft': ($row->request->status == 'Pending' ? __('Pending') : ($row->request->sendback_to == $row->request->employee_id ? 'Waiting For Revision' : $row->request->status)) }}</a>
                                     </div>
                                 </div>
                             </div>
                         </div>
                         <div class="card-body">
-                            <div class="row">
-                                <div class="col mb-2">
-                                    <h4>Your Rating : B</h4>
-                                </div>
-                            </div>
                             @forelse ($appraisalData['formData'] as $indexItem => $item)
                             <div class="row">
-                                <button class="btn btn-sm rounded-pill mb-2 py-1 bg-danger bg-opacity-10 text-danger align-items-center d-flex justify-content-between" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ $indexItem }}" aria-expanded="false" aria-controls="collapse-{{ $indexItem }}">
+                                <button class="btn rounded mb-2 py-2 bg-secondary-subtle bg-opacity-10 text-primary align-items-center d-flex justify-content-between" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ $indexItem }}" aria-expanded="false" aria-controls="collapse-{{ $indexItem }}">
                                     <span class="fs-16 ms-1">{{ $item['formName'] }}</span>  
                                     <span>
                                         <p class="d-none d-md-inline me-1">Details</p><i class="ri-arrow-down-s-line"></i>
@@ -183,7 +164,7 @@
                                 <div class="collapse" id="collapse-{{ $indexItem }}">
                                     <div class="card card-body mb-3 py-0">
                                         @forelse ($formData['formData'] as $form)
-                                        @if ($form['formName'] === 'Self Review')
+                                        @if ($form['formName'] === 'KPI')
                                         <div class="table-responsive">
 
                                             <table class="table">
@@ -191,11 +172,11 @@
                                                     <tr>
                                                         <th>#</th>
                                                         <th>KPI</th>
-                                                        <th>Type</th>
-                                                        <th>Weightage</th>
+                                                        <th>{{ __('Type') }}</th>
+                                                        <th>{{ __('Weightage') }}</th>
                                                         <th>Target</th>
-                                                        <th>Actual</th>
-                                                        <th>Achievement</th>
+                                                        <th>{{ __('Actual') }}</th>
+                                                        <th>{{ __('Achievement') }}</th>
                                                     </tr>
                                                 </thead>
                                                 <tbody>
@@ -250,7 +231,7 @@
                 <div class="col-md-12">
                 <div class="card shadow mb-4">
                     <div class="card-body">
-                        {{ __('No Appraisals Found. Please Initiate Your Appraisals ') }}<i class="ri-arrow-right-up-line"></i>
+                        {{ __('No Appraisal Found. Please Initiate Your Appraisal ') }}<i class="ri-arrow-right-up-line"></i>
                     </div>
                 </div>
                 </div>
@@ -259,7 +240,6 @@
     </div>
     @endsection
     @push('scripts')
-        <script src="{{ asset('js/goal-approval.js') }}?v={{ config('app.version') }}"></script>
         @if(Session::has('error'))
         <script>
             document.addEventListener('DOMContentLoaded', function () {                

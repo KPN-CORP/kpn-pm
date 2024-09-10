@@ -21,7 +21,8 @@ class ReportController extends Controller
     }
 
     function index() {
-        $link = 'Reports';
+        $parentLink = __('Report');
+        $link = __('Report');
 
         $user = Auth::user()->employee_id;
 
@@ -45,7 +46,7 @@ class ReportController extends Controller
         });
 
         return view('reports.app', compact('locations', 'companies', 'groupCompanies', 'selectYear'),  [
-            'link' => $link
+            'parentLink' => $parentLink, 'link' => $link
         ]);
     }
 
