@@ -1,8 +1,4 @@
-import jQuery from 'jquery';
-window.$ = jQuery;
-
-
-import 'popper.js';
+import $ from 'jquery';
 
 // import "bootstrap";
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
@@ -26,28 +22,26 @@ import 'datatables.net-fixedcolumns-bs5';
 import 'datatables.net-fixedheader-bs5';
 import 'datatables.net-responsive-bs5';
 import 'datatables.net-scroller-bs5';
-import 'datatables.net-searchbuilder-bs5';
-import 'datatables.net-searchpanes-bs5';
+// import 'datatables.net-searchbuilder-bs5';
+// import 'datatables.net-searchpanes-bs5';
 import 'datatables.net-staterestore-bs5';
 import 'select2/dist/css/select2.css';
 import 'select2-bootstrap-5-theme/dist/select2-bootstrap-5-theme.css';
 import 'quill/dist/quill.snow.css';
 
-import './tippy.min.js';
+import './plugins/perfect-scrollbar.min.js';
 
 import './script.js';
 import './quill.min.js';
 
 import './goal-form.js';
 import './goal-approval.js';
-import './team-goal.js';
 
 import './appraisal-task.js';
 import './layer-appraisal.js';
 import './rating.js';
 import './report.js';
 import './schedule.js';
-import './guide.js';
 import './role.js';
 import './layer.js';
 
@@ -70,9 +64,6 @@ Alpine.start();
 import.meta.glob(["../assets/images/**"]);
 
 import "jquery-mask-plugin/dist/jquery.mask.min.js";
-
-import bootstrap from "bootstrap/dist/js/bootstrap.min";
-window.bootstrap = bootstrap;
 
 import "simplebar";
 

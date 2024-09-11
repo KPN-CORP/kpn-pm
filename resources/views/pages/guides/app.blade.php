@@ -213,3 +213,4 @@
         </div><!-- /.modal-dialog -->
     </div>
 @endsection
+@vite('resources/js/guide.js')
