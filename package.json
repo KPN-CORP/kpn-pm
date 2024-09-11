@@ -31,7 +31,7 @@
         "apexcharts": "3.26.0",
         "bootstrap": "^5.3.0",
         "bootstrap-datepicker": "1.9.0",
-        "bootstrap-maxlength": "^1.10.1",
+        "bootstrap-maxlength": "^1.10.0",
         "bootstrap-timepicker": "^0.5.2",
         "bootstrap-touchspin": "^4.7.3",
         "bootstrap-wizard": "^1.4.2",
