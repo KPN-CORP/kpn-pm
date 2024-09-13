@@ -34,8 +34,7 @@ use App\Http\Controllers\MyGoalController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\TeamAppraisalController;
 use App\Http\Controllers\TeamGoalController;
-use App\Http\Controllers\ReimburseController;
-
+use App\Http\Controllers\SearchController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -89,6 +88,8 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth', 'locale')->group(function () {
 
+    Route::get('/search-employee', [SearchController::class, 'searchEmployee']);
+
     Route::get('reset-self', [PasswordResetLinkController::class, 'selfReset'])
                 ->name('password.reset.self');
 
@@ -98,12 +99,6 @@ Route::middleware('auth', 'locale')->group(function () {
 
     // Tasks
     Route::get('/tasks', [TaskController::class, 'task'])->name('tasks');
-
-    // My Reimbursement
-    Route::get('/reimbursements', [ReimburseController::class, 'reimbursements'])->name('reimbursements');
-    Route::get('/cashadvanced', [ReimburseController::class, 'cashadvanced'])->name('cashadvanced');
-    Route::get('/cashadvanced/form', [ReimburseController::class, 'cashadvancedCreate'])->name('cashadvanced.form');
-    
 
     // My Goals
     Route::get('/goals', [MyGoalController::class, 'index'])->name('goals');
@@ -219,6 +214,7 @@ Route::middleware('auth', 'locale')->group(function () {
 
         Route::get('/layer-appraisal', [LayerController::class, 'layerAppraisal'])->name('layer-appraisal');
         Route::get('/layer-appraisal/edit/{id}', [LayerController::class, 'layerAppraisalEdit'])->name('layer-appraisal.edit');
+        Route::post('/layer-appraisal/update', [LayerController::class, 'layerAppraisalUpdate'])->name('layer-appraisal.update');
     });
     
     Route::middleware(['permission:viewrole'])->group(function () {

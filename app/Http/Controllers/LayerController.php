@@ -12,17 +12,24 @@ use Illuminate\Support\Facades\DB;
 use RealRashid\SweetAlert\Facades\Alert;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\ApprovalLayerImport;
+use App\Models\ApprovalLayerAppraisal;
 use Illuminate\Support\Facades\Log;
 use App\Models\ApprovalLayerBackup;
 use App\Models\Goal;
+use App\Services\AppService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Validator;
 
 class LayerController extends Controller
 {
     protected $category;
+    protected $user;
+    protected $appService;
 
-    public function __construct()
+    public function __construct(AppService $appService)
     {
+        $this->appService = $appService;
+        $this->user = Auth()->user()->employee_id;
         $this->category = 'Goals';
     }
 
@@ -282,43 +289,16 @@ class LayerController extends Controller
             }
         }
         
-        $approvalLayers = DB::table('approval_layers as al')
-        ->select('al.employee_id', 'emp.fullname', 'emp.job_level', 'emp.contribution_level_code', 'emp.group_company', 'emp.office_area')
-        ->selectRaw("GROUP_CONCAT(al.layer ORDER BY al.layer ASC SEPARATOR '|') AS layers")
-        ->selectRaw("GROUP_CONCAT(al.approver_id ORDER BY al.layer ASC SEPARATOR '|') AS approver_ids")
-        ->selectRaw("GROUP_CONCAT(emp1.fullname ORDER BY al.layer ASC SEPARATOR '|') AS approver_names")
-        ->selectRaw("GROUP_CONCAT(emp1.job_level ORDER BY al.layer ASC SEPARATOR '|') AS approver_job_levels")
-        ->leftJoin('employees as emp', 'emp.employee_id', '=', 'al.employee_id')
-        ->leftJoin('employees as emp1', 'emp1.employee_id', '=', 'al.approver_id')
-        ->groupBy('al.employee_id', 'emp.fullname', 'emp.job_level', 'emp.contribution_level_code', 'emp.group_company', 'emp.office_area')
-        ->orderBy('emp.fullname')
-        ->when(!empty($criteria), function ($query) use ($criteria) {
-            $query->where(function ($query) use ($criteria) {
-                foreach ($criteria as $key => $values) {
-                    if (!empty($values)) {
-                        $query->whereIn("emp.$key", $values);
-                    }
-                }
-            });
-        })
-        ->get();
-
-        $employees = Employee::select('employee_id', 'fullname')
-        ->whereNotIn('job_level', ['2A', '2B', '2C', '2D', '3A', '3B','4A'])
-        ->orderBy('fullname', 'asc')
-        ->get();
-
-    $employeeCount = $approvalLayers->unique('employee_id')->count();
+        $datas = Employee::select('fullname', 'employee_id', 'group_company', 'designation', 'company_name', 'contribution_level_code', 'work_area_code', 'office_area', 'unit', )->get();
+        
         return view('pages.layers.layer-appraisal', [
             'parentLink' => $parentLink,
             'link' => $link,
-            'approvalLayers' => $approvalLayers,
-            'employeeCount' => $employeeCount,
-            'employees' => $employees,
+            'datas' => $datas,
         ]);
     }
 
-    function layerAppraisalEdit() {
+    function layerAppraisalEdit(Request $request) {
 
         $roles = Auth()->user()->roles;
 
@@ -345,40 +325,123 @@ class LayerController extends Controller
                 $criteria[$key] = (array) $value;
             }
         }
-        
-        $approvalLayers = DB::table('approval_layers as al')
-        ->select('al.employee_id', 'emp.fullname', 'emp.job_level', 'emp.contribution_level_code', 'emp.group_company', 'emp.office_area')
-        ->selectRaw("GROUP_CONCAT(al.layer ORDER BY al.layer ASC SEPARATOR '|') AS layers")
-        ->selectRaw("GROUP_CONCAT(al.approver_id ORDER BY al.layer ASC SEPARATOR '|') AS approver_ids")
-        ->selectRaw("GROUP_CONCAT(emp1.fullname ORDER BY al.layer ASC SEPARATOR '|') AS approver_names")
-        ->selectRaw("GROUP_CONCAT(emp1.job_level ORDER BY al.layer ASC SEPARATOR '|') AS approver_job_levels")
-        ->leftJoin('employees as emp', 'emp.employee_id', '=', 'al.employee_id')
-        ->leftJoin('employees as emp1', 'emp1.employee_id', '=', 'al.approver_id')
-        ->groupBy('al.employee_id', 'emp.fullname', 'emp.job_level', 'emp.contribution_level_code', 'emp.group_company', 'emp.office_area')
-        ->orderBy('emp.fullname')
-        ->when(!empty($criteria), function ($query) use ($criteria) {
-            $query->where(function ($query) use ($criteria) {
-                foreach ($criteria as $key => $values) {
-                    if (!empty($values)) {
-                        $query->whereIn("emp.$key", $values);
-                    }
-                }
-            });
-        })
-        ->get();
 
-        $employees = Employee::select('employee_id', 'fullname')
-        ->whereNotIn('job_level', ['2A', '2B', '2C', '2D', '3A', '3B','4A'])
-        ->orderBy('fullname', 'asc')
-        ->get();
+        $datas = Employee::select('fullname', 'employee_id', 'date_of_joining', 'group_company', 'company_name', 'unit', 'designation', 'office_area')->with(['appraisalLayer' => function($query) {
+            $query->with(['approver' => function($subquery) {
+                $subquery->select('fullname', 'employee_id', 'designation');
+            }])->select('employee_id', 'approver_id', 'layer_type', 'layer');
+        }])
+        ->where('employee_id', $request->id)
+        ->first();
 
-    $employeeCount = $approvalLayers->unique('employee_id')->count();
+        if ($datas) {
+            $datas->formattedDoj = $this->appService->formatDate($datas->date_of_joining);
+        }
+
+        $groupLayers = $datas->appraisalLayer->groupBy('layer_type');
+
+        $employee = Employee::select('fullname', 'employee_id', 'designation')->get();
+
         return view('pages.layers.layer-appraisal-edit', [
             'parentLink' => $parentLink,
             'link' => $link,
-            'approvalLayers' => $approvalLayers,
-            'employeeCount' => $employeeCount,
-            'employees' => $employees,
+            'datas' => $datas,
+            'groupLayers' => $groupLayers,
+            'employee' => $employee,
         ]);
+    }
+
+    public function layerAppraisalUpdate(Request $request)
+    {
+        // Define validation rules
+        $validator = Validator::make($request->all(), [
+            'employee_id' => 'required|string',
+            'manager' => 'nullable|string|exists:employees,employee_id',
+            'peers' => 'nullable|array',
+            'peers.*' => 'nullable|string|exists:employees,employee_id', // Validate each peer ID
+            'subs' => 'nullable|array',
+            'subs.*' => 'nullable|string|exists:employees,employee_id', // Validate each subordinate ID
+            'calibrators' => 'nullable|array',
+            'calibrators.*' => 'nullable|string|exists:employees,employee_id', // Validate each calibrator ID
+        ]);
+
+        // Check if the validation fails
+        if ($validator->fails()) {
+            return redirect()->back()->withErrors($validator)->withInput(); // Return validation errors
+        }
+
+        // Retrieve validated data
+        $validated = $validator->validated();
+
+        // Manager data
+        $manager = $validated['manager'] ?? null;
+        $peers = $validated['peers'] ?? [];
+        $subs = $validated['subs'] ?? [];
+        $calibrators = $validated['calibrators'] ?? [];
+
+        // Delete existing records for the employee_id
+        ApprovalLayerAppraisal::where('employee_id', $validated['employee_id'])->delete();
+
+        // Update manager
+        if (!is_null($manager)) {
+            ApprovalLayerAppraisal::create(
+                [
+                    'layer_type' => 'manager',
+                    'employee_id' => $validated['employee_id'],
+                    'approver_id' => $manager
+                ]
+            );
+        }
+
+        // Update peers, ignoring null entries
+        if (is_array($peers)) {
+            foreach ($peers as $index => $peer) {
+                if (!is_null($peer)) {
+                    ApprovalLayerAppraisal::create(
+                        [
+                            'layer_type' => 'peers',
+                            'layer' => $index + 1,
+                            'employee_id' => $validated['employee_id'],
+                            'approver_id' => $peer
+                        ]
+                    );
+                }
+            }
+        }
+
+        // Update subs, ignoring null entries
+        if (is_array($subs)) {
+            foreach ($subs as $index => $sub) {
+                if (!is_null($sub)) {
+                    ApprovalLayerAppraisal::create(
+                        [
+                            'layer_type' => 'subordinate',
+                            'layer' => $index + 1,
+                            'employee_id' => $validated['employee_id'],
+                            'approver_id' => $sub
+                        ]
+                    );
+                }
+            }
+        }
+
+        // Update calibrators, ignoring null entries
+        if (is_array($calibrators)) {
+            foreach ($calibrators as $index => $calibrator) {
+                if (!is_null($calibrator)) {
+                    ApprovalLayerAppraisal::create(
+                        [
+                            'layer_type' => 'calibrator',
+                            'layer' => $index + 1,
+                            'employee_id' => $validated['employee_id'],
+                            'approver_id' => $calibrator
+                        ]
+                    );
+                }
+            }
+        }
+
+        // Redirect back to layer-appraisal page
+        return redirect()->route('layer-appraisal')->with('success', 'Appraisal layers updated successfully.');
     }
 }

@@ -9,6 +9,13 @@ class ApprovalLayerAppraisal extends Model
 {
     use HasFactory;
 
+    protected $fillable = [
+        'employee_id', 
+        'approver_id',
+        'layer_type', 
+        'layer', 
+    ];
+
     public function employee()
     {
         return $this->belongsTo(Employee::class, 'employee_id', 'employee_id');

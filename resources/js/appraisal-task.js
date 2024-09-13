@@ -7,11 +7,9 @@ $(document).ready(function() {
             leftColumns: 0,
             rightColumns: 1
         },
-        paging: false,
         scrollCollapse: true,
         scrollX: true,
-        responsive: true,
-        autoWidth: false,
+        paging: false
     });
 
     
@@ -21,11 +19,9 @@ $(document).ready(function() {
             leftColumns: 0,
             rightColumns: 1
         },
-        paging: false,
         scrollCollapse: true,
         scrollX: true,
-        responsive: true,
-        autoWidth: false,
+        paging: false
     });
 });
 

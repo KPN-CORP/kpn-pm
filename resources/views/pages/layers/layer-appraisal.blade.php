@@ -7,10 +7,15 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- Begin Page Content -->
     <div class="container-fluid"> 
+        @if (session('success'))
+            <div class="alert alert-success mt-3">
+                {{ session('success') }}
+            </div>
+        @endif
         <div class="row">
             <div class="col-lg">
                 <div class="mb-3 text-end">
-                    <button type="button" class="btn btn-primary open-import-modal" title="Import">Import Layer</button>
+                    <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#importModal" title="Import">Import Layer</button>
                 </div>
             </div>
         </div>    
@@ -36,25 +41,27 @@
                         <tr class="text-center">
                         <th>#</th>
                         <th>Employee Name</th>
-                        <th>PT</th>
-                        <th>Area</th>
-                        <th>BU</th>
+                        <th>Company</th>
+                        <th>Office Location</th>
+                        <th>Business Unit</th>
                         <th class="sorting_1 text-center">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                    <tr>
-                        <td>1</td>
-                        <td>Supardy 011020040011</td>
-                        <td>CG</td>
-                        <td>Head Office</td>
-                        <td>Cement</td>
-                        <td class="text-center">
-                            <a href="{{ route('layer-appraisal.edit', 1) }}" class="btn btn-sm rounded btn-outline-warning me-1"><i class="ri-edit-box-line fs-16"></i></a>
-                            <button class="btn btn-sm rounded btn-outline-info me-1"><i class="ri-eye-line fs-16"></i></button>
-                            <button class="btn btn-sm rounded btn-outline-secondary"><i class="ri-history-line fs-16"></i></button>
-                        </td>
-                    </tr>
+                        @foreach ($datas as $index => $row)   
+                        <tr>
+                            <td>{{ $index + 1 }}</td>
+                            <td>{{ $row->fullname }} <span class="text-muted">{{ $row->employee_id }}</span></td>
+                            <td>{{ $row->company_name }}</td>
+                            <td>{{ $row->office_area }}</td>
+                            <td>{{ $row->group_company }}</td>
+                            <td class="sorting_1 text-center">
+                                <a href="{{ route('layer-appraisal.edit', $row->employee_id) }}" class="btn btn-sm rounded btn-outline-warning me-1"><i class="ri-edit-box-line fs-16"></i></a>
+                                <button class="btn btn-sm rounded btn-outline-info me-1"><i class="ri-eye-line fs-16"></i></button>
+                                <button class="btn btn-sm rounded btn-outline-secondary"><i class="ri-history-line fs-16"></i></button>
+                            </td>
+                        </tr>
+                        @endforeach
                     </tbody>
                 </table>
               </div>
@@ -64,12 +71,12 @@
     </div>
 
 <!-- Modal -->
-<div class="modal fade" id="editModal" role="dialog" aria-labelledby="editModalLabel" aria-hidden="true">
+<div class="modal fade" id="editModal" role="dialog" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title" id="editModalLabel">Update Superior</h4>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                {{-- <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> --}}
             </div>
             <div class="modal-body">
                 <!-- Form for editing employee details -->
@@ -96,12 +103,12 @@
 </div>
 
 <!-- importModal -->
-<div class="modal fade" id="importModal" role="dialog" aria-labelledby="importModalLabel" aria-hidden="true">
+<div class="modal fade" id="importModal" role="dialog" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
                 <h4 class="modal-title" id="importModalLabel">Import Superior</h4>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                {{-- <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> --}}
             </div>
             <div class="modal-body">
                 <form id="importForm" action="{{ route('import-layer') }}" method="POST" enctype="multipart/form-data">
@@ -165,6 +172,6 @@
 @endsection
 @push('scripts')
 <script>
-    var employeesData = {!! json_encode($employees) !!};
+    var employeesData = {!! json_encode($datas) !!};
 </script>
 @endpush
