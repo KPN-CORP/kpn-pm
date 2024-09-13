@@ -1,7 +1,13 @@
 import $ from 'jquery';
+// import './bootstrap';
 
-// import "bootstrap";
-import 'bootstrap/dist/js/bootstrap.bundle.min.js';
+// import bootstrap from "bootstrap";
+import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
+window.bootstrap = bootstrap;
+
+
+// import bootstrap from "bootstrap/dist/js/bootstrap.min";
+// window.bootstrap = bootstrap;
 
 import Swal from "sweetalert2";
 window.Swal = Swal;
@@ -9,22 +15,11 @@ window.Swal = Swal;
 
 import jszip from 'jszip';
 import pdfmake from 'pdfmake';
-import 'datatables.net-dt';
+import 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
 import 'datatables.net-fixedcolumns-bs5';
-import 'datatables.net-fixedcolumns-bs5/css/fixedColumns.bootstrap5.min.css';
-
-import 'datatables.net-buttons-bs5';
-import 'datatables.net-buttons/js/buttons.colVis.mjs';
-import 'datatables.net-buttons/js/buttons.html5.mjs';
-import 'datatables.net-buttons/js/buttons.print.mjs';
-import 'datatables.net-fixedcolumns-bs5';
 import 'datatables.net-fixedheader-bs5';
-import 'datatables.net-responsive-bs5';
-import 'datatables.net-scroller-bs5';
-// import 'datatables.net-searchbuilder-bs5';
-// import 'datatables.net-searchpanes-bs5';
-import 'datatables.net-staterestore-bs5';
+import 'datatables.net-fixedcolumns-bs5/css/fixedColumns.bootstrap5.min.css';
 import 'select2/dist/css/select2.css';
 import 'select2-bootstrap-5-theme/dist/select2-bootstrap-5-theme.css';
 import 'quill/dist/quill.snow.css';
