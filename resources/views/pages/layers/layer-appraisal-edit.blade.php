@@ -308,6 +308,6 @@
 @endsection
 @push('scripts')
 <script>
-    var index = {{ $index + 1 }};
+    let calibratorCount = {{ $calibratorCount }};
 </script>
 @endpush

@@ -340,12 +340,15 @@ class LayerController extends Controller
 
         $groupLayers = $datas->appraisalLayer->groupBy('layer_type');
 
+        $calibratorCount = $groupLayers['calibrator']->count();
+
         $employee = Employee::select('fullname', 'employee_id', 'designation')->get();
 
         return view('pages.layers.layer-appraisal-edit', [
             'parentLink' => $parentLink,
             'link' => $link,
             'datas' => $datas,
+            'calibratorCount' => $calibratorCount,
             'groupLayers' => $groupLayers,
             'employee' => $employee,
         ]);

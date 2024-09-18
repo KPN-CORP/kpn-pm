@@ -51,7 +51,6 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 $(document).ready(function(){
-    let calibratorCount = index;
     const maxCalibrators = 10;
 
     $('#add-calibrator').on('click', function() {
