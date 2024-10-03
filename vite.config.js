@@ -128,7 +128,7 @@ export default defineConfig({
         rollupOptions: {
             output: {
                 globals: {
-                   jquery: 'window.jQuery',
+                //    jquery: 'window.jQuery',
                    jquery: 'window.$'
                 }
             }

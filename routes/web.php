@@ -100,9 +100,9 @@ Route::middleware('auth', 'locale')->group(function () {
     Route::get('/tasks', [TaskController::class, 'task'])->name('tasks');
 
     // My Reimbursement
-    Route::get('/reimbursements', [ReimburseController::class, 'reimbursements'])->name('reimbursements');
-    Route::get('/cashadvanced', [ReimburseController::class, 'cashadvanced'])->name('cashadvanced');
-    Route::get('/cashadvanced/form', [ReimburseController::class, 'cashadvancedCreate'])->name('cashadvanced.form');
+    // Route::get('/reimbursements', [ReimburseController::class, 'reimbursements'])->name('reimbursements');
+    // Route::get('/cashadvanced', [ReimburseController::class, 'cashadvanced'])->name('cashadvanced');
+    // Route::get('/cashadvanced/form', [ReimburseController::class, 'cashadvancedCreate'])->name('cashadvanced.form');
     
 
     // My Goals

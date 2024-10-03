@@ -1,6 +1,20 @@
 @extends('layouts_.vertical', ['page_title' => 'Schedule'])
 
 @section('css')
+<style>
+    .loader {
+    display: none; /* Awalnya loader disembunyikan */
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    /* Tambahkan gaya lain untuk loader sesuai kebutuhan */
+    }
+
+    .loader.active {
+    display: block; /* Loader akan muncul saat class "active" ditambahkan */
+    }
+</style>
 @endsection
 
 @section('content')

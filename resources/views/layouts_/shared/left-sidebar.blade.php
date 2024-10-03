@@ -1,6 +1,6 @@
 <!-- ========== Left Sidebar Start ========== -->
 <div class="leftside-menu">
-    @if(session('system') == 'kpnpm')
+    {{-- @if(session('system') == 'kpnpm') --}}
     <!-- Brand Logo Light -->
     <a href="{{ Url('/') }}" class="logo logo-light">
         <span class="logo-lg">
