@@ -74,8 +74,8 @@
         <div class="row justify-content-center">
             <div class="col">
                 <div class="card">
-                    <div class="card-header d-flex justify-content-center">
-                        <div class="col-10 text-center">
+                    <div class="card-header d-flex justify-content-md-center">
+                        <div class="col-md-10 text-center">
                             <div class="stepper mt-3 d-flex justify-content-between justify-content-md-around">
                                 @foreach ($filteredFormData as $index => $tabs)
                                 <div class="step" data-step="{{ $step }}"></div>
@@ -111,9 +111,9 @@
                             </div>
                             @endforeach
                             <div class="d-flex justify-content-center py-2">
-                                <button type="button" class="btn btn-light border me-3 btn-lg prev-btn" style="display: none;"><i class="ri-arrow-left-line"></i>{{ __('Prev') }}</button>
-                                <button type="button" class="btn btn-primary btn-lg next-btn">{{ __('Next') }} <i class="ri-arrow-right-line"></i></button>
-                                <button type="submit" class="btn btn-primary btn-lg submit-btn px-md-4" style="display: none;">{{ __('Submit') }}</button>
+                                <button type="button" class="btn btn-light border me-3 prev-btn" style="display: none;"><i class="ri-arrow-left-line"></i>{{ __('Prev') }}</button>
+                                <button type="button" class="btn btn-primary next-btn">{{ __('Next') }} <i class="ri-arrow-right-line"></i></button>
+                                <button type="submit" class="btn btn-primary submit-btn px-md-4" style="display: none;">{{ __('Submit') }}</button>
                             </div>
                         </form>
                     </div>
