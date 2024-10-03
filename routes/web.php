@@ -100,15 +100,6 @@ Route::middleware('auth', 'locale')->group(function () {
     // Tasks
     Route::get('/tasks', [TaskController::class, 'task'])->name('tasks');
 
-<<<<<<< HEAD
-    // My Reimbursement
-    // Route::get('/reimbursements', [ReimburseController::class, 'reimbursements'])->name('reimbursements');
-    // Route::get('/cashadvanced', [ReimburseController::class, 'cashadvanced'])->name('cashadvanced');
-    // Route::get('/cashadvanced/form', [ReimburseController::class, 'cashadvancedCreate'])->name('cashadvanced.form');
-    
-
-=======
->>>>>>> 03bda56756f7f425e4be1cf9667a7defed706eff
     // My Goals
     Route::get('/goals', [MyGoalController::class, 'index'])->name('goals');
     Route::get('/goals/detail/{id}', [MyGoalController::class, 'show'])->name('goals.detail');
