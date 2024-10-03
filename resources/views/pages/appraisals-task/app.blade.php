@@ -40,86 +40,92 @@
                           </ul>
                           <div class="tab-content" id="myTabContent">
                             <div class="tab-pane fade show active" id="team" role="tabpanel" aria-labelledby="team-tab">
-                                <table id="tableAppraisalTeam" class="table table-hover activate-select">
-                                    <thead>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Name</th>
-                                            <th>Position</th>
-                                            <th>Office</th>
-                                            <th>Business Unit</th>
-                                            <th>{{ __('Initiated Date') }}</th>
-                                            <th>Category</th>
-                                            <th class="sorting_1">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($dataTeams as $index => $team)
+                                <div class="table-responsive">
+                                    <table id="tableAppraisalTeam" class="table table-hover activate-select">
+                                        <caption>List of Team</caption>
+                                        <thead>
                                             <tr>
-                                                <td>{{ $index + 1 }}</td>
-                                                <td>
-                                                    {{ $team->employee->fullname }}
-                                                    <span class="text-muted">{{ '('.$team->employee->employee_id.')' }}</span>
-                                                </td>
-                                                <td>{{ $team->employee->designation }}</td>
-                                                <td>{{ $team->employee->office_area }}</td>
-                                                <td>{{ $team->employee->group_company }}</td>
-                                                <td class="text-end">{{ $team->approvalRequest->first() ? $team->approvalRequest->first()->formatted_created_at : '-' }}</td>
-                                                <td>{{ $team->layer_type === 'manager' ? 'subordinate' : ($team->layer_type === 'subordinate' ? 'manager' : $team->layer_type ) }}</td>
-                                                <td class="sorting_1 text-center">
-                                                    @forelse ($team->contributors as $contributor)
-                                                        <a href="{{ route('appraisals-task.detail', $contributor->id) }}" type="button" class="btn btn-outline-info btn-sm">{{ __('View Detail') }}</a>
-                                                    @empty
-                                                        @if ($team->layer_type === 'manager' && empty(json_decode($team->approvalRequest, true)))
-                                                            <a href="{{ route('appraisals-task.initiate', $team->employee->employee_id) }}" type="button" class="btn btn-outline-primary btn-sm">{{ __('Initiate') }}</a>
-                                                        @else
-                                                            <a href="{{ route('appraisals-360.review', $team->employee->employee_id) }}" type="button" class="btn btn-outline-warning btn-sm">{{ __('Review') }}</a>    
-                                                        @endif
-                                                    @endforelse
-                                                </td>
+                                                <th>#</th>
+                                                <th>Name</th>
+                                                <th>Position</th>
+                                                <th>Office</th>
+                                                <th>Business Unit</th>
+                                                <th>{{ __('Initiated Date') }}</th>
+                                                <th>Category</th>
+                                                <th class="sorting_1">Action</th>
                                             </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($dataTeams as $index => $team)
+                                                <tr>
+                                                    <td>{{ $index + 1 }}</td>
+                                                    <td>
+                                                        {{ $team->employee->fullname }}
+                                                        <span class="text-muted">{{ '('.$team->employee->employee_id.')' }}</span>
+                                                    </td>
+                                                    <td>{{ $team->employee->designation }}</td>
+                                                    <td>{{ $team->employee->office_area }}</td>
+                                                    <td>{{ $team->employee->group_company }}</td>
+                                                    <td class="text-end">{{ $team->approvalRequest->first() ? $team->approvalRequest->first()->formatted_created_at : '-' }}</td>
+                                                    <td>{{ $team->layer_type === 'manager' ? 'subordinate' : ($team->layer_type === 'subordinate' ? 'manager' : $team->layer_type ) }}</td>
+                                                    <td class="sorting_1 text-center">
+                                                        @forelse ($team->contributors as $contributor)
+                                                            <a href="{{ route('appraisals-task.detail', $contributor->id) }}" type="button" class="btn btn-outline-info btn-sm">{{ __('View Detail') }}</a>
+                                                        @empty
+                                                            @if ($team->layer_type === 'manager' && empty(json_decode($team->approvalRequest, true)))
+                                                                <a href="{{ route('appraisals-task.initiate', $team->employee->employee_id) }}" type="button" class="btn btn-outline-primary btn-sm">{{ __('Initiate') }}</a>
+                                                            @else
+                                                                <a href="{{ route('appraisals-360.review', $team->employee->employee_id) }}" type="button" class="btn btn-outline-warning btn-sm">{{ __('Review') }}</a>    
+                                                            @endif
+                                                        @endforelse
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                             <div class="tab-pane fade" id="360-review" role="tabpanel" aria-labelledby="360-review-tab">
-                                <table id="tableAppraisal360" class="table table-hover activate-select">
-                                    <thead>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Name</th>
-                                            <th>Position</th>
-                                            <th>Office</th>
-                                            <th>Business Unit</th>
-                                            <th>{{ __('Initiated Date') }}</th>
-                                            <th>Category</th>
-                                            <th class="sorting_1">Action</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        @foreach ($data360 as $index => $row)
+                                <div class="table-responsive">
+                                    <table id="tableAppraisal360" class="table table-hover activate-select">
+                                        <caption>List of 360</caption>
+                                        <thead>
                                             <tr>
-                                                <td>{{ $index + 1 }}</td>
-                                                <td>
-                                                    {{ $row->employee->fullname }}
-                                                    <span class="text-muted">{{ '('.$row->employee->employee_id.')' }}</span>
-                                                </td>
-                                                <td>{{ $row->employee->designation }}</td>
-                                                <td>{{ $row->employee->office_area }}</td>
-                                                <td>{{ $row->employee->group_company }}</td>
-                                                <td class="text-end">{{ $row->approvalRequest->first() ? $row->approvalRequest->first()->formatted_created_at : '-' }}</td>
-                                                <td>{{ $row->layer_type === 'manager' ? 'subordinate' : ($row->layer_type === 'subordinate' ? 'manager' : $row->layer_type ) }}</td>
-                                                <td class="sorting_1 text-center">
-                                                    @forelse ($row->contributors as $contributor)
-                                                        <a href="{{ route('appraisals-task.detail', $contributor->id) }}" type="button" class="btn btn-outline-info btn-sm">{{ __('View Detail') }}</a>
-                                                    @empty
-                                                        <a href="{{ route('appraisals-360.review', $row->employee->employee_id) }}" type="button" class="btn btn-outline-warning btn-sm">{{ __('Review') }}</a>    
-                                                    @endforelse
-                                                </td>
+                                                <th>#</th>
+                                                <th>Name</th>
+                                                <th>Position</th>
+                                                <th>Office</th>
+                                                <th>Business Unit</th>
+                                                <th>{{ __('Initiated Date') }}</th>
+                                                <th>Category</th>
+                                                <th class="sorting_1">Action</th>
                                             </tr>
-                                        @endforeach
-                                    </tbody>
-                                </table>
+                                        </thead>
+                                        <tbody>
+                                            @foreach ($data360 as $index => $row)
+                                                <tr>
+                                                    <td>{{ $index + 1 }}</td>
+                                                    <td>
+                                                        {{ $row->employee->fullname }}
+                                                        <span class="text-muted">{{ '('.$row->employee->employee_id.')' }}</span>
+                                                    </td>
+                                                    <td>{{ $row->employee->designation }}</td>
+                                                    <td>{{ $row->employee->office_area }}</td>
+                                                    <td>{{ $row->employee->group_company }}</td>
+                                                    <td class="text-end">{{ $row->approvalRequest->first() ? $row->approvalRequest->first()->formatted_created_at : '-' }}</td>
+                                                    <td>{{ $row->layer_type === 'manager' ? 'subordinate' : ($row->layer_type === 'subordinate' ? 'manager' : $row->layer_type ) }}</td>
+                                                    <td class="sorting_1 text-center">
+                                                        @forelse ($row->contributors as $contributor)
+                                                            <a href="{{ route('appraisals-task.detail', $contributor->id) }}" type="button" class="btn btn-outline-info btn-sm">{{ __('View Detail') }}</a>
+                                                        @empty
+                                                            <a href="{{ route('appraisals-360.review', $row->employee->employee_id) }}" type="button" class="btn btn-outline-warning btn-sm">{{ __('Review') }}</a>    
+                                                        @endforelse
+                                                    </td>
+                                                </tr>
+                                            @endforeach
+                                        </tbody>
+                                    </table>
+                                </div>
                             </div>
                           </div>
                     </div> <!-- end card-body -->
