@@ -109,8 +109,6 @@ $(document).ready(function(){
                 }
             });
 
-            hideLoader();
-
             // updateRemoveButtons();
         } else {
             Swal.fire({
@@ -121,6 +119,7 @@ $(document).ready(function(){
                 confirmButtonText: "OK",
             });
         }
+        hideLoader();
     });
 
     function updateRemoveButtons() {
@@ -150,61 +149,97 @@ $(document).ready(function() {
     });
 });
 
-function viewHistory(employeeId) {
-    showLoader();
-    fetch('/history-show', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-        },
-        body: JSON.stringify({ employee_id: employeeId })
-    })
-    .then(response => response.json())
-    .then(data => {
-        // Clear existing rows in the table body
-        const tableBody = document.querySelector('#viewModal tbody');
-        tableBody.innerHTML = '';
-
-        // Populate table with new data
-        data.forEach((item, index) => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td>${index + 1}</td>
-                <td>${item.fullname}</td>
-                <td>
-                    ${item.layers.split('|').map((layer, i) => `L${layer}: ${item.approver_names.split('|')[i]}`).join('<br>')}
-                </td>
-                <td>${item.name}</td>
-                <td>${item.updated_at}</td>
-            `;
-            tableBody.appendChild(row);
-        });
-        hideLoader();
-        var viewModal = document.getElementById('viewModal');
-        // Initialize the Bootstrap modal
-        var modal = new bootstrap.Modal(viewModal);
+document.addEventListener('DOMContentLoaded', function () {
+    const detailModal = document.getElementById('detailModal');
+    
+    detailModal.addEventListener('show.bs.modal', async function (event) {
+        const button = event.relatedTarget;
+        const employeeId = button.getAttribute('data-bs-id');
         
-        modal.show();
-    })
-    .catch(error => {
-        console.error('Error:', error);
+        // Show loading state before fetching data
+        showLoadingState();
+
+        try {
+            // Fetch the employee details using async/await
+            const data = await fetchEmployeeDetails(employeeId);
+            
+            // Populate the modal with the retrieved data
+            populateModal(data);
+            
+            // Populate history table
+            populateHistoryTable(data.history);
+        } catch (error) {
+            console.error('Error fetching employee details:', error);
+            showErrorMessage('Unable to retrieve employee details. Please try again.');
+        } finally {
+            // Hide loading state
+            hideLoadingState();
+        }
     });
-}
 
-window.viewHistory = viewHistory;
+    // Function to fetch employee details from the backend
+    async function fetchEmployeeDetails(employeeId) {
+        const response = await fetch(`/employee-layer-appraisal/details/${employeeId}`);
+                
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
 
-$(document).ready(function() {
+        return await response.json();
+    }
 
-// Apply filter when location dropdown value changes
-$('#locationFilter').on('change', function() {
-    applyLocationFilter(table);
-});
+    // Function to show loading indicator (can be a spinner or overlay)
+    function showLoadingState() {
+        const modalBody = detailModal.querySelector('#historyTable tbody');
+        modalBody.innerHTML = '<div class="loading-spinner">Loading...</div>';
+    }
 
-// Apply filter when table is redrawn (e.g., when navigating to next page)
-// table.on('draw.dt', function() {
-//     applyLocationFilter(table);
-// });
+    // Function to hide loading indicator
+    function hideLoadingState() {
+        const loadingSpinner = detailModal.querySelector('.loading-spinner');
+        if (loadingSpinner) {
+            loadingSpinner.remove();
+        }
+    }
+
+    // Function to populate modal fields with employee data
+    function populateModal(data) {
+        detailModal.querySelector('.fullname').textContent = data.fullname || 'N/A';
+        detailModal.querySelector('.employee_id').textContent = data.employee_id || 'N/A';
+        detailModal.querySelector('.formattedDoj').textContent = data.formattedDoj || 'N/A';
+        detailModal.querySelector('.group_company').textContent = data.group_company || 'N/A';
+        detailModal.querySelector('.company_name').textContent = data.company_name || 'N/A';
+        detailModal.querySelector('.unit').textContent = data.unit || 'N/A';
+        detailModal.querySelector('.designation').textContent = data.designation || 'N/A';
+        detailModal.querySelector('.office_area').textContent = data.office_area || 'N/A';
+    }
+
+    // Function to populate history table with employee history data
+    function populateHistoryTable(history) {
+        const historyTableBody = detailModal.querySelector('#historyTable tbody');
+        historyTableBody.innerHTML = ''; // Clear previous entries
+
+        if (history.length === 0) {
+            historyTableBody.innerHTML = '<tr><td colspan="4" class="text-center">No history available.</td></tr>';
+            return;
+        }
+
+        history.forEach((entry, index) => {
+            const row = `<tr>
+                            <td>${entry.layer_type + ' ' + entry.layer || 'N/A'}</td>
+                            <td>${entry.fullname + ' (' + entry.employee_id + ')' || 'N/A'}</td>
+                            <td class="text-center">${entry.updated_by}</td>
+                            <td class="text-center">${entry.updated_at || 'N/A'}</td>
+                        </tr>`;
+            historyTableBody.insertAdjacentHTML('beforeend', row);
+        });
+    }
+
+    // Function to display an error message inside the modal
+    function showErrorMessage(message) {
+        const modalBody = detailModal.querySelector('#historyTable tbody');
+        modalBody.innerHTML = `<div class="alert alert-danger">${message}</div>`;
+    }
 });
 
 function applyLocationFilter(table) {
@@ -212,104 +247,6 @@ var locationId = $('#locationFilter').val().toUpperCase();
 
 // Filter table based on location
 table.column(10).search(locationId).draw(); // Adjust index based on your table structure
-}
-
-
-$(document).on('click', '.open-edit-modal', function() {
-    var employeeId = $(this).data('bsEmployee-id');
-    
-    var fullname = $(this).data('bsFullname');
-    var app = $(this).data('bsApp');
-    $('#employeeId').text(employeeId);
-    
-    
-    var layer = $(this).data('bsLayer');
-    var appname = $(this).data('bsApp-name');
-    
-    // populateModal(employeeId, fullname, app, layer, appname);
-    populateModal(employeeId, fullname, app, layer, appname, employeesData);
-});
-
-function populateModal(employeeId, fullName, app, layer, appName, employees) {
-
-    $('#employee_id').val(employeeId);
-    $('#employeeId').val(employeeId);
-    $('#fullname').val(fullName+' - '+employeeId);
-
-    let apps = [];
-    let layers = [];
-    let appNames = [];
-
-    // if (typeof app === 'string' && app.indexOf("|") !== -1) {
-    if (app.includes('|')) {
-        // Jika nilai app mengandung karakter '|', lakukan pemisahan
-        apps = app.split('|');
-        layers = layer.split('|');
-        appNames = appName.split('|');
-    } else {
-        // Jika tidak mengandung karakter '|', gunakan nilai langsung
-        apps = [app]; // Ubah ke array untuk konsistensi
-        layers = [layer];
-        appNames = [appName];
-    }
-
-    $('#viewlayer').empty();
-    $('#nikAppInputs').empty();
-    var layerIndex = 1;
-
-    if((apps.length+3)>6){
-        var maxlayer = 6;
-    }else{
-        var maxlayer = (apps.length+3);
-    }
-
-    for (var i = 0; i < maxlayer; i++) {
-        var selectOptions = "<option></option>";
-        for (var j = 0; j < employees.length; j++) {
-            var selected = (employees[j].employee_id == apps[i]) ? 'selected' : 'Select Employee';
-            selectOptions += '<option value="' + employees[j].employee_id + '" ' + selected + '>' + employees[j].fullname + ' - ' + employees[j].employee_id + '</option>';
-        }
-
-        var disabled = (i > apps.length) ? 'disabled' : ''; // Disable additional layers initially
-        var required = (i == 0) ? 'required' : '';
-        $('#viewlayer').append('<div class="row mb-2"><label class="col-md-2 col-form-label">Layer ' + layerIndex + '</label><div class="col"><select name="nik_app[]" class="form-select select2"' + disabled + ' ' + required + '>' + selectOptions + '</select></div></div>');
-        layerIndex++;
-    }
-
-    // Initialize Select2
-    $('.select2').select2({
-        dropdownParent: $('#editModal'),
-        placeholder: 'Select Layer Name',
-        theme: "bootstrap-5",
-        width: '100%',
-        allowClear: true
-    });
-
-    // Add change event listener to enable the next layer only if the current one is selected
-    $('#viewlayer .select2').each(function (index) {
-        $(this).on('change', function () {
-            if ($(this).val() !== '') {
-                // Enable the next select element if current selection is not empty
-                for (var i = index + 2; i < $('#viewlayer .select2').length; i++) {
-                    if(i === index + 2){
-                        $('#viewlayer .select2').eq(i).val('').prop('disabled', false).trigger('change');
-                    }
-                }
-            } else {
-                // Disable the subsequent select elements if the current one is cleared
-                for (var i = index + 2; i < $('#viewlayer .select2').length; i++) {
-                    $('#viewlayer .select2').eq(i).val('').prop('disabled', true).trigger('change');
-                }
-            }
-        });
-    });
-
-    var editModal = document.getElementById('editModal');
-    
-    // Initialize the Bootstrap modal
-    var modal = new bootstrap.Modal(editModal);
-    
-    modal.show();
 }
 
 $('#submitButton').on('click', function(e) {

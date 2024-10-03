@@ -8,6 +8,7 @@ use App\Models\Approval;
 use App\Models\ApprovalLayerAppraisal;
 use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
+use App\Models\Calibration;
 use App\Models\Employee;
 use App\Models\Goal;
 use App\Services\AppService;
@@ -42,7 +43,9 @@ class AppraisalTaskController extends Controller
             $user = $this->user;
             $filterYear = $request->input('filterYear');
             
-            $dataTeams = ApprovalLayerAppraisal::with(['approver', 'contributors', 'approvalRequest' => function($query) {
+            $dataTeams = ApprovalLayerAppraisal::with(['approver', 'contributors' => function($query) use ($user) {
+                $query->where('contributor_id', $user);
+            }, 'approvalRequest' => function($query) {
                 $query->where('category', 'Appraisal');
             }])
             ->where('approver_id', $user)
@@ -70,6 +73,7 @@ class AppraisalTaskController extends Controller
             }, 'approvalRequest', 'appraisal'])
             ->where('approver_id', $user)
             ->where('layer_type', '!=', 'manager')
+            ->where('layer_type', '!=', 'calibrator')
             ->get()
             ->filter(function($item) {
                 // Hanya return item yang memiliki data appraisal
@@ -219,7 +223,9 @@ class AppraisalTaskController extends Controller
         
         $goals = Goal::with(['employee'])->where('employee_id', $request->id)->whereYear('created_at', $year)->first();
         
-        $appraisal = Appraisal::with(['approvalRequest'])->where('employee_id', $request->id)->whereYear('created_at', $year)->first();
+        $appraisal = Appraisal::with(['approvalRequest' => function($query) {
+            $query->where('category', 'Appraisal');
+        }])->where('employee_id', $request->id)->whereYear('created_at', $year)->first();
 
         $approval = ApprovalLayerAppraisal::where('employee_id', $appraisal->employee_id)->where('approver_id', Auth::user()->employee_id )->first();
 
@@ -488,6 +494,10 @@ class AppraisalTaskController extends Controller
             'formData' => $formData,
         ];
 
+        $goals = Goal::with(['employee'])->where('employee_id', $validatedData['employee_id'])->whereYear('created_at', $period)->first();
+
+        $goalData = json_decode($goals->form_data, true);
+
         // Create a new Appraisal instance and save the data
         $appraisal = new Appraisal;
         $appraisal->id = Str::uuid();
@@ -500,18 +510,25 @@ class AppraisalTaskController extends Controller
         
         $appraisal->save();
 
-        foreach ($contributorData as $contributor) {
-            AppraisalContributor::create([
-                'appraisal_id' => $appraisal->id,
-                'employee_id' => $validatedData['employee_id'],
-                'contributor_id' => $contributor->approver_id,
-                'contributor_type' => $contributor->layer_type,
-                // Add additional data here
-                'form_data' => json_encode($datas),
-                'period' => $period,
-                'created_by' => Auth::user()->id
-            ]);
-        }    
+        $contributorData = ApprovalLayerAppraisal::select('approver_id', 'layer_type')->where('approver_id', Auth::user()->employee_id)->where('employee_id', $validatedData['employee_id'])->first();
+
+        $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $validatedData['employee_id'])->value('approver_id');
+
+
+        $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee);
+
+        AppraisalContributor::create([
+            'appraisal_id' => $appraisal->id,
+            'employee_id' => $validatedData['employee_id'],
+            'contributor_id' => $contributorData->approver_id,
+            'contributor_type' => $contributorData->layer_type,
+            // Add additional data here
+            'form_data' => json_encode($datas),
+            'rating' => $formDatas['contributorRating'],
+            'status' => 'Approved',
+            'period' => $period,
+            'created_by' => Auth::user()->id
+        ]);
         
         $snapshot =  new ApprovalSnapshots;
         $snapshot->id = Str::uuid();
@@ -530,6 +547,16 @@ class AppraisalTaskController extends Controller
         $approval->created_by = Auth::user()->id;
         // Set other attributes as needed
         $approval->save();
+
+        $calibration = new Calibration();
+        $calibration->appraisal_id = $validatedData['appraisal_id'];
+        $calibration->employee_id = $validatedData['employee_id'];
+        $calibration->approver_id = $firstCalibrator;
+        $calibration->period = $period;
+        $calibration->created_by = Auth::user()->id;
+
+        $calibration->save();
+
 
         // Return a response, such as a redirect or a JSON response
         return redirect('appraisals-task')->with('success', 'Appraisal submitted successfully.');
@@ -596,6 +623,8 @@ class AppraisalTaskController extends Controller
             // Cari approver_id pada layer selanjutnya
             $nextApprover = ApprovalLayerAppraisal::where('layer', $nextLayer + 1)->where('layer_type', 'manager')->where('employee_id', $validatedData['employee_id'])->value('approver_id');
 
+            $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $validatedData['employee_id'])->value('approver_id');
+
             if (!$nextApprover) {
                 $approver = $validatedData['approver_id'];
                 $statusRequest = 'Approved';
@@ -627,8 +656,16 @@ class AppraisalTaskController extends Controller
 
             $approval->save();
 
-        }
+            $calibration = new Calibration();
+            $calibration->appraisal_id = $validatedData['appraisal_id'];
+            $calibration->employee_id = $validatedData['employee_id'];
+            $calibration->approver_id = $firstCalibrator;
+            $calibration->period = $period;
+            $calibration->created_by = Auth::user()->id;
 
+            $calibration->save();
+
+        }
 
         // Return a response, such as a redirect or a JSON response
         return redirect('appraisals-task')->with('success', 'Appraisal submitted successfully.');

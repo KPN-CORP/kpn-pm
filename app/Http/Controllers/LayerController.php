@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\InvalidApprovalAppraisalImport;
+use App\Imports\ApprovalLayerAppraisalImport;
 use Illuminate\Http\Request;
 use App\Models\ApprovalLayer; 
 use App\Models\ApprovalRequest;
@@ -13,12 +15,17 @@ use RealRashid\SweetAlert\Facades\Alert;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\ApprovalLayerImport;
 use App\Models\ApprovalLayerAppraisal;
+use App\Models\ApprovalLayerAppraisalBackup;
 use Illuminate\Support\Facades\Log;
 use App\Models\ApprovalLayerBackup;
 use App\Models\Goal;
 use App\Services\AppService;
+use Exception;
+use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class LayerController extends Controller
 {
@@ -340,7 +347,8 @@ class LayerController extends Controller
 
         $groupLayers = $datas->appraisalLayer->groupBy('layer_type');
 
-        $calibratorCount = $groupLayers['calibrator']->count();
+
+        $calibratorCount = isset($groupLayers['calibrator']) ? $groupLayers['calibrator']->count() : 1;
 
         $employee = Employee::select('fullname', 'employee_id', 'designation')->get();
 
@@ -447,4 +455,139 @@ class LayerController extends Controller
         // Redirect back to layer-appraisal page
         return redirect()->route('layer-appraisal')->with('success', 'Appraisal layers updated successfully.');
     }
+
+    public function layerAppraisalImport(Request $request)
+    {
+        $request->validate([
+            'excelFile' => 'required|mimes:xlsx,xls,csv'
+        ]);
+        
+        // Muat file Excel ke dalam array
+        $rows = Excel::toArray([], $request->file('excelFile'));
+
+        $data = $rows[0]; // Ambil sheet pertama
+        $employeeIds = [];
+
+        // Mulai dari indeks 1 untuk mengabaikan header
+        for ($i = 1; $i < count($data); $i++) {
+            $employeeIds[] = $data[$i][0];
+        }
+
+        
+        $employeeIds = array_unique($employeeIds);
+
+        // Ambil employee_ids dari data
+        // $employeeIds = array_unique(array_column($data, 'employee_id'));
+        try {
+            
+            if (!empty($employeeIds)) {
+                // Backup data sebelum menghapus
+                $appraisalLayersToDelete = ApprovalLayerAppraisal::whereIn('employee_id', $employeeIds)->get();
+
+                foreach ($appraisalLayersToDelete as $layer) {
+                    ApprovalLayerAppraisalBackup::create([
+                        'employee_id' => $layer->employee_id,
+                        'approver_id' => $layer->approver_id,
+                        'layer_type' => $layer->layer_type,
+                        'layer' => $layer->layer,
+                        'created_by' => $layer->created_by ? $layer->created_by : 0,
+                        'created_at' => $layer->created_at,
+                    ]);
+                }
+                
+            }
+            // Get the ID of the currently authenticated user
+            $userId = Auth::id();
+
+            // Initialize the import process with the user ID
+            $import = new ApprovalLayerAppraisalImport($userId);
+
+            // Retrieve invalid employees after import
+            
+            // Prepare the success message
+            $message = 'Data imported successfully.';
+            Excel::import($import, $request->file('excelFile'));
+            
+            $invalidEmployees = $import->getInvalidEmployees();
+
+            // Check if there are any invalid employees
+            if (!empty($invalidEmployees)) {
+                // Append error information to the success message
+                session()->put('invalid_employees', $invalidEmployees);
+
+                $message .= ' With some errors. <a href="' . route('export.invalid.layer.appraisal') . '">Click here to download the list of errors.</a>';
+            }
+
+            // If successful, redirect back with a success message
+            return redirect()->back()->with('success', $message);
+        } catch (ValidationException $e) {
+
+            // Catch the validation exception and redirect back with the error message
+            return redirect()->back()->with('error', $e->errors()['error'][0]);
+        } catch (\Exception $e) {
+            // Handle any other exceptions
+            return redirect()->back()->with('error', 'An error occurred during the import process.');
+        }
+
+    }
+
+    public function exportInvalidLayerAppraisal()
+    {
+        // Retrieve the invalid employees from the session or another source
+        $invalidEmployees = session('invalid_employees');
+
+        if (empty($invalidEmployees)) {
+            return redirect()->back()->with('success', 'No invalid employees to export.');
+        }
+
+        // Export the invalid employees to an Excel file
+        return Excel::download(new InvalidApprovalAppraisalImport($invalidEmployees), 'errors_layer_import.xlsx');
+    }
+
+    public function getEmployeeLayerDetails($employeeId)
+    {
+        try {
+            // Validate employee ID format (assuming numeric for this example)
+            if (!is_numeric($employeeId)) {
+                return response()->json(['error' => 'Invalid employee ID format'], 400);
+            }
+
+            // Cache the employee data to reduce database queries
+            $employee = Cache::remember("employee_{$employeeId}", 60, function () use ($employeeId) {
+                return Employee::where('employee_id', $employeeId)->firstOrFail();
+            });
+
+            // Fetch history (you can also cache this if necessary)
+            $history = ApprovalLayerAppraisal::with(['approver', 'createBy', 'updateBy'])->where('employee_id', $employeeId)->get();
+
+            // Build the response data structure
+            $data = [
+                'fullname' => $employee->fullname,
+                'employee_id' => $employee->employee_id,
+                'formattedDoj' => $employee->formatted_doj,
+                'group_company' => $employee->group_company,
+                'company_name' => $employee->company_name,
+                'unit' => $employee->unit,
+                'designation' => $employee->designation,
+                'office_area' => $employee->office_area,
+                'history' => $history->map(function($entry) {
+                    return [
+                        'layer_type' => $entry->layer_type,
+                        'layer' => $entry->layer,
+                        'fullname' => $entry->approver->fullname,
+                        'employee_id' => $entry->approver->employee_id,
+                        'updated_by' => $entry->createBy ? $entry->createBy->fullname.' ('. $entry->createBy->employee_id .')' : ($entry->updateBy ? $entry->updateBy->fullname.' ('. $entry->updateBy->employee_id .')' : 'System') ,
+                        'updated_at' => $entry->updated_at->format('Y-m-d H:i:s'),
+                    ];
+                }),
+            ];
+
+            return response()->json($data);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Employee not found'], 404);
+        } catch (Exception $e) {
+            return response()->json(['error' => 'An unexpected error occurred'], 500);
+        }
+    }
+
 }

@@ -94,7 +94,7 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <form id="stepperForm" action="{{ route('appraisal.submit') }}" method="POST">
+                        <form id="stepperForm" action="{{ route('appraisals-task.submit') }}" method="POST">
                         @csrf
                         <input type="hidden" name="employee_id" value="{{ $goal->employee_id }}">
                         <input type="hidden" class="form-control" name="approver_id" value="{{ $approval->approver_id }}">
