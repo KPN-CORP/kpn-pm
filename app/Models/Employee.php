@@ -56,4 +56,9 @@ class Employee extends Model
             ->distinct()
             ->pluck('group_company');
     }
+
+    public function appraisalLayer()
+    {
+        return $this->hasMany(ApprovalLayerAppraisal::class, 'employee_id', 'employee_id');
+    }
 }

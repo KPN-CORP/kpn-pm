@@ -177,8 +177,8 @@
                             <div class="row">
                                 <div class="col-md d-md-flex justify-content-end text-center">
                                     <input type="hidden" name="repeat_days_selected" id="repeatDaysSelected">
-                                    <a href="{{ route('schedules') }}" type="button" class="btn btn-outline-secondary rounded-pill shadow px-4 me-2">{{ __('Cancel') }}</a>
-                                    <button type="submit" class="btn btn-primary rounded-pill shadow px-4">{{ __('Submit') }}</button>
+                                    <a href="{{ route('schedules') }}" type="button" class="btn btn-outline-secondary shadow px-4 me-2">{{ __('Cancel') }}</a>
+                                    <button type="submit" class="btn btn-primary shadow px-4">{{ __('Submit') }}</button>
                                 </div>
                             </div>
                         </form>
@@ -188,4 +188,3 @@
         </div>
     </div>
 @endsection
-@vite('resources/js/schedule.js')

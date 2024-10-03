@@ -110,4 +110,3 @@
     </div>
     </div>
     @endsection
-    @vite('resources/js/goal-approval.js')

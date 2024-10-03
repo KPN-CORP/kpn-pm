@@ -40,7 +40,7 @@
                           </ul>
                           <div class="tab-content" id="myTabContent">
                             <div class="tab-pane fade show active" id="team" role="tabpanel" aria-labelledby="team-tab">
-                                <table id="tableAppraisalTeam" class="table activate-select dt-responsive nowrap">
+                                <table id="tableAppraisalTeam" class="table table-hover activate-select">
                                     <thead>
                                         <tr>
                                             <th>#</th>
@@ -83,7 +83,7 @@
                                 </table>
                             </div>
                             <div class="tab-pane fade" id="360-review" role="tabpanel" aria-labelledby="360-review-tab">
-                                <table id="tableAppraisal360" class="table activate-select dt-responsive nowrap">
+                                <table id="tableAppraisal360" class="table table-hover activate-select">
                                     <thead>
                                         <tr>
                                             <th>#</th>

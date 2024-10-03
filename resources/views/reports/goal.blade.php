@@ -2,13 +2,13 @@
     <div class="col-md-12">
       <div class="card shadow mb-4">
         <div class="card-header">
-            <div class="row bg-primary-subtle rounded p-2">
+            <div class="row rounded">
               <div class="col-md-auto text-center">
-                  <button class="btn btn-outline-primary rounded-pill btn-sm px-2 my-1 me-2 filter-btn" data-id="{{ __('All Task') }}">{{ __('All Task') }}</button>
-                  <button class="btn btn-outline-primary rounded-pill btn-sm px-2 my-1 me-2 filter-btn" data-id="draft">Draft</button>
-                  <button class="btn btn-outline-primary rounded-pill btn-sm px-2 my-1 me-2 filter-btn" data-id="{{ __('Waiting For Revision') }}">{{ __('Waiting For Revision') }}</button>
-                  <button class="btn btn-outline-primary rounded-pill btn-sm px-2 my-1 me-2 filter-btn" data-id="{{ __('Pending') }}">{{ __('Pending') }}</button>
-                  <button class="btn btn-outline-primary rounded-pill btn-sm px-2 my-1 me-2 filter-btn" data-id="{{ __('Approved') }}">{{ __('Approved') }}</button>
+                  <button class="btn btn-outline-primary btn-sm px-2 my-1 me-1 filter-btn" data-id="all">{{ __('All Task') }}</button>
+                  <button class="btn btn-outline-primary btn-sm px-2 my-1 me-1 filter-btn" data-id="draft">Draft</button>
+                  <button class="btn btn-outline-primary btn-sm px-2 my-1 me-1 filter-btn" data-id="waiting for revision">{{ __('Waiting For Revision') }}</button>
+                  <button class="btn btn-outline-primary btn-sm px-2 my-1 me-1 filter-btn" data-id="waiting for approval">{{ __('Pending') }}</button>
+                  <button class="btn btn-outline-primary btn-sm px-2 my-1 me-1 filter-btn" data-id="approved">{{ __('Approved') }}</button>
               </div>
             </div>
           </div>
@@ -30,12 +30,12 @@
                         <tr>
                           <td>{{ $row->employee->fullname }}<br>{{ $row->employee_id }}</td>
                           <td class="text-center">
-                            <a href="#" class="btn btn-light btn-sm rounded-pill font-weight-medium" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $row->goal->id }}"><i class="ri-search-line"></i></a>
+                            <a href="#" class="btn btn-light btn-sm font-weight-medium" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $row->goal->id }}"><i class="ri-search-line"></i></a>
                           </td>
                           <td class="text-center">
-                            <span class="badge {{ $row->goal->form_status == 'Approved' ? 'bg-success' : ($row->goal->form_status == 'Draft' ? 'badge-outline-secondary' : 'bg-secondary')}} rounded-pill px-1">{{ $row->goal->form_status == 'Draft' ? 'Draft' : $row->goal->form_status }}</span></td>
+                            <span class="badge {{ $row->goal->form_status == 'Approved' ? 'bg-success' : ($row->goal->form_status == 'Draft' ? 'badge-outline-secondary' : 'bg-secondary')}} px-1">{{ $row->goal->form_status == 'Draft' ? 'Draft' : $row->goal->form_status }}</span></td>
                           <td class="text-center">
-                            <a href="javascript:void(0)" data-bs-id="{{ $row->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->goal->form_status=='Draft' ? 'Draft' : ($row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : $row->name) }}" class="badge {{ $row->status === 'Approved' ? 'bg-success' : ( $row->status=='Sendback' || $row->goal->form_status=='Draft' ? 'bg-secondary' : 'bg-warning' ) }} rounded-pill px-1">{{ $row->status == 'Pending' ? ($row->goal->form_status=='Draft' ? 'Not Started' : __('Pending')) : ( $row->status=='Sendback'? 'Waiting For Revision' : $row->status) }}</a>
+                            <a href="javascript:void(0)" data-bs-id="{{ $row->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->goal->form_status=='Draft' ? 'Draft' : ($row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : $row->name) }}" class="badge {{ $row->status === 'Approved' ? 'bg-success' : ( $row->status=='Sendback' || $row->goal->form_status=='Draft' ? 'bg-secondary' : 'bg-warning' ) }} px-1">{{ $row->status == 'Pending' ? ($row->goal->form_status=='Draft' ? 'Not Started' : __('Pending')) : ( $row->status=='Sendback'? 'Waiting For Revision' : $row->status) }}</a>
                           </td>
                           <td class="text-center">{{ $row->formatted_created_at }}</td>
                           <td class="text-center">{{ $row->initiated->name }}<br>{{ $row->initiated->employee_id }}</td>

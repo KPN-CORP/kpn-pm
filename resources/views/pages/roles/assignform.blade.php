@@ -26,7 +26,7 @@
       </div>
       <div class="row">
         <div class="col-lg-auto text-end">
-          <button type="submit" id="submitButton" class="btn btn-primary rounded-pill px-3"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Save</button>
+          <button type="submit" id="submitButton" class="btn btn-primary px-3"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Save</button>
         </div>
       </div>
     </form>

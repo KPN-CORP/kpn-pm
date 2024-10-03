@@ -332,8 +332,6 @@ class MyAppraisalController extends Controller
             $suggestedLeadership = $formData['leadershipAverageScore'] + $formDataManager['leadershipAverageScore'] + $formDataPeers['leadershipAverageScore'] + $formDataSub['leadershipAverageScore'];
 
             $suggestedRating = $suggestedKpi + $suggestedCulture + $suggestedLeadership;
-
-            dd($suggestedRating);
             
             $formGroupContent = storage_path('../resources/testFormGroup.json');
             if (!File::exists($formGroupContent)) {

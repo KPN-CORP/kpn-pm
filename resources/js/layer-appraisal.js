@@ -18,39 +18,108 @@ document.addEventListener("DOMContentLoaded", function () {
         layerAppraisalTable.search($(this).val()).draw();
     });
 
+    $(document).ready(function() {
+        $('.selection2').select2({
+            minimumInputLength: 1,
+            theme: 'bootstrap-5',
+            ajax: {
+                url: '/search-employee', // Route for your Laravel search endpoint
+                dataType: 'json',
+                delay: 250, // Wait 250ms before triggering request (debounce)
+                data: function (params) {
+                    return {
+                        searchTerm: params.term, // Search term entered by the user
+                        employeeId: $('#employee_id').val()
+                    };
+                },
+                processResults: function (data) {
+                    // Map the data to Select2 format
+                    return {
+                        results: $.map(data, function (item) {
+                            return {
+                                id: item.employee_id, // ID field for Select2
+                                text: item.fullname + ' ' + item.employee_id // Text to display in Select2
+                            };
+                        })
+                    };
+                },
+                cache: true
+            }
+        });
+    });    
+
 });
 
 $(document).ready(function(){
-    let calibratorCount = 1;
     const maxCalibrators = 10;
 
     $('#add-calibrator').on('click', function() {
+        showLoader();
         if (calibratorCount < maxCalibrators) {
-        calibratorCount++;
-        const newCalibrator = `
-            <div class="row mb-2" id="calibrator-row-${calibratorCount}">
-                <div class="col-10">
-                    <h5>Calibrator ${calibratorCount}</h5>
-                    <select name="calibrator${calibratorCount}" id="calibrator${calibratorCount}" class="form-select">
-                        <option value="">- Please Select -</option>
-                        <option value="Calibrator A">Calibrator A</option>
-                        <option value="Calibrator B">Calibrator B</option>
-                    </select>
-                </div>
-                <div class="col-2 d-flex align-items-end justify-content-end">
-                    <div class="mt-1">
-                        <button class="btn btn-outline-danger rounded remove-calibrator" data-calibrator-id="${calibratorCount}">
-                        <i class="ri-delete-bin-line"></i>
-                        </button>
+            calibratorCount++;
+            
+            // Create the new calibrator row with dynamic employee options
+            let options = '<option value="">- Please Select -</option>';
+    
+            const newCalibrator = `
+                <div class="row mb-2" id="calibrator-row-${calibratorCount}">
+                    <div class="col-10">
+                        <h5>Calibrator ${calibratorCount}</h5>
+                        <select name="calibrators[]" id="calibrator${calibratorCount}" class="form-select selection2">
+                            ${options}
+                        </select>
+                    </div>
+                    <div class="col-2 d-flex align-items-end justify-content-end">
+                        <div class="mt-1">
+                            <a class="btn btn-outline-danger rounded remove-calibrator" data-calibrator-id="${calibratorCount}">
+                            <i class="ri-delete-bin-line"></i>
+                            </a>
+                        </div>
                     </div>
                 </div>
-            </div>
-        `;
-        
-        $('#calibrator-container').append(newCalibrator);
-        updateRemoveButtons();
+            `;
+    
+            $('#calibrator-container').append(newCalibrator);
+
+            $('.selection2').select2({
+                minimumInputLength: 1,
+                theme: 'bootstrap-5',
+                ajax: {
+                    url: '/search-employee', // Route for your Laravel search endpoint
+                    dataType: 'json',
+                    delay: 250, // Wait 250ms before triggering request (debounce)
+                    data: function (params) {
+                        return {
+                            searchTerm: params.term, // Search term entered by the user
+                            employeeId: $('#employee_id').val()
+                        };
+                    },
+                    processResults: function (data) {
+                        // Map the data to Select2 format
+                        return {
+                            results: $.map(data, function (item) {
+                                return {
+                                    id: item.employee_id, // ID field for Select2
+                                    text: item.fullname + ' ' + item.employee_id // Text to display in Select2
+                                };
+                            })
+                        };
+                    },
+                    cache: true
+                }
+            });
+
+            hideLoader();
+
+            // updateRemoveButtons();
         } else {
-            alert("You have reached the maximum number of calibrators (10).");
+            Swal.fire({
+                title: "Oops!",
+                text: "You've reached the maximum number of Calibrator",
+                icon: "error",
+                confirmButtonColor: "#3e60d5",
+                confirmButtonText: "OK",
+            });
         }
     });
 

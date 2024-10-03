@@ -132,7 +132,7 @@
                 <div class="col-lg">
                     <div class="text-center text-lg-end">
                         @can('sendbackonbehalf')
-                        <a class="btn btn-info px-2 rounded-pill me-2" href="javascript:void(0)" role="button" data-bs-toggle="dropdown" aria-expanded="false">Send back</a>
+                        <a class="btn btn-info px-2 me-2" href="javascript:void(0)" role="button" data-bs-toggle="dropdown" aria-expanded="false">Send back</a>
                             <div class="dropdown-menu shadow-sm m-2">
                             <h6 class="dropdown-header dark">Select person below :</h6>
                             <a class="dropdown-item" href="javascript:void(0)" onclick="sendBack('{{ $row->request->id }}','{{ $row->request->employee->employee_id }}','{{ $row->request->employee->fullname }}')">{{ $row->request->employee->fullname .' '.$row->request->employee->employee_id }}</a>
@@ -141,8 +141,8 @@
                             @endforeach
                             </div> 
                         @endcan
-                        <a href="{{ route('onbehalf') }}" class="btn btn-outline-secondary px-2 me-2 rounded-pill">{{ __('Cancel') }}</a>
-                        <a href="javascript:void(0)" id="submitButton" onclick="confirmAprrovalAdmin()" class="btn btn-primary px-2 rounded-pill"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Approve</a>
+                        <a href="{{ route('onbehalf') }}" class="btn btn-outline-secondary px-2 me-2">{{ __('Cancel') }}</a>
+                        <a href="javascript:void(0)" id="submitButton" onclick="confirmAprrovalAdmin()" class="btn btn-primary px-2"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Approve</a>
                     </div>
                 </div>
             </div>
@@ -150,4 +150,3 @@
         @endforeach
     </div>
     @endsection
-    @vite('resources/js/goal-approval.js')

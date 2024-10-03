@@ -14,7 +14,7 @@
     @vite('resources/css/nucleo-icons.css')
     @vite('resources/css/nucleo-svg.css')
     <!-- Main Styling -->
-    @vite('resources/css/soft-ui-dashboard-tailwind.css?v=1.0.5')
+    @vite('resources/css/soft-ui-dashboard-tailwind.min.css')
 
     <!-- Nepcha Analytics (nepcha.com) -->
     <!-- Nepcha is a easy-to-use web analytics. No cookies and fully compliant with GDPR, CCPA and PECR. -->
@@ -111,5 +111,5 @@
   </body>
   <!-- plugin for scrollbar  -->
   @vite('resources/js/plugins/perfect-scrollbar.min.js')
-  @vite('resources/js/soft-ui-dashboard-tailwind.js?v=1.0.5')
+  @vite('resources/js/soft-ui-dashboard-tailwind.min.js')
 </html>

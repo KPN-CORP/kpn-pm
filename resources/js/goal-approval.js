@@ -2,6 +2,8 @@ import $ from 'jquery';
 
 import numeral from 'numeral';
 
+import bootstrap from "bootstrap/dist/js/bootstrap.bundle.min.js";
+
 document.addEventListener('DOMContentLoaded', function () {
     // Initialize all dropdowns on the page
     const dropdownTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="dropdown"]'));

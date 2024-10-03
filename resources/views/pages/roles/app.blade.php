@@ -9,17 +9,17 @@
         <div class="row">
             <div class="col-auto">
                 <div class="mb-2">
-                    <a class="btn btn-outline-primary rounded-pill btn-sm {{ $active=='create' ? 'active':'' }}" href="{{ route('roles.create') }}">Create Role</a>
+                    <a class="btn btn-outline-primary btn-sm {{ $active=='create' ? 'active':'' }}" href="{{ route('roles.create') }}">Create Role</a>
                 </div>
             </div>
             <div class="col-auto">
                 <div class="mb-2">
-                    <a class="btn btn-outline-primary rounded-pill btn-sm {{ $active=='manage' ? 'active':'' }}" href="{{ route('roles.manage') }}">Manage Role</a>
+                    <a class="btn btn-outline-primary btn-sm {{ $active=='manage' ? 'active':'' }}" href="{{ route('roles.manage') }}">Manage Role</a>
                 </div>
             </div>
             <div class="col-auto">
                 <div class="mb-2">
-                    <a class="btn btn-outline-primary rounded-pill btn-sm {{ $active=='assign' ? 'active':'' }}" href="{{ route('roles.assign') }}">Assign Users</a>
+                    <a class="btn btn-outline-primary btn-sm {{ $active=='assign' ? 'active':'' }}" href="{{ route('roles.assign') }}">Assign Users</a>
                 </div>
             </div>
         </div>
@@ -33,4 +33,3 @@
         <div id="subContent"></div>
     </div>
 @endsection
-@vite('resources/js/role.js')
