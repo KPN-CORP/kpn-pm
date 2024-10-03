@@ -59,4 +59,9 @@ class ApprovalRequest extends Model
         return $this->hasMany(AppraisalContributor::class, 'employee_id', 'employee_id');
     }
 
+    public function calibrator()
+    {
+        return $this->belongsTo(ApprovalLayerAppraisal::class, 'current_approval_id', 'approver_id');
+    }
+
 }

@@ -99,14 +99,12 @@
                                     <div class="card bg-secondary-subtle shadow-none">
                                         <div class="card-body">
                                             <h5>Manager</h5>
-                                            @foreach ($groupLayers['manager'] as $layerManager)
                                             <select name="manager" id="manager" class="form-select selection2" required>
                                                 <option value="">- Please Select -</option>
                                                 @foreach ($employee as $item)
-                                                    <option value="{{ $item->employee_id }}" {{ $item->employee_id == $layerManager->approver_id ? 'selected' : '' }}>{{ $item->fullname }} {{ $item->employee_id }}</option>
+                                                    <option value="{{ $item->employee_id }}" {{ isset($groupLayers['manager']) ? ($item->employee_id == $groupLayers['manager']->first()->approver_id ? 'selected' : '') : '' }}>{{ $item->fullname }} {{ $item->employee_id }}</option>
                                                 @endforeach
                                             </select>
-                                            @endforeach
                                         </div>
                                     </div>
                                 </div>

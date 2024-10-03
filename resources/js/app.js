@@ -12,9 +12,6 @@ window.bootstrap = bootstrap;
 import Swal from "sweetalert2";
 window.Swal = Swal;
 
-
-import jszip from 'jszip';
-import pdfmake from 'pdfmake';
 import 'datatables.net-bs5';
 import 'datatables.net-bs5/css/dataTables.bootstrap5.min.css';
 import 'datatables.net-fixedcolumns-bs5';
@@ -23,6 +20,11 @@ import 'datatables.net-fixedcolumns-bs5/css/fixedColumns.bootstrap5.min.css';
 import 'select2/dist/css/select2.css';
 import 'select2-bootstrap-5-theme/dist/select2-bootstrap-5-theme.css';
 import 'quill/dist/quill.snow.css';
+
+import 'datatables.net';
+import 'datatables.net-buttons';
+import 'jszip';
+import 'datatables.net-buttons/js/buttons.html5.js';
 
 import './plugins/perfect-scrollbar.min.js';
 
@@ -39,6 +41,16 @@ import './report.js';
 import './schedule.js';
 import './role.js';
 import './layer.js';
+
+$(document).ready(function() {
+    $('#example').DataTable({
+        dom: 'Bfrtip',
+        buttons: [
+            'copy', 'csv'
+        ],
+        scrollX: true // Enable horizontal scrolling for large tables
+    });
+});
 
 function googleTranslateElementInit() {
     new google.translate.TranslateElement({

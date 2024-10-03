@@ -35,6 +35,7 @@ use App\Http\Controllers\RatingController;
 use App\Http\Controllers\TeamAppraisalController;
 use App\Http\Controllers\TeamGoalController;
 use App\Http\Controllers\SearchController;
+use App\Imports\ApprovalLayerAppraisalImport;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -141,6 +142,7 @@ Route::middleware('auth', 'locale')->group(function () {
     
     // Rating | Calibration
     Route::get('/rating', [RatingController::class, 'index'])->name('rating');
+    Route::post('/rating-submit', [RatingController::class, 'store'])->name('rating.submit');
     
     // Approval
     Route::post('/approval/goal', [ApprovalController::class, 'store'])->name('approval.goal');
@@ -211,10 +213,15 @@ Route::middleware('auth', 'locale')->group(function () {
         Route::post('/update-layer', [LayerController::class, 'updatelayer'])->name('update-layer');
         Route::post('/import-layer', [LayerController::class, 'importLayer'])->name('import-layer');
         Route::post('/history-show', [LayerController::class, 'show'])->name('history-show');
-
+        
+        
         Route::get('/layer-appraisal', [LayerController::class, 'layerAppraisal'])->name('layer-appraisal');
         Route::get('/layer-appraisal/edit/{id}', [LayerController::class, 'layerAppraisalEdit'])->name('layer-appraisal.edit');
+        Route::post('/layer-appraisal/import', [LayerController::class, 'layerAppraisalImport'])->name('layer-appraisal.import');
         Route::post('/layer-appraisal/update', [LayerController::class, 'layerAppraisalUpdate'])->name('layer-appraisal.update');
+        Route::get('/export-invalid-layer-appraisal', [LayerController::class, 'exportInvalidLayerAppraisal'])->name('export.invalid.layer.appraisal');
+        Route::get('/employee-layer-appraisal/details/{employeeId}', [LayerController::class, 'getEmployeeLayerDetails']);
+
     });
     
     Route::middleware(['permission:viewrole'])->group(function () {

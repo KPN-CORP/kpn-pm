@@ -25,7 +25,7 @@ class AppraisalContributor extends Model
         'updated_by',
     ];
 
-    protected $table = 'appraisals_contributors';
+    protected $table = 'appraisal_contributors';
 
     public function appraisal()
     {

@@ -321,9 +321,7 @@ class MyAppraisalController extends Controller
             $formDataSub = $this->appService->combineFormData($combinedSubData, $goalData, 'subordinate', $employeeData);
             
             $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData);
-
-            $contributorManagerContent  = json_decode(File::get(storage_path('../resources/testContributorManager.json')), true);            
-
+            
             $suggestedKpi = $formDataManager['totalKpiScore'] + $formDataPeers['totalKpiScore'] + $formDataSub['totalKpiScore'];
             
             
