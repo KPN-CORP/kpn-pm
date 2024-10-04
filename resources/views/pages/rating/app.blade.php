@@ -17,6 +17,8 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         </div>
+        @if (isset($calibrations))
+            
         <div class="row">
             <div class="col-md p-0 p-md-2">
                 <div class="card">
@@ -192,6 +194,7 @@
                 </div> <!-- end card-->
             </div>
         </div>
+        @endif
     </div>
 @endsection
 @push('scripts')
@@ -200,9 +203,13 @@
         document.addEventListener('DOMContentLoaded', function () {                
             Swal.fire({
                 icon: "error",
-                title: "Cannot initiate appraisal!",
+                title: "Cannot initiate rating!",
                 text: '{{ Session::get('error') }}',
                 confirmButtonText: "OK",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    history.back(); // Go back to the previous page
+                }
             });
         });
     </script>
