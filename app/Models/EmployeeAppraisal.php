@@ -6,7 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class Employee extends Model
+class EmployeeAppraisal extends Model
 {
     use HasFactory;
     
@@ -17,7 +17,9 @@ class Employee extends Model
         'work_area_code', 'office_area', 'manager_l1_id', 'manager_l2_id',
         'employee_type', 'unit', 'date_of_joining', 'users_id'
     ];
-    
+
+    protected $table = 'employees_pa';
+
     public function user()
     {
         return $this->belongsTo(User::class, 'users_id', 'id');

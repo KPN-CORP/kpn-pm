@@ -110,12 +110,14 @@
                     </ul>
                 </div>
             </li>
+            @if(auth()->user()->isCalibrator())
             <li class="side-nav-item">
                 <a href="{{ route('rating') }}" class="side-nav-link">
                     <i class="ri-star-line"></i>
                     <span> Rating </span>
                 </a>
             </li>
+            @endif
             @if (auth()->user()->isApprover())
             <li class="side-nav-item">
                 <a href="{{ url('/reports') }}" class="side-nav-link">

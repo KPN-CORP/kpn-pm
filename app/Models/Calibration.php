@@ -13,6 +13,6 @@ class Calibration extends Model
 
     public function approver()
     {
-        return $this->belongsTo(Employee::class, 'approver_id', 'employee_id')->select(['id', 'employee_id', 'fullname']);
+        return $this->belongsTo(EmployeeAppraisal::class, 'approver_id', 'employee_id')->select(['id', 'employee_id', 'fullname']);
     }
 }

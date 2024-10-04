@@ -48,7 +48,7 @@
                     <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
                         <h4 class="m-0 font-weight-bold text-primary">{{ __('Goal') }} {{ $year }}</h4>
                         @if ($row->request->status == 'Pending' && count($row->request->approval) == 0 || $row->request->sendback_to == $row->request->employee_id)
-                            <a class="btn btn-outline-warning border-2 fw-semibold" href="{{ route('goals.edit', $row->request->goal->id) }}">{{ __('Edit') }}</a>
+                            <a class="btn btn-outline-warning fw-semibold" href="{{ route('goals.edit', $row->request->goal->id) }}">{{ __('Edit') }}</a>
                         @endif
                     </div>
                     <div class="card-body">
