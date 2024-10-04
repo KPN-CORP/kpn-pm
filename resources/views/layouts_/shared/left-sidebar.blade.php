@@ -20,7 +20,7 @@
             <img src="{{ asset('storage/img/logo-sm.png') }}" alt="small logo">
         </span>
     </a>
-    @else
+    {{-- @else --}}
     <!-- Brand Logo Light -->
     <a href="" class="logo logo-light">
         <span class="logo-lg">
@@ -40,7 +40,7 @@
             <img src="{{ asset('storage/img/logo-sm.png') }}" alt="small logo">
         </span>
     </a>
-    @endif
+    {{-- @endif --}}
     <!-- Sidebar Hover Menu Toggle Button -->
     <div class="button-sm-hover" data-bs-toggle="tooltip" data-bs-placement="right" title="Show Full Sidebar">
         <i class="ri-checkbox-blank-circle-line align-middle"></i>
