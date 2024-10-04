@@ -14,6 +14,8 @@ class ApprovalLayerAppraisal extends Model
         'approver_id',
         'layer_type', 
         'layer', 
+        'created_by', 
+        'updated_by', 
     ];
 
     public function employee()
@@ -26,7 +28,11 @@ class ApprovalLayerAppraisal extends Model
     }
     public function approvalRequest()
     {
-        return $this->hasMany(ApprovalRequest::class, 'employee_id', 'employee_id');
+        return $this->hasMany(ApprovalRequest::class, 'employee_id', 'employee_id')->where('category', 'appraisal');
+    }
+    public function approvalRequestApprover()
+    {
+        return $this->hasMany(ApprovalRequest::class, 'approver_id', 'current_approval_id')->where('category', 'appraisal');
     }
     public function contributors()
     {
@@ -43,5 +49,13 @@ class ApprovalLayerAppraisal extends Model
     public function appraisal()
     {
         return $this->belongsTo(Appraisal::class, 'employee_id', 'employee_id');
+    }
+    public function createBy()
+    {
+        return $this->belongsTo(Employee::class, 'created_by', 'id')->select('id', 'employee_id', 'fullname');;
+    }
+    public function updateBy()
+    {
+        return $this->belongsTo(Employee::class, 'updated_by', 'id')->select('id', 'employee_id', 'fullname');;
     }
 }

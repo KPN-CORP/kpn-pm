@@ -18,6 +18,8 @@ class Employee extends Model
         'employee_type', 'unit', 'date_of_joining', 'users_id'
     ];
 
+    protected $table = 'employees_pa';
+
     public function user()
     {
         return $this->belongsTo(User::class, 'users_id', 'id');

@@ -128,3 +128,8 @@
         </div>
     </div>
 @endsection
+@push('scripts')
+    <script>
+        const errorMessages = '{{ __('Empty Messages') }}';
+    </script>
+@endpush

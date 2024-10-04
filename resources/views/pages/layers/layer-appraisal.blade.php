@@ -9,7 +9,12 @@
     <div class="container-fluid"> 
         @if (session('success'))
             <div class="alert alert-success mt-3">
-                {{ session('success') }}
+                {!! session('success') !!}
+            </div>
+        @endif
+        @if (session('error'))
+            <div class="alert alert-danger mt-3">
+                {!! session('error') !!}
             </div>
         @endif
         <div class="row">
@@ -57,8 +62,7 @@
                             <td>{{ $row->group_company }}</td>
                             <td class="sorting_1 text-center">
                                 <a href="{{ route('layer-appraisal.edit', $row->employee_id) }}" class="btn btn-sm rounded btn-outline-warning me-1"><i class="ri-edit-box-line fs-16"></i></a>
-                                <button class="btn btn-sm rounded btn-outline-info me-1"><i class="ri-eye-line fs-16"></i></button>
-                                <button class="btn btn-sm rounded btn-outline-secondary"><i class="ri-history-line fs-16"></i></button>
+                                <button class="btn btn-sm rounded btn-outline-info me-1" data-bs-toggle="modal" data-bs-target="#detailModal" data-bs-id="{{ $row->employee_id }}"><i class="ri-eye-line fs-16"></i></button>
                             </td>
                         </tr>
                         @endforeach
@@ -70,38 +74,6 @@
       </div>
     </div>
 
-<!-- Modal -->
-<div class="modal fade" id="editModal" role="dialog" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title" id="editModalLabel">Update Superior</h4>
-                {{-- <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> --}}
-            </div>
-            <div class="modal-body">
-                <!-- Form for editing employee details -->
-                <form id="editForm" action="{{ route('update-layer') }}" method="POST">
-                    @csrf
-                    <input type="hidden" name="employee_id" id="employee_id">
-                    <div class="row">
-                        <label class="col-auto col-form-label">Employee</label>
-                        <div class="col">
-                            <input type="text" class="form-control" id="fullname" name="fullname" readonly>
-                        </div>
-                    </div>
-                    <hr>
-                    <div id="viewlayer">
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                <button type="submit" id="submitButton" class="btn btn-primary"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Save changes</button>
-            </div>
-        </div>
-    </div>
-</div>
-
 <!-- importModal -->
 <div class="modal fade" id="importModal" role="dialog" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -111,7 +83,7 @@
                 {{-- <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> --}}
             </div>
             <div class="modal-body">
-                <form id="importForm" action="{{ route('import-layer') }}" method="POST" enctype="multipart/form-data">
+                <form id="importForm" action="{{ route('layer-appraisal.import') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="row">
                         <div class="col">
@@ -139,29 +111,102 @@
     </div>
 </div>
 
-<!-- view history -->
-<div class="modal fade" id="viewModal" role="dialog" aria-labelledby="viewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-full-width" role="document">
+<!-- view detail -->
+<div class="modal fade" id="detailModal" role="dialog" aria-labelledby="detailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-full-width-md-down" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" id="viewModalLabel">View History</h4>
+                <h4 class="modal-title" id="detailModalLabel">View Detail</h4>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <table class="table dt-responsive table-hover" id="historyTable" width="100%" cellspacing="0">
-                    <thead class="thead-light">
-                        <tr class="text-center">
-                            <th>#</th>
-                            <th>Name</th>
-                            <th>Superior</th>
-                            <th>Updated By</th>
-                            <th>Updated At</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Rows will be added dynamically using JavaScript -->
-                    </tbody>
-                </table>
+                <div class="row mb-2">
+                    <div class="col-md">
+                        <div class="row">
+                            <div class="col-3">
+                                <p class="text-muted mb-1">Employee Name</p>
+                            </div>
+                            <div class="col">
+                                : <span class="fullname"></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-3">
+                                <p class="text-muted mb-1">Employee ID</p>
+                            </div>
+                            <div class="col">
+                                : <span class="employee_id"></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-3">
+                                <p class="text-muted mb-1">Join Date</p>
+                            </div>
+                            <div class="col">
+                                : <span class="formattedDoj"></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-3">
+                                <p class="text-muted mb-1">Business Unit</p>
+                            </div>
+                            <div class="col">
+                                : <span class="group_company"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md">
+                        <div class="row">
+                            <div class="col-3">
+                                <p class="text-muted mb-1">Company</p>
+                            </div>
+                            <div class="col">
+                                : <span class="company_name"></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-3">
+                                <p class="text-muted mb-1">Unit</p>
+                            </div>
+                            <div class="col">
+                                : <span class="unit"></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-3">
+                                <p class="text-muted mb-1">Designation</p>
+                            </div>
+                            <div class="col">
+                                : <span class="designation"></span>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-3">
+                                <p class="text-muted mb-1">Office Location</p>
+                            </div>
+                            <div class="col">
+                                : <span class="office_area"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md">
+                        <table class="table table-sm dt-responsive table-hover table-bordered" id="historyTable" width="100%" cellspacing="0">
+                            <thead class="thead-light">
+                                <tr class="text-center">
+                                    <th>Layer</th>
+                                    <th>Employee Name</th>
+                                    <th>Latest Updated By</th>
+                                    <th>Latest Updated At</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rows will be added dynamically using JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Close</button>
