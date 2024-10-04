@@ -20,11 +20,11 @@ class ApprovalLayerAppraisal extends Model
 
     public function employee()
     {
-        return $this->belongsTo(Employee::class, 'employee_id', 'employee_id');
+        return $this->belongsTo(EmployeeAppraisal::class, 'employee_id', 'employee_id');
     }
     public function approver()
     {
-        return $this->belongsTo(Employee::class, 'approver_id', 'employee_id');
+        return $this->belongsTo(EmployeeAppraisal::class, 'approver_id', 'employee_id');
     }
     public function approvalRequest()
     {
@@ -40,11 +40,11 @@ class ApprovalLayerAppraisal extends Model
     }
     public function previousApprovers()
     {
-        return $this->hasMany(Employee::class, 'employee_id', 'approver_id');
+        return $this->hasMany(EmployeeAppraisal::class, 'employee_id', 'approver_id');
     }
     public function view_employee()
     {
-        return $this->belongsTo(Employee::class, 'employee_id', 'employee_id');
+        return $this->belongsTo(EmployeeAppraisal::class, 'employee_id', 'employee_id');
     }
     public function appraisal()
     {
@@ -52,10 +52,10 @@ class ApprovalLayerAppraisal extends Model
     }
     public function createBy()
     {
-        return $this->belongsTo(Employee::class, 'created_by', 'id')->select('id', 'employee_id', 'fullname');;
+        return $this->belongsTo(EmployeeAppraisal::class, 'created_by', 'id')->select('id', 'employee_id', 'fullname');;
     }
     public function updateBy()
     {
-        return $this->belongsTo(Employee::class, 'updated_by', 'id')->select('id', 'employee_id', 'fullname');;
+        return $this->belongsTo(EmployeeAppraisal::class, 'updated_by', 'id')->select('id', 'employee_id', 'fullname');;
     }
 }

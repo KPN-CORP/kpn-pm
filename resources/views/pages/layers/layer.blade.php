@@ -62,8 +62,12 @@
                                             $approverNamesArray = explode('|', $approvalLayer->approver_names);
                                         @endphp
                                         @foreach($layersArray as $index => $layer)
+                                        @if(isset($approverNamesArray[$index]) && !empty($approverNamesArray[$index]))
                                             {{ "L".$layer }} : {{ $approverNamesArray[$index] }}<br>
-                                        @endforeach
+                                        @else
+                                            {{ "L".$layer }} : No approver available<br>
+                                        @endif
+                                    @endforeach
                                     </td>
                                     <td class="text-center sorting_1">
                                         <button type="button" class="btn btn-sm btn-outline-warning open-edit-modal mb-1"

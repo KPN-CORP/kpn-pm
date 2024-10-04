@@ -8,7 +8,7 @@ use App\Models\AppraisalContributor;
 use App\Models\ApprovalLayerAppraisal;
 use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
-use App\Models\Employee;
+use App\Models\EmployeeAppraisal;
 use App\Models\Goal;
 use App\Models\User;
 use Carbon\Carbon;
@@ -383,7 +383,7 @@ class MyAppraisalController extends Controller
             $parentLink = __('Appraisal');
             $link = __('My Appraisal');
 
-            $employee = Employee::where('employee_id', $user)->first();
+            $employee = EmployeeAppraisal::where('employee_id', $user)->first();
             if (!$employee) {
                 $access_menu = ['goals' => null];
             } else {

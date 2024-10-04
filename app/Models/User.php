@@ -73,9 +73,19 @@ class User extends Authenticatable
     {
         return $this->approver_layers()->exists();
     }
-
+    
     public function approver_layers()
     {
         return $this->hasMany(ApprovalLayer::class, 'approver_id', 'employee_id');
+    }
+
+    public function isCalibrator()
+    {
+        return $this->appraisals_calibrator()->exists();
+    }
+
+    public function appraisals_calibrator()
+    {
+        return $this->hasMany(ApprovalLayerAppraisal::class, 'approver_id', 'employee_id')->where('layer_type', 'calibrator');
     }
 }
