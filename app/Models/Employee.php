@@ -17,6 +17,8 @@ class Employee extends Model
         'work_area_code', 'office_area', 'manager_l1_id', 'manager_l2_id',
         'employee_type', 'unit', 'date_of_joining', 'users_id'
     ];
+
+    protected $table = 'employees';
     
     public function user()
     {
