@@ -6,20 +6,6 @@
 @section('content')
     <!-- Begin Page Content -->
     <div class="container-fluid">
-        <!-- Page Heading -->
-        <div class="row">
-          <div class="col-12">
-              <div class="page-title-box">
-                  <div class="page-title-right">
-                      <ol class="breadcrumb m-0">
-                          <li class="breadcrumb-item">{{ $parentLink }}</li>
-                          <li class="breadcrumb-item active">{{ $link }}</li>
-                      </ol>
-                  </div>
-                  <h4 class="page-title">{{ $link }}</h4>
-              </div>
-          </div>
-      </div>
       <div class="card">
         <div class="card-body">
             <div class="row">
@@ -118,13 +104,9 @@
           </form>
         </div> <!-- end offcanvas-body-->
         <div class="offcanvas-footer p-3 text-end">
-          <a class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">Cancel</a>
+          <a class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">{{ __('Cancel') }}</a>
           <button type="submit" class="btn btn-primary" form="onbehalf_filter">Apply</button>
         </div>
     </div>
     </div>
     @endsection
-    @push('scripts')
-    <script src="{{ asset('js/goal-approval.js') }}?v={{ config('app.version') }}"></script>
-
-    @endpush

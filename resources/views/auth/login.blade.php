@@ -4,17 +4,17 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/ico" href="{{ asset('favicon.ico') }}?v={{ config('app.version') }}" />
+    <link rel="icon" type="image/ico" href="{{ asset('storage/img/favicon.ico') }}" />
     <title>Performance Management</title>
     <!-- Fonts and icons -->
     <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700" rel="stylesheet" />
     <!-- Font Awesome Icons -->
     <script src="https://kit.fontawesome.com/42d5adcbca.js" crossorigin="anonymous"></script>
     <!-- Nucleo Icons -->
-    <link href="{{ asset('assets/css/nucleo-icons.css') }}?v={{ config('app.version') }}" rel="stylesheet" />
-    <link href="{{ asset('assets/css/nucleo-svg.css') }}?v={{ config('app.version') }}" rel="stylesheet" />
+    @vite('resources/css/nucleo-icons.css')
+    @vite('resources/css/nucleo-svg.css')
     <!-- Main Styling -->
-    <link href="{{ asset('assets/css/soft-ui-dashboard-tailwind.css?v=1.0.5') }}?v={{ config('app.version') }}" rel="stylesheet" />
+    @vite('resources/css/soft-ui-dashboard-tailwind.min.css')
 
     <!-- Nepcha Analytics (nepcha.com) -->
     <!-- Nepcha is a easy-to-use web analytics. No cookies and fully compliant with GDPR, CCPA and PECR. -->
@@ -30,7 +30,7 @@
             <div class="flex items-center lg:justify-between justify-center w-full p-0 pl-6 mx-auto flex-wrap-inherit">
                     <span class="text-sm overflow-hidden lg-max:max-h-0 basis-full flex lg:basis-auto whitespace-nowrap font-bold text-slate-700" > Performance Management </span>
                     <div class="py-2.375 mr-4 items-center flex">
-                        <img src="{{ asset('img/logos/logokpn.png') }}?v={{ config('app.version') }}" alt="" class="h-6">
+                        <img src="{{ asset('storage/img/logos/logokpn.png') }}" alt="" class="h-6">
                     </div>
             </div>
             
@@ -85,7 +85,7 @@
               </div>
               <div class="w-full max-w-full px-3 lg:flex-0 shrink-0 md:w-6/12">
                 <div class="absolute top-0 hidden w-3/5 h-full -mr-32 overflow-hidden -skew-x-10 -right-40 rounded-bl-xl md:block">
-                  <div class="absolute inset-x-0 top-0 z-0 h-full -ml-16 bg-cover skew-x-10" style="background-image: url('../assets/img/curved-images/curved6.jpg')"></div>
+                  <div class="absolute inset-x-0 top-0 z-0 h-full -ml-16 bg-cover skew-x-10" style="background-image: url('{{ asset('storage/img/curved-images/curved6.jpg') }}')"></div>
                 </div>
               </div>
             </div>
@@ -110,7 +110,6 @@
     </footer>
   </body>
   <!-- plugin for scrollbar  -->
-  <script src="{{ asset('assets/js/plugins/perfect-scrollbar.min.js') }}?v={{ config('app.version') }}" async></script>
-  <!-- main script file  -->
-  <script src="{{ asset('assets/js/soft-ui-dashboard-tailwind.js?v=1.0.5') }}?v={{ config('app.version') }}" async></script>
+  @vite('resources/js/plugins/perfect-scrollbar.min.js')
+  @vite('resources/js/soft-ui-dashboard-tailwind.min.js')
 </html>

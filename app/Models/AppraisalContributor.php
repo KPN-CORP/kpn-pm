@@ -25,7 +25,7 @@ class AppraisalContributor extends Model
         'updated_by',
     ];
 
-    protected $table = 'appraisals_contributors';
+    protected $table = 'appraisal_contributors';
 
     public function appraisal()
     {
@@ -33,6 +33,6 @@ class AppraisalContributor extends Model
     }
     public function employee()
     {
-        return $this->belongsTo(Employee::class, 'employee_id', 'employee_id');
+        return $this->belongsTo(EmployeeAppraisal::class, 'employee_id', 'employee_id');
     }
 }

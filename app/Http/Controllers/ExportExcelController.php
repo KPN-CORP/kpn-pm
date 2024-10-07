@@ -52,7 +52,7 @@ class ExportExcelController extends Controller
             return Excel::download($goal, 'goals.xlsx');
         }
         if($reportType==='Employee'){
-            $employee = new EmployeeExport($groupCompany, $location, $company);
+            $employee = new EmployeeExport($groupCompany, $location, $company, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
             return Excel::download($employee, 'employee.xlsx');
         }
         return;
@@ -77,7 +77,7 @@ class ExportExcelController extends Controller
             return Excel::download($goal, 'goals.xlsx');
         }
         if($reportType==='Employee'){
-            $employee = new EmployeeExport($groupCompany, $location, $company);
+            $employee = new EmployeeExport($groupCompany, $location, $company, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
             return Excel::download($employee, 'employee.xlsx');
         }
         return;

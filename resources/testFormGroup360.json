@@ -3,19 +3,10 @@
     "category": "Appraisal",
     "data": {
         "formType": "Step Form",
-        "formNumber": 3, 
-        "formName": ["Self Review","Culture","Leadership"], 
+        "formNumber": 2, 
+        "formName": ["Culture","Leadership"], 
         "formData": 
         [
-            {
-                "id": 1,
-                "name": "Self Review",
-                "category": "Appraisal",
-                "title": "Score Guideline",
-                "data": [],
-                "icon": "ri-user-fill",
-                "blade": "pages.appraisals-360.self-review"
-            },
             {
                 "id": 2,
                 "name": "Culture",
@@ -55,7 +46,7 @@
                     }
                 ],
                 "icon": "ri-user-settings-fill",
-                "blade": "pages.appraisals-360.culture"
+                "blade": "pages.appraisals-task.culture"
             },
             {
                 "id": 3,
@@ -92,7 +83,7 @@
                     }
                 ],
                 "icon": "ri-team-fill",
-                "blade": "pages.appraisals-360.leadership"
+                "blade": "pages.appraisals-task.leadership"
             }
         ]
     },

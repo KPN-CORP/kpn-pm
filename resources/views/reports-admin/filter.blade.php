@@ -59,7 +59,7 @@
                 </div>
                 <div class="modal-footer">
                     <div class="d-sm-flex justify-content-end">
-                        <a class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">Cancel</a>
+                        <a class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">{{ __('Cancel') }}</a>
                         <button type="submit" class="btn btn-primary">Apply</button>
                     </div>
                 </div>

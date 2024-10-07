@@ -8,19 +8,6 @@
     <div class="container-fluid">
       <div class="row">
         <div class="col-12">
-            <div class="page-title-box">
-                <div class="page-title-right">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item">Users</li>
-                        <li class="breadcrumb-item active">{{ $link }}</li>
-                    </ol>
-                </div>
-                <h4 class="page-title">{{ $link }}</h4>
-            </div>
-        </div>
-      </div>
-      <div class="row">
-        <div class="col-12">
           <div class="card">
             <div class="card-body">
               <div class="row">
@@ -61,7 +48,7 @@
                       <input type="hidden" name="export_group_company" id="export_group_company">
                       <input type="hidden" name="export_company" id="export_company">
                       <input type="hidden" name="export_location" id="export_location">
-                      <a id="export" onclick="exportExcel()" class="btn btn-outline-secondary shadow disabled"><i class="ri-download-cloud-2-line me-1"></i><span>Download</span></a>
+                      <a id="export" onclick="exportExcel()" class="btn btn-outline-secondary shadow disabled"><i class="ri-download-cloud-2-line me-1"></i><span>{{ __('Download') }}</span></a>
                     </form>
                   </div>
                 </div>
@@ -97,9 +84,9 @@
                               @php
                                   $filterYear = request('filterYear');
                               @endphp
-                                <label class="form-label" for="filterYear">Year</label>
+                                <label class="form-label" for="filterYear">{{ __('Year') }}</label>
                                 <select name="filterYear" id="filterYear" class="form-select" @style('width: 120px')>
-                                    <option value="">select all</option>
+                                    <option value="">{{ __('select all') }}</option>
                                     @foreach ($selectYear as $year)
                                         <option value="{{ $year->year }}" {{ $year->year == $filterYear ? 'selected' : '' }}>{{ $year->year }}</option>
                                     @endforeach
@@ -111,7 +98,7 @@
               </form>
             </div> <!-- end offcanvas-body-->
             <div class="offcanvas-footer p-3 text-end">
-              <button type="button" id="offcanvas-cancel" class="btn btn-outline-secondary me-2" data-bs-dismiss="offcanvas">Cancel</button>
+              <button type="button" id="offcanvas-cancel" class="btn btn-outline-secondary me-2" data-bs-dismiss="offcanvas">{{ __('Cancel') }}</button>
               <button type="submit" class="btn btn-primary" form="report_filter">Apply</button>
             </div>
         </div>

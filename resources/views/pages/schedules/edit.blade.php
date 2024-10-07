@@ -4,20 +4,6 @@
 @endsection
 
 @section('content')
-    <!-- Begin Page Content -->
-    <div class="row">
-        <div class="col-12">
-            <div class="page-title-box">
-                <div class="page-title-right">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item"><a href="{{ route('schedules') }}">{{ $parentLink }}</a></li>
-                        <li class="breadcrumb-item active">{{ $link }}</li>
-                    </ol>
-                </div>
-                <h4 class="page-title">{{ $link }}</h4>
-            </div>
-        </div>
-    </div>
     <div class="d-sm-flex align-items-center justify-content-center">
         <div class="card col-md-8">
             <div class="card-header d-flex bg-white justify-content-between">
@@ -135,7 +121,7 @@
                                             </div>
                                         </div>
                                         <div class="col-md-auto text-end">
-                                            <button type="button" class="btn btn-outline-primary btn-sm mb-2" id="select-all">Select All</button>
+                                            <button type="button" class="btn btn-outline-primary btn-sm mb-2" id="select-all">{{ __('select all') }}</button>
                                         </div>
                                     </div>
                                 </div>
@@ -163,8 +149,8 @@
                             <div class="row">
                                 <div class="col-md d-md-flex justify-content-end text-center">
                                     <input type="hidden" name="repeat_days_selected" id="repeatDaysSelected">
-                                    <a href="{{ route('schedules') }}" type="button" class="btn btn-danger rounded-pill shadow px-4 me-2">Cancel</a>
-                                    <button type="submit" class="btn btn-primary rounded-pill shadow px-4">Submit</button>
+                                    <a href="{{ route('schedules') }}" type="button" class="btn btn-outline-secondary shadow px-4 me-2">{{ __('Cancel') }}</a>
+                                    <button type="submit" class="btn btn-primary shadow px-4">{{ __('Submit') }}</button>
                                 </div>
                             </div>
                         </form>
@@ -174,55 +160,3 @@
         </div>
     </div>
 @endsection
-<!-- Tambahkan script JavaScript untuk mengumpulkan nilai repeat_days[] -->
-@push('scripts')
-<script>
-    var quill = new Quill('#editor-container', {
-        theme: 'snow'
-    });
-
-    // Load the initial content into the Quill editor
-    var initialContent = `{!! $model->messages !!}`;
-    quill.clipboard.dangerouslyPasteHTML(initialContent);
-
-    // Ensure the content is properly set when the form is submitted
-    document.getElementById('scheduleForm').addEventListener('submit', function() {
-        document.querySelector('textarea[name=messages]').value = quill.root.innerHTML;
-    });
-
-    document.getElementById('scheduleForm').addEventListener('submit', function() {
-        var repeatDaysButtons = document.getElementsByName('repeat_days[]');
-        var repeatDaysSelected = [];
-        repeatDaysButtons.forEach(function(button) {
-            if (button.classList.contains('active')) {
-                repeatDaysSelected.push(button.value);
-            }
-        });
-        document.getElementById('repeatDaysSelected').value = repeatDaysSelected.join(',');
-    });
-    function toggleDivs() {
-        var selectBox = document.getElementById("inputState");
-        var repeatOnDiv = document.getElementById("repeaton");
-        var beforeEndDateDiv = document.getElementById("beforeenddate");
-        
-        if (selectBox.value === "repeaton") {
-            repeatOnDiv.style.display = "block";
-            beforeEndDateDiv.style.display = "none";
-        } else {
-            repeatOnDiv.style.display = "none";
-            beforeEndDateDiv.style.display = "block";
-        }
-    }
-
-    function validateInput(input) {
-        //input.value = input.value.replace(/[^0-9,]/g, '');
-        input.value = input.value.replace(/[^0-9]/g, '');
-    }
-</script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/js/select2.min.js"></script>
-<script>
-    $(document).ready(function() {
-        $('.select2').select2();
-    });
-</script>
-@endpush

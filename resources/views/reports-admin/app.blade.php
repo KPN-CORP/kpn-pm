@@ -6,19 +6,6 @@
 @section('content')
     <!-- Begin Page Content -->
     <div class="container-fluid">
-      <div class="row">
-        <div class="col-12">
-            <div class="page-title-box">
-                <div class="page-title-right">
-                    <ol class="breadcrumb m-0">
-                        <li class="breadcrumb-item">{{ $parentLink }}</li>
-                        <li class="breadcrumb-item active">{{ $link }}</li>
-                    </ol>
-                </div>
-                <h4 class="page-title">{{ $link }}</h4>
-            </div>
-        </div>
-      </div>
       <div class="card">
         <div class="card-body">
           <div class="row">
@@ -99,9 +86,9 @@
                             @php
                                 $filterYear = request('filterYear');
                             @endphp
-                              <label class="form-label" for="filterYear">Year</label>
+                              <label class="form-label" for="filterYear">{{ __('Year') }}</label>
                               <select name="filterYear" id="filterYear" class="form-select" @style('width: 120px')>
-                                  <option value="">select all</option>
+                                  <option value="">{{ __('select all') }}</option>
                                   @foreach ($selectYear as $year)
                                       <option value="{{ $year->year }}" {{ $year->year == $filterYear ? 'selected' : '' }}>{{ $year->year }}</option>
                                   @endforeach
@@ -148,11 +135,10 @@
             </form>
           </div> <!-- end offcanvas-body-->
           <div class="offcanvas-footer p-3 text-end">
-            <button type="button" id="offcanvas-cancel" class="btn btn-outline-secondary me-2" data-bs-dismiss="offcanvas">Cancel</button>
+            <button type="button" id="offcanvas-cancel" class="btn btn-outline-secondary me-2" data-bs-dismiss="offcanvas">{{ __('Cancel') }}</button>
             <button type="submit" class="btn btn-primary" form="admin_report_filter">Apply</button>
           </div>
       </div>
     </div>
     <!-- Content -->
 @endsection
-

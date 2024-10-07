@@ -77,7 +77,7 @@ class ReportController extends Controller
     
     function index(Request $request) {
         $parentLink = 'Admin';
-        $link = 'Reports';
+        $link = __('Report');
 
         $locations = Location::select('company_name', 'area', 'work_area')->orderBy('area')->get();
         $groupCompanies = Location::select('company_name')
@@ -238,7 +238,7 @@ class ReportController extends Controller
             $route = 'reports-admin.empty';
         }
 
-        $link = 'reports';
+        $link = __('Report');
 
         return view($route, compact('data', 'link', 'filters'));
     }

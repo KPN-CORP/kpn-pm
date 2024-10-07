@@ -19,12 +19,19 @@ class EmployeeExport implements FromView, WithStyles
     protected $groupCompany;
     protected $location;
     protected $company;
+    protected $permissionGroupCompanies;
+    protected $permissionCompanies;
+    protected $permissionLocations;
 
-    public function __construct($groupCompany, $location, $company)
+    public function __construct($groupCompany, $location, $company, $permissionLocations, $permissionCompanies, $permissionGroupCompanies)
     {
         $this->groupCompany = $groupCompany;
         $this->location = $location;
         $this->company = $company;
+
+        $this->permissionLocations = $permissionLocations;
+        $this->permissionCompanies = $permissionCompanies;
+        $this->permissionGroupCompanies = $permissionGroupCompanies;
     }
 
     public function view(): View
@@ -43,6 +50,24 @@ class EmployeeExport implements FromView, WithStyles
         if ($this->company) {
             $query->where('contribution_level_code', $this->company);
         }
+
+        $permissionLocations = $this->permissionLocations;
+        $permissionCompanies = $this->permissionCompanies;
+        $permissionGroupCompanies = $this->permissionGroupCompanies;
+
+        $criteria = [
+            'work_area_code' => $permissionLocations,
+            'group_company' => $permissionGroupCompanies,
+            'contribution_level_code' => $permissionCompanies,
+        ];
+
+        $query->where(function ($query) use ($criteria) {
+            foreach ($criteria as $key => $value) {
+                if ($value !== null && !empty($value)) {
+                    $query->whereIn($key, $value);
+                }
+            }
+        });
 
         $data = $query->get();
         foreach ($data as $employee) {

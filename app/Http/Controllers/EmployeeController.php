@@ -141,7 +141,7 @@ class EmployeeController extends Controller
             })
             ->whereNull('deleted_at')
             ->get();
-            
+            // dd($schedules);
 
             foreach ($schedules as $schedule) {
                 if ($schedule->start_date == $today) {
@@ -188,6 +188,7 @@ class EmployeeController extends Controller
             $accessMenuJson = json_decode($employee->access_menu, true);
 
             $accessMenuJson['goals'] = $accessMenu;
+            $accessMenuJson['doj'] = 1;
 
             DB::table('employees')
                 ->where('id', $employee->id)

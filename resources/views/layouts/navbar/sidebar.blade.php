@@ -3,7 +3,7 @@
     <!-- Sidebar - Brand -->
     <a class="sidebar-brand d-flex align-items-center justify-content-center" href="{{ url('/') }}">
         <div class="sidebar-brand-icon">
-            <img @style('width: 30px;') src="{{ asset('img/logos/kpn.png') }}?v={{ config('app.version') }}" alt="kpn logo">
+            <img @style('width: 30px;') src="{{ asset('storage/img/logos/kpn.png') }}" alt="kpn logo">
         </div>
         <div class="sidebar-brand-text mx-3">Performance Management</div>
     </a>
@@ -38,9 +38,9 @@
         </a>
         <div id="collapseGoals" class="collapse" aria-labelledby="headingPages" data-parent="#accordionSidebar">
             <div class="bg-white py-2 collapse-inner rounded">
-                <a class="collapse-item" href="{{ route('goals') }}">My Goals</a>
+                <a class="collapse-item" href="{{ route('goals') }}">{{ __('My Goal') }}</a>
                 @if(auth()->user()->isApprover())
-                <a class="collapse-item" href="{{ route('team-goals') }}">Team Goals</a>
+                <a class="collapse-item" href="{{ route('team-goals') }}">{{ __('Task Box') }}</a>
                 @endif
                 {{-- <a class="collapse-item" href="{{ route('roles') }}">Role</a> --}}
             </div>
@@ -50,7 +50,7 @@
     {{-- <li class="nav-item">
         <a class="nav-link" href="#">
             <i class="fas fa-fw fa-tachometer-alt"></i>
-            <span>Appraisal</span></a>
+            <span>{{ __('Appraisal') }}</span></a>
     </li>
     <li class="nav-item">
         <a class="nav-link" href="#">
@@ -61,7 +61,7 @@
         @if (auth()->user()->isApprover())
             <a class="nav-link" href="{{ url('/reports') }}">
                 <i class="fas fa-fw fa-file-alt"></i>
-                <span>Reports</span>
+                <span>{{ __('Report') }}</span>
             </a>
         @endif
     </li>
@@ -113,7 +113,7 @@
     <li class="nav-item">
         <a class="nav-link" href="{{ url('/admin/reports') }}">
             <i class="fas fa-fw fa-file-alt"></i>
-            <span>Reports</span>
+            <span>{{ __('Report') }}</span>
         </a>
     </li>
     @endcan

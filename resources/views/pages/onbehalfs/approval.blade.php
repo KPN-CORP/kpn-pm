@@ -14,21 +14,6 @@
             @endforeach
     </div>
     @endif
-
-        <!-- Page Heading -->
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <div class="page-title-right">
-                        <ol class="breadcrumb m-0">
-                            <li class="breadcrumb-item"><a href="{{ route('onbehalf') }}">{{ $parentLink }}</a></li>
-                            <li class="breadcrumb-item active">{{ $link }}</li>
-                        </ol>
-                    </div>
-                    <h4 class="page-title">{{ $link }}</h4>
-                </div>
-            </div>
-        </div>
         @foreach ($data as $index => $row)
         <form id="goalApprovalAdminForm" action="{{ route('admin.approval.goal') }}" method="post">
             @csrf
@@ -68,7 +53,7 @@
                                 </div>
                                 <div class="col-md-2">
                                     <div class="mb-3">
-                                        <label class="form-label" for="uom">UoM</label>
+                                        <label class="form-label" for="uom">{{ __('Uom') }}</label>
                                         <input type="text" name="uom[]" id="uom" value="{{ $data['uom'] }}" class="form-control" readonly>
                                         <input 
                                             type="text" 
@@ -86,13 +71,13 @@
                                 </div>
                                 <div class="col-md-2">
                                     <div class="mb-3">
-                                        <label class="form-label" for="type">Type</label>
+                                        <label class="form-label" for="type">{{ __('Type') }}</label>
                                         <input type="text" oninput="validateDigits(this)" name="type[]" id="type" value="{{ $data['type'] }}" class="form-control" readonly>
                                     </div>
                                 </div>
                                 <div class="col-md-2">
                                     <div class="mb-3">
-                                        <label class="form-label" for="weightage">Weightage</label>
+                                        <label class="form-label" for="weightage">{{ __('Weightage') }}</label>
                                         <div class="input-group">
                                             <input name="weightage[]" class="form-control" value="{{ $data['weightage'] }}" readonly>
                                             <div class="input-group-append">
@@ -147,7 +132,7 @@
                 <div class="col-lg">
                     <div class="text-center text-lg-end">
                         @can('sendbackonbehalf')
-                        <a class="btn btn-info px-2 rounded-pill me-2" href="javascript:void(0)" role="button" data-bs-toggle="dropdown" aria-expanded="false">Send back</a>
+                        <a class="btn btn-info px-2 me-2" href="javascript:void(0)" role="button" data-bs-toggle="dropdown" aria-expanded="false">Send back</a>
                             <div class="dropdown-menu shadow-sm m-2">
                             <h6 class="dropdown-header dark">Select person below :</h6>
                             <a class="dropdown-item" href="javascript:void(0)" onclick="sendBack('{{ $row->request->id }}','{{ $row->request->employee->employee_id }}','{{ $row->request->employee->fullname }}')">{{ $row->request->employee->fullname .' '.$row->request->employee->employee_id }}</a>
@@ -156,8 +141,8 @@
                             @endforeach
                             </div> 
                         @endcan
-                        <a href="{{ route('onbehalf') }}" class="btn btn-danger px-2 me-2 rounded-pill">Cancel</a>
-                        <a href="javascript:void(0)" id="submitButton" onclick="confirmAprrovalAdmin()" class="btn btn-primary px-2 rounded-pill"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Approve</a>
+                        <a href="{{ route('onbehalf') }}" class="btn btn-outline-secondary px-2 me-2">{{ __('Cancel') }}</a>
+                        <a href="javascript:void(0)" id="submitButton" onclick="confirmAprrovalAdmin()" class="btn btn-primary px-2"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Approve</a>
                     </div>
                 </div>
             </div>
@@ -165,7 +150,3 @@
         @endforeach
     </div>
     @endsection
-
-    @push('scripts')
-        <script src="{{ asset('js/goal-approval.js') }}?v={{ config('app.version') }}"></script>
-    @endpush

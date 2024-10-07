@@ -8,7 +8,7 @@ use App\Models\AppraisalContributor;
 use App\Models\ApprovalLayerAppraisal;
 use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
-use App\Models\Employee;
+use App\Models\EmployeeAppraisal;
 use App\Models\Goal;
 use App\Models\User;
 use Carbon\Carbon;
@@ -23,17 +23,20 @@ use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use RealRashid\SweetAlert\Facades\Alert;
 use stdClass;
+use App\Services\AppService;
 
 class MyAppraisalController extends Controller
 {
-
+    
     protected $category;
     protected $user;
+    protected $appService;
 
-    public function __construct()
+    public function __construct(AppService $appService)
     {
         $this->user = Auth()->user()->employee_id;
-        $this->category = 'Appraisals';
+        $this->appService = $appService;
+        $this->category = 'Appraisal';
     }
 
     function formatDate($date)
@@ -90,7 +93,7 @@ class MyAppraisalController extends Controller
             return in_array($form['name'], $formTypes);
         });
         
-        $parentLink = 'Appraisals';
+        $parentLink = __('Appraisal');
         $link = 'Initiate Appraisal';
 
         // Pass the data to the view
@@ -169,56 +172,6 @@ class MyAppraisalController extends Controller
         return redirect('appraisals')->with('success', 'Appraisal submitted successfully.');
     }
 
-    private function combineFormData($appraisalData, $goalData) {
-        foreach ($appraisalData['formData'] as &$form) {
-            if ($form['formName'] === "Self Review") {
-                foreach ($form as $key => &$entry) {
-                    if (is_array($entry) && isset($goalData[$key])) {
-                        $entry = array_merge($entry, $goalData[$key]);
-
-                        // Adding "percentage" key
-                        if (isset($entry['achievement'], $entry['target'], $entry['type'])) {
-                            $entry['percentage'] = $this->evaluate($entry['achievement'], $entry['target'], $entry['type']);
-                            $entry['conversion'] = $this->conversion($entry['percentage']);
-                            $entry['final_score'] = $entry['conversion']*$entry['weightage']/100;
-                        }
-                    }
-                }
-            }
-        }
-        return $appraisalData;
-    }
-
-    private function evaluate($achievement, $target, $type) {
-        switch (strtolower($type)) {
-            case 'higher better':
-                return ($achievement / $target) * 100;
-
-            case 'lower better':
-                return (2 - ($achievement / $target)) * 100;
-
-            case 'exact value':
-                return ($achievement == $target) ? 100 : 0;
-
-            default:
-                throw new Exception('Invalid type');
-        }
-    }
-
-    private function conversion($evaluate) {
-        if ($evaluate < 60) {
-            return 1;
-        } elseif ($evaluate >= 60 && $evaluate < 95) {
-            return 2;
-        } elseif ($evaluate >= 95 && $evaluate <= 100) {
-            return 3;
-        } elseif ($evaluate > 100 && $evaluate <= 120) {
-            return 4;
-        } else {
-            return 5;
-        }
-    }
-
     private function getDataByName($data, $name) {
         foreach ($data as $item) {
             if ($item['name'] === $name) {
@@ -228,6 +181,41 @@ class MyAppraisalController extends Controller
         return null;
     }
 
+    private function mergeFormData(array $formDataSets)
+    {
+        $mergedData = [];
+
+        foreach ($formDataSets as $formData) {
+            foreach ($formData['formData'] as $form) {
+
+                $formName = $form['formName'];
+
+                // Check if formName already exists in the merged data
+                $existingFormIndex = collect($mergedData)->search(function ($item) use ($formName) {
+                    return $item['formName'] === $formName;
+                });
+
+                if ($existingFormIndex !== false) {
+                    // Merge scores for the existing form
+                    foreach ($form as $key => $scores) {
+                        if (is_numeric($key)) {
+                            $mergedData[$existingFormIndex][$key] = array_merge($mergedData[$existingFormIndex][$key] ?? [], $scores);
+                        }
+                    }
+                } else {
+                    // Add the form to the merged data
+                    $mergedData[] = $form;
+                }
+            }
+        }
+
+        return [
+            'formGroupName' => 'Appraisal Form',
+            'formData' => $mergedData
+        ];
+
+    }
+
     public function index(Request $request) {
         try {
             $user = Auth::user()->employee_id;
@@ -235,7 +223,7 @@ class MyAppraisalController extends Controller
 
             // Retrieve approval requests
             $datasQuery = ApprovalRequest::with([
-                'employee', 'appraisal', 'updatedBy', 'adjustedBy', 'initiated', 'manager', 
+                'employee', 'appraisal', 'updatedBy', 'adjustedBy', 'initiated', 'manager', 'contributor',
                 'approval' => function ($query) {
                     $query->with('approverName');
                 }
@@ -252,11 +240,9 @@ class MyAppraisalController extends Controller
             $datas = $datasQuery->get();
 
             $formattedData = $datas->map(function($item) {
-                $createdDate = Carbon::parse($item->created_at);
-                $item->formatted_created_at = $createdDate->isToday() ? 'Today ' . $createdDate->format('g:i A') : $createdDate->format('d M Y');
+                $item->formatted_created_at = $this->appService->formatDate($item->created_at);
 
-                $updatedDate = Carbon::parse($item->updated_at);
-                $item->formatted_updated_at = $updatedDate->isToday() ? 'Today ' . $updatedDate->format('g:i A') : $updatedDate->format('d M Y');
+                $item->formatted_updated_at = $this->appService->formatDate($item->updated_at);
 
                 if ($item->sendback_to == $item->employee->employee_id) {
                     $item->name = $item->employee->fullname . ' (' . $item->employee->employee_id . ')';
@@ -291,8 +277,60 @@ class MyAppraisalController extends Controller
             $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->goal->form_data, true) : [];
             $appraisalData = $datas->isNotEmpty() ? json_decode($datas->first()->appraisal->form_data, true) : [];
 
-            $formData = $this->combineFormData($appraisalData, $goalData);
 
+            $groupedContributors = $datas->first()->contributor->groupBy('contributor_type');
+
+            $mergedResults = [];
+
+            // Kumpulan data berdasarkan contributor_type
+            $contributorManagerContent = [];
+            $combinedPeersData = [];
+            $combinedSubData = [];
+
+            // Gabungkan formData untuk setiap contributor_type
+            foreach ($groupedContributors as $type => $contributors) {
+                // Siapkan array untuk menampung formData dari kontributor dalam grup
+                $formDataSets = [];
+
+                foreach ($contributors as $contributor) {
+                    // Decode form_data JSON dari setiap kontributor
+                    $formData = json_decode($contributor->form_data, true);
+
+                    // Kumpulkan formData untuk setiap kontributor
+                    $formDataSets[] = $formData;
+                }
+
+                // Gabungkan semua formData menggunakan fungsi mergeFormData
+                $mergedFormData = $this->mergeFormData($formDataSets);
+
+                // Simpan hasil gabungan sesuai dengan contributor_type
+                if ($type === 'manager') {
+                    $contributorManagerContent = $mergedFormData;
+                } elseif ($type === 'peers') {
+                    $combinedPeersData = $mergedFormData;
+                } elseif ($type === 'subordinate') {
+                    $combinedSubData = $mergedFormData;
+                }
+            }
+
+            $employeeData = $datas->first()->employee;
+
+            // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
+            $formDataManager = $this->appService->combineFormData($contributorManagerContent, $goalData, 'manager', $employeeData);
+            $formDataPeers = $this->appService->combineFormData($combinedPeersData, $goalData, 'peers', $employeeData);
+            $formDataSub = $this->appService->combineFormData($combinedSubData, $goalData, 'subordinate', $employeeData);
+            
+            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData);
+            
+            $suggestedKpi = $formDataManager['totalKpiScore'] + $formDataPeers['totalKpiScore'] + $formDataSub['totalKpiScore'];
+            
+            
+            $suggestedCulture = $formData['cultureAverageScore'] + $formDataManager['cultureAverageScore'] + $formDataPeers['cultureAverageScore'] + $formDataSub['cultureAverageScore'];
+
+            $suggestedLeadership = $formData['leadershipAverageScore'] + $formDataManager['leadershipAverageScore'] + $formDataPeers['leadershipAverageScore'] + $formDataSub['leadershipAverageScore'];
+
+            $suggestedRating = $suggestedKpi + $suggestedCulture + $suggestedLeadership;
+            
             $formGroupContent = storage_path('../resources/testFormGroup.json');
             if (!File::exists($formGroupContent)) {
                 $appraisalForm = ['data' => ['formData' => []]];
@@ -342,10 +380,10 @@ class MyAppraisalController extends Controller
             $uomOption = $options['UoM'] ?? [];
             $typeOption = $options['Type'] ?? [];
 
-            $parentLink = 'Appraisals';
-            $link = 'My Appraisals';
+            $parentLink = __('Appraisal');
+            $link = __('My Appraisal');
 
-            $employee = Employee::where('employee_id', $user)->first();
+            $employee = EmployeeAppraisal::where('employee_id', $user)->first();
             if (!$employee) {
                 $access_menu = ['goals' => null];
             } else {
@@ -353,21 +391,22 @@ class MyAppraisalController extends Controller
             }
             $goals = $access_menu['goals'] ?? null;
 
-            $selectYear = ApprovalRequest::where('employee_id', $user)->select('created_at')->get();
+            $selectYear = ApprovalRequest::where('employee_id', $user)->where('category', $this->category)->select('created_at')->get();
             $selectYear->transform(function ($req) {
                 $req->year = Carbon::parse($req->created_at)->format('Y');
                 return $req;
             });
 
             return view('pages.appraisals.my-appraisal', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'goals', 'selectYear', 'adjustByManager', 'appraisalData'));
+
         } catch (Exception $e) {
             Log::error('Error in index method: ' . $e->getMessage());
 
             // Return empty data to be consumed in the Blade template
             return view('pages.appraisals.my-appraisal', [
                 'data' => [],
-                'link' => 'My Appraisals',
-                'parentLink' => 'Appraisals',
+                'link' => 'My Appraisal',
+                'parentLink' => 'Appraisal',
                 'formData' => ['formData' => []],
                 'uomOption' => [],
                 'typeOption' => [],
@@ -395,8 +434,8 @@ class MyAppraisalController extends Controller
 
         $appraisal = Appraisal::with(['approvalRequest'])->where('id', $request->id)->whereYear('created_at', $year)->first();
 
-        $parentLink = 'Appraisals';
-        $link = 'Edit';
+        $parentLink = __('Appraisal');
+        $link = __('Edit');
 
         if(!$appraisal){
             return redirect()->route('appraisals');
@@ -434,7 +473,7 @@ class MyAppraisalController extends Controller
             
             $selfReviewData = [];
             foreach ($formData['formData'] as $item) {
-                if ($item['formName'] === 'Self Review') {
+                if ($item['formName'] === 'KPI') {
                     $selfReviewData = array_slice($item, 1);
                     break;
                 }
@@ -512,7 +551,6 @@ class MyAppraisalController extends Controller
     }
 
     function update(Request $request) {
-
         $period = 2024;
         // Validate the request data
         $validatedData = $request->validate([
@@ -521,17 +559,31 @@ class MyAppraisalController extends Controller
             'formGroupName' => 'required|string|min:5|max:100',
             'formData' => 'required|array',
         ]);
-
+    
         // Extract formGroupName
         $formGroupName = $validatedData['formGroupName'];
         $formData = $validatedData['formData'];
-
+    
+        // Iterate through the formData to add 'score' after 'achievement' for each KPI
+        foreach ($formData as &$form) {
+            if ($form['formName'] === 'KPI') {
+                foreach ($form as $key => &$value) {
+                    if (is_array($value) && isset($value['achievement'])) {
+                        // Add the 'score' key after 'achievement'
+                        $value['score'] = 'your_score_value_here'; // Replace with the actual score value
+                    }
+                }
+            }
+        }
+    
         // Create the array structure
         $datas = [
             'formGroupName' => $formGroupName,
             'formData' => $formData,
         ];
 
+        return response()->json($datas);
+    
         // Create a new Appraisal instance and save the data
         $appraisal = Appraisal::where('id', $validatedData['id'])->first();
         $appraisal->form_data = json_encode($datas); // Store the form data as JSON
@@ -544,10 +596,10 @@ class MyAppraisalController extends Controller
         $snapshot->updated_by = Auth::user()->id;
         
         $snapshot->save();
-
+    
         // Return a response, such as a redirect or a JSON response
         return redirect('appraisals')->with('success', 'Appraisal updated successfully.');
-       
     }
+    
 
 }

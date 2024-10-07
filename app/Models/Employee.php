@@ -18,13 +18,15 @@ class Employee extends Model
         'employee_type', 'unit', 'date_of_joining', 'users_id'
     ];
 
+    protected $table = 'employees';
+    
     public function user()
     {
         return $this->belongsTo(User::class, 'users_id', 'id');
     }
     public function goal()
     {
-        return $this->belongsTo(Goal::class, 'users_id', 'users_id');
+        return $this->belongsTo(Goal::class, 'employee_id', 'employee_id');
     }
     
     public function approvalRequest()
@@ -55,5 +57,10 @@ class Employee extends Model
         return self::select('group_company')
             ->distinct()
             ->pluck('group_company');
+    }
+
+    public function appraisalLayer()
+    {
+        return $this->hasMany(ApprovalLayerAppraisal::class, 'employee_id', 'employee_id');
     }
 }

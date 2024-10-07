@@ -14,22 +14,7 @@
             @endforeach
     </div>
     @endif
-
-        <!-- Page Heading -->
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <div class="page-title-right">
-                        <ol class="breadcrumb m-0">
-                            <li class="breadcrumb-item"><a href="{{ route('team-goals') }}">{{ $parentLink }}</a></li>
-                            <li class="breadcrumb-item active">{{ $link }}</li>
-                        </ol>
-                    </div>
-                    <h4 class="page-title">{{ $link }}</h4>
-                </div>
-            </div>
-          </div>
-          <div class="mandatory-field"></div>
+        <div class="mandatory-field"></div>
         @foreach ($data as $index => $row)
         <form id="goalApprovalForm" action="{{ route('approval.goal') }}" method="post">
             @csrf
@@ -70,31 +55,19 @@
                                 </div>
                                 <div class="col-lg-2">
                                     <div class="form-group">
-                                        <label class="form-label" for="uom">UoM</label>
-                                        <input type="text" name="uom[]" id="uom" value="{{ $data['uom'] }}" class="form-control bg-secondary-subtle" readonly>
-                                        <input 
-                                            type="text" 
-                                            name="custom_uom[]" 
-                                            id="custom_uom{{ $index }}" 
-                                            class="form-control mt-2" 
-                                            value="{{ $data['custom_uom'] }}" 
-                                            placeholder=" UoM" 
-                                            @if ($data['uom'] !== 'Other') 
-                                                style="display: none;" 
-                                            @endif 
-                                            readonly
-                                        >
+                                        <label class="form-label" for="uom">{{ __('Uom') }}</label>
+                                        <input type="text" name="uom[]" id="uom" value="{{ $data['uom'] !== 'Other' ? $data['uom'] : $data['custom_uom'] }}" class="form-control bg-secondary-subtle" readonly>
                                     </div>
                                 </div>
                                 <div class="col-lg-2">
                                     <div class="form-group">
-                                        <label class="form-label" for="type">Type</label>
+                                        <label class="form-label" for="type">{{ __('Type') }}</label>
                                         <input type="text" name="type[]" id="type" value="{{ $data['type'] }}" class="form-control bg-secondary-subtle" readonly>
                                     </div>
                                 </div>
                                 <div class="col-lg-2">
                                     <div class="form-group">
-                                        <label class="form-label" for="weightage">Weightage</label>
+                                        <label class="form-label" for="weightage">{{ __('Weightage') }}</label>
                                         <div class="input-group">
                                             <input name="weightage[]" class="form-control" value="{{ $data['weightage'] }}" required>
                                             <div class="input-group-append">
@@ -127,7 +100,7 @@
         <div class="row">
             <div class="col-lg">
                 <div class="align-items-center mb-3">
-                    <h4>Total Weightage : <span class="font-weight-bold text-success" id="totalWeightage">100%</span></h4>
+                    <h4>{{ __('Total Weightage') }} : <span class="font-weight-bold text-success" id="totalWeightage">100%</span></h4>
                 </div>
             </div>
             <div class="col-lg">
@@ -153,7 +126,7 @@
                     <div class="row">
                         <div class="col-lg">
                             <div class="text-center text-lg-end mb-3">
-                                <a class="btn btn-info px-2 me-2 rounded-pill dropdown-toggle" href="javascript:void(0)" role="button" aria-haspopup="true" data-bs-toggle="dropdown" data-bs-offset="0,10" aria-expanded="false">Send back</a>
+                                <a class="btn btn-warning px-2 me-2 dropdown-toggle" href="javascript:void(0)" role="button" aria-haspopup="true" data-bs-toggle="dropdown" data-bs-offset="0,10" aria-expanded="false">Send back</a>
                                     <div class="dropdown-menu shadow-sm">
                                         <h6 class="dropdown-header dark">Select person below :</h6>
                                         <a class="dropdown-item" href="javascript:void(0)" onclick="sendBack('{{ $row->request->id }}','{{ $row->request->employee->employee_id }}','{{ $row->request->employee->fullname }}')">{{ $row->request->employee->fullname .' '.$row->request->employee->employee_id }}</a>
@@ -161,8 +134,8 @@
                                             <a class="dropdown-item" href="javascript:void(0)" onclick="sendBack('{{ $item->request_id }}','{{ $item->approver_id }}','{{ $item->approverName->fullname }}')">{{ $item->approverName->fullname.' '.$item->approver_id }}</a>
                                         @endforeach
                                     </div> 
-                                <a href="{{ url()->previous() }}" class="btn btn-danger px-2 me-2 rounded-pill">Cancel</a>
-                                <a href="javascript:void(0)" id="submitButton" onclick="confirmAprroval()" class="btn btn-primary rounded-pill px-2"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Approve</a>
+                                <a href="{{ url()->previous() }}" class="btn btn-outline-dark px-2 me-2">{{ __('Cancel') }}</a>
+                                <a href="javascript:void(0)" id="submitButton" onclick="confirmAprroval()" class="btn btn-primary px-2"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Approve</a>
                             </div>
                         </div>
                     </div>
@@ -173,5 +146,12 @@
     </div>
 @endsection
 @push('scripts')
-    <script src="{{ asset('js/goal-approval.js') }}?v={{ config('app.version') }}"></script>
-@endpush
+    <script>
+        const uom = '{{ __('Uom') }}';
+        const type = '{{ __('Type') }}';
+        const weightage = '{{ __('Weightage') }}';
+        const errorMessages = '{{ __('Error Messages') }}';
+        const errorAlertMessages = '{{ __('Error Alert Messages') }}';
+        const errorConfirmMessages = '{{ __('Error Confirm Messages') }}';
+    </script>
+    @endpush

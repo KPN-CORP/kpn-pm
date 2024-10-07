@@ -7,19 +7,6 @@
     <!-- Begin Page Content -->
     <div class="container-fluid">
         <!-- Page Heading -->
-        <div class="row">
-            <div class="col-12">
-                <div class="page-title-box">
-                    <div class="page-title-right">
-                        <ol class="breadcrumb m-0">
-                            <li class="breadcrumb-item">{{ $parentLink }}</li>
-                            <li class="breadcrumb-item active">{{ $link }}</li>
-                        </ol>
-                    </div>
-                    <h4 class="page-title">{{ $link }}</h4>
-                </div>
-            </div>
-        </div>
         <div class="mandatory-field">
             <div id="alertField" class="alert alert-danger alert-dismissible {{ Session::has('error') ? '':'fade' }}" role="alert" {{ Session::has('error') ? '':'hidden' }}>
                 <strong>{{ Session::get('error') }}</strong>
@@ -31,20 +18,20 @@
                 $filterYear = request('filterYear');
             @endphp
             <div class="row align-items-end">
-                <div class="col">
+                <div class="col-auto">
                     <div class="mb-3">
-                        <label class="form-label" for="filterYear">Year</label>
+                        <label class="form-label" for="filterYear">{{ __('Year') }}</label>
                         <select name="filterYear" id="filterYear" onchange="yearGoal()" class="form-select border-secondary" @style('width: 120px')>
-                            <option value="">select all</option>
+                            <option value="">{{ __('select all') }}</option>
                             @foreach ($selectYear as $year)
                                 <option value="{{ $year->year }}" {{ $year->year == $filterYear ? 'selected' : '' }}>{{ $year->year }}</option>
                             @endforeach
                         </select>
                     </div>
                 </div>
-                <div class="col-auto">
-                    <div class="mb-3">
-                        <a href="{{ $goals ? route('goals.form', Auth::user()->employee_id) : '#' }}" class="btn rounded-pill {{ $goals ? 'btn-primary shadow' : 'btn-secondary-subtle disabled' }}">Create Goals</a>
+                <div class="col">
+                    <div class="mb-3 text-end">
+                        <a href="{{ $goals ? route('goals.form', Auth::user()->employee_id) : '#' }}" class="btn {{ $goals ? 'btn-primary shadow' : 'btn-secondary-subtle disabled' }}">{{ __('Create Goal') }}</a>
                     </div>
                 </div>
             </div>
@@ -59,33 +46,33 @@
                 <div class="col-md-12">
                 <div class="card shadow mb-4">
                     <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
-                        <h4 class="m-0 font-weight-bold text-primary">Goals {{ $year }}</h4>
+                        <h4 class="m-0 font-weight-bold text-primary">{{ __('Goal') }} {{ $year }}</h4>
                         @if ($row->request->status == 'Pending' && count($row->request->approval) == 0 || $row->request->sendback_to == $row->request->employee_id)
-                            <a class="btn btn-info rounded-pill" href="{{ route('goals.edit', $row->request->goal->id) }}">Edit</a>
+                            <a class="btn btn-outline-warning fw-semibold" href="{{ route('goals.edit', $row->request->goal->id) }}">{{ __('Edit') }}</a>
                         @endif
                     </div>
                     <div class="card-body">
                         <div class="row px-2">
                             <div class="col-lg col-sm-12 p-2">
-                                <h5>Initiated By</h5>
+                                <h5>{{ __('Initiated By') }}</h5>
                                 <p class="mt-2 mb-0 text-muted">{{ $row->request->initiated->name.' ('.$row->request->initiated->employee_id.')' }}</p>
                             </div>
                             <div class="col-lg col-sm-12 p-2">
-                                <h5>Initiated Date</h5>
+                                <h5>{{ __('Initiated Date') }}</h5>
                                 <p class="mt-2 mb-0 text-muted">{{ $row->request->formatted_created_at }}</p>
                             </div>
                             <div class="col-lg col-sm-12 p-2">
-                                <h5>Last Updated On</h5>
+                                <h5>{{ __('Last Updated On') }}</h5>
                                 <p class="mt-2 mb-0 text-muted">{{ $row->request->formatted_updated_at }}</p>
                             </div>
                             <div class="col-lg col-sm-12 p-2">
-                                <h5>Adjusted By</h5>
+                                <h5>{{ __('Adjusted By') }}</h5>
                                 <p class="mt-2 mb-0 text-muted">{{ $row->request->updatedBy ? $row->request->updatedBy->name.' '.$row->request->updatedBy->employee_id : '-' }}{{ $row->request->adjustedBy && empty($adjustByManager) ? ' (Admin)': '' }}</p>
                             </div>
                             <div class="col-lg col-sm-12 p-2">
                                 <h5>Status</h5>
                                 <div>
-                                    <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->request->goal->form_status == 'Draft' ? 'Draft' : ($row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : $row->name) }}" class="badge {{ $row->request->goal->form_status == 'Draft' || $row->request->sendback_to == $row->request->employee_id ? 'bg-secondary' : ($row->request->status === 'Approved' ? 'bg-success' : 'bg-warning')}} rounded-pill py-1 px-2">{{ $row->request->goal->form_status == 'Draft' ? 'Draft': ($row->request->status == 'Pending' ? 'Waiting For Approval' : ($row->request->sendback_to == $row->request->employee_id ? 'Waiting For Revision' : $row->request->status)) }}</a>
+                                    <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->request->goal->form_status == 'Draft' ? 'Draft' : ($row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : $row->name) }}" class="badge {{ $row->request->goal->form_status == 'Draft' || $row->request->sendback_to == $row->request->employee_id ? 'bg-secondary' : ($row->request->status === 'Approved' ? 'bg-success' : 'bg-warning')}} rounded-pill py-1 px-2">{{ $row->request->goal->form_status == 'Draft' ? 'Draft': ($row->request->status == 'Pending' ? __('Pending') : ($row->request->sendback_to == $row->request->employee_id ? 'Waiting For Revision' : $row->request->status)) }}</a>
                                 </div>
                             </div>
                         </div>
@@ -124,19 +111,19 @@
                                             </div>
                                             <div class="col-lg col-sm-12 p-2">
                                                 <div class="form-group">
-                                                    <h5>UoM</h5>
+                                                    <h5>{{ __('Uom') }}</h5>
                                                     <p class="mt-1 mb-0 text-muted">{{ is_null($data['custom_uom']) ? $data['uom'] : $data['custom_uom'] }}</p>
                                                 </div>
                                             </div>
                                             <div class="col-lg col-sm-12 p-2">
                                                 <div class="form-group">
-                                                    <h5>Type</h5>
+                                                    <h5>{{ __('Type') }}</h5>
                                                     <p class="mt-1 mb-0 text-muted">{{ $data['type'] }}</p>
                                                 </div>
                                             </div>
                                             <div class="col-lg col-sm-12 p-2">
                                                 <div class="form-group">
-                                                    <h5>Weightage</h5>
+                                                    <h5>{{ __('Weightage') }}</h5>
                                                     <p class="mt-1 mb-0 text-muted">{{ $data['weightage'] }}%</p>
                                                 </div>
                                             </div>
@@ -167,7 +154,6 @@
     </div>
     @endsection
     @push('scripts')
-        <script src="{{ asset('js/goal-approval.js') }}?v={{ config('app.version') }}"></script>
         @if(Session::has('error'))
         <script>
             document.addEventListener('DOMContentLoaded', function () {                
@@ -177,7 +163,12 @@
                     text: '{{ Session::get('error') }}',
                     confirmButtonText: "OK",
                 });
-            });
+            });            
         </script>
         @endif
+        <script>
+            function yearGoal() {
+                $("#formYearGoal").submit();
+            }
+        </script>
     @endpush

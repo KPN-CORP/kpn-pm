@@ -59,7 +59,7 @@
       </div>
       <div class="col-auto">
         <div class="mb-2 text-end">
-          <button type="submit" id="submitButton" class="btn btn-primary rounded-pill"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Create Role</button>
+          <button type="submit" id="submitButton" class="btn btn-primary"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Create Role</button>
         </div>
       </div>
     </div>
@@ -70,7 +70,7 @@
         <div class="col-md-3 mb-3">
           <div class="list-group" id="list-tab" role="tablist">
             <a class="list-group-item list-group-item-action active" id="list-onBehalf-list" data-bs-toggle="list" href="#list-onBehalf" role="tab" aria-controls="onBehalf">On Behalfs</a>
-            <a class="list-group-item list-group-item-action" id="list-report-list" data-bs-toggle="list" href="#list-report" role="tab" aria-controls="report">Reports</a>
+            <a class="list-group-item list-group-item-action" id="list-report-list" data-bs-toggle="list" href="#list-report" role="tab" aria-controls="report">{{ __('Report') }}</a>
             <a class="list-group-item list-group-item-action" id="list-guide-list" data-bs-toggle="list" href="#list-guide" role="tab" aria-controls="guide">Guideline</a>
             <a class="list-group-item list-group-item-action" id="list-setting-list" data-bs-toggle="list" href="#list-setting" role="tab" aria-controls="setting">Settings</a>
           </div>
@@ -187,31 +187,3 @@
   </div>
 </div>
 @endsection
-
-@push('scripts')
-  <script>
-    $('#submitButton').on('click', function(e) {
-      e.preventDefault();
-      const form = $('#roleForm').get(0);
-      const submitButton = $('#submitButton');
-      const spinner = submitButton.find(".spinner-border");
-
-      if (form.checkValidity()) {
-        // Disable submit button
-        submitButton.prop('disabled', true);
-        submitButton.addClass("disabled");
-
-        // Remove d-none class from spinner if it exists
-        if (spinner.length) {
-            spinner.removeClass("d-none");
-        }
-
-        // Submit form
-        form.submit();
-      } else {
-          // If the form is not valid, trigger HTML5 validation messages
-          form.reportValidity();
-      }
-    });
-  </script>
-@endpush

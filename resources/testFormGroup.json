@@ -4,12 +4,12 @@
     "data": {
         "formType": "Step Form",
         "formNumber": 3, 
-        "formName": ["Self Review","Culture","Leadership"], 
+        "formName": ["KPI","Culture","Leadership"], 
         "formData": 
         [
             {
                 "id": 1,
-                "name": "Self Review",
+                "name": "KPI",
                 "category": "Appraisal",
                 "title": "Score Guideline",
                 "data": [],
