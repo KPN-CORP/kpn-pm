@@ -5,53 +5,74 @@ select2();
 
 import Quill from "quill";
 
-function handleDelete(element) {
-    var scheduleId = element.getAttribute('data-id');
+// function handleDelete(element) {
+//     var scheduleId = element.getAttribute('data-id');
+//     // console.log(scheduleId);
+//     Swal.fire({
+//         title: 'Are you sure?',
+//         text: "This schedule will deleted!",
+//         icon: 'warning',
+//         showCancelButton: true,
+//         confirmButtonColor: '#3085d6',
+//         cancelButtonColor: '#d33',
+//         confirmButtonText: 'Yes, delete it!',
+//         cancelButtonText: 'Cancel',
+//         reverseButtons: true,
+//     }).then((result) => {
+//         if (result.isConfirmed) {
+//             fetch('/schedule/' + scheduleId, {
+//                 method: 'DELETE',
+//                 headers: {
+//                     'X-CSRF-TOKEN': '{{ csrf_token() }}',
+//                     'Content-Type': 'application/json'
+//                 }
+//             })
+//             .then(response => {
+//                 if (!response.ok) {
+//                     throw new Error('An error occurred while deleting the data.');
+//                 }
+//                 Swal.fire(
+//                     'Deleted!',
+//                     'Your data has been deleted.',
+//                     'success'
+//                 ).then(() => {
+//                     location.reload();
+//                 });
+//             })
+//             .catch(error => {
+//                 console.error('Error:', error);
+//                 Swal.fire(
+//                     'Error!',
+//                     'An error occurred while deleting the data.',
+//                     'error'
+//                 );
+//             });
+//         }
+//     });
+// }
 
+// window.handleDelete = handleDelete;
+function confirmDelete(scheduleId) {
     Swal.fire({
         title: 'Are you sure?',
-        text: "This schedule will deleted!",
+        text: "This schedule will be deleted!",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
         confirmButtonText: 'Yes, delete it!',
         cancelButtonText: 'Cancel',
-        reverseButtons: true,
+        reverseButtons: true
     }).then((result) => {
         if (result.isConfirmed) {
-            fetch('/schedule/' + scheduleId, {
-                method: 'DELETE',
-                headers: {
-                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
-                    'Content-Type': 'application/json'
-                }
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('An error occurred while deleting the data.');
-                }
-                Swal.fire(
-                    'Deleted!',
-                    'Your data has been deleted.',
-                    'success'
-                ).then(() => {
-                    location.reload();
-                });
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                Swal.fire(
-                    'Error!',
-                    'An error occurred while deleting the data.',
-                    'error'
-                );
-            });
+            // Atur action pada form tersembunyi dan submit
+            var form = document.getElementById('delete-form');
+            form.action = '/schedule/' + scheduleId + '/delete';
+            form.submit();
         }
     });
 }
-
-window.handleDelete = handleDelete;
+window.confirmDelete = confirmDelete;
 
 const toolbarOptions = [['bold', 'italic', 'underline'], [{ 'list': 'ordered'}, { 'list': 'bullet' }], [{ 'indent': '-1'}, { 'indent': '+1' }]];
 

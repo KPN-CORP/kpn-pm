@@ -59,6 +59,7 @@ return [
         'Auth' => Illuminate\Support\Facades\Auth::class,
         'Session' => Illuminate\Support\Facades\Session::class,
         'Excel' => Maatwebsite\Excel\Facades\Excel::class,
+        'Crypt' => Illuminate\Support\Facades\Crypt::class,
     ],
     'xor_key' => env('XOR_KEY'),
     'version' => env('APP_VERSION', 'unknown'),

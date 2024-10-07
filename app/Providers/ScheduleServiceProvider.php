@@ -24,5 +24,8 @@ class ScheduleServiceProvider extends ServiceProvider
         $schedule->command('fetch:employees')->dailyAt('00:10');
         $schedule->command('update:employee-access-menu')->dailyAt('00:01');
         $schedule->command('app:reminderSchedules')->dailyAt('08:00');
+        $schedule->command('app:inactive-employees')->dailyAt('00:20');
+        $schedule->command('app:update-designations')->dailyAt('01:00');
+        $schedule->command('app:daily-update-schedulepa')->dailyAt('00:05');
     }
 }
