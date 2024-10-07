@@ -6,12 +6,12 @@
 @section('content')
     <!-- Begin Page Content -->
     <div class="container-fluid">
-        <div class="row justify-content-center">
-            <div class="col-lg-10">
+        <div class="row">
+            <div class="col-md-12">
                 <div class="card border-primary border-5 border-start-0 border-end-0">
                     <div class="card-header d-flex justify-content-center">
                         <div class="col-10 text-center">
-                            <div class="stepper mt-3 d-flex justify-content-between justify-content-md-around">
+                            <div class="stepper mt-1 d-flex justify-content-between justify-content-md-around">
                                 @foreach ($filteredFormData as $index => $tabs)
                                 <div class="step" data-step="{{ $step }}"></div>
                                     <div class="step d-flex flex-column align-items-center" data-step="{{ $index + 1 }}">
