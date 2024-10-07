@@ -41,16 +41,7 @@ import './report.js';
 import './schedule.js';
 import './role.js';
 import './layer.js';
-
-$(document).ready(function() {
-    $('#example').DataTable({
-        dom: 'Bfrtip',
-        buttons: [
-            'copy', 'csv'
-        ],
-        scrollX: true // Enable horizontal scrolling for large tables
-    });
-});
+import './admin-appraisal.js';
 
 function googleTranslateElementInit() {
     new google.translate.TranslateElement({

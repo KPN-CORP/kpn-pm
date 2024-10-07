@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AppraisalController as AdminAppraisalController;
 use App\Http\Controllers\Admin\OnBehalfController as AdminOnBehalfController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\SendbackController as AdminSendbackController;
@@ -237,6 +238,9 @@ Route::middleware('auth', 'locale')->group(function () {
         Route::get('/admin/roles/get-permission', [RoleController::class, 'getPermission'])->name('getPermission');
         Route::post('/admin/assign-user', [RoleController::class, 'assignUser'])->name('assign.user');
     });
+
+    Route::get('/admin-appraisal', [AdminAppraisalController::class, 'index'])->name('admin.appraisal');
+    Route::get('/admin-appraisal/details', [AdminAppraisalController::class, 'index'])->name('admin.appraisal.details');
     
     Route::middleware(['permission:viewonbehalf'])->group(function () {
         // Approval-Admin

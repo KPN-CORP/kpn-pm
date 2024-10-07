@@ -43,16 +43,35 @@ class AppService
     
 
     public function evaluate($achievement, $target, $type) {
+        // Ensure inputs are numeric
+        if (!is_numeric($achievement) || !is_numeric($target)) {
+            throw new Exception('Achievement and target must be numeric');
+        }
+    
+        // Convert to floats for consistent handling
+        $achievement = floatval($achievement);
+        $target = floatval($target);
+    
         switch (strtolower($type)) {
             case 'higher better':
-                return ($achievement / $target) * 100;
-
+                if ($target == 0) {
+                    return $achievement > 0 ? 100 : 0;
+                }
+                return max(min(($achievement / $target) * 100, 100), 0);
+    
             case 'lower better':
-                return (2 - ($achievement / $target)) * 100;
-
+                if ($target == 0) {
+                    return $achievement <= 0 ? 100 : 0;
+                }
+                if ($achievement <= 0) {
+                    return 100;
+                }
+                return max(min((2 - ($achievement / $target)) * 100, 100), 0);
+    
             case 'exact value':
-                return ($achievement == $target) ? 100 : 0;
-
+                $epsilon = 1e-6; // Adjust based on required precision
+                return abs($achievement - $target) < $epsilon ? 100 : 0;
+    
             default:
                 throw new Exception('Invalid type');
         }
@@ -434,7 +453,7 @@ class AppService
                                                         ->first();
             
             // Jika tidak ditemukan, tambahkan ke notFoundData
-            if (!$appraisalContributor && $review360['review360']) {
+            if (!$appraisalContributor && !$review360['review360']) {
                 $notFoundData[] = [
                     'employee_id'  => $approvalLayer->employee_id,
                     'approver_id'  => $approvalLayer->approver_id,
