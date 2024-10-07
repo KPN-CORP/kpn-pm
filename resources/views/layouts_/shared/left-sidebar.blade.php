@@ -1,6 +1,6 @@
 <!-- ========== Left Sidebar Start ========== -->
 <div class="leftside-menu">
-    @if(session('system') == 'kpnpm')
+    {{-- @if(session('system') == 'kpnpm') --}}
     <!-- Brand Logo Light -->
     <a href="{{ Url('/') }}" class="logo logo-light">
         <span class="logo-lg">
@@ -20,27 +20,7 @@
             <img src="{{ asset('storage/img/logo-sm.png') }}" alt="small logo">
         </span>
     </a>
-    @else
-    <!-- Brand Logo Light -->
-    <a href="" class="logo logo-light">
-        <span class="logo-lg">
-            <img src="{{ asset('storage/img/logo.png') }}" alt="logo">
-        </span>
-        <span class="logo-sm">
-            <img src="{{ asset('storage/img/logo-sm.png') }}" alt="small logo">
-        </span>
-    </a>
-
-    <!-- Brand Logo Dark -->
-    <a href="" class="logo logo-dark">
-        <span class="logo-lg">
-            <img src="{{ asset('storage/img/logo-dark.png') }}" alt="logo">
-        </span>
-        <span class="logo-sm">
-            <img src="{{ asset('storage/img/logo-sm.png') }}" alt="small logo">
-        </span>
-    </a>
-    @endif
+    
     <!-- Sidebar Hover Menu Toggle Button -->
     <div class="button-sm-hover" data-bs-toggle="tooltip" data-bs-placement="right" title="Show Full Sidebar">
         <i class="ri-checkbox-blank-circle-line align-middle"></i>
