@@ -549,7 +549,7 @@ class AppraisalTaskController extends Controller
         $approval->save();
 
         $calibration = new Calibration();
-        $calibration->appraisal_id = $validatedData['appraisal_id'];
+        $calibration->appraisal_id = $appraisal->id;
         $calibration->employee_id = $validatedData['employee_id'];
         $calibration->approver_id = $firstCalibrator;
         $calibration->period = $period;
