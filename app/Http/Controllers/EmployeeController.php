@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Employee;
+use App\Models\EmployeeAppraisal;
 use App\Models\User;
 use App\Models\ApprovalLayer;
 use App\Models\Location;
@@ -216,15 +217,17 @@ class EmployeeController extends Controller
             // dd($schedules);
 
             foreach ($schedules as $schedule) {
-                if ($schedule->start_date == $today) {
-                    // Update employees' access_menu to {"goals":1}
-                    $this->updateEmployees($schedule, '1');
-                }
-                
-                //if ($schedule->end_date == $today) {
-                if (Carbon::parse($schedule->end_date)->addDay()->format('Y-m-d') == $today) {
-                    // Update employees' access_menu to {"goals":0}
-                    $this->updateEmployees($schedule, '0');
+                if($schedule->event_type<>'masterschedulepa'){
+                    if ($schedule->start_date == $today) {
+                        // Update employees' access_menu to {"goals":1}
+                        $this->updateEmployees($schedule, '1');
+                    }
+                    
+                    //if ($schedule->end_date == $today) {
+                    if (Carbon::parse($schedule->end_date)->addDay()->format('Y-m-d') == $today) {
+                        // Update employees' access_menu to {"goals":0}
+                        $this->updateEmployees($schedule, '0');
+                    }
                 }
             }
 
@@ -232,42 +235,69 @@ class EmployeeController extends Controller
     }
     protected function updateEmployees($schedule, $accessMenu)
     {
-        $query = DB::table('employees');
+        // $query = DB::table('employees');
+        $query = Employee::query();
+        $querypa = EmployeeAppraisal::query();
 
         if ($schedule->employee_type) {
             $query->where('employee_type', $schedule->employee_type);
+            $querypa->where('employee_type', $schedule->employee_type);
         }
 
         if ($schedule->bisnis_unit) {
             $query->whereIn('group_company', explode(',', $schedule->bisnis_unit));
+            $querypa->whereIn('group_company', explode(',', $schedule->bisnis_unit));
         }
 
         if ($schedule->company_filter) {
             $query->whereIn('contribution_level_code', explode(',', $schedule->company_filter));
+            $querypa->whereIn('contribution_level_code', explode(',', $schedule->company_filter));
         }
 
         if ($schedule->location_filter) {
             $query->whereIn('work_area_code', explode(',', $schedule->location_filter));
+            $querypa->whereIn('work_area_code', explode(',', $schedule->location_filter));
         }
 
         if ($schedule->last_join_date) {
             $query->where('date_of_joining', '<=', $schedule->last_join_date);
+            $querypa->where('date_of_joining', '<=', $schedule->last_join_date);
         }
 
         $employees = $query->get();
+        $employeePA = $querypa->get();
 
-        foreach ($employees as $employee) {
-            $accessMenuJson = json_decode($employee->access_menu, true);
+        if($schedule->event_type=='goals'){
+            foreach ($employees as $employee) {
 
-            $accessMenuJson['goals'] = $accessMenu;
-            $accessMenuJson['doj'] = 1;
+                $accessMenuJson = json_decode($employee->access_menu, true);
+    
+                $accessMenuJson['goals'] = $accessMenu;
+                $accessMenuJson['doj'] = 1;
+    
+                DB::table('employees')
+                    ->where('id', $employee->id)
+                    ->update([
+                        'access_menu' => json_encode($accessMenuJson),
+                        'updated_at' => Carbon::now()  // Update the updated_at column
+                    ]);
+            }
+        }else if($schedule->event_type=='schedulepa'){
+            foreach ($employeePA as $employee) {
 
-            DB::table('employees')
-                ->where('id', $employee->id)
-                ->update([
-                    'access_menu' => json_encode($accessMenuJson),
-                    'updated_at' => Carbon::now()  // Update the updated_at column
-                ]);
+                $accessMenuJson = json_decode($employee->access_menu, true);
+    
+                $accessMenuJson['accesspa'] = 1;
+                $accessMenuJson['createpa'] = $accessMenu;
+                $accessMenuJson['review360'] = $schedule->review_360;
+    
+                DB::table('employees_pa')
+                    ->where('id', $employee->id)
+                    ->update([
+                        'access_menu' => json_encode($accessMenuJson),
+                        'updated_at' => Carbon::now()  // Update the updated_at column
+                    ]);
+            }
         }
     }
 }
