@@ -93,30 +93,30 @@ document.addEventListener("DOMContentLoaded", function () {
         var max_fields = val === "input" ? 9 : 10 - count; // maximum input boxes allowed
 
         if (x <= max_fields) {
-            // max input box allowed
+            // max input box allowedd
             x++; // text box increment
             index++; // text box increment
 
             $(wrapper).append(
                 '<div class="card col-md-12 mb-3 shadow-sm">' +
-                    "<div class='card-body'><div class='row card-title fs-16 mb-3'><div class='col'><h5>Goal " +
+                    "<div class='card-body'><div class='row'><div class='col'><h5 class='card-title fs-16 mb-3'>Goal " +
                     (index ? index : x) +
                     "</h5></div>" +
                     "<div class='col-auto'><a class='btn-close remove_field' type='button'></a></div></div>" +
-                    '<div class="row mt-2">' +
-                    '<div class="col-md-4 mb-3">' +
+                    '<div class="row gy-2">' +
+                    '<div class="col-md-4 col-12">' +
                     '<label class="form-label" for="kpi">KPI ' +
                     "</label>" +
                     '<textarea name="kpi[]" id="kpi" class="form-control" required></textarea>' +
                     "</div>" +
-                    '<div class="col-md-2 mb-3">' +
+                    '<div class="col-md-2 col-6">' +
                     '<label class="form-label" for="target">Target</label><input type="text" oninput="validateDigits(this, '
                     + index +
                     ')" class="form-control" required>' +
                     '<input type="hidden" name="target[]" id="target'
                     + index +'">' +
                     "</div>" +
-                    '<div class="col-md-2 mb-3">' +
+                    '<div class="col-md-2 col-6">' +
                     '<label class="form-label" for="uom">'+ uom +'</label>' +
                     '<select class="form-select select2 select-uom" name="uom[]" id="uom' +
                     index +
@@ -128,7 +128,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     index +
                     '" class="form-control mt-2" placeholder="Enter UoM" style="display: none" placeholder="Enter UoM">' +
                     "</div>" +
-                    '<div class="col-md-2 mb-3">' +
+                    '<div class="col-md-2 col-6">' +
                     '<label class="form-label" for="type">'+ type +'</label>' +
                     '<select class="form-select select-type" name="type[]" id="type' +
                     index +
@@ -139,7 +139,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     '<option value="Exact Value">Exact Value</option>' +
                     "</select>" +
                     "</div>" +
-                    '<div class="col-md-2 mb-3">' +
+                    '<div class="col-md-2 col-6">' +
                     '<label class="form-label" for="weightage">'+ weightage +'</label>' +
                     '<div class="input-group">' +
                     '<input type="number" min="5" max="100" class="form-control" name="weightage[]" required>' +

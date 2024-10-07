@@ -27,27 +27,22 @@
           <input type="hidden" class="form-control" name="employee_id" value="{{ $data->employee_id }}">
           <input type="hidden" class="form-control" name="category" value="Goals">
           @endforeach
-          <!-- Content Row -->
+          <!-- Content Row  OK-->
           <div class="container-card">
             <div class="card col-md-12 mb-3 shadow">
                 <div class="card-body">
                     <h5 class="card-title fs-16 mb-3">Goal {{ $index + 1 }}</h5>
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="mb-3">
+                    <div class="row gy-2">
+                        <div class="col-md-4 col-12">
                                 <label class="form-label" for="kpi">KPI</label>
                                 <textarea name="kpi[]" id="kpi" class="form-control" required>{{ old('kpi.0') }}</textarea>
-                            </div>
                         </div>
-                        <div class="col-md-2">
-                            <div class="mb-3">
+                        <div class="col-md-2 col-6">
                                 <label class="form-label" for="target">Target</label>
                                 <input  type="text" oninput="validateDigits(this, {{ $index }})" value="{{ number_format(old('target.0'), 0, '', ',') }}" class="form-control" required>
                                 <input type="hidden" name="target[]" id="target{{ $index }}" value="{{ old('target.0') }}">
-                            </div>
                         </div>
-                        <div class="col-md-2">
-                            <div class="mb-3">
+                        <div class="col-md-2 col-6">
                                 <label class="form-label" for="uom">{{ __('Uom') }}</label>
                                 <select class="form-select select2 max-w-full select-uom" data-id="{{ $index }}" name="uom[]" id="uom{{ $index }}" title="Unit of Measure" required>
                                     <option value="">- Select -</option>
@@ -62,10 +57,8 @@
                                     @endforeach
                                 </select>
                                 <input type="text" class="form-control mt-2" name="custom_uom[]" id="custom_uom{{ $index }}" @style('display: none') placeholder="Enter UoM">
-                            </div>
                         </div>
-                        <div class="col-md-2">
-                            <div class="mb-3">
+                        <div class="col-md-2 col-6">
                                 <label class="form-label" for="type">{{ __('Type') }}</label>
                                 <select class="form-select select-type" name="type[]" id="type{{ $index }}" required>
                                     <option value="">- Select -</option>
@@ -73,10 +66,8 @@
                                     <option value="Lower Better">Lower Better</option>
                                     <option value="Exact Value">Exact Value</option>
                                 </select>
-                            </div>
                         </div>
-                        <div class="col-md-2">
-                            <div class="mb-3">
+                        <div class="col-md-2 col-6">
                                 <label class="form-label" for="weightage">{{ __('Weightage') }}</label>
                                 <div class="input-group">
                                     <input type="number" min="5" max="100" class="form-control" name="weightage[]" value="{{ old('weightage.0') }}" required>
@@ -84,7 +75,6 @@
                                         <span class="input-group-text">%</span>
                                     </div>
                                 </div>                                  
-                            </div>
                             {{ $errors->first("weightage") }}
                         </div>
                     </div>
