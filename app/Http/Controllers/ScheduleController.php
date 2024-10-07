@@ -7,6 +7,7 @@ use App\Models\Schedule;
 use App\Models\Location;
 use App\Models\Company;
 use App\Models\Employee;
+use App\Models\EmployeeAppraisal;
 use App\Models\Permission;
 use App\Models\RoleHasPermission;
 use Illuminate\Support\Facades\Crypt;
@@ -141,24 +142,30 @@ class ScheduleController extends Controller
             }
         }else{
             $query = Employee::query();
+            $querypa = EmployeeAppraisal::query();
 
             if ($model->location_filter) {
                 $query->whereIn('work_area_code', explode(',', $model->location_filter));
+                $querypa->whereIn('work_area_code', explode(',', $model->location_filter));
             }
 
             if ($model->company_filter) {
                 $query->whereIn('contribution_level_code', explode(',', $model->company_filter));
+                $querypa->whereIn('contribution_level_code', explode(',', $model->company_filter));
             }
 
             if ($model->bisnis_unit) {
                 $query->whereIn('group_company', explode(',', $model->bisnis_unit));
+                $querypa->whereIn('group_company', explode(',', $model->bisnis_unit));
             }
 
             if ($model->employee_type) {
                 $query->whereIn('employee_type', explode(',', $model->employee_type));
+                $querypa->whereIn('employee_type', explode(',', $model->employee_type));
             }
 
             $employeesToUpdate = $query->get();
+            $employeesPAToUpdate = $querypa->get();
             // $employeesToUpdate = $query->where('date_of_joining', '<=', $model->last_join_date)->get();
 
             
@@ -166,17 +173,15 @@ class ScheduleController extends Controller
                 $access_menu = 1;
                 $accesspa = 1;
             }else{
-                $accesspa = 0;
+                $access_menu = 0;
                 $accesspa = 0;
             }
 
             foreach ($employeesToUpdate as $employee) {
                 if($employee->date_of_joining <= $model->last_join_date){
                     $doj=1;
-                    $createpa=1;
                 }else{
                     $doj=0;
-                    $createpa=0;
                 }
 
                 $accessMenuJson = json_decode($employee->access_menu, true);
@@ -184,12 +189,27 @@ class ScheduleController extends Controller
                 if($req->event_type=="goals"){
                     $accessMenuJson['goals'] = $access_menu;
                     $accessMenuJson['doj'] = $doj;
-                }else if($req->event_type=="schedulepa"){
+                }                
+                
+                $updatedAccessMenu = json_encode($accessMenuJson);
+                
+                $employee->access_menu = $updatedAccessMenu;
+                $employee->save();
+            }
+            foreach ($employeesPAToUpdate as $employee) {
+                if($employee->date_of_joining <= $model->last_join_date){
+                    $createpa=1;
+                }else{
+                    $createpa=0;
+                }
+
+                $accessMenuJson = json_decode($employee->access_menu, true);
+
+                if($req->event_type=="schedulepa"){
                     $accessMenuJson['accesspa'] = $accesspa;
                     $accessMenuJson['createpa'] = $createpa;
                     $accessMenuJson['review360'] = $review360;
                 }
-                
                 
                 $updatedAccessMenu = json_encode($accessMenuJson);
                 
@@ -304,26 +324,31 @@ class ScheduleController extends Controller
         }else{
             // dd('test');
             $query = Employee::query();
+            $querypa = EmployeeAppraisal::query();
 
             if ($model->location_filter) {
                 $query->whereIn('work_area_code', explode(',', $model->location_filter));
+                $querypa->whereIn('work_area_code', explode(',', $model->location_filter));
             }
 
             if ($model->company_filter) {
                 $query->whereIn('contribution_level_code', explode(',', $model->company_filter));
+                $querypa->whereIn('contribution_level_code', explode(',', $model->company_filter));
             }
 
             if ($model->bisnis_unit) {
                 $query->whereIn('group_company', explode(',', $model->bisnis_unit));
+                $querypa->whereIn('group_company', explode(',', $model->bisnis_unit));
             }
 
             if ($model->employee_type) {
                 $query->whereIn('employee_type', explode(',', $model->employee_type));
+                $querypa->whereIn('employee_type', explode(',', $model->employee_type));
             }
 
             //$employeesToUpdate = $query->where('date_of_joining', '<=', $model->last_join_date)->get();
             $employeesToUpdate = $query->get();
-
+            $employeesPAToUpdate = $querypa->get();
             
             if($model->start_date <= $today && $model->end_date >= $today){
                 $access_menu = 1;
@@ -336,10 +361,8 @@ class ScheduleController extends Controller
             foreach ($employeesToUpdate as $employee) {
                 if($employee->date_of_joining <= $model->last_join_date){
                     $doj=1;
-                    $createpa=1;
                 }else{
                     $doj=0;
-                    $createpa=0;
                 }
 
                 $accessMenuJson = json_decode($employee->access_menu, true);
@@ -347,7 +370,23 @@ class ScheduleController extends Controller
                 if($req->event_type=="Goals"){
                     $accessMenuJson['goals'] = $access_menu;
                     $accessMenuJson['doj'] = $doj;
-                }else if($req->event_type=="Schedule PA"){
+                }
+
+                $updatedAccessMenu = json_encode($accessMenuJson);
+                
+                $employee->access_menu = $updatedAccessMenu;
+                $employee->save();
+            }
+            foreach ($employeesPAToUpdate as $employee) {
+                if($employee->date_of_joining <= $model->last_join_date){
+                    $createpa=1;
+                }else{
+                    $createpa=0;
+                }
+
+                $accessMenuJson = json_decode($employee->access_menu, true);
+
+                if($req->event_type=="Schedule PA"){
                     $accessMenuJson['accesspa'] = $accesspa;
                     $accessMenuJson['createpa'] = $createpa;
                     $accessMenuJson['review360'] = $review360;
@@ -386,33 +425,48 @@ class ScheduleController extends Controller
         } else {
             if ($schedule->start_date <= $today && $schedule->end_date >= $today) {
                 $query = Employee::query();
+                $querypa = EmployeeAppraisal::query();
 
                 if ($schedule->location_filter) {
                     $query->whereIn('work_area_code', explode(',', $schedule->location_filter));
+                    $querypa->whereIn('work_area_code', explode(',', $schedule->location_filter));
                 }
 
                 if ($schedule->company_filter) {
                     $query->whereIn('contribution_level_code', explode(',', $schedule->company_filter));
+                    $querypa->whereIn('contribution_level_code', explode(',', $schedule->company_filter));
                 }
 
                 if ($schedule->bisnis_unit) {
                     $query->whereIn('group_company', explode(',', $schedule->bisnis_unit));
+                    $querypa->whereIn('group_company', explode(',', $schedule->bisnis_unit));
                 }
 
                 if ($schedule->employee_type) {
                     $query->whereIn('employee_type', explode(',', $schedule->employee_type));
+                    $querypa->whereIn('employee_type', explode(',', $schedule->employee_type));
                 }
 
                 $employeesToUpdate = $query->where('date_of_joining', '<=', $schedule->last_join_date)->get();
+                $employeesPAToUpdate = $querypa->where('date_of_joining', '<=', $schedule->last_join_date)->get();
 
                 foreach ($employeesToUpdate as $employee) {
                     $accessMenuJson = json_decode($employee->access_menu, true);
 
-                    if (empty($accessMenuJson) || $accessMenuJson === null) {
-                        $accessMenuJson = ['goals' => 0];
-                    } else {
-                        $accessMenuJson['goals'] = 0;
-                    }
+                    $accessMenuJson['goals'] = 0;
+                    $accessMenuJson['doj'] = 0;
+
+                    $updatedAccessMenu = json_encode($accessMenuJson);
+
+                    $employee->access_menu = $updatedAccessMenu;
+                    $employee->save();
+                }
+                foreach ($employeesPAToUpdate as $employee) {
+                    $accessMenuJson = json_decode($employee->access_menu, true);
+
+                    $accessMenuJson['accesspa'] = 0;
+                    $accessMenuJson['createpa'] = 0;
+                    $accessMenuJson['review360'] = 0;
 
                     $updatedAccessMenu = json_encode($accessMenuJson);
 
