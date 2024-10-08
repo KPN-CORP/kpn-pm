@@ -29,7 +29,7 @@
                                         <a href="#{{ strtolower($level) }}" data-bs-toggle="tab" 
                                         aria-expanded="{{ $level == $activeLevel ? 'true' : 'false' }}" 
                                         class="nav-link {{ $level == $activeLevel ? 'active' : '' }}">
-                                            Job Level {{ str_replace('Level', '', $level) }}
+                                            Job Level {{ str_replace('Level', '', $level) == '23' ? '2-3' : (str_replace('Level', '', $level) == '45' ? '4-5' : (str_replace('Level', '', $level) == '67' ? '6-7' : '8-9')) }}
                                         </a>
                                     </li>
                                 @endforeach
@@ -143,7 +143,11 @@
                                                                                     @if ($item->rating_value)
                                                                                         <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="" class="badge bg-success rounded-pill py-1 px-2 mt-1">Approved</a>
                                                                                     @else
-                                                                                        <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $item->current_calibrator }}" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending Calibration</a>
+                                                                                        @if ($item->approval_request->status == 'Approved')
+                                                                                            <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $item->current_calibrator }}" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending Calibration</a>
+                                                                                        @else
+                                                                                            <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="360 Review incomplete" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending 360</a>
+                                                                                        @endif
                                                                                     @endif
                                                                                 @else
                                                                                     @if (!$item->approval_request)
