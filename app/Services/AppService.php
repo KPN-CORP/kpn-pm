@@ -408,6 +408,7 @@ class AppService
                         ->orderBy('layer', 'asc')
                         ->first();
 
+        $nextLayer = [];
         if ($currentLayer) {
             // Find the next approver in the sequence
             $nextLayer = ApprovalLayerAppraisal::where('employee_id', $employee)
