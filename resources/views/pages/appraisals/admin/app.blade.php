@@ -27,7 +27,19 @@
         <div class="row">
             <div class="col-lg">
                 <div class="mb-3 text-end">
-                    <button type="button" class="btn btn-primary" title="Set Calibration">Set Calibration</button>
+                    <button type="button" class="btn btn-sm btn-outline-success me-1" title="Download Report">Download Report</button>
+                    <button type="button" class="btn btn-sm btn-outline-success" title="Download Detail Report">Download Detail Report</button>
+                </div>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-auto">
+                <div class="mb-3 p-1 bg-info-subtle">
+                    <span class="mx-2">L = Layer</span>|
+                    <span class="mx-2">P = Peers</span>|
+                    <span class="mx-2">S = Subordinate</span>|
+                    <span class="mx-2"><i class="ri-check-line bg-subtle-success text-success fs-18"></i> = Done</span>|
+                    <span class="mx-2"><i class="ri-error-warning-line bg-subtle-warning text-warning fs-20"></i> = Pending</span>
                 </div>
             </div>
         </div>
