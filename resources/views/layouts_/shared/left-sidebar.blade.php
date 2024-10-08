@@ -177,7 +177,7 @@
                 @endcan
                 @can('viewreport')
                 <li class="side-nav-item">
-                    <a class="side-nav-link" href="{{ url('admin-appraisal') }}">
+                    <a class="side-nav-link" href="{{ route('admin.appraisal') }}">
                         <i class="ri-file-chart-line"></i>
                         <span>{{ __('Appraisal') }}</span>
                     </a>

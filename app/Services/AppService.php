@@ -57,7 +57,8 @@ class AppService
                 if ($target == 0) {
                     return $achievement > 0 ? 100 : 0;
                 }
-                return max(min(($achievement / $target) * 100, 100), 0);
+                
+                return ($achievement / $target) * 100;
     
             case 'lower better':
                 if ($target == 0) {
@@ -66,7 +67,8 @@ class AppService
                 if ($achievement <= 0) {
                     return 100;
                 }
-                return max(min((2 - ($achievement / $target)) * 100, 100), 0);
+
+                return (2 - ($achievement / $target)) * 100;
     
             case 'exact value':
                 $epsilon = 1e-6; // Adjust based on required precision
@@ -125,6 +127,8 @@ class AppService
                 $leadershipAverageScore = $this->averageScore($form);
             }
         }
+
+        // dd($appraisalDatas);
 
         $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->first();
         
