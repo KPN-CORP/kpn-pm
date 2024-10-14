@@ -130,6 +130,11 @@
                                 <a href="{{ route('schedules') }}">Schedule</a>
                             </li>
                             @endcan
+                            @can('masterrating')
+                            <li>
+                                <a href="{{ route('admratings') }}">Rating</a>
+                            </li>
+                            @endcan
                             @can('viewlayer')
                             <li class="side-nav-item">
                                 <a data-bs-toggle="collapse" href="#sidebarLayer" aria-expanded="false" aria-controls="sidebarLayer">

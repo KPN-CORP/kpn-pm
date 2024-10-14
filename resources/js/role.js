@@ -1,12 +1,14 @@
 import $ from 'jquery';
 
-$('#submitButton').on('click', function(e) {
+$('#submitButtonRole').on('click', function(e) {
+    // console.log("test 0");
     e.preventDefault();
     const form = $('#roleForm').get(0);
-    const submitButton = $('#submitButton');
+    const submitButton = $('#submitButtonRole');
     const spinner = submitButton.find(".spinner-border");
 
     if (form.checkValidity()) {
+        // console.log("test 1");
     // Disable submit button
     submitButton.prop('disabled', true);
     submitButton.addClass("disabled");
@@ -19,6 +21,7 @@ $('#submitButton').on('click', function(e) {
     // Submit form
     form.submit();
     } else {
+        // console.log("test 2");
         // If the form is not valid, trigger HTML5 validation messages
         form.reportValidity();
     }

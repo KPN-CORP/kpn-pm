@@ -31,6 +31,7 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\MyAppraisalController;
 use App\Http\Controllers\MyGoalController;
+use App\Http\Controllers\RatingAdminController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\TeamAppraisalController;
 use App\Http\Controllers\TeamGoalController;
@@ -208,6 +209,17 @@ Route::middleware('auth', 'locale')->group(function () {
         // Route::delete('/schedule/{id}', [ScheduleController::class, 'softDelete'])->name('soft-delete-schedule');
         Route::delete('/schedule/{id}/delete', [ScheduleController::class, 'softDelete'])->name('soft-delete-schedule');
 
+    });
+
+    Route::middleware(['permission:masterrating'])->group(function () {
+        // Route::resource('ratings', RatingAdminController::class);
+        Route::get('/admratings', [RatingAdminController::class, 'index'])->name('admratings');
+        Route::get('/pages/rating-admin/create', [RatingAdminController::class, 'create'])->name('pages.rating-admin.create');
+        Route::get('/pages/rating-admin/update/{id}', [RatingAdminController::class, 'show'])->name('pages.rating-admin.update');
+        Route::post('/admratings/submit', [RatingAdminController::class, 'store'])->name('admratings.store');
+        Route::delete('/rating-admin/{id}', [RatingAdminController::class, 'destroy'])->name('rating-admin-destroy');
+        Route::delete('/detail-rating-admin/{id}', [RatingAdminController::class, 'destroyDetail'])->name('detail-rating-admin-destroy');
+        Route::get('/rating-admin/{id}/edit', [RatingAdminController::class, 'edit'])->name('rating-admin.edit');
     });
     
     Route::middleware(['permission:viewlayer'])->group(function () {

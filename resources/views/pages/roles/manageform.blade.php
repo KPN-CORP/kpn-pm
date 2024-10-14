@@ -82,7 +82,18 @@
                   </li>
                 </ul>
                 <div class="tab-pane fade p-3 active show" id="list-onBehalf-accessibility" role="tabpanel" aria-labelledby="onBehalf-accessibility">
-                  <div class="form-check mb-3">
+                  @php
+                      $onbehalfsPermissions = $permissions->where('group_name', 'onbehalfs');
+                  @endphp
+                  @foreach($onbehalfsPermissions as $permission)
+                      <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="{{ $permission->name }}" value="{{ $permission->id }}" name="{{ $permission->name }}" @if(in_array($permission->id, $permissionNames)) checked @endif>
+                        <label class="form-check-label" for="{{ $permission->name }}">
+                          {{ $permission->display_name }}
+                        </label>
+                      </div>
+                  @endforeach
+                  {{-- <div class="form-check mb-3">
                     <input type="hidden" name="adminMenu" value="{{ 9 }}">
                     <input class="form-check-input" type="checkbox" value="{{ $permissions[0] }}" name="onBehalfView" {{ isset($permissionNames[0]) ? 'checked' : '' }}>
                     <label class="form-check-label" for="onBehalfView">
@@ -100,7 +111,7 @@
                     <label class="form-check-label" for="onBehalfSendback">
                       Sendback Approval
                     </label>
-                  </div>
+                  </div> --}}
                 </div>
               </div>
               <div class="tab-pane fade" id="list-report" role="tabpanel" aria-labelledby="list-report-list">
@@ -110,12 +121,23 @@
                   </li>
                 </ul>
                 <div class="tab-pane fade p-3 active show" id="list-report-accessibility" role="tabpanel" aria-labelledby="report-accessibility">
-                  <div class="form-check mb-3">
+                  @php
+                      $onbehalfsPermissions = $permissions->where('group_name', 'report');
+                  @endphp
+                  @foreach($onbehalfsPermissions as $permission)
+                      <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="{{ $permission->name }}" value="{{ $permission->id }}" name="{{ $permission->name }}" @if(in_array($permission->id, $permissionNames)) checked @endif>
+                        <label class="form-check-label" for="{{ $permission->name }}">
+                          {{ $permission->display_name }}
+                        </label>
+                      </div>
+                  @endforeach
+                  {{-- <div class="form-check mb-3">
                     <input class="form-check-input" type="checkbox" value="{{ $permissions[3] }}" name="reportView" {{ isset($permissionNames[3]) ? 'checked' : '' }}>
                     <label class="form-check-label" for="reportView">
                       View Reports
                     </label>
-                  </div>
+                  </div> --}}
                 </div>
               </div>
               <div class="tab-pane fade" id="list-guide" role="tabpanel" aria-labelledby="list-guide-list">
@@ -125,7 +147,18 @@
                   </li>
                 </ul>
                 <div class="tab-pane fade p-3 active show" id="list-guide-accessibility" role="tabpanel" aria-labelledby="guide-accessibility">
-                  <div class="form-check mb-3">
+                  @php
+                      $onbehalfsPermissions = $permissions->where('group_name', 'guideline');
+                  @endphp
+                  @foreach($onbehalfsPermissions as $permission)
+                      <div class="form-check mb-3">
+                        <input class="form-check-input" type="checkbox" id="{{ $permission->name }}" value="{{ $permission->id }}" name="{{ $permission->name }}" @if(in_array($permission->id, $permissionNames)) checked @endif>
+                        <label class="form-check-label" for="{{ $permission->name }}">
+                          {{ $permission->display_name }}
+                        </label>
+                      </div>
+                  @endforeach
+                  {{-- <div class="form-check mb-3">
                     <input class="form-check-input" type="checkbox" value="{{ $permissions[9] }}" name="addGuide" {{ isset($permissionNames[9]) ? 'checked' : '' }}>
                     <label class="form-check-label" for="addGuide">
                       Add file
@@ -136,7 +169,7 @@
                     <label class="form-check-label" for="removeGuide">
                       Remove file
                     </label>
-                  </div>
+                  </div> --}}
                 </div>
               </div>
               <div class="tab-pane fade" id="list-setting" role="tabpanel" aria-labelledby="list-setting-list">
@@ -146,7 +179,31 @@
                   </li>
                 </ul>
                 <div class="tab-pane fade p-3 active show" id="list-setting-accessibility" role="tabpanel" aria-labelledby="setting-accessibility">
-                  <div class="form-check mb-3">
+                  @php
+                      $onbehalfsPermissions = $permissions->filter(function($permission) {
+                          return stripos($permission->group_name, 'settings') !== false;
+                      });
+                      $previousGroup = null;
+                  @endphp
+                  @foreach($onbehalfsPermissions as $permission)
+                      @if($previousGroup != $permission->group_name)
+                          <div class="form-check mb-3 bg-dark-subtle">
+                              <label class="form-check-label" for="{{ $permission->group_name }}">
+                                  <strong>{{ explode('_', $permission->group_name)[1] }}</strong>
+                              </label>
+                          </div>
+                          @php
+                              $previousGroup = $permission->group_name;
+                          @endphp
+                      @endif
+                      <div class="form-check mb-3">
+                          <input class="form-check-input" type="checkbox" id="{{ $permission->name }}" value="{{ $permission->id }}" name="{{ $permission->name }}" @if(in_array($permission->id, $permissionNames)) checked @endif>
+                          <label class="form-check-label" for="{{ $permission->name }}">
+                              {{ $permission->display_name }} <i class="ri-information-line" title="{{ $permission->desc }}"></i>
+                          </label>
+                      </div>
+                  @endforeach
+                  {{-- <div class="form-check mb-3">
                     <input class="form-check-input" type="checkbox" value="{{ $permissions[4] }}" name="settingView" {{ isset($permissionNames[4]) ? 'checked' : '' }}>
                     <label class="form-check-label" for="settingView">
                       View Settings
@@ -169,7 +226,7 @@
                     <label class="form-check-label" for="roleView">
                       Role Permission Settings
                     </label>
-                  </div>
+                  </div> --}}
                 </div>
               </div>
             </div>
