@@ -17,8 +17,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         </div>
-        @if (isset($calibrations))
-            
+        @if (isset($calibrations))            
         <div class="row">
             <div class="col-md p-0 p-md-2">
                 <div class="card">
@@ -44,6 +43,12 @@
                                         $ratingNotAllowed = collect($ratingDatas[$level])->where(function ($data) {
                                             return isset($data['rating_allowed']['status']) && $data['rating_allowed']['status'] === false;
                                         })->count();
+                                        $requestApproved = collect($ratingDatas[$level])
+                                        ->where(function ($data) {
+                                            return isset($data['approval_request']['status']) && $data['approval_request']['status'] === 'Pending';
+                                        })
+                                        ->count();
+
                                     @endphp
                                     <div class="row">
                                         <div class="col-md-5 order-2 order-md-1">
@@ -88,7 +93,7 @@
                                         </div>
                                     </div>
                                     <div class="mb-3">
-                                        <div id="alertField" class="alert alert-danger alert-dismissible {{ ($calibratorCount && $ratingDone) || $ratingNotAllowed ? '' : 'fade' }}" role="alert" {{ ($calibratorCount && $ratingDone) || $ratingNotAllowed ? '' : 'hidden' }}>
+                                        <div id="alertField" class="alert alert-danger alert-dismissible {{ ($calibratorCount && $ratingDone ) || $ratingNotAllowed || !$requestApproved ? '' : 'fade' }}" role="alert" {{ ($calibratorCount && $ratingDone) || $ratingNotAllowed || !$requestApproved? '' : 'hidden' }}>
                                             <div class="row text-primary">
                                                 <div class="col-auto my-auto">
                                                     <i class="ri-error-warning-line h3 fw-light"></i>
@@ -124,10 +129,6 @@
                                                                             <span class="text-muted">Employee Name</span>
                                                                             <p class="mt-1 fw-medium">{{ $item->employee->fullname }}<span class="text-muted ms-1">{{ $item->employee->employee_id }}</span></p>
                                                                         </div>
-                                                                        <div class="col d-none d-md-block text-center">
-                                                                            <span class="text-muted">Job Level</span>
-                                                                            <p class="mt-1 fw-medium">{{ $item->employee->job_level }}</p>
-                                                                        </div>
                                                                         <div class="col d-none d-md-block">
                                                                             <span class="text-muted">Designation</span>
                                                                             <p class="mt-1 fw-medium">{{ $item->employee->designation }}</p>
@@ -139,18 +140,18 @@
                                                                         <div class="col-md col-sm-12 text-md-center">
                                                                             <span class="text-muted">Review Status</span>
                                                                             <div class="mb-2">
-                                                                                @if ($item->rating_allowed['status'] && $item->approval_request)
+                                                                                @if ($item->rating_allowed['status'] && $item->form_id)
                                                                                     @if ($item->rating_value)
                                                                                         <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="" class="badge bg-success rounded-pill py-1 px-2 mt-1">Approved</a>
                                                                                     @else
-                                                                                        @if ($item->approval_request->status == 'Approved')
+                                                                                        @if ($item->rating_allowed['status'] && $item->form_id && $item->current_calibrator)
                                                                                             <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $item->current_calibrator }}" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending Calibration</a>
                                                                                         @else
                                                                                             <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="360 Review incomplete" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending 360</a>
                                                                                         @endif
                                                                                     @endif
                                                                                 @else
-                                                                                    @if (!$item->approval_request)
+                                                                                    @if (!$item->form_id)
                                                                                         <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ 'No Appraisal Initiated' }}" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Empty Appraisal</a>
                                                                                     @else
                                                                                         <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="360 Review incomplete" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending 360</a>
@@ -160,12 +161,16 @@
                                                                         </div>
                                                                         <div class="col text-center">
                                                                             <span class="text-muted">Suggested Rating</span>
-                                                                            <p class="mt-1 fw-medium">{{ $item->rating_allowed['status'] ? $item->suggested_rating : '-' }}</p>
+                                                                            <p class="mt-1 fw-medium">{{ $item->rating_allowed['status'] && $item->form_id && $item->current_calibrator ? $item->suggested_rating : '-' }}</p>
+                                                                        </div>
+                                                                        <div class="col text-center">
+                                                                            <span class="text-muted">Previous Rating</span>
+                                                                            <p class="mt-1 fw-medium">{{ $item->rating_allowed['status'] ? '-' : '-' }}</p>
                                                                         </div>
                                                                         <div class="col">
                                                                             <span class="text-muted">Your Rating</span>
-                                                                            <select name="rating[]" id="rating{{ $level }}-{{ $index }}" data-id="{{ $level }}" class="form-select form-select-sm rating-select" {{ $item->is_calibrator && $item->rating_allowed['status'] ? '' : 'disabled' }} @required(true)>
-                                                                                <option value="">Please Select</option>
+                                                                            <select name="rating[]" id="rating{{ $level }}-{{ $index }}" data-id="{{ $level }}" class="form-select form-select-sm rating-select" {{ $item->is_calibrator && $item->rating_allowed['status'] && $item->status == 'Approved' ? '' : 'disabled' }} @required(true)>
+                                                                                <option value="">-</option>
                                                                                 @foreach ($masterRating as $rating)
                                                                                     <option value="{{ $rating->value }}" {{ $item->rating_value == $rating->value ? 'selected' : '' }}>{{ $rating->parameter }}</option>
                                                                                 @endforeach

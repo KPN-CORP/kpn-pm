@@ -4,10 +4,16 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 class ApprovalRequest extends Model
 {
     use HasFactory;
+    use SoftDeletes;
+
+    protected $fillable = [
+        'current_approval_id',
+    ];
 
     public function user()
     {
@@ -15,7 +21,7 @@ class ApprovalRequest extends Model
     }
     public function goal()
     {
-        return $this->hasOne(Goal::class, 'employee_id', 'employee_id');
+        return $this->belongsTo(Goal::class, 'form_id', 'id');
     }
     public function approvalLayer()
     {
@@ -52,7 +58,7 @@ class ApprovalRequest extends Model
     }
     public function appraisal()
     {
-        return $this->hasOne(Appraisal::class, 'employee_id', 'employee_id');
+        return $this->belongsTo(Appraisal::class, 'form_id', 'id');
     }
     public function contributor()
     {

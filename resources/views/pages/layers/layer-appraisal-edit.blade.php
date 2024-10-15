@@ -87,7 +87,7 @@
                 </div>
             </div>
         </div>
-        <form action="{{ route('layer-appraisal.update') }}" method="post">
+        <form id="layer-appraisal" action="{{ route('layer-appraisal.update') }}" method="post">
             @csrf
             <input type="hidden" id="employee_id" name="employee_id" value="{{ $datas->employee_id }}">
             <div class="row">
@@ -127,17 +127,8 @@
                                                                 >{{ $item->fullname }} {{ $item->employee_id }}</option>
                                                             @endforeach
                                                         </select>
+                                                        <div class="text-danger error-message fs-14"></div>
                                                     </div>
-                                                    @if ($errors->any())
-                                                        <div class="alert alert-danger">
-                                                            <ul>
-                                                                @foreach ($errors->all() as $error)
-                                                                    <li>{{ $error }}</li>
-                                                                    <div class="text-danger error-message fs-14"></div>
-                                                                @endforeach
-                                                            </ul>
-                                                        </div>
-                                                    @endif
                                                 </div>
                                                 <div class="col-md">
                                                     <div class="mb-2">
@@ -152,8 +143,8 @@
                                                                 >{{ $item->fullname }} {{ $item->employee_id }}</option>
                                                             @endforeach
                                                         </select>
+                                                        <div class="text-danger error-message fs-14"></div>
                                                     </div>
-                                                    <div class="text-danger error-message fs-14"></div>
                                                 </div>
                                                 <div class="col-md">
                                                     <div class="mb-2">
@@ -168,8 +159,8 @@
                                                                 >{{ $item->fullname }} {{ $item->employee_id }}</option>
                                                             @endforeach
                                                         </select>
+                                                        <div class="text-danger error-message fs-14"></div>
                                                     </div>
-                                                    <div class="text-danger error-message fs-14"></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -194,8 +185,8 @@
                                                                 >{{ $item->fullname }} {{ $item->employee_id }}</option>
                                                             @endforeach
                                                         </select>
+                                                        <div class="text-danger error-message fs-14"></div>
                                                     </div>
-                                                    <div class="text-danger error-message fs-14"></div>
                                                 </div>
                                                 <div class="col-md">
                                                     <div class="mb-2">
@@ -210,8 +201,8 @@
                                                                 >{{ $item->fullname }} {{ $item->employee_id }}</option>
                                                             @endforeach
                                                         </select>
+                                                        <div class="text-danger error-message fs-14"></div>
                                                     </div>
-                                                    <div class="text-danger error-message fs-14"></div>
                                                 </div>
                                                 <div class="col-md">
                                                     <div class="mb-2">
@@ -226,8 +217,8 @@
                                                                 >{{ $item->fullname }} {{ $item->employee_id }}</option>
                                                             @endforeach
                                                         </select>
+                                                        <div class="text-danger error-message fs-14"></div>
                                                     </div>
-                                                    <div class="text-danger error-message fs-14"></div>
                                                 </div>
                                             </div>
                                         </div>
@@ -250,8 +241,8 @@
                                                                         <option value="{{ $item->employee_id }}" {{ $item->employee_id == $layerCalibrator->approver_id ? 'selected' : '' }}>{{ $item->fullname }} {{ $item->employee_id }}</option>
                                                                     @endforeach
                                                                 </select>
+                                                                <div class="text-danger error-message fs-14"></div>
                                                             </div>
-                                                            <div class="text-danger error-message fs-14"></div>
                                                         </div>
                                                         @if ( $index > 0)
                                                         <div class="col-2 d-flex align-items-end justify-content-end">
@@ -275,6 +266,7 @@
                                                                         <option value="{{ $item->employee_id }}">{{ $item->fullname }} {{ $item->employee_id }}</option>
                                                                     @endforeach
                                                                 </select>
+                                                                <div class="text-danger error-message fs-14"></div>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -294,7 +286,7 @@
                                     <a href="{{ route('layer-appraisal') }}" class="btn btn-outline-secondary w-100 w-md-auto">{{ __('Cancel') }}</a>
                                 </div>
                                 <div class="col-6 col-md-auto">
-                                    <button class="btn btn-primary px-3 w-100 w-md-auto">Save</button>
+                                    <a id="submit-btn" class="btn btn-primary px-3 w-100 w-md-auto"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>{{ __('Save') }}</a>
                                 </div>
                             </div>
                         </div>

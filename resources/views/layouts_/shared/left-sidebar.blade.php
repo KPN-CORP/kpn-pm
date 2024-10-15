@@ -119,7 +119,7 @@
                 @can('viewsetting')
                 <li class="side-nav-item">
                     <a data-bs-toggle="collapse" href="#sidebarSettings" aria-expanded="false" aria-controls="sidebarSettings" class="side-nav-link">
-                        <i class="ri-admin-line"></i>
+                        <i class="ri-user-settings-line"></i>
                         <span> Admin Settings </span>
                         <span class="menu-arrow"></span>
                     </a>
@@ -174,21 +174,25 @@
                 @endcan
                 @can('viewreport')
                 <li class="side-nav-item">
-                    <a href="{{ route('admin.reports') }}" class="side-nav-link">
+                    <a data-bs-toggle="collapse" href="#sidebarReports" aria-expanded="false" aria-controls="sidebarReports" class="side-nav-link">
                         <i class="ri-file-chart-line"></i>
-                        <span> {{ __('Report') }} </span>
+                        <span> Reports </span>
+                        <span class="menu-arrow"></span>
                     </a>
+                    <div class="collapse" id="sidebarReports">
+                        <ul class="side-nav-second-level">
+                            <li>
+                                <a href="{{ route('admin.reports') }}">{{ __('Report') }}</a>
+                            </li>
+                            @can('viewreport')
+                            <li>
+                                <a href="{{ route('admin.appraisal') }}">{{ __('Appraisal') }}</a>
+                            </li>
+                            @endcan
+                        </ul>
+                    </div>
                 </li>
                 @endcan
-                @can('viewreport')
-                <li class="side-nav-item">
-                    <a class="side-nav-link" href="{{ route('admin.appraisal') }}">
-                        <i class="ri-file-chart-line"></i>
-                        <span>{{ __('Appraisal') }}</span>
-                    </a>
-                </li>
-                @endcan
-
                 @endcan
             @endif
 
