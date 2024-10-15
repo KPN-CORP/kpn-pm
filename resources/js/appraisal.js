@@ -3,6 +3,12 @@ import $ from 'jquery';
 import Swal from "sweetalert2";
 window.Swal = Swal;
 
+function yearAppraisal() {
+    $("#formYearAppraisal").submit();
+}
+
+window.yearAppraisal = yearAppraisal;
+
 $(document).ready(function() {
     let currentStep = $('.step').data('step');
     const totalSteps = $('.form-step').length;

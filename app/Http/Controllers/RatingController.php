@@ -83,6 +83,7 @@ class RatingController extends Controller
         ->where('approval_layer_appraisals.approver_id', $user)
         ->where('approval_layer_appraisals.layer_type', 'calibrator')
         ->where('approval_requests.category', $this->category)
+        ->whereNull('approval_requests.deleted_at')
         ->select('approval_layer_appraisals.*')
         ->get()
         ->keyBy('id');
@@ -105,13 +106,13 @@ class RatingController extends Controller
             ->where('approval_layer_appraisals.approver_id', $user)
             ->where('approval_layer_appraisals.layer_type', 'calibrator')
             ->where('approval_requests.category', $this->category)
+            ->whereNull('approval_requests.deleted_at')
             ->whereIn('approval_layer_appraisals.id', $group->pluck('id'))
             ->select('approval_layer_appraisals.*', 'approval_requests.*')
             ->get()
             ->groupBy('id')
             ->map(function ($subgroup) {
                 $appraisal = $subgroup->first();
-                $appraisal->approval_request = $subgroup->first();
                 return $appraisal;
             });
 
@@ -121,13 +122,13 @@ class RatingController extends Controller
                 return !$dataWithRequests->has($item->id);
             })
         ];
-    });
-
+    })->sortKeys();
+    
     $ratingDatas = $datas->map(function ($group) use ($user) {
         // Process `with_requests`
         $withRequests = $group['with_requests']->map(function ($data) use ($user) {
             // Calculate the suggested rating
-            $suggestedRating = $this->appService->suggestedRating($data->employee->employee_id, $this->category);
+            $suggestedRating = $this->appService->suggestedRating($data->employee->employee_id, $data->approvalRequest->first()->form_id);
     
             $data->suggested_rating = $this->appService->convertRating($suggestedRating);
 
@@ -162,7 +163,7 @@ class RatingController extends Controller
         // Process `without_requests`
         $withoutRequests = $group['without_requests']->map(function ($data) use ($user) {
             // Calculate the suggested rating
-            $suggestedRating = $this->appService->suggestedRating($data->employee->employee_id, $this->category);
+            $suggestedRating = 0;
     
             // Since there are no approval requests, handle the suggested rating logic accordingly
             $data->suggested_rating = $this->appService->convertRating($suggestedRating);
@@ -199,7 +200,11 @@ class RatingController extends Controller
       
             // Get calibration results
             $calibrations = $datas->map(function ($group) use ($calibration) {
-                $count = $group['with_requests']->count();
+
+                $countWithRequests = $group['with_requests']->count();
+                $countWithhoutRequests = $group['without_requests']->count();
+
+                $count =  $countWithRequests + $countWithhoutRequests;
     
                 // Calculate weighted and percentage results based on calibration
                 $ratingResults = [];
@@ -242,8 +247,6 @@ class RatingController extends Controller
                     'combined' => $combinedResults,
                 ];
             });
-
-            // dd($ratingDatas);
     
             // Determine the active level as the first non-empty level
             $activeLevel = null;

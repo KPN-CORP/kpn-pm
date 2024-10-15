@@ -1,29 +1,148 @@
 import $ from 'jquery';
 
 $(document).ready(function() {
-    $('#tableAppraisalTeam').DataTable({
+    // Initialize DataTable for Team Appraisal
+    var tableTeam = $('#tableAppraisalTeam').DataTable({
         stateSave: true,
+        autoWidth: false,
         fixedColumns: {
             leftColumns: 0,
             rightColumns: 1
         },
         scrollCollapse: true,
         scrollX: true,
-        paging: false
+        paging: false,
+        ajax: {
+            url: '/appraisals-task/teams-data',
+            type: 'GET',
+            dataSrc: ''
+        },
+        columns: [
+            { data: 'index' },
+            { data: 'employee.fullname', className: 'dt-control text-start' },
+            { data: 'employee.designation' },
+            { data: 'employee.office_area' },
+            { data: 'employee.group_company' },
+            { data: 'approval_date', className: 'text-end' },
+            { data: 'action', className: 'sorting_1 text-center' }
+        ]
     });
 
-    
-    $('#tableAppraisal360').DataTable({
+    // Initialize DataTable for 360 Appraisal
+    var table360 = $('#tableAppraisal360').DataTable({
         stateSave: true,
+        autoWidth: false,
         fixedColumns: {
             leftColumns: 0,
             rightColumns: 1
         },
         scrollCollapse: true,
         scrollX: true,
-        paging: false
+        paging: false,
+        ajax: {
+            url: '/appraisals-task/360-data',
+            type: 'GET',
+            dataSrc: ''
+        },
+        columns: [
+            { data: 'index' },
+            { data: 'employee.fullname', className: 'dt-control text-start' },
+            { data: 'employee.designation' },
+            { data: 'employee.office_area' },
+            { data: 'employee.group_company' },
+            { data: 'approval_date', className: 'text-end' },
+            { data: 'employee.category' },
+            { data: 'action', className: 'sorting_1 text-center' }
+        ]
     });
+
+    // Add event listener for both tables
+    addChildRowToggle(tableTeam, '#tableAppraisalTeam');
+    addChildRowToggle(table360, '#tableAppraisal360');
+
+    // Function to add child row toggle functionality
+    function addChildRowToggle(table, tableId, speed = 250) {
+        $(tableId + ' tbody').on('click', 'td.dt-control', function () {
+            var tr = $(this).closest('tr');
+            var row = table.row(tr);
+    
+            if (row.child.isShown()) {
+                // Close the row with animation
+                $('div.slider', row.child()).slideUp(speed, function () {
+                    row.child.hide(); // After the slide-up animation, hide the row
+                    tr.removeClass('shown');
+                });
+            } else {
+                // Format and show the child row but initially hide it with display:none
+                row.child('<div class="slider" style="display:none;">' + formatChildRow(row.data()) + '</div>').show();
+                // Then slide it down to make it visible with animation
+                $('div.slider', row.child()).slideDown(speed);
+                tr.addClass('shown');
+            }
+        });
+    }
+    
+
+    // Function to format child row content
+    function formatChildRow(rowData) {
+        let kpiContent = '<div>No scores available</div>';
+        let totalScoreContent = '';
+        let kpiScoreContent = '';
+        let cultureScoreContent = '';
+        let leadershipScoreContent = '';
+
+        if (rowData.kpi && rowData.kpi.kpi_status) {
+            if (rowData.kpi.total_score) {
+                totalScoreContent = `<div class="row">
+                    <div class="col-1">
+                        <div class="mb-1 border-bottom border-secondary"><strong>Total Score</strong></div>
+                    </div>
+                    <div class="col-auto">
+                        <div class="mb-1 border-bottom border-secondary"><strong>: ${rowData.kpi.total_score}</strong></div>
+                    </div>
+                </div>`;
+            }
+
+            if (rowData.kpi.kpi_score) {
+                kpiScoreContent = `<div class="row">
+                    <div class="col-1">
+                        <div class="mb-1">KPI</div>
+                    </div>
+                    <div class="col">
+                        <div class="mb-1">: ${rowData.kpi.kpi_score}</div>
+                    </div>
+                </div>`;
+            }
+
+            if (rowData.kpi.culture_score) {
+                cultureScoreContent = `<div class="row">
+                    <div class="col-1">
+                        <div class="mb-1">Culture</div>
+                    </div>
+                    <div class="col">
+                        <div class="mb-1">: ${rowData.kpi.culture_score}</div>
+                    </div>
+                </div>`;
+            }
+
+            if (rowData.kpi.leadership_score) {
+                leadershipScoreContent = `<div class="row">
+                    <div class="col-1">
+                        <div class="mb-1">Leadership</strong></div>
+                    </div>
+                    <div class="col">
+                        <div class="mb-1">: ${rowData.kpi.leadership_score}</div>
+                    </div>
+                </div>`;
+            }
+
+            kpiContent = `${totalScoreContent}${kpiScoreContent}${cultureScoreContent}${leadershipScoreContent}`;
+        }
+
+        return kpiContent;
+    }
 });
+
 
 $(document).ready(function() {
     let currentStep = $('.step').data('step');
@@ -112,11 +231,59 @@ $(document).ready(function() {
         }
     });
 
-    $('.submit-btn').click(function() {
+    $('.submit-btn').click(function () {
+        let submitType = $(this).data('id');
+        document.getElementById("submitType").value = submitType; 
         if (validateStep(currentStep)) {
-            return true;
+            let title1;
+            let title2;
+            let text;
+            let confirmText;
+    
+            const submitButton = $("#submitButton");
+            const spinner = submitButton.find(".spinner-border");
+    
+            if (submitType === "submit_form") {
+                title1 = "Submit From?";
+                text = "This can't be revert";
+                title2 = "Appraisal submitted successfully!";
+                confirmText = "Submit";
+
+                Swal.fire({
+                    title: title1,
+                    text: text,
+                    showCancelButton: true,
+                    confirmButtonColor: "#3e60d5",
+                    cancelButtonColor: "#f15776",
+                    confirmButtonText: confirmText,
+                    reverseButtons: true,
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Disable submit button
+                        submitButton.prop("disabled", true);
+                        submitButton.addClass("disabled");
+        
+                        // Show spinner if it exists
+                        if (spinner.length) {
+                            spinner.removeClass("d-none");
+                        }
+        
+                        document.getElementById("appraisalForm").submit();
+        
+                        // Show success message
+                        Swal.fire({
+                            title: title2,
+                            icon: "success",
+                            showConfirmButton: false,
+                            timer: 1500, // Optional: Auto close the success message after 1.5 seconds
+                        });
+                    }
+                });
+            }
+    
+            return false; // Prevent default form submission
         }
-    });
+    });    
 
     $('.prev-btn').click(function() {
         currentStep--;

@@ -1,4 +1,4 @@
-@extends('layouts_.vertical', ['page_title' => 'Settings'])
+@extends('layouts_.vertical', ['page_title' => 'Reports'])
 
 @section('css')
 <style>
@@ -34,12 +34,12 @@
         </div>
         <div class="row">
             <div class="col-auto">
-                <div class="mb-3 p-1 bg-info-subtle">
+                <div class="mb-3 p-1 bg-info-subtle rounded shadow">
                     <span class="mx-2">L = Layer</span>|
                     <span class="mx-2">P = Peers</span>|
                     <span class="mx-2">S = Subordinate</span>|
-                    <span class="mx-2"><i class="ri-check-line bg-subtle-success text-success fs-18"></i> = Done</span>|
-                    <span class="mx-2"><i class="ri-error-warning-line bg-subtle-warning text-warning fs-20"></i> = Pending</span>
+                    <span class="mx-2"><i class="ri-check-line bg-success-subtle text-success rounded fs-18"></i> = Done</span>|
+                    <span class="mx-2"><i class="ri-error-warning-line bg-warning-subtle text-warning rounded fs-20"></i> = Pending</span>
                 </div>
             </div>
         </div>
@@ -54,16 +54,16 @@
                             <th>No</th>
                             <th>Employee ID</th>
                             <th>Employee Name</th>
-                            @foreach(['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8'] as $calibrator)
-                                <th>{{ $calibrator }}</th>
-                            @endforeach
                             @foreach(['P1', 'P2', 'P3'] as $peers)
-                                <th>{{ $peers }}</th>
+                            <th>{{ $peers }}</th>
                             @endforeach
                             @foreach(['S1', 'S2', 'S3'] as $subordinate)
-                                <th>{{ $subordinate }}</th>
+                            <th>{{ $subordinate }}</th>
                             @endforeach
-                            <th>Final Score</th>
+                            @foreach(['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'L10'] as $calibrator)
+                                <th>{{ $calibrator }}</th>
+                            @endforeach
+                            <th>Final Rating</th>
                             <th class="sorting_1">Action</th>
                         </tr>
                     </thead>
@@ -73,26 +73,6 @@
                             <td>{{ $index + 1 }}</td>
                             <td>{{ $employee['id'] }}</td>
                             <td>{{ $employee['name'] }}</td>
-                            
-                            {{-- Calibrator Layers --}}
-                            @foreach (range(1, 8) as $layer)
-                                @php
-                                    $calibratorLayer = collect($employee['approvalStatus']['calibrator'] ?? [])->firstWhere('layer', $layer);
-                                @endphp
-                                <td class="text-center
-                                    @if ($calibratorLayer) 
-                                        {{ $calibratorLayer['status'] ? 'table-success' : 'table-warning' }} 
-                                    @endif
-                                ">
-                                    @if ($calibratorLayer)
-                                        @if($calibratorLayer['status'])
-                                            <i class="ri-check-line text-success fs-20 fw-medium"></i>
-                                        @else
-                                            <i class="ri-error-warning-line text-warning fs-20 fw-medium"></i>
-                                        @endif
-                                    @endif
-                                </td>
-                            @endforeach
     
                             {{-- Peers Layers --}}
                             @foreach (range(1, 3) as $layer)
@@ -128,6 +108,26 @@
                                 ">
                                     @if ($subordinateLayer)
                                         @if($subordinateLayer['status'])
+                                            <i class="ri-check-line text-success fs-20 fw-medium"></i>
+                                        @else
+                                            <i class="ri-error-warning-line text-warning fs-20 fw-medium"></i>
+                                        @endif
+                                    @endif
+                                </td>
+                            @endforeach
+
+                            {{-- Calibrator Layers --}}
+                            @foreach (range(1, 10) as $layer)
+                                @php
+                                    $calibratorLayer = collect($employee['approvalStatus']['calibrator'] ?? [])->firstWhere('layer', $layer);
+                                @endphp
+                                <td class="text-center
+                                    @if ($calibratorLayer) 
+                                        {{ $calibratorLayer['status'] ? 'table-success' : 'table-warning' }} 
+                                    @endif
+                                ">
+                                    @if ($calibratorLayer)
+                                        @if($calibratorLayer['status'])
                                             <i class="ri-check-line text-success fs-20 fw-medium"></i>
                                         @else
                                             <i class="ri-error-warning-line text-warning fs-20 fw-medium"></i>

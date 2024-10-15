@@ -101,34 +101,37 @@ class AppService
         $jobLevel = $employeeData->job_level;
         
         $appraisalDatas = $appraisalData;
-    
-        foreach ($appraisalDatas['formData'] as &$form) {
-            if ($form['formName'] === "KPI") {
-                foreach ($form as $key => &$entry) {
-                    if (is_array($entry) && isset($goalData[$key])) {
-                        $entry = array_merge($entry, $goalData[$key]);
-    
-                        // Adding "percentage" key
-                        if (isset($entry['achievement'], $entry['target'], $entry['type'])) {
-                            $entry['percentage'] = $this->evaluate($entry['achievement'], $entry['target'], $entry['type']);
-                            $entry['conversion'] = $this->conversion($entry['percentage']);
-                            $entry['final_score'] = $entry['conversion'] * $entry['weightage'] / 100;
-    
-                            // Add the final_score to the total score
-                            $totalKpiScore += $entry['final_score'];
+
+        if (!empty($appraisalDatas['formData']) && is_array($appraisalDatas['formData'])) {
+            foreach ($appraisalDatas['formData'] as &$form) {
+                if ($form['formName'] === "KPI") {
+                    foreach ($form as $key => &$entry) {
+                        if (is_array($entry) && isset($goalData[$key])) {
+                            $entry = array_merge($entry, $goalData[$key]);
+        
+                            // Adding "percentage" key
+                            if (isset($entry['achievement'], $entry['target'], $entry['type'])) {
+                                $entry['percentage'] = $this->evaluate($entry['achievement'], $entry['target'], $entry['type']);
+                                $entry['conversion'] = $this->conversion($entry['percentage']);
+                                $entry['final_score'] = $entry['conversion'] * $entry['weightage'] / 100;
+        
+                                // Add the final_score to the total score
+                                $totalKpiScore += $entry['final_score'];
+                            }
                         }
                     }
+                } elseif ($form['formName'] === "Culture") {
+                    // Calculate average score for Culture form
+                    $cultureAverageScore = $this->averageScore($form);
+                } elseif ($form['formName'] === "Leadership") {
+                    // Calculate average score for Culture form
+                    $leadershipAverageScore = $this->averageScore($form);
                 }
-            } elseif ($form['formName'] === "Culture") {
-                // Calculate average score for Culture form
-                $cultureAverageScore = $this->averageScore($form);
-            } elseif ($form['formName'] === "Leadership") {
-                // Calculate average score for Culture form
-                $leadershipAverageScore = $this->averageScore($form);
             }
+        } else {
+            // Handle the case where formData is null or not an array
+            $appraisalDatas['formData'] = []; // Optionally, set to an empty array
         }
-
-        // dd($appraisalDatas);
 
         $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->first();
         
@@ -137,7 +140,6 @@ class AppService
         $kpiWeightage = 0;
         $cultureWeightage = 0;
         $leadershipWeightage = 0;
-        // $typeWeightage360 = 'Manager';
 
         foreach ($weightageContent as $item) {
             if (in_array($jobLevel, $item['jobLevel'])) {
@@ -181,6 +183,13 @@ class AppService
         $appraisalDatas['cultureAverageScore'] = ($cultureAverageScore * $cultureWeightage / 100) * $appraisalDatas['cultureWeightage360']; // get Culture Average Score
         $appraisalDatas['leadershipAverageScore'] = ($leadershipAverageScore * $leadershipWeightage / 100) * $appraisalDatas['leadershipWeightage360']; // get Leadership Average Score
         
+        $appraisalDatas['kpiScore'] = $totalKpiScore; // get KPI Final Score
+        $appraisalDatas['cultureScore'] = $cultureAverageScore; // get KPI Final Score
+        $appraisalDatas['leadershipScore'] = $leadershipAverageScore; // get KPI Final Score
+
+        $scores = [$totalKpiScore,$cultureAverageScore,$leadershipAverageScore];
+        $appraisalDatas['totalScore'] =  round(array_sum($scores) / count($scores) ,2); // get KPI Final Score
+
         $appraisalDatas['contributorRating'] = $appraisalDatas['totalKpiScore'] + $appraisalDatas['cultureAverageScore'] + $appraisalDatas['leadershipAverageScore'];
     
         return $appraisalDatas;
@@ -259,12 +268,12 @@ class AppService
 
     }
 
-    function suggestedRating($id, $category)
+    function suggestedRating($id, $formId)
     {
         try {
             // Retrieve approval requests
             $datasQuery = ApprovalRequest::with([
-                'employee', 'appraisal', 'updatedBy', 'adjustedBy', 'initiated', 'manager', 'contributor',
+                'employee', 'appraisal.goal', 'updatedBy', 'adjustedBy', 'initiated', 'manager', 'contributor',
                 'approval' => function ($query) {
                     $query->with('approverName');
                 }
@@ -272,7 +281,7 @@ class AppService
             ->whereHas('approvalLayerAppraisal', function ($query) use ($id) {
                 $query->where('employee_id', $id)->orWhere('approver_id', $id);
             })
-            ->where('employee_id', $id)->where('category', $category);
+            ->where('form_id', $formId);
 
             if (!empty($filterYear)) {
                 $datasQuery->whereYear('created_at', $filterYear);
@@ -280,7 +289,7 @@ class AppService
 
             $datas = $datasQuery->get();
 
-            $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->goal->form_data, true) : [];
+            $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->appraisal->goal->form_data, true) : [];
             $appraisalData = $datas->isNotEmpty() ? json_decode($datas->first()->appraisal->form_data, true) : [];
             
             $groupedContributors = $datas->first()->contributor->groupBy('contributor_type');
@@ -355,6 +364,7 @@ class AppService
 
 
             $suggestedRating = $suggestedKpi + $suggestedCulture + $suggestedLeadership;
+
             return $suggestedRating;
 
         }catch (\Exception $e) {
@@ -449,9 +459,14 @@ class AppService
         $notFoundData = [];
         
         foreach ($approvalLayerAppraisals as $approvalLayer) {
-
+            
+            // dd($approvalLayer->employee->access_menu);
             $review360 = json_decode($approvalLayer->employee->access_menu, true);
 
+            if (!array_key_exists('review360', $review360)) {
+                $review360['review360'] = 0;
+            }
+            
             // Cek apakah kombinasi employee_id dan approver_id tidak ada di AppraisalContributor
             $appraisalContributor = AppraisalContributor::where('employee_id', $approvalLayer->employee_id)
                                                         ->where('contributor_id', $approvalLayer->approver_id)

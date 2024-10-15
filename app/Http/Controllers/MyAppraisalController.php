@@ -56,23 +56,23 @@ class MyAppraisalController extends Controller
     {
         $step = $request->input('step', 1);
 
-        $year = Carbon::now()->year;
+        $period = 2024;
 
-        $goal = Goal::where('employee_id', $request->id)->whereYear('created_at', $year)->first();
+        $goal = Goal::where('employee_id', $request->id)->where('period', $period)->first();
 
-        $appraisal = Appraisal::where('employee_id', $request->id)->whereYear('created_at', $year)->first();
+        $appraisal = Appraisal::where('employee_id', $request->id)->where('period', $period)->first();
 
         // check goals
         if ($goal) {
             $goalData = json_decode($goal->form_data, true);
         } else {
-            Session::flash('error', "Your Goals for $year are not found.");
+            Session::flash('error', "Your Goals for $period are not found.");
             return redirect()->back();
         }
 
         // check appraisals
         if ($appraisal) {
-            Session::flash('error', "You already initiated Appraisal for $year.");
+            Session::flash('error', "You already initiated Appraisal for $period.");
             return redirect()->back();
         }
 
@@ -117,6 +117,8 @@ class MyAppraisalController extends Controller
         $formGroupName = $validatedData['formGroupName'];
         $formData = $validatedData['formData'];
 
+        $goals = Goal::with(['employee'])->where('employee_id', $validatedData['employee_id'])->where('period', $period)->first();
+
         // Create the array structure
         $datas = [
             'formGroupName' => $formGroupName,
@@ -126,6 +128,7 @@ class MyAppraisalController extends Controller
         // Create a new Appraisal instance and save the data
         $appraisal = new Appraisal;
         $appraisal->id = Str::uuid();
+        $appraisal->goals_id = $goals->id;
         $appraisal->employee_id = $validatedData['employee_id'];
         $appraisal->category = $this->category;
         $appraisal->form_data = json_encode($datas); // Store the form data as JSON
@@ -147,6 +150,7 @@ class MyAppraisalController extends Controller
         $approval = new ApprovalRequest();
         $approval->form_id = $appraisal->id;
         $approval->category = $this->category;
+        $approval->period = $period;
         $approval->employee_id = $validatedData['employee_id'];
         $approval->current_approval_id = $validatedData['approver_id'];
         $approval->created_by = Auth::user()->id;
@@ -204,11 +208,12 @@ class MyAppraisalController extends Controller
     public function index(Request $request) {
         try {
             $user = Auth::user()->employee_id;
+            $period = 2024;
             $filterYear = $request->input('filterYear');
 
             // Retrieve approval requests
             $datasQuery = ApprovalRequest::with([
-                'employee', 'appraisal', 'updatedBy', 'adjustedBy', 'initiated', 'manager', 'contributor',
+                'employee', 'appraisal.goal', 'updatedBy', 'adjustedBy', 'initiated', 'manager', 'contributor',
                 'approval' => function ($query) {
                     $query->with('approverName');
                 }
@@ -216,10 +221,10 @@ class MyAppraisalController extends Controller
             ->whereHas('approvalLayerAppraisal', function ($query) use ($user) {
                 $query->where('employee_id', $user)->orWhere('approver_id', $user);
             })
-            ->where('employee_id', $user)->where('category', $this->category);
+            ->where('employee_id', $user)->where('category', $this->category)->where('period', $period);
 
             if (!empty($filterYear)) {
-                $datasQuery->whereYear('created_at', $filterYear);
+                $datasQuery->where('period', $filterYear);
             }
 
             $datas = $datasQuery->get();
@@ -248,8 +253,10 @@ class MyAppraisalController extends Controller
 
             $data = [];
             foreach ($formattedData as $request) {
-                if ($request->goal->form_status != 'Draft' || $request->created_by == Auth::user()->id) {
+
+                if ($request->appraisal->goal->form_status != 'Draft' || $request->created_by == Auth::user()->id) {
                     $dataApprover = $request->approval->first() ? $request->approval->first()->approverName->fullname : '';
+
                     $dataItem = new stdClass();
                     $dataItem->request = $request;
                     $dataItem->approver_name = $dataApprover;
@@ -259,9 +266,8 @@ class MyAppraisalController extends Controller
                 }
             }
 
-            $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->goal->form_data, true) : [];
+            $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->appraisal->goal->form_data, true) : [];
             $appraisalData = $datas->isNotEmpty() ? json_decode($datas->first()->appraisal->form_data, true) : [];
-
 
             $groupedContributors = $datas->first()->contributor->groupBy('contributor_type');
 
@@ -314,8 +320,12 @@ class MyAppraisalController extends Controller
 
             $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData);
 
-            // dd($formData);
-
+            if (isset($formData['totalKpiScore'])) {
+                $appraisalData['kpiScore'] = $formData['kpiScore'];
+                $appraisalData['cultureScore'] = $formData['cultureScore'];
+                $appraisalData['leadershipScore'] = $formData['leadershipScore'];
+            }
+            
             foreach ($formData['formData'] as &$form) {
                 if ($form['formName'] === 'Leadership') {
                     foreach ($leadershipData as $index => $leadershipItem) {
@@ -366,11 +376,7 @@ class MyAppraisalController extends Controller
             }
             $goals = $access_menu['goals'] ?? null;
 
-            $selectYear = ApprovalRequest::where('employee_id', $user)->where('category', $this->category)->select('created_at')->get();
-            $selectYear->transform(function ($req) {
-                $req->year = Carbon::parse($req->created_at)->format('Y');
-                return $req;
-            });
+            $selectYear = ApprovalRequest::where('id', $datas->first()->id)->select('period')->get();
 
             return view('pages.appraisals.my-appraisal', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'goals', 'selectYear', 'adjustByManager', 'appraisalData'));
 
@@ -405,9 +411,9 @@ class MyAppraisalController extends Controller
 
         $step = $request->input('step', 1);
 
-        $year = Carbon::now()->year;
+        $period = 2024;
 
-        $appraisal = Appraisal::with(['approvalRequest'])->where('id', $request->id)->whereYear('created_at', $year)->first();
+        $appraisal = Appraisal::with(['approvalRequest'])->where('id', $request->id)->where('period', $period)->first();
 
         $parentLink = __('Appraisal');
         $link = __('Edit');
@@ -415,7 +421,7 @@ class MyAppraisalController extends Controller
         if(!$appraisal){
             return redirect()->route('appraisals');
         }else{
-            $goal = Goal::where('employee_id', $appraisal->employee_id)->whereYear('created_at', $year)->first();
+            $goal = Goal::where('employee_id', $appraisal->employee_id)->where('period', $period)->first();
 
             $goalData = json_decode($goal->form_data, true);
 

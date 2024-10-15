@@ -100,8 +100,8 @@ class AppraisalController extends Controller
             ];
         });
 
-        $parentLink = __('Settings');
-        $link = __('Calibration');
+        $parentLink = __('Reports');
+        $link = __('Appraisal');
 
         return view('pages.appraisals.admin.app', compact('datas', 'link', 'parentLink'));
     }

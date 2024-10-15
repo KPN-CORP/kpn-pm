@@ -9,59 +9,71 @@
         <!-- Page Heading -->
         <div class="detail-employee">
             <div class="row">
-                <div class="col-12">
+                <div class="col-12 fs-14">
                     <div class="card">
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md">
                                     <div class="row">
                                         <div class="col-3">
-                                            <p class="text-muted">Employee ID</p>
+                                            <div class="mb-1">
+                                                <span class="text-muted">Employee ID</span>
+                                            </div>
                                         </div>
                                         <div class="col">
-                                            : {{ $goals->employee->employee_id }}
+                                            : {{ $datas->first()->employee->employee_id }}
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col-3">
-                                            <p class="text-muted">Employee Name</p>
+                                            <div class="mb-1">
+                                                <span class="text-muted">Employee Name</span>
+                                            </div>
                                         </div>
                                         <div class="col">
-                                            : {{ $goals->employee->fullname }}
+                                            : {{ $datas->first()->employee->fullname }}
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col-3">
-                                            <p class="text-muted">Job Level</p>
+                                            <div class="mb-1">
+                                                <span class="text-muted">Job Level</span>
+                                            </div>
                                         </div>
                                         <div class="col">
-                                            : {{ $goals->employee->job_level }}
+                                            : {{ $datas->first()->employee->job_level }}
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md">
                                     <div class="row">
                                         <div class="col-3">
-                                            <p class="text-muted">Business Unit</p>
+                                            <div class="mb-1">
+                                                <span class="text-muted">Business Unit</span>
+                                            </div>
                                         </div>
                                         <div class="col">
-                                            : {{ $goals->employee->group_company }}
+                                            : {{ $datas->first()->employee->group_company }}
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col-3">
-                                            <p class="text-muted">Division</p>
+                                            <div class="mb-1">
+                                                <span class="text-muted">Division</span>
+                                            </div>
                                         </div>
                                         <div class="col">
-                                            : {{ $goals->employee->unit }}
+                                            : {{ $datas->first()->employee->unit }}
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col-3">
-                                            <p class="text-muted">Designation</p>
+                                            <div class="mb-1">
+                                                <span class="text-muted">Designation</span>
+                                            </div>
                                         </div>
                                         <div class="col">
-                                            : {{ $goals->employee->designation }}
+                                            : {{ $datas->first()->employee->designation }}
                                         </div>
                                     </div>
                                 </div>
@@ -71,60 +83,165 @@
                 </div>
             </div>
         </div>
-        <div class="row justify-content-center">
+        <div class="row">
             <div class="col">
                 <div class="card">
-                    <div class="card-header d-flex justify-content-md-around">
-                        <div class="col-md-10 text-center">
-                            <div class="stepper mt-3 d-flex">
-                                @foreach ($filteredFormDatas['filteredFormData'] as $index => $tabs)
-                                <div class="step" data-step="{{ $step }}"></div>
-                                    <div class="step d-flex flex-column align-items-center" data-step="{{ $index + 1 }}">
-                                        <div class="circle {{ $step == $index + 1 ? 'active' : ($step > $index + 1 ? 'completed' : '') }}">
-                                            <i class="{{ $tabs['icon'] }}"></i>
-                                        </div>
-                                        <div class="label {{ $step == $index + 1 ? 'active' : '' }}">{{ $tabs['name'] }}</div>
-                                    </div>
-                                    @if ($index < count($filteredFormDatas['filteredFormData']) - 1)
-                                        <div class="connector {{ $step > $index + 1 ? 'completed' : '' }} col mx-4"></div>
-                                    @endif
-                                @endforeach
-                            </div>
-                                              
-                        </div>
-                    </div>
                     <div class="card-body">
-                        <form id="stepperForm" action="{{ route('appraisals-task.submitReview') }}" method="POST">
-                        @csrf
-                        <input type="hidden" name="appraisal_id" value="{{ $appraisalId }}">
-                        <input type="hidden" name="employee_id" value="{{ $goals->employee_id }}">
-                        <input type="hidden" class="form-control" name="approver_id" value="{{ $approval->approver_id }}">
-                        <input type="hidden" name="formGroupName" value="{{ $formGroupData['name'] }}">
-                        @foreach ($filteredFormDatas['filteredFormData'] as $index => $row)
-                            <div class="form-step {{ $step == $index + 1 ? 'active' : '' }}" data-step="{{ $index + 1 }}">
-                                <div class="card-title h4 mb-4">{{ $row['title'] }}</div>
-                                @include($row['blade'], [
-                                'id' => 'input_' . strtolower(str_replace(' ', '_', $row['title'])),
-                                'formIndex' => $index,
-                                'name' => $row['name'],
-                                'data' => $row['data'],
-                                'viewCategory' => $filteredFormDatas['viewCategory']
-                                ])
+                        <div class="row">
+                            <div class="col">
+                                <div class="mb-2 text-primary fw-semibold fs-16 {{ $formData['kpiScore'] ? '' : 'd-none'}}">
+                                    Total Score : {{ $formData['totalScore'] }}
+                                </div>
                             </div>
-                            @endforeach
-                            <div class="d-flex justify-content-center py-2">
-                                <button type="button" class="btn btn-light border me-3 prev-btn" style="display: none;"><i class="ri-arrow-left-line"></i>{{ __('Prev') }}</button>
-                                <button type="button" class="btn btn-primary next-btn me-3">{{ __('Next') }} <i class="ri-arrow-right-line"></i></button>
-                                @if ($filteredFormDatas['viewCategory']=="detail")
-                                    <a href="{{ route('appraisals-task') }}" class="btn btn-outline-secondary px-md-4">{{ __('Close') }}</a>
-                                @else
-                                    <button type="submit" class="btn btn-primary submit-btn px-md-4" style="display: none;">{{ __('Submit') }}</button>
-                                @endif
+                        </div>
+                        @forelse ($appraisalData['formData'] as $indexItem => $item)
+                        <div class="row">
+                            <button class="btn rounded mb-2 py-2 bg-secondary-subtle bg-opacity-10 text-primary align-items-center d-flex justify-content-between" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ $indexItem }}" aria-expanded="false" aria-controls="collapse-{{ $indexItem }}">
+                                <span class="fs-16 ms-1">
+                                    {{ $item['formName'] }} 
+                                    | Score : {{ $item['formName'] === 'KPI' ? $appraisalData['kpiScore'] : ($item['formName'] === 'Culture' ? $appraisalData['cultureScore'] : $appraisalData['leadershipScore']) }}
+                                </span>  
+                                <span>
+                                    <p class="d-none d-md-inline me-1">Details</p><i class="ri-arrow-down-s-line"></i>
+                                </span>                               
+                            </button>
+                            @if ($item['formName'] == 'Leadership')
+                            <div class="collapse" id="collapse-{{ $indexItem }}">
+                                <div class="card card-body mb-3">
+                                    @forelse($formData['formData'] as $form)
+                                        @if($form['formName'] === 'Leadership')
+                                            @foreach($form as $key => $item)
+                                                @if(is_numeric($key))
+                                                <div class="{{ $loop->last ? '':'border-bottom' }} mb-3">
+                                                    @if(isset($item['title']))
+                                                        <h5 class="mb-3"><u>{{ $item['title'] }}</u></h5>
+                                                    @endif
+                                                    @foreach($item as $subKey => $subItem)
+                                                        @if(is_array($subItem))
+                                                        <ul class="ps-3">
+                                                            <li>
+                                                                <div>
+                                                                    @if(isset($subItem['formItem']))
+                                                                        <p class="mb-1">{{ $subItem['formItem'] }}</p>
+                                                                    @endif
+                                                                    @if(isset($subItem['score']))
+                                                                        <p><strong>Score:</strong> {{ $subItem['score'] }}</p>
+                                                                    @endif
+                                                                </div>
+                                                            </li>
+                                                        </ul>
+                                                        @endif
+                                                    @endforeach
+                                                </div>
+                                                @endif
+                                            @endforeach
+                                        @endif
+                                    @empty
+                                        <p>No Data</p>
+                                    @endforelse
+                                </div>
                             </div>
-                        </form>
-                    </div>
+                            @elseif($item['formName'] == 'Culture')
+                            <div class="collapse" id="collapse-{{ $indexItem }}">
+                                <div class="card card-body mb-3">
+                                    @forelse($formData['formData'] as $form)
+                                        @if($form['formName'] === 'Culture')
+                                            @foreach($form as $key => $item)
+                                                @if(is_numeric($key))
+                                                <div class="{{ $loop->last ? '':'border-bottom' }} mb-3">
+                                                    @if(isset($item['title']))
+                                                        <h5 class="mb-3"><u>{{ $item['title'] }}</u></h5>
+                                                    @endif
+                                                    @foreach($item as $subKey => $subItem)
+                                                        @if(is_array($subItem))
+                                                        <ul class="ps-3">
+                                                            <li>
+                                                                <div>
+                                                                    @if(isset($subItem['formItem']))
+                                                                        <p class="mb-1">{{ $subItem['formItem'] }}</p>
+                                                                    @endif
+                                                                    @if(isset($subItem['score']))
+                                                                        <p><strong>Score:</strong> {{ $subItem['score'] }}</p>
+                                                                    @endif
+                                                                </div>
+                                                            </li>
+                                                        </ul>
+                                                        @endif
+                                                    @endforeach
+                                                </div>
+                                                @endif
+                                            @endforeach
+                                        @endif
+                                    @empty
+                                        <p>No Data</p>
+                                    @endforelse
+                                </div>
+                            </div>
+                            @else 
+                            <div class="collapse" id="collapse-{{ $indexItem }}">
+                                <div class="card card-body mb-3 py-0">
+                                    @forelse ($formData['formData'] as $form)
+                                    @if ($form['formName'] === 'KPI')
+                                    <div class="table-responsive">
+                                        <table class="table">
+                                            <thead>
+                                                <tr>
+                                                    <th>#</th>
+                                                    <th>KPI</th>
+                                                    <th>{{ __('Type') }}</th>
+                                                    <th>{{ __('Weightage') }}</th>
+                                                    <th>Target</th>
+                                                    <th>{{ __('Actual') }}</th>
+                                                    <th>{{ __('Achievement') }}</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                            @foreach ($form as $key => $data)
+                                                @if (is_array($data))
+                                                <tr>
+                                                    <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
+                                                        <p class="mt-1 mb-0">{{ $key + 1 }}</p>
+                                                    </td>
+                                                    <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
+                                                        <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['kpi'] }}</p>
+                                                    </td>
+                                                    <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
+                                                        <p class="mt-1 mb-0 text-muted">{{ $data['type'] }}</p>
+                                                    </td>
+                                                    <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
+                                                        <p class="mt-1 mb-0 text-muted">{{ $data['weightage'] }}%</p>
+                                                    </td>
+                                                    <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
+                                                        <p class="mt-1 mb-0 text-muted">{{ $data['target'] }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</p>
+                                                    </td>
+                                                    <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
+                                                        <p class="mt-1 mb-0 text-muted">{{ $data['achievement'] }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</p>
+                                                    </td>
+                                                    <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
+                                                        <p class="mt-1 mb-0 text-muted">{{ round($data['percentage']) }}%</p>
+                                                    </td>
+                                                </tr>
+                                                @endif
+                                                @endforeach
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                    @endif
+                                    @empty
+                                    <p>No form data available.</p>
+                                    @endforelse
+                                </div>
+                            </div>
+                            @endif
+                        </div>
+                        @empty
+                            No Data
+                        @endforelse
+                        
+                    </div> <!-- end card-body-->
                 </div>
             </div>
+        </div>
         </div>
     </div>
 @endsection

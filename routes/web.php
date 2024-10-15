@@ -136,6 +136,9 @@ Route::middleware('auth', 'locale')->group(function () {
     Route::post('/appraisals-task/submitReview', [AppraisalTaskController::class, 'storeReview'])->name('appraisals-task.submitReview');
     Route::get('/appraisals-task/approval/{id}', [AppraisalTaskController::class, 'approval'])->name('appraisals-task.approval');
     Route::get('/appraisals-task/initiate/{id}', [AppraisalTaskController::class, 'initiate'])->name('appraisals-task.initiate');
+
+    Route::get('/appraisals-task/teams-data', [AppraisalTaskController::class, 'getTeamData']);
+    Route::get('/appraisals-task/360-data', [AppraisalTaskController::class, 'get360Data']);
     
     // Appraisal 360
     Route::get('/appraisals-task/review/{id}', [AppraisalTaskController::class, 'review'])->name('appraisals-360.review');
