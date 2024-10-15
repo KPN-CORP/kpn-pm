@@ -67,4 +67,19 @@ class EmployeeAppraisal extends Model
     {
         return $this->belongsTo(Appraisal::class, 'employee_id', 'employee_id');
     }
+
+    public function appraisalContributor()
+    {
+        return $this->hasMany(AppraisalContributor::class, 'employee_id', 'employee_id');
+    }
+
+    public function calibration()
+    {
+        return $this->hasMany(Calibration::class, 'employee_id', 'employee_id');
+    }
+
+    public function appraisal()
+    {
+        return $this->hasMany(Appraisal::class, 'employee_id', 'employee_id');
+    }
 }

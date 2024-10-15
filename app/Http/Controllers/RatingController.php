@@ -320,13 +320,16 @@ class RatingController extends Controller
 
             // Optionally, check if update was successful
             if ($updated) {
-                $calibration = new Calibration();
-                $calibration->appraisal_id = $rating['appraisal_id'];
-                $calibration->employee_id = $rating['employee_id'];
-                $calibration->approver_id = $rating['approver']['next_approver_id'];
-                $calibration->period = $this->period;
-                $calibration->created_by = Auth()->user()->id;
-                $calibration->save();
+                if ($rating['approver']['next_approver_id']) {
+                    # code...
+                    $calibration = new Calibration();
+                    $calibration->appraisal_id = $rating['appraisal_id'];
+                    $calibration->employee_id = $rating['employee_id'];
+                    $calibration->approver_id = $rating['approver']['next_approver_id'];
+                    $calibration->period = $this->period;
+                    $calibration->created_by = Auth()->user()->id;
+                    $calibration->save();
+                }
             }else{
                 return redirect('rating')->with('error', 'No record found for employee ' . $rating['employee_id'] . ' in period '.$this->period.'.');
             }

@@ -129,9 +129,19 @@ $(document).ready(function() {
 
 $(document).ready(function() {
     $('[id^="achievement"]').on('input', function() {
-        let currentValue = $(this).val();
-        let numberPart = currentValue.replace(/[^0-9]/g, ''); // Remove non-numeric characters
-        $(this).val(numberPart);
+        let $this = $(this); // Cache the jQuery object
+        let currentValue = $this.val();
+        let validNumber = currentValue.replace(/[^0-9.-]/g, ''); // Allow digits, decimal points, and negative signs
+
+        // Ensure only one decimal point and one negative sign at the start
+        if (validNumber.indexOf('-') > 0) {
+            validNumber = validNumber.replace('-', ''); // Remove if negative sign is not at the start
+        }
+        if ((validNumber.match(/\./g) || []).length > 1) {
+            validNumber = validNumber.replace(/\.+$/, ''); // Remove extra decimal points
+        }
+
+        $this.val(validNumber);
     });
 });
 

@@ -113,8 +113,6 @@ class MyAppraisalController extends Controller
             'formData' => 'required|array',
         ]);
 
-        $contributorData = ApprovalLayerAppraisal::select('approver_id', 'layer_type')->where('employee_id', $validatedData['employee_id'])->get();
-
         // Extract formGroupName
         $formGroupName = $validatedData['formGroupName'];
         $formData = $validatedData['formData'];
@@ -136,19 +134,6 @@ class MyAppraisalController extends Controller
         $appraisal->created_by = Auth::user()->id;
         
         $appraisal->save();
-
-        foreach ($contributorData as $contributor) {
-            AppraisalContributor::create([
-                'appraisal_id' => $appraisal->id,
-                'employee_id' => $validatedData['employee_id'],
-                'contributor_id' => $contributor->approver_id,
-                'contributor_type' => $contributor->layer_type,
-                // Add additional data here
-                'form_data' => json_encode($datas),
-                'period' => $period,
-                'created_by' => Auth::user()->id
-            ]);
-        }    
         
         $snapshot =  new ApprovalSnapshots;
         $snapshot->id = Str::uuid();
@@ -255,7 +240,7 @@ class MyAppraisalController extends Controller
                 }
                 return $item;
             });
-
+            
             $adjustByManager = $datas->first()->updatedBy ? 
                 ApprovalLayerAppraisal::where('approver_id', $datas->first()->updatedBy->employee_id)
                     ->where('employee_id', $datas->first()->employee_id)
@@ -316,20 +301,6 @@ class MyAppraisalController extends Controller
             $employeeData = $datas->first()->employee;
 
             // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
-            $formDataManager = $this->appService->combineFormData($contributorManagerContent, $goalData, 'manager', $employeeData);
-            $formDataPeers = $this->appService->combineFormData($combinedPeersData, $goalData, 'peers', $employeeData);
-            $formDataSub = $this->appService->combineFormData($combinedSubData, $goalData, 'subordinate', $employeeData);
-            
-            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData);
-            
-            $suggestedKpi = $formDataManager['totalKpiScore'] + $formDataPeers['totalKpiScore'] + $formDataSub['totalKpiScore'];
-            
-            
-            $suggestedCulture = $formData['cultureAverageScore'] + $formDataManager['cultureAverageScore'] + $formDataPeers['cultureAverageScore'] + $formDataSub['cultureAverageScore'];
-
-            $suggestedLeadership = $formData['leadershipAverageScore'] + $formDataManager['leadershipAverageScore'] + $formDataPeers['leadershipAverageScore'] + $formDataSub['leadershipAverageScore'];
-
-            $suggestedRating = $suggestedKpi + $suggestedCulture + $suggestedLeadership;
             
             $formGroupContent = storage_path('../resources/testFormGroup.json');
             if (!File::exists($formGroupContent)) {
@@ -337,9 +308,13 @@ class MyAppraisalController extends Controller
             } else {
                 $appraisalForm = json_decode(File::get($formGroupContent), true);
             }
-
+            
             $cultureData = $this->getDataByName($appraisalForm['data']['formData'], 'Culture') ?? [];
             $leadershipData = $this->getDataByName($appraisalForm['data']['formData'], 'Leadership') ?? [];
+
+            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData);
+
+            // dd($formData);
 
             foreach ($formData['formData'] as &$form) {
                 if ($form['formName'] === 'Leadership') {
@@ -570,7 +545,31 @@ class MyAppraisalController extends Controller
                 foreach ($form as $key => &$value) {
                     if (is_array($value) && isset($value['achievement'])) {
                         // Add the 'score' key after 'achievement'
-                        $value['score'] = 'your_score_value_here'; // Replace with the actual score value
+                        $value; // Replace with the actual score value
+                    }
+                }
+            }
+            if ($form['formName'] === 'Culture') {
+                foreach ($form as $key => &$value) {
+                    if (is_numeric($key)) {
+                        $scores = [];
+                        foreach ($value as $score) {
+                            // Convert each score into an array with 'score' as a key
+                            $scores[] = ['score' => $score['score']];
+                        }
+                        $value = $scores; // Assign the array of score objects back to the form
+                    }
+                }
+            }
+            if ($form['formName'] === 'Leadership') {
+                foreach ($form as $key => &$value) {
+                    if (is_numeric($key)) {
+                        $scores = [];
+                        foreach ($value as $score) {
+                            // Convert each score into an array with 'score' as a key
+                            $scores[] = ['score' => $score['score']];
+                        }
+                        $value = $scores; // Assign the array of score objects back to the form
                     }
                 }
             }
@@ -581,8 +580,6 @@ class MyAppraisalController extends Controller
             'formGroupName' => $formGroupName,
             'formData' => $formData,
         ];
-
-        return response()->json($datas);
     
         // Create a new Appraisal instance and save the data
         $appraisal = Appraisal::where('id', $validatedData['id'])->first();
