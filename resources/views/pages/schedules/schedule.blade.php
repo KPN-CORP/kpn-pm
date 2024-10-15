@@ -120,3 +120,27 @@
     </form>
     
 @endsection
+@push('scripts')
+<script>
+    function confirmDelete(scheduleId) {
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "This schedule will be deleted!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Atur action pada form tersembunyi dan submit
+                var form = document.getElementById('delete-form');
+                form.action = '/schedule/' + scheduleId + '/delete';
+                form.submit();
+            }
+        });
+    }
+</script>
+@endpush

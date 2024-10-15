@@ -22,6 +22,26 @@ use Spatie\Permission\PermissionRegistrar;
 
 class ScheduleController extends Controller
 {
+    protected $permissionGroupCompanies;
+    protected $permissionCompanies;
+    protected $permissionLocations;
+    protected $roles;
+    
+    public function __construct()
+    {
+        $this->roles = Auth()->user()->roles;
+        
+        $restrictionData = [];
+
+        if(!$this->roles->isEmpty()){
+            $restrictionData = json_decode($this->roles->first()->restriction, true);
+        }
+        
+        $this->permissionGroupCompanies = $restrictionData['group_company'] ?? [];
+        $this->permissionCompanies = $restrictionData['contribution_level_code'] ?? [];
+        $this->permissionLocations = $restrictionData['work_area_code'] ?? [];
+
+    }
     function schedule() {
 
         $userId = Auth::id();
@@ -47,10 +67,28 @@ class ScheduleController extends Controller
         $parentLink = 'Setting';
         $link = 'Schedules';
         $sublink = 'Create Schedules';
+
+        $allowedGroupCompanies = collect($this->permissionGroupCompanies);
+        if ($allowedGroupCompanies->isEmpty()) {
+            $allowedGroupCompanies = collect(Employee::getUniqueGroupCompanies());
+        }
+
+        $pcompanies = $this->permissionCompanies;
         
-        $allowedGroupCompanies = Employee::getUniqueGroupCompanies();
-        $locations = Location::orderBy('area')->get();
-        $companies = Company::orderBy('contribution_level_code')->get();
+        if (empty($pcompanies)) {
+            $companies = Company::orderBy('contribution_level_code')->get();
+        }else{
+            $companies = Company::orderBy('contribution_level_code')->whereIn('contribution_level_code',$pcompanies)->get();
+        }
+        
+        $plocations = $this->permissionLocations;
+        
+        if (empty($plocations)) {
+            $locations = Location::orderBy('area')->get();
+        }else{
+            $locations = Location::orderBy('area')->whereIn('work_area',$plocations)->get();
+        }
+        
         $today = Carbon::today();
         $schedulemasterpa = schedule::where('event_type','masterschedulepa')
                             ->whereDate('start_date', '<=', $today)
@@ -487,16 +525,16 @@ class ScheduleController extends Controller
         $today = date('Y-m-d');
         $dayOfWeek = now()->format('D');
 
-        //disini berisi variabel $schedules untuk get data didalamnya
         $schedules = DB::table('schedules')
             ->where('start_date', '<=', $today)
             ->where('end_date', '>=', $today)
             ->where('checkbox_reminder', '=', 1)
             ->whereNull('deleted_at')
+            ->whereIn('event_type', ['schedulepa', 'goals'])
             ->get();
         
         foreach ($schedules as $schedule) {
-            // Ambil data dari tabel employees yang sesuai dengan filter di tabel schedules
+
             if($schedule->checkbox_reminder=='1'){
                 $sendReminder = false;
 
@@ -513,54 +551,45 @@ class ScheduleController extends Controller
                 }
 
                 if ($sendReminder) {
-                    // $employees = DB::table('employees')
-                    //     ->leftJoin('goals', 'employees.employee_id', '=', 'goals.employee_id')
-                    //     ->whereNull('goals.employee_id')
-                    //     ->where('employees.employee_type', $schedule->employee_type)
-                    //     ->where('employees.group_company', $schedule->bisnis_unit)
-                    //     ->where('employees.contribution_level_code', $schedule->company_filter)
-                    //     ->where('employees.work_area_code', $schedule->location_filter)
-                    //     ->where('employees.date_of_joining', '<=', $schedule->last_join_date)
-                    //     ->whereNotIn('employees.job_level', ['9B', '10A', '10B'])
-                    //     ->select('employees.*')
-                    //     ->get();
+                    if($schedule->event_type=='goals'){
+                        $query = Employee::query();
+                        $query->doesntHave('goal');
+                    }else if($schedule->event_type=='schedulepa'){
+                        $query = EmployeeAppraisal::query();
+                        $query->where(function ($q) {
+                            // Kondisi pertama: karyawan yang tidak memiliki penilaian
+                            $q->doesntHave('appraisalpa');
+                            
+                            // Kondisi kedua: karyawan yang sudah memiliki penilaian tetapi statusnya masih draft
+                            $q->orWhereHas('appraisalpa', function($q2) {
+                                $q2->where('form_status', 'draft');
+                            });
+                        });
+                    }
 
-                    $query = Employee::query();
-
-                    // Memastikan employees yang tidak memiliki goals
-                    $query->doesntHave('goal');
-
-                    // Filter berdasarkan employee_type jika ada
                     if ($schedule->employee_type) {
                         $query->whereIn('employee_type', explode(',', $schedule->employee_type));
                     }
 
-                    // Filter berdasarkan group_company jika ada
                     if ($schedule->bisnis_unit) {
                         $query->whereIn('group_company', explode(',', $schedule->bisnis_unit));
                     }
 
-                    // Filter berdasarkan contribution_level_code jika ada
                     if ($schedule->company_filter) {
                         $query->whereIn('contribution_level_code', explode(',', $schedule->company_filter));
                     }
 
-                    // Filter berdasarkan work_area_code jika ada
                     if ($schedule->location_filter) {
                         $query->whereIn('work_area_code', explode(',', $schedule->location_filter));
                     }
 
-                    // Filter berdasarkan date_of_joining
                     $query->where('date_of_joining', '<=', $schedule->last_join_date);
 
-                    // Exclude job levels
                     $query->whereNotIn('job_level', ['9B', '10A', '10B']);
 
-                    // Get employees
                     $employees = $query->get();
                     // dd($employees);
 
-                    // Kirim email
                     foreach ($employees as $employee) {
                         //$email = $employee->email;
                         $email = 'eriton.dewa@kpn-corp.com';
@@ -571,7 +600,6 @@ class ScheduleController extends Controller
                         //echo "penerima : $email <br>nama : $name <br>isi email : $message <br>";
                     }
                 }
-
             }
         }
     }
