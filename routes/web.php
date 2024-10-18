@@ -33,6 +33,7 @@ use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\MyAppraisalController;
 use App\Http\Controllers\MyGoalController;
 use App\Http\Controllers\RatingAdminController;
+use App\Http\Controllers\CalibrationController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\TeamAppraisalController;
 use App\Http\Controllers\TeamGoalController;
@@ -224,6 +225,16 @@ Route::middleware('auth', 'locale')->group(function () {
         Route::delete('/rating-admin/{id}', [RatingAdminController::class, 'destroy'])->name('rating-admin-destroy');
         Route::delete('/detail-rating-admin/{id}', [RatingAdminController::class, 'destroyDetail'])->name('detail-rating-admin-destroy');
         Route::get('/rating-admin/{id}/edit', [RatingAdminController::class, 'edit'])->name('rating-admin.edit');
+    });
+
+    Route::middleware(['permission:mastercalibration'])->group(function () {
+        Route::get('/admcalibrations', [CalibrationController::class, 'index'])->name('admcalibrations');
+        Route::get('/CalibrationsCreate', [CalibrationController::class, 'create'])->name('calibrations-create');
+        Route::post('/CalibrationsCreateShow', [CalibrationController::class, 'show'])->name('showcalibrations');
+        Route::post('/CalibrationsStore', [CalibrationController::class, 'store'])->name('savecalibrations');
+        Route::get('/update/Calibrations/{id}', [CalibrationController::class, 'formupdate'])->name('update.Calibrations');
+        Route::delete('/calibrationDestroy/{id}', [CalibrationController::class, 'destroy'])->name('calibrationDestroy');
+        Route::post('/CalibrationsUpdate', [CalibrationController::class, 'update'])->name('updatecalibrations');
     });
     
     Route::middleware(['permission:viewlayer'])->group(function () {
