@@ -117,6 +117,14 @@
         </a>
     </li>
     @endcan
+    @can('viewreport')
+    <li class="nav-item">
+        <a class="nav-link" href="{{ url('/admin-appraisal') }}">
+            <i class="fas fa-fw fa-file-alt"></i>
+            <span>{{ __('Appraisal') }}</span>
+        </a>
+    </li>
+    @endcan
     
     
     <!-- Divider -->

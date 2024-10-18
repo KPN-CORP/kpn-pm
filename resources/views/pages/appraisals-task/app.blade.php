@@ -51,7 +51,7 @@
                                                 <th>Office</th>
                                                 <th>Business Unit</th>
                                                 <th>{{ __('Initiated Date') }}</th>
-                                                <th>Category</th>
+                                                {{-- <th>Category</th> --}}
                                                 <th class="sorting_1">Action</th>
                                             </tr>
                                         </thead>
@@ -67,7 +67,7 @@
                                                     <td>{{ $team->employee->office_area }}</td>
                                                     <td>{{ $team->employee->group_company }}</td>
                                                     <td class="text-end">{{ $team->approvalRequest->first() ? $team->approvalRequest->first()->formatted_created_at : '-' }}</td>
-                                                    <td>{{ $team->layer_type === 'manager' ? 'subordinate' : ($team->layer_type === 'subordinate' ? 'manager' : $team->layer_type ) }}</td>
+                                                    {{-- <td>{{ $team->layer_type === 'manager' ? 'subordinate' : ($team->layer_type === 'subordinate' ? 'manager' : $team->layer_type ) }}</td> --}}
                                                     <td class="sorting_1 text-center">
                                                         @forelse ($team->contributors as $contributor)
                                                             <a href="{{ route('appraisals-task.detail', $contributor->id) }}" type="button" class="btn btn-outline-info btn-sm">{{ __('View Detail') }}</a>
