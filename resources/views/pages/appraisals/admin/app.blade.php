@@ -138,10 +138,10 @@
                             
                             <td class="text-center">{{ $employee['finalScore'] }}</td>
                             <td class="sorting_1 text-center">
-                                @if ($employee['appraisalStatus'])
+                                @if ($employee['appraisalStatus'] && $layerHeaders)
                                     <a href="{{ route('admin.appraisal.details', $employee['id']) }}" class="btn btn-sm btn-outline-info"><i class="ri-eye-line"></i></a>
                                 @else
-                                    <a class="btn btn-sm btn-outline-secondary" onclick="alert('no data appraisal')"><i class="ri-eye-line"></i></a>
+                                    <a class="btn btn-sm btn-outline-secondary" onclick="alert('no data')"><i class="ri-eye-line"></i></a>
                                 @endif
                             </td>
                         </tr>
