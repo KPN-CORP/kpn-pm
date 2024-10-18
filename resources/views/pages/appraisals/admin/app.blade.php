@@ -155,5 +155,3 @@
     var employeesData = {!! json_encode($datas) !!};
 </script>
 @endpush
-
-@vite('resources/js/admin-appraisal.js')
