@@ -50,7 +50,7 @@
                                     <div class="col-md-12">
                                         <div class="mb-2">
                                             <label class="form-label" for="name">Description (IDN)</label>
-                                            <textarea class="form-control" name="description_idn" id="description_idn" cols="15" rows="5" placeholder="Enter Description.."></textarea>
+                                            <textarea class="form-control" name="description_idn" id="description_idn" cols="15" rows="5" placeholder="Enter Description.." required></textarea>
                                         </div>
                                     </div>
                                 </div>
@@ -58,7 +58,7 @@
                                     <div class="col-md-12">
                                         <div class="mb-2">
                                             <label class="form-label" for="name">Description (ENG)</label>
-                                            <textarea class="form-control" name="description_eng" id="description_eng" cols="15" rows="5" placeholder="Enter Description.."></textarea>
+                                            <textarea class="form-control" name="description_eng" id="description_eng" cols="15" rows="5" placeholder="Enter Description.." required></textarea>
                                         </div>
                                     </div>
                                 </div>

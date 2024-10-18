@@ -125,14 +125,9 @@
                     </a>
                     <div class="collapse" id="sidebarSettings">
                         <ul class="side-nav-second-level">
-                            @can('viewschedule')
+                            @can('mastercalibration')
                             <li>
-                                <a href="{{ route('schedules') }}">Schedule</a>
-                            </li>
-                            @endcan
-                            @can('masterrating')
-                            <li>
-                                <a href="{{ route('admratings') }}">Rating</a>
+                                <a href="{{ route('admcalibrations') }}">Calibration</a>
                             </li>
                             @endcan
                             @can('viewlayer')
@@ -155,9 +150,19 @@
                                 </div>
                             </li>
                             @endcan
+                            @can('masterrating')
+                            <li>
+                                <a href="{{ route('admratings') }}">Rating</a>
+                            </li>
+                            @endcan
                             @can('viewrole')
                             <li>
                                 <a href="{{ route('roles') }}">Role</a>
+                            </li>
+                            @endcan
+                            @can('viewschedule')
+                            <li>
+                                <a href="{{ route('schedules') }}">Schedule</a>
                             </li>
                             @endcan
                         </ul>
