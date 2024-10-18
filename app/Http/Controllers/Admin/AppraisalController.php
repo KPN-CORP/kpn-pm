@@ -39,9 +39,9 @@ class AppraisalController extends Controller
 
         $query = EmployeeAppraisal::with(['appraisal' => function($query) use ($period) {
                 $query->where('period', $period);
-            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration']);
+            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration'])->get();
 
-        $datas = $query->get()->map(function ($employee) {
+        $datas = $query->map(function ($employee) {
             $approvalStatus = [];
 
             foreach ($employee->appraisalLayer as $layer) {
@@ -112,6 +112,7 @@ class AppraisalController extends Controller
             return [
                 'id' => $employee->employee_id,
                 'name' => $employee->fullname,
+                'appraisalStatus' => $employee->appraisal->first(),
                 'approvalStatus' => $approvalStatus,
                 'finalScore' => $appraisal 
                 ? $this->calculateFinalScore($employee->employee_id, $appraisal) 
@@ -143,15 +144,14 @@ class AppraisalController extends Controller
     public function detail(Request $request)
     {
         $period = 2024;
+        $data = EmployeeAppraisal::with(['appraisalLayer' => function ($query) {
+            $query->where('layer_type', '!=', 'calibrator');
+        }, 'appraisal' => function ($query) use ($period) {
+            $query->where('period', $period);
+        }])->where('employee_id', $request->id)->get();
 
         try {
-
-            $data = EmployeeAppraisal::with(['appraisalLayer' => function ($query) {
-                $query->where('layer_type', '!=', 'calibrator');
-            }, 'appraisal' => function ($query) use ($period) {
-                $query->where('period', $period);
-            }])->where('employee_id', $request->id)->get();
-
+            
             $data->map(function($item) {
 
                 $appraisal_id = $item->appraisal->first()->id;
@@ -196,10 +196,7 @@ class AppraisalController extends Controller
         } catch (Exception $e) {
             Log::error('Error in index method: ' . $e->getMessage());
 
-            // Return empty data to be consumed in the Blade template
-            return view('pages.appraisals.admin.app', [
-                'datas' => []
-            ]);
+            return redirect()->route('admin.appraisal');
         }
     }
 
