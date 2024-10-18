@@ -321,9 +321,9 @@ class MyAppraisalController extends Controller
             $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData);
 
             if (isset($formData['totalKpiScore'])) {
-                $appraisalData['kpiScore'] = $formData['kpiScore'];
-                $appraisalData['cultureScore'] = $formData['cultureScore'];
-                $appraisalData['leadershipScore'] = $formData['leadershipScore'];
+                $appraisalData['kpiScore'] = round($formData['kpiScore'], 2);
+                $appraisalData['cultureScore'] = round($formData['cultureScore'], 2);
+                $appraisalData['leadershipScore'] = round($formData['leadershipScore'], 2);
             }
             
             foreach ($formData['formData'] as &$form) {

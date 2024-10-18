@@ -35,7 +35,7 @@
         <div class="row">
             <div class="col-auto">
                 <div class="mb-3 p-1 bg-info-subtle rounded shadow">
-                    <span class="mx-2">L = Layer</span>|
+                    <span class="mx-2">L = Calibrator</span>|
                     <span class="mx-2">P = Peers</span>|
                     <span class="mx-2">S = Subordinate</span>|
                     <span class="mx-2"><i class="ri-check-line bg-success-subtle text-success rounded fs-18"></i> = Done</span>|
@@ -60,7 +60,7 @@
                             @foreach(['S1', 'S2', 'S3'] as $subordinate)
                             <th>{{ $subordinate }}</th>
                             @endforeach
-                            @foreach(['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8', 'L9', 'L10'] as $calibrator)
+                            @foreach($layerHeaders as $calibrator)
                                 <th>{{ $calibrator }}</th>
                             @endforeach
                             <th>Final Rating</th>
@@ -117,7 +117,7 @@
                             @endforeach
 
                             {{-- Calibrator Layers --}}
-                            @foreach (range(1, 10) as $layer)
+                            @foreach ($layerBody as $layer)
                                 @php
                                     $calibratorLayer = collect($employee['approvalStatus']['calibrator'] ?? [])->firstWhere('layer', $layer);
                                 @endphp
@@ -138,7 +138,7 @@
                             
                             <td class="text-center">{{ $employee['finalScore'] }}</td>
                             <td class="sorting_1 text-center">
-                                <button class="btn btn-sm btn-outline-info" onclick="alert('belom ada')"><i class="ri-eye-line"></i></button>
+                                <a href="{{ route('admin.appraisal.details', $employee['id']) }}" class="btn btn-sm btn-outline-info"><i class="ri-eye-line"></i></a>
                             </td>
                         </tr>
                         @endforeach
@@ -155,3 +155,5 @@
     var employeesData = {!! json_encode($datas) !!};
 </script>
 @endpush
+
+@vite('resources/js/admin-appraisal.js')

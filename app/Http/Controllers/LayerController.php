@@ -435,7 +435,7 @@ class LayerController extends Controller
                     
                 }
     
-                $calibration = Calibration::where('appraisal_id', $approvalRequest->form_id)->where('approver_id', $currentManager->approver_id)->first();
+                $calibration = Calibration::where('appraisal_id', $approvalRequest->form_id)->where('created_by', $currentManager->approver->id)->where('status', 'Pending')->first();
     
                 if ($calibration) {
                     // Soft delete the record
@@ -470,6 +470,7 @@ class LayerController extends Controller
                 // Find the record in the AppraisalContributor table based on appraisal_id and contributor_id
                 $contributor = AppraisalContributor::where('appraisal_id', $approvalRequest->form_id)
                     ->where('contributor_id', $peerId)
+                    ->where('contributor_type', 'peers')
                     ->first();
         
                 // If a record is found, perform a soft delete
@@ -485,6 +486,7 @@ class LayerController extends Controller
                 // Find the record in the AppraisalContributor table based on appraisal_id and contributor_id
                 $contributor = AppraisalContributor::where('appraisal_id', $approvalRequest->form_id)
                     ->where('contributor_id', $subId)
+                    ->where('contributor_type', 'subordinate')
                     ->first();
         
                 // If a record is found, perform a soft delete
@@ -503,7 +505,8 @@ class LayerController extends Controller
                 [
                     'layer_type' => 'manager',
                     'employee_id' => $validated['employee_id'],
-                    'approver_id' => $manager
+                    'approver_id' => $manager,
+                    'created_by' => $userId
                 ]
             );
         }
@@ -517,7 +520,8 @@ class LayerController extends Controller
                             'layer_type' => 'peers',
                             'layer' => $index + 1,
                             'employee_id' => $validated['employee_id'],
-                            'approver_id' => $peer
+                            'approver_id' => $peer,
+                            'created_by' => $userId
                         ]
                     );
                 }
@@ -533,7 +537,8 @@ class LayerController extends Controller
                             'layer_type' => 'subordinate',
                             'layer' => $index + 1,
                             'employee_id' => $validated['employee_id'],
-                            'approver_id' => $sub
+                            'approver_id' => $sub,
+                            'created_by' => $userId
                         ]
                     );
                 }
@@ -549,7 +554,8 @@ class LayerController extends Controller
                             'layer_type' => 'calibrator',
                             'layer' => $index + 1,
                             'employee_id' => $validated['employee_id'],
-                            'approver_id' => $calibrator
+                            'approver_id' => $calibrator,
+                            'created_by' => $userId
                         ]
                     );
                 }

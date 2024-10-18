@@ -16,7 +16,9 @@
                                 <div class="col-md">
                                     <div class="row">
                                         <div class="col-3">
-                                            <p class="text-muted">Employee ID</p>
+                                            <div class="mb-1">
+                                                <span class="text-muted">Employee ID</span>
+                                            </div>
                                         </div>
                                         <div class="col">
                                             : {{ $goals->employee->employee_id }}
@@ -24,7 +26,9 @@
                                     </div>
                                     <div class="row">
                                         <div class="col-3">
-                                            <p class="text-muted">Employee Name</p>
+                                            <div class="mb-1">
+                                                <span class="text-muted">Employee Name</span>
+                                            </div>
                                         </div>
                                         <div class="col">
                                             : {{ $goals->employee->fullname }}
@@ -32,7 +36,9 @@
                                     </div>
                                     <div class="row">
                                         <div class="col-3">
-                                            <p class="text-muted">Job Level</p>
+                                            <div class="mb-1">
+                                                <span class="text-muted">Job Level</span>
+                                            </div>
                                         </div>
                                         <div class="col">
                                             : {{ $goals->employee->job_level }}
@@ -42,7 +48,9 @@
                                 <div class="col-md">
                                     <div class="row">
                                         <div class="col-3">
-                                            <p class="text-muted">Business Unit</p>
+                                            <div class="mb-1">
+                                                <span class="text-muted">Business Unit</span>
+                                            </div>
                                         </div>
                                         <div class="col">
                                             : {{ $goals->employee->group_company }}
@@ -50,7 +58,9 @@
                                     </div>
                                     <div class="row">
                                         <div class="col-3">
-                                            <p class="text-muted">Division</p>
+                                            <div class="mb-1">
+                                                <span class="text-muted">Division</span>
+                                            </div>
                                         </div>
                                         <div class="col">
                                             : {{ $goals->employee->unit }}
@@ -58,7 +68,9 @@
                                     </div>
                                     <div class="row">
                                         <div class="col-3">
-                                            <p class="text-muted">Designation</p>
+                                            <div class="mb-1">
+                                                <span class="text-muted">Designation</span>
+                                            </div>
                                         </div>
                                         <div class="col">
                                             : {{ $goals->employee->designation }}

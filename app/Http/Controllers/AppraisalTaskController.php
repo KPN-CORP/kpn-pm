@@ -154,7 +154,7 @@ class AppraisalTaskController extends Controller
             $data[] = [
                 'index' => $index + 1,
                 'employee' => [
-                    'fullname' => $team->employee->fullname,
+                    'fullname' => $team->employee->fullname .' <span class="text-muted">'.$team->employee->employee_id.'</span>',
                     'employee_id' => $team->employee->employee_id,
                     'designation' => $team->employee->designation,
                     'office_area' => $team->employee->office_area,
@@ -226,7 +226,7 @@ class AppraisalTaskController extends Controller
             $data[] = [
                 'index' => $index + 1,
                 'employee' => [
-                    'fullname' => $team->employee->fullname,
+                    'fullname' => $team->employee->fullname .' <span class="text-muted">'.$team->employee->employee_id.'</span>',
                     'employee_id' => $team->employee->employee_id,
                     'designation' => $team->employee->designation,
                     'office_area' => $team->employee->office_area,
