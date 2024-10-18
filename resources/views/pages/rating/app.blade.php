@@ -39,13 +39,14 @@
                                     @php
                                         // Count items where 'is_calibrator' is true in $ratingDatas[$level]
                                         $calibratorCount = collect($ratingDatas[$level])->where('is_calibrator', false)->count();
+                                        $employeeCount = collect($ratingDatas[$level])->count();
                                         $ratingDone = collect($ratingDatas[$level])->where('rating_value', false)->count();
                                         $ratingNotAllowed = collect($ratingDatas[$level])->where(function ($data) {
                                             return isset($data['rating_allowed']['status']) && $data['rating_allowed']['status'] === false;
                                         })->count();
                                         $requestApproved = collect($ratingDatas[$level])
                                         ->where(function ($data) {
-                                            return isset($data['approval_request']['status']) && $data['approval_request']['status'] === 'Pending';
+                                            return isset($data['status']) && $data['status'] === 'Approved';
                                         })
                                         ->count();
 
@@ -94,12 +95,23 @@
                                     </div>
                                     <div class="mb-3">
                                         <div id="alertField" class="alert alert-danger alert-dismissible {{ ($calibratorCount && $ratingDone ) || $ratingNotAllowed || !$requestApproved ? '' : 'fade' }}" role="alert" {{ ($calibratorCount && $ratingDone) || $ratingNotAllowed || !$requestApproved? '' : 'hidden' }}>
-                                            <div class="row text-primary">
+                                            <div class="row text-primary fs-5">
                                                 <div class="col-auto my-auto">
                                                     <i class="ri-error-warning-line h3 fw-light"></i>
                                                 </div>
                                                 <div class="col">
                                                     <strong>You can't provide a rating at this moment, because some employees 360 reviews are still incomplete. Please reach out to the relevant parties to follow up on these reviews.</strong>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div id="alertField" class="alert alert-warning alert-dismissible {{ ((!$calibratorCount && !$ratingDone ) || $requestApproved) && $employeeCount <= 2 ? '' : 'fade' }}" role="alert" {{ ((!$calibratorCount && !$ratingDone) || $requestApproved) && $employeeCount <= 2 ? '' : 'hidden' }}>
+                                            <div class="row fs-5">
+                                                <div class="col-auto my-auto">
+                                                    <i class="ri-information-line h3 fw-light"></i>
+                                                </div>
+                                                <div class="col">
+                                                    <strong class="{{ $employeeCount == 1 }}">If there's only have 1 employee, the Rater can select any rating between B-E.</strong>
+                                                    <strong class="{{ $employeeCount == 2 }}">If there's has 2 employees, the You can select any rating between A-E.</br>However, the selected rating will be available to be allocated only 1 time.</strong>
                                                 </div>
                                             </div>
                                         </div>
@@ -165,7 +177,7 @@
                                                                         </div>
                                                                         <div class="col text-center">
                                                                             <span class="text-muted">Previous Rating</span>
-                                                                            <p class="mt-1 fw-medium">{{ $item->rating_allowed['status'] ? '-' : '-' }}</p>
+                                                                            <p class="mt-1 fw-medium">{{ $item->rating_allowed['status'] && $item->form_id && $item->current_calibrator && $item->previous_rating ? $item->previous_rating : '-' }}</p>
                                                                         </div>
                                                                         <div class="col">
                                                                             <span class="text-muted">Your Rating</span>

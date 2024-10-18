@@ -18,8 +18,13 @@ $(document).ready(function() {
             dataSrc: ''
         },
         columns: [
-            { data: 'index' },
-            { data: 'employee.fullname', className: 'dt-control text-start' },
+            {   
+                className: 'dt-control',
+                orderable: false,
+                data: null,
+                defaultContent: ''
+             },
+            { data: 'employee.fullname' },
             { data: 'employee.designation' },
             { data: 'employee.office_area' },
             { data: 'employee.group_company' },
@@ -45,8 +50,13 @@ $(document).ready(function() {
             dataSrc: ''
         },
         columns: [
-            { data: 'index' },
-            { data: 'employee.fullname', className: 'dt-control text-start' },
+            {   
+                className: 'dt-control',
+                orderable: false,
+                data: null,
+                defaultContent: ''
+            },
+            { data: 'employee.fullname' },
             { data: 'employee.designation' },
             { data: 'employee.office_area' },
             { data: 'employee.group_company' },

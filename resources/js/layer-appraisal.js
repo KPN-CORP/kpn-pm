@@ -1,3 +1,4 @@
+import { log } from 'handlebars';
 import $ from 'jquery';
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -18,6 +19,34 @@ document.addEventListener("DOMContentLoaded", function () {
     
     $("#customsearch").on("keyup", function () {
         layerAppraisalTable.search($(this).val()).draw();
+    });
+
+    let previousValue = $('#manager').val();
+
+    // Event listener for when an option is selected
+    $('#manager').on('select2:select', function(e) {
+        const selectedValue = e.params.data.id;
+
+        // Show confirmation alert
+        Swal.fire({
+            title: 'Change the Manager?',
+            text: 'Changing current manager will delete the approved appraisal. This action cannot be undone',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: "#3e60d5",
+            cancelButtonColor: "#f15776",
+            reverseButtons: true,
+            confirmButtonText: 'Yes, change it!',
+            cancelButtonText: 'No, keep the current',
+            reverseButtons: true,
+        }).then((result) => {
+            if (result.isConfirmed) {
+                previousValue = selectedValue;
+            } else {
+                $('#manager').val(previousValue).trigger('change');
+            }
+        });
+        e.preventDefault();
     });
 
     $('#submit-btn').click(function () {
@@ -168,9 +197,6 @@ document.addEventListener("DOMContentLoaded", function () {
     
         return false; // Prevent default form submission
     });    
-    
-    
-
 
     $(document).ready(function() {
         $('.selection2').select2({
@@ -408,29 +434,6 @@ var locationId = $('#locationFilter').val().toUpperCase();
 table.column(10).search(locationId).draw(); // Adjust index based on your table structure
 }
 
-$('#submitButton').on('click', function(e) {
-    e.preventDefault();
-    const form = $('#editForm').get(0);
-    const submitButton = $('#submitButton');
-    const spinner = submitButton.find(".spinner-border");
-
-    if (form.checkValidity()) {
-    // Disable submit button
-    submitButton.prop('disabled', true);
-    submitButton.addClass("disabled");
-
-    // Remove d-none class from spinner if it exists
-    if (spinner.length) {
-        spinner.removeClass("d-none");
-    }
-
-    // Submit form
-    form.submit();
-    } else {
-        // If the form is not valid, trigger HTML5 validation messages
-        form.reportValidity();
-    }
-});
 $('#importButton').on('click', function(e) {
     e.preventDefault();
     const form = $('#importForm').get(0);

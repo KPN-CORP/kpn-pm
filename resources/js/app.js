@@ -42,7 +42,6 @@ import './report.js';
 import './schedule.js';
 import './role.js';
 import './layer.js';
-import './admin-appraisal.js';
 
 function googleTranslateElementInit() {
     new google.translate.TranslateElement({

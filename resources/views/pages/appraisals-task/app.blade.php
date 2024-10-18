@@ -49,11 +49,11 @@
                           <div class="tab-content" id="myTabContent">
                             <div class="tab-pane fade show active" id="team" role="tabpanel" aria-labelledby="team-tab">
                                 <div class="table-responsive">
-                                    <table id="tableAppraisalTeam" class="table table-hover activate-select">
+                                    <table id="tableAppraisalTeam" class="table table-hover activate-select dataTables_scrollHeadInner">
                                         <caption>List of Team</caption>
                                         <thead>
                                             <tr>
-                                                <th>#</th>
+                                                <th></th>
                                                 <th>Name</th>
                                                 <th>Position</th>
                                                 <th>Office</th>
@@ -66,11 +66,11 @@
                                 </div>
                             </div>
                             <div class="tab-pane fade" id="360-review" role="tabpanel" aria-labelledby="360-review-tab">
-                                    <table id="tableAppraisal360" class="table table-hover activate-select" @style('width : 100%')>
+                                    <table id="tableAppraisal360" class="table table-hover activate-select dataTables_scrollHeadInner" @style('width : 100%')>
                                         <caption>List of 360</caption>
                                         <thead>
                                             <tr>
-                                                <th>#</th>
+                                                <th></th>
                                                 <th>Name</th>
                                                 <th>Position</th>
                                                 <th>Office</th>

@@ -34,6 +34,7 @@ class RatingController extends Controller
     public function index(Request $request) {
         try {
             $user = $this->user;
+            $period = 2024;
             $filterYear = $request->input('filterYear');
 
             // Get the KPI unit and calibration percentage
@@ -113,6 +114,7 @@ class RatingController extends Controller
             ->groupBy('id')
             ->map(function ($subgroup) {
                 $appraisal = $subgroup->first();
+                $appraisal->approval_requests = $subgroup->first();
                 return $appraisal;
             });
 
@@ -123,14 +125,23 @@ class RatingController extends Controller
             })
         ];
     })->sortKeys();
+
+    // dd($datas);
     
-    $ratingDatas = $datas->map(function ($group) use ($user) {
+    $ratingDatas = $datas->map(function ($group) use ($user, $period) {
         // Process `with_requests`
-        $withRequests = $group['with_requests']->map(function ($data) use ($user) {
+        $calibration = Calibration::where('period', $period)->orderBy('id', 'asc')->whereNotNull('rating')->get();
+        
+        $withRequests = $group['with_requests']->map(function ($data) use ($user, $calibration) {
+
+            $previousRating = $calibration->where('appraisal_id', $data->approvalRequest->first()->form_id)->first();
             // Calculate the suggested rating
             $suggestedRating = $this->appService->suggestedRating($data->employee->employee_id, $data->approvalRequest->first()->form_id);
-    
+
+            
             $data->suggested_rating = $this->appService->convertRating($suggestedRating);
+            
+            $data->previous_rating = $previousRating ? $this->appService->convertRating($previousRating) : $previousRating;
 
             $data->rating_value = $this->appService->ratingValue($data->employee->employee_id, $this->user, $this->period);
     
@@ -217,8 +228,7 @@ class RatingController extends Controller
                 }
     
                 // Process suggested ratings
-                $allApprovalRequests = $group['with_requests']->pluck('approvalRequest')->flatten();
-                $suggestedRatingCounts = $allApprovalRequests->pluck('suggested_rating')->countBy();
+                $suggestedRatingCounts = $group['with_requests']->pluck('suggested_rating')->countBy();
 
     
                 // Calculate total suggested ratings for percentages
@@ -256,7 +266,6 @@ class RatingController extends Controller
                     break;
                 }
             }
-
     
             $parentLink = 'Calibration';
             $link = 'Rating';
