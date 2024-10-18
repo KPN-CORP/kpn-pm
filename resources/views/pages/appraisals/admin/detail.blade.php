@@ -205,5 +205,3 @@
         </div>
     </div>
 @endsection
-
-@vite('resources/js/admin-appraisal.js')
