@@ -88,7 +88,7 @@
                                             <td style="text-align:center; background-color: #D3D3D3;">{{ $kpi }}</td>
                                             @foreach($kpiUnits as $unit)
                                                 <td>
-                                                    <input type="number" name="Xx[{{ $kpi }}][{{ $unit }}]" class="form-control kpi-input" placeholder="Enter value" value="{{ isset($calibrationPercentages[$kpi][$unit]) ? ($calibrationPercentages[$kpi][$unit])*100 : '' }}" oninput="calculateTotal()">
+                                                    <input type="number" name="Xx[{{ $unit }}][{{ $kpi }}]" class="form-control kpi-input" placeholder="Enter value" value="{{ isset($calibrationPercentages[$unit][$kpi]) ? ($calibrationPercentages[$unit][$kpi])*100 : '' }}" oninput="calculateTotal()">
                                                 </td>
                                             @endforeach
                                         </tr>
@@ -127,7 +127,7 @@
                 let total_{{ $unit }} = 0; // Variabel untuk menyimpan total per KPI Unit
 
                 // Cari semua input yang sesuai dengan KPI Unit ini (menggunakan pencarian pola yang spesifik)
-                document.querySelectorAll('input[name$="[{{ $unit }}]"]').forEach(function(input) {
+                document.querySelectorAll('input[name*="Xx[{{ $unit }}]"]').forEach(function(input) {
                     let value = parseFloat(input.value) || 0; // Jika tidak ada nilai, anggap 0
                     total_{{ $unit }} += value; // Tambahkan nilai ke total
                 });
@@ -137,5 +137,19 @@
             @endforeach
         @endif
     }
+    document.addEventListener('DOMContentLoaded', function() {
+        @foreach($kpiUnits as $unit)
+            let total_{{ $unit }} = 0; // Variabel untuk menyimpan total per KPI Unit
+
+            // Cari semua input yang sesuai dengan KPI Unit ini (menggunakan pencarian pola yang spesifik)
+            document.querySelectorAll('input[name*="Xx[{{ $unit }}]"]').forEach(function(input) {
+                let value = parseFloat(input.value) || 0; // Jika tidak ada nilai, anggap 0
+                total_{{ $unit }} += value; // Tambahkan nilai ke total
+            });
+
+            // Tampilkan hasil di elemen <td> untuk total KPI Unit ini
+            document.getElementById('total-V{{ $unit }}').innerText = total_{{ $unit }} + '%';
+        @endforeach
+    });
 </script>
 @endpush

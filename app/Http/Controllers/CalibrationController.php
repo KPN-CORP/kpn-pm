@@ -129,22 +129,25 @@ class CalibrationController extends Controller
         
         // // return redirect()->back()->with('success', 'Calibration data saved successfully.');
         $inputData = $request->all();
-
+        // dd($inputData);
         if(isset($inputData['Xx'])) {
-            foreach ($inputData['Xx'] as $kpiIndividu => $kpiUnitValues) {
-                foreach ($kpiUnitValues as $kpiUnit => $value) {
-                    // echo "KPI Individu: $kpiIndividu, KPI Unit: $kpiUnit, Value: $value <br>";
-                    $convert_percen = $value/100;
-                    $detailKpiUnit[$kpiUnit] = $convert_percen;
-                    $percentage = json_encode($detailKpiUnit);
+            foreach ($inputData['Xx'] as $kpiUnit => $kpiIndividuValues) {
+                $detailKpiUnit = [];
+                
+                foreach ($kpiIndividuValues as $kpiIndividu => $value) {
+                    $convert_percen = $value / 100;
+                    $detailKpiUnit[$kpiIndividu] = $convert_percen;
                 }
+        
+                $percentage = json_encode($detailKpiUnit);
                 MasterCalibration::create([
                     'id_calibration_group' => $idCalibrationGroup,
+                    'id_rating_group' => $individual_kpi,
                     'kpi_unit' => $kpi_unit,
                     'individual_kpi' => $individual_kpi,
                     'name' => $calibrationName, 
-                    'grade' => $kpiIndividu, 
-                    'percentage' => $percentage, 
+                    'grade' => $kpiUnit,
+                    'percentage' => $percentage,
                     'created_by' => $userId,
                 ]);
             }
