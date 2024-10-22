@@ -1,6 +1,6 @@
 <!-- ========== Left Sidebar Start ========== -->
 <div class="leftside-menu">
-    @if(session('system') == 'kpnpm')
+    {{-- @if(session('system') == 'kpnpm') --}}
     <!-- Brand Logo Light -->
     <a href="{{ Url('/') }}" class="logo logo-light">
         <span class="logo-lg">
@@ -20,27 +20,7 @@
             <img src="{{ asset('storage/img/logo-sm.png') }}" alt="small logo">
         </span>
     </a>
-    @else
-    <!-- Brand Logo Light -->
-    <a href="" class="logo logo-light">
-        <span class="logo-lg">
-            <img src="{{ asset('storage/img/logo.png') }}" alt="logo">
-        </span>
-        <span class="logo-sm">
-            <img src="{{ asset('storage/img/logo-sm.png') }}" alt="small logo">
-        </span>
-    </a>
-
-    <!-- Brand Logo Dark -->
-    <a href="" class="logo logo-dark">
-        <span class="logo-lg">
-            <img src="{{ asset('storage/img/logo-dark.png') }}" alt="logo">
-        </span>
-        <span class="logo-sm">
-            <img src="{{ asset('storage/img/logo-sm.png') }}" alt="small logo">
-        </span>
-    </a>
-    @endif
+    
     <!-- Sidebar Hover Menu Toggle Button -->
     <div class="button-sm-hover" data-bs-toggle="tooltip" data-bs-placement="right" title="Show Full Sidebar">
         <i class="ri-checkbox-blank-circle-line align-middle"></i>
@@ -145,9 +125,9 @@
                     </a>
                     <div class="collapse" id="sidebarSettings">
                         <ul class="side-nav-second-level">
-                            @can('viewschedule')
+                            @can('mastercalibration')
                             <li>
-                                <a href="{{ route('schedules') }}">Schedule</a>
+                                <a href="{{ route('admcalibrations') }}">Calibration</a>
                             </li>
                             @endcan
                             @can('viewlayer')
@@ -170,9 +150,19 @@
                                 </div>
                             </li>
                             @endcan
+                            @can('masterrating')
+                            <li>
+                                <a href="{{ route('admratings') }}">Rating</a>
+                            </li>
+                            @endcan
                             @can('viewrole')
                             <li>
                                 <a href="{{ route('roles') }}">Role</a>
+                            </li>
+                            @endcan
+                            @can('viewschedule')
+                            <li>
+                                <a href="{{ route('schedules') }}">Schedule</a>
                             </li>
                             @endcan
                         </ul>

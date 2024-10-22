@@ -32,6 +32,8 @@ use App\Http\Controllers\HomeController;
 use App\Http\Controllers\LanguageController;
 use App\Http\Controllers\MyAppraisalController;
 use App\Http\Controllers\MyGoalController;
+use App\Http\Controllers\RatingAdminController;
+use App\Http\Controllers\CalibrationController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\TeamAppraisalController;
 use App\Http\Controllers\TeamGoalController;
@@ -53,6 +55,7 @@ Route::get('sourcermb/dbauth', [SsoController::class, 'dbauthReimburse']);
 Route::get('fetch-employees', [EmployeeController::class, 'fetchAndStoreEmployees']);
 Route::get('updmenu-employees', [EmployeeController::class, 'updateEmployeeAccessMenu']);
 Route::get('daily-schedules', [ScheduleController::class, 'reminderDailySchedules']);
+Route::get('schedule-PA', [ScheduleController::class, 'DailyUpdateSchedulePA']);
 
 Route::get('/test-email', function () {
     $messages = '<p>This is a test message with <strong>bold</strong> text.</p>';
@@ -208,7 +211,30 @@ Route::middleware('auth', 'locale')->group(function () {
         Route::post('/schedule-save', [ScheduleController::class, 'save'])->name('save-schedule');
         Route::get('/schedule/edit/{id}', [ScheduleController::class, 'edit'])->name('edit-schedule');
         Route::post('/schedule', [ScheduleController::class, 'update'])->name('update-schedule');
-        Route::delete('/schedule/{id}', [ScheduleController::class, 'softDelete'])->name('soft-delete-schedule');
+        // Route::delete('/schedule/{id}', [ScheduleController::class, 'softDelete'])->name('soft-delete-schedule');
+        Route::delete('/schedule/{id}/delete', [ScheduleController::class, 'softDelete'])->name('soft-delete-schedule');
+
+    });
+
+    Route::middleware(['permission:masterrating'])->group(function () {
+        // Route::resource('ratings', RatingAdminController::class);
+        Route::get('/admratings', [RatingAdminController::class, 'index'])->name('admratings');
+        Route::get('/pages/rating-admin/create', [RatingAdminController::class, 'create'])->name('pages.rating-admin.create');
+        Route::get('/pages/rating-admin/update/{id}', [RatingAdminController::class, 'show'])->name('pages.rating-admin.update');
+        Route::post('/admratings/submit', [RatingAdminController::class, 'store'])->name('admratings.store');
+        Route::delete('/rating-admin/{id}', [RatingAdminController::class, 'destroy'])->name('rating-admin-destroy');
+        Route::delete('/detail-rating-admin/{id}', [RatingAdminController::class, 'destroyDetail'])->name('detail-rating-admin-destroy');
+        Route::get('/rating-admin/{id}/edit', [RatingAdminController::class, 'edit'])->name('rating-admin.edit');
+    });
+
+    Route::middleware(['permission:mastercalibration'])->group(function () {
+        Route::get('/admcalibrations', [CalibrationController::class, 'index'])->name('admcalibrations');
+        Route::get('/CalibrationsCreate', [CalibrationController::class, 'create'])->name('calibrations-create');
+        Route::post('/CalibrationsCreateShow', [CalibrationController::class, 'show'])->name('showcalibrations');
+        Route::post('/CalibrationsStore', [CalibrationController::class, 'store'])->name('savecalibrations');
+        Route::get('/update/Calibrations/{id}', [CalibrationController::class, 'formupdate'])->name('update.Calibrations');
+        Route::delete('/calibrationDestroy/{id}', [CalibrationController::class, 'destroy'])->name('calibrationDestroy');
+        Route::post('/CalibrationsUpdate', [CalibrationController::class, 'update'])->name('updatecalibrations');
     });
     
     Route::middleware(['permission:viewlayer'])->group(function () {
