@@ -104,7 +104,7 @@ $(document).ready(function() {
         if (rowData.kpi && rowData.kpi.kpi_status) {
             if (rowData.kpi.total_score) {
                 totalScoreContent = `<div class="row">
-                    <div class="col-1">
+                    <div class="col-2">
                         <div class="mb-1 border-bottom border-secondary"><strong>Total Score</strong></div>
                     </div>
                     <div class="col-auto">
@@ -115,7 +115,7 @@ $(document).ready(function() {
 
             if (rowData.kpi.kpi_score) {
                 kpiScoreContent = `<div class="row">
-                    <div class="col-1">
+                    <div class="col-2">
                         <div class="mb-1">KPI</div>
                     </div>
                     <div class="col">
@@ -126,7 +126,7 @@ $(document).ready(function() {
 
             if (rowData.kpi.culture_score) {
                 cultureScoreContent = `<div class="row">
-                    <div class="col-1">
+                    <div class="col-2">
                         <div class="mb-1">Culture</div>
                     </div>
                     <div class="col">
@@ -137,7 +137,7 @@ $(document).ready(function() {
 
             if (rowData.kpi.leadership_score) {
                 leadershipScoreContent = `<div class="row">
-                    <div class="col-1">
+                    <div class="col-2">
                         <div class="mb-1">Leadership</strong></div>
                     </div>
                     <div class="col">
@@ -250,8 +250,7 @@ $(document).ready(function() {
             let text;
             let confirmText;
     
-            const submitButton = $("#submitButton");
-            const spinner = submitButton.find(".spinner-border");
+            const spinner = $(this).find(".spinner-border");
     
             if (submitType === "submit_form") {
                 title1 = "Submit From?";
@@ -270,8 +269,8 @@ $(document).ready(function() {
                 }).then((result) => {
                     if (result.isConfirmed) {
                         // Disable submit button
-                        submitButton.prop("disabled", true);
-                        submitButton.addClass("disabled");
+                        $(this).prop("disabled", true);
+                        $(this).addClass("disabled");
         
                         // Show spinner if it exists
                         if (spinner.length) {
@@ -354,4 +353,26 @@ document.addEventListener('DOMContentLoaded', function() {
         // Initial check
         handleScroll();
     }
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    var teamTab = document.getElementById('team-tab');
+    var reviewTab = document.getElementById('360-review-tab');
+
+    // Event listeners for 'shown' event when the tab becomes active
+    teamTab.addEventListener('shown.bs.tab', function () {
+        teamTab.classList.remove('btn-outline-secondary');
+        teamTab.classList.add('btn-outline-primary');
+
+        reviewTab.classList.remove('btn-outline-primary');
+        reviewTab.classList.add('btn-outline-secondary');
+    });
+
+    reviewTab.addEventListener('shown.bs.tab', function () {
+        reviewTab.classList.remove('btn-outline-secondary');
+        reviewTab.classList.add('btn-outline-primary');
+
+        teamTab.classList.remove('btn-outline-primary');
+        teamTab.classList.add('btn-outline-secondary');
+    });
 });

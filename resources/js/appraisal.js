@@ -34,10 +34,10 @@ $(document).ready(function() {
 
         if (step === totalSteps) {
             $('.next-btn').hide();
-            $('.submit-btn').show();
+            $('.submit-user').show();
         } else {
             $('.next-btn').show();
-            $('.submit-btn').hide();
+            $('.submit-user').hide();
         }
     }
 
@@ -75,9 +75,56 @@ $(document).ready(function() {
         }
     });
 
-    $('.submit-btn').click(function() {
+    $('.submit-user').click(function () {
+        let submitType = $(this).data('id');
+        document.getElementById("submitType").value = submitType; 
         if (validateStep(currentStep)) {
-            return true;
+            let title1;
+            let title2;
+            let text;
+            let confirmText;
+    
+            const spinner = $(this).find(".spinner-border");
+    
+            if (submitType === "submit_form") {
+                title1 = "Submit From?";
+                text = "You can still change it as long as the manager hasn't approved it yet";
+                title2 = "Appraisal submitted successfully!";
+                confirmText = "Submit";
+
+                Swal.fire({
+                    title: title1,
+                    text: text,
+                    showCancelButton: true,
+                    confirmButtonColor: "#3e60d5",
+                    cancelButtonColor: "#f15776",
+                    confirmButtonText: confirmText,
+                    reverseButtons: true,
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Disable submit button
+                        $(this).prop("disabled", true);
+                        $(this).addClass("disabled");
+        
+                        // Show spinner if it exists
+                        if (spinner.length) {
+                            spinner.removeClass("d-none");
+                        }
+        
+                        document.getElementById("formAppraisalUser").submit();
+        
+                        // Show success message
+                        Swal.fire({
+                            title: title2,
+                            icon: "success",
+                            showConfirmButton: false,
+                            timer: 1500, // Optional: Auto close the success message after 1.5 seconds
+                        });
+                    }
+                });
+            }
+    
+            return false; // Prevent default form submission
         }
     });
 

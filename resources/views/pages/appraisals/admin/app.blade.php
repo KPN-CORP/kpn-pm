@@ -35,7 +35,7 @@
         <div class="row">
             <div class="col-auto">
                 <div class="mb-3 p-1 bg-info-subtle rounded shadow">
-                    <span class="mx-2">L = Calibrator</span>|
+                    <span class="mx-2">C = Calibrator</span>|
                     <span class="mx-2">P = Peers</span>|
                     <span class="mx-2">S = Subordinate</span>|
                     <span class="mx-2"><i class="ri-check-line bg-success-subtle text-success rounded fs-18"></i> = Done</span>|
@@ -64,7 +64,7 @@
                                 <th>{{ $calibrator }}</th>
                             @endforeach
                             <th>Final Rating</th>
-                            <th class="sorting_1">Action</th>
+                            <th class="sorting_1">Details</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -83,6 +83,8 @@
                                 <td class="text-center
                                     @if ($peerLayer) 
                                         {{ $peerLayer['status'] ? 'table-success' : 'table-warning' }} 
+                                    @else
+                                        table-light
                                     @endif
                                 ">
                                     @if ($peerLayer)
@@ -104,6 +106,8 @@
                                 <td class="text-center
                                     @if ($subordinateLayer) 
                                         {{ $subordinateLayer['status'] ? 'table-success' : 'table-warning' }} 
+                                    @else
+                                        table-light
                                     @endif
                                 ">
                                     @if ($subordinateLayer)
@@ -124,6 +128,8 @@
                                 <td class="text-center
                                     @if ($calibratorLayer) 
                                         {{ $calibratorLayer['status'] ? 'table-success' : 'table-warning' }} 
+                                    @else
+                                        table-light
                                     @endif
                                 ">
                                     @if ($calibratorLayer)
@@ -138,7 +144,7 @@
                             
                             <td class="text-center">{{ $employee['finalScore'] }}</td>
                             <td class="sorting_1 text-center">
-                                @if ($employee['appraisalStatus'] && collect($employee['approvalStatus']))
+                                @if ($employee['appraisalStatus'] && count(collect($employee['approvalStatus'])) != 0)
                                     <a href="{{ route('admin.appraisal.details', $employee['id']) }}" class="btn btn-sm btn-outline-info"><i class="ri-eye-line"></i></a>
                                 @else
                                     <a class="btn btn-sm btn-outline-secondary" onclick="alert('no data appraisal or layer')"><i class="ri-eye-line"></i></a>

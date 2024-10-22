@@ -31,26 +31,26 @@
                     <div class="card-body">
                         <ul class="nav nav-pills mb-md-0 mb-3" id="myTab" role="tablist">
                             <li class="nav-item">
-                              <button class="btn btn-outline-primary position-relative active me-2" id="team-tab" data-bs-toggle="tab" data-bs-target="#team" type="button" role="tab" aria-controls="team" aria-selected="true">{{ __('My Team') }}
+                              <button class="btn btn-outline-primary position-relative active me-2" id="team-tab" data-bs-toggle="tab" data-bs-target="#team" type="button" role="tab" aria-controls="team" aria-selected="true">
+                                {{ __('My Team') }}
                                 <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger {{ $notifDataTeams ? $notifDataTeams : 'd-none' }}">
-                                    {{ $notifDataTeams }}
+                                  {{ $notifDataTeams }}
                                 </span>
                               </button>
                             </li>
                             <li class="nav-item">
-                                <button class="btn btn-outline-primary position-relative" id="360-review-tab" data-bs-toggle="tab" data-bs-target="#360-review" type="button" role="tab" aria-controls="360-review" aria-selected="false">
-                                    {{ __('Appraisal 360') }}
-                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger {{ $notifData360 ? $notifData360 : 'd-none' }}">
-                                        {{ $notifData360 }}
-                                    </span>
-                                </button>
+                              <button class="btn btn-outline-secondary position-relative" id="360-review-tab" data-bs-toggle="tab" data-bs-target="#360-review" type="button" role="tab" aria-controls="360-review" aria-selected="false">
+                                {{ __('Appraisal 360') }}
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger {{ $notifData360 ? $notifData360 : 'd-none' }}">
+                                  {{ $notifData360 }}
+                                </span>
+                              </button>
                             </li>
-                          </ul>
+                          </ul>                          
                           <div class="tab-content" id="myTabContent">
                             <div class="tab-pane fade show active" id="team" role="tabpanel" aria-labelledby="team-tab">
                                 <div class="table-responsive">
                                     <table id="tableAppraisalTeam" class="table table-hover activate-select dataTables_scrollHeadInner">
-                                        <caption>List of Team</caption>
                                         <thead>
                                             <tr>
                                                 <th></th>
@@ -67,7 +67,6 @@
                             </div>
                             <div class="tab-pane fade" id="360-review" role="tabpanel" aria-labelledby="360-review-tab">
                                     <table id="tableAppraisal360" class="table table-hover activate-select dataTables_scrollHeadInner" @style('width : 100%')>
-                                        <caption>List of 360</caption>
                                         <thead>
                                             <tr>
                                                 <th></th>

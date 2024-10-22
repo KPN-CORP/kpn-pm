@@ -105,6 +105,7 @@
                                                     <option value="{{ $item->employee_id }}" {{ isset($groupLayers['manager']) ? ($item->employee_id == $groupLayers['manager']->first()->approver_id ? 'selected' : '') : '' }}>{{ $item->fullname }} {{ $item->employee_id }}</option>
                                                 @endforeach
                                             </select>
+                                            <div class="text-danger error-message fs-14"></div>
                                         </div>
                                     </div>
                                 </div>

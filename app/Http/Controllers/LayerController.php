@@ -411,56 +411,56 @@ class LayerController extends Controller
         
         // Get all subordinates (already limited by the database to a max of 3)
         $currentSub = $currentLayers->where('layer_type', 'subordinate')->pluck('approver.employee_id')->toArray();
-        $subsToDelete = array_diff($currentSub, $peers);
+        $subsToDelete = array_diff($currentSub, $subs);
 
         // return response()->json($peersToDelete);
 
         
         $approvalRequest = ApprovalRequest::where('employee_id', $validated['employee_id'])->where('category', 'Appraisal')->where('period', $period)->first();
-        
-        if($currentManager->approver_id != $manager){
-            // Check if the employee record exists
-            if ($approvalRequest) {
-    
-                if ($approvalRequest->created_by == $currentManager->approver->id) {
-                    // Soft delete the record
-                    $approvalRequest->delete();
-                    
-                } else {
-                    // Update the current_approval_id if not created by the current user
-                    $approvalRequest->update([
-                        'current_approval_id' => $manager,
-                        'status' => 'Pending'
-                    ]);
-                    
-                }
-    
-                $calibration = Calibration::where('appraisal_id', $approvalRequest->form_id)->where('created_by', $currentManager->approver->id)->where('status', 'Pending')->first();
-    
-                if ($calibration) {
-                    // Soft delete the record
-                    $calibration->delete();
-                    
-                }
-    
-                $appraisal = Appraisal::where('id', $approvalRequest->form_id)->where('created_by', $currentManager->approver->id)->first();
-    
-                if ($appraisal) {
-                    // Soft delete the record
-                    $appraisal->delete();
-                    
-                }
-    
-                $contributor = AppraisalContributor::where('appraisal_id', $approvalRequest->form_id)->where('contributor_id', $currentManager->approver_id)->first();
-    
-                if ($contributor) {
-                    // Soft delete the record
-                    $contributor->delete();
-                    
-                }
 
-                // return response()->json(['message' => 'Approval Request soft-deleted successfully'], 200);
-    
+        if ($currentManager) {
+            if($currentManager->approver_id != $manager){
+                // Check if the employee record exists
+                if ($approvalRequest) {
+        
+                    if ($approvalRequest->created_by == $currentManager->approver->id) {
+                        // Soft delete the record
+                        $approvalRequest->delete();
+                        
+                    } else {
+                        // Update the current_approval_id if not created by the current user
+                        $approvalRequest->update([
+                            'current_approval_id' => $manager,
+                            'status' => 'Pending'
+                        ]);
+                        
+                    }
+        
+                    $calibration = Calibration::where('appraisal_id', $approvalRequest->form_id)->where('created_by', $currentManager->approver->id)->where('status', 'Pending')->first();
+        
+                    if ($calibration) {
+                        // Soft delete the record
+                        $calibration->delete();
+                        
+                    }
+        
+                    $appraisal = Appraisal::where('id', $approvalRequest->form_id)->where('created_by', $currentManager->approver->id)->first();
+        
+                    if ($appraisal) {
+                        // Soft delete the record
+                        $appraisal->delete();
+                        
+                    }
+        
+                    $contributor = AppraisalContributor::where('appraisal_id', $approvalRequest->form_id)->where('contributor_id', $currentManager->approver_id)->first();
+        
+                    if ($contributor) {
+                        // Soft delete the record
+                        $contributor->delete();
+                        
+                    }
+        
+                }
             }
         }
 

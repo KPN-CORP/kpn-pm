@@ -72,7 +72,7 @@ class MyAppraisalController extends Controller
 
         // check appraisals
         if ($appraisal) {
-            Session::flash('error', "You already initiated Appraisal for $period.");
+            Session::flash('error', "Appraisal $period already initiated.");
             return redirect()->back();
         }
 
