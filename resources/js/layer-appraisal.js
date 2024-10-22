@@ -65,6 +65,8 @@ document.addEventListener("DOMContentLoaded", function () {
         confirmText = "Ok, save it";
     
         // Get values of the select elements with ids containing sub
+        let manager = $('#manager');
+
         let sub1 = $('#sub1');
         let sub2 = $('#sub2');
         let sub3 = $('#sub3');
@@ -92,6 +94,21 @@ document.addEventListener("DOMContentLoaded", function () {
         let peerValues = [peer1.val(), peer2.val(), peer3.val()].filter(Boolean); // Filter out empty values
         let hasPeerDuplicates = peerValues.some((value, index) => peerValues.indexOf(value) !== index);
     
+        if (!manager.val()) {
+            Swal.fire({
+                title: "Error",
+                text: "Manager cannot empty.",
+                icon: "error",
+                confirmButtonColor: "#f15776"
+            });
+
+            manager.addClass('is-invalid')
+            .siblings('.error-message')
+            .text('Manager cannot be empty.');
+    
+            return false; // Prevent form submission if peers have duplicates
+        }
+
         if (hasPeerDuplicates) {
             Swal.fire({
                 title: "Error",

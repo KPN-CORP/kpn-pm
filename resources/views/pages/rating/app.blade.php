@@ -172,7 +172,7 @@
                                                                             </div>
                                                                         </div>
                                                                         <div class="col text-center">
-                                                                            <span class="text-muted">Suggested Rating</span>
+                                                                            <span class="text-muted">Score To Rating</span>
                                                                             <p class="mt-1 fw-medium">{{ $item->rating_allowed['status'] && $item->form_id && $item->current_calibrator ? $item->suggested_rating : '-' }}</p>
                                                                         </div>
                                                                         <div class="col text-center">

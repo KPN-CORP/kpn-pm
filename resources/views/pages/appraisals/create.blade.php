@@ -30,7 +30,7 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <form id="stepperForm" action="{{ route('appraisal.submit') }}" method="POST">
+                        <form id="formAppraisalUser" action="{{ route('appraisal.submit') }}" method="POST">
                         @csrf
                         <input type="hidden" name="employee_id" value="{{ $goal->employee_id }}">
                         <input type="hidden" class="form-control" name="approver_id" value="{{ $approval->approver_id }}">
@@ -46,10 +46,11 @@
                                 ])
                             </div>
                             @endforeach
+                            <input type="hidden" name="submit_type" id="submitType" value="">
                             <div class="d-flex justify-content-center py-2">
-                                <button type="button" class="btn btn-light border me-3 prev-btn" style="display: none;"><i class="ri-arrow-left-line"></i>{{ __('Prev') }}</button>
-                                <button type="button" class="btn btn-primary next-btn">{{ __('Next') }} <i class="ri-arrow-right-line"></i></button>
-                                <button type="submit" class="btn btn-primary submit-btn px-md-4" style="display: none;">{{ __('Submit') }}</button>
+                                <a type="button" class="btn btn-light border me-3 prev-btn" style="display: none;"><i class="ri-arrow-left-line"></i>{{ __('Prev') }}</a>
+                                <a type="button" class="btn btn-primary next-btn">{{ __('Next') }} <i class="ri-arrow-right-line"></i></a>
+                                <a data-id="submit_form" class="btn btn-primary submit-user px-md-4" style="display: none;"><span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Submit') }}</a>
                             </div>
                         </form>
                     </div>

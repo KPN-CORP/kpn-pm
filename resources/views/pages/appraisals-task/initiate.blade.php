@@ -130,7 +130,7 @@
                                 @if ($filteredFormDatas['viewCategory']=="detail")
                                     <a href="{{ route('appraisals-task') }}" class="btn btn-outline-primary px-md-4">{{ __('Close') }}</a>
                                 @else
-                                    <a data-id="submit_form" name="submit_form" class="btn btn-primary submit-btn px-md-4" style="display: none;">{{ __('Submit') }}</a>
+                                    <a data-id="submit_form" name="submit_form" class="btn btn-primary submit-btn px-md-4" style="display: none;"><span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Submit') }}</a>
                                 @endif
                             </div>
                         </form>
