@@ -77,7 +77,6 @@
                             {{-- Peers Layers --}}
                             @foreach (range(1, 3) as $layer)
                                 @php
-                                    // $peerLayer = collect($employee['approvalStatus']['peers'] ?? [])->firstWhere('layer', $layer);
                                     $peerLayer = $employee['approvalStatus']['peers'][$layer - 1] ?? null;
                                 @endphp
                                 <td class="text-center
@@ -100,7 +99,6 @@
                             {{-- Subordinate Layers --}}
                             @foreach (range(1, 3) as $layer)
                                 @php
-                                    // $subordinateLayer = collect($employee['approvalStatus']['subordinate'] ?? [])->firstWhere('layer', $layer);
                                     $subordinateLayer = $employee['approvalStatus']['subordinate'][$layer - 1] ?? null;
                                 @endphp
                                 <td class="text-center
@@ -144,10 +142,10 @@
                             
                             <td class="text-center">{{ $employee['finalScore'] }}</td>
                             <td class="sorting_1 text-center">
-                                @if ($employee['appraisalStatus'] && count(collect($employee['approvalStatus'])) != 0)
+                                @if ($employee['appraisalStatus'] && count(collect($employee['approvalStatus'])->except('calibrator')) != 0)
                                     <a href="{{ route('admin.appraisal.details', $employee['id']) }}" class="btn btn-sm btn-outline-info"><i class="ri-eye-line"></i></a>
                                 @else
-                                    <a class="btn btn-sm btn-outline-secondary" onclick="alert('no data appraisal or layer')"><i class="ri-eye-line"></i></a>
+                                    <a class="btn btn-sm btn-outline-secondary" onclick="alert('no data appraisal or some of layer are empty')"><i class="ri-eye-line"></i></a>
                                 @endif
                             </td>
                         </tr>

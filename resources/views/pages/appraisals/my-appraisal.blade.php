@@ -80,7 +80,7 @@
                                 </div>
                             </div>
                         </div>
-                        @if ($row->request->created_by === $row->request->employee->id)
+                        @if ($row->request->created_by == $row->request->employee->id)
                         <div class="card-body">
                             <div class="row">
                                 <div class="col">
