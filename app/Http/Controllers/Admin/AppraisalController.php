@@ -202,6 +202,7 @@ class AppraisalController extends Controller
 
     public function getDetailData(Request $request)
     {
+        try {
             $user = Auth::user()->employee_id;
             $period = 2024;
             $contributorId = $request->id;
@@ -411,6 +412,10 @@ class AppraisalController extends Controller
             }
 
             return view('components.appraisal-card', compact('datas', 'formData', 'appraisalData'));
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 404);
+        }
 
     }
 

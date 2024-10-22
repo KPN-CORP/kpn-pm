@@ -138,40 +138,45 @@
                                     </li>
                                 @endforeach
                             @endforeach
-                            @foreach ($groupedData['peers'] as $key => $peers)
-                                @foreach ($peers as $value)
-                                    <li class="nav-item">
-                                        <button class="btn btn-sm btn-outline-primary position-relative me-2 mb-2 type-button" 
-                                                id="{{ $key }}-tab" 
-                                                data-id="{{ $value->contributor->id ?? null }}"
-                                                data-bs-toggle="tab" 
-                                                data-bs-target="#{{ $key }}" 
-                                                type="button" 
-                                                role="tab" 
-                                                aria-controls="{{ $key }}" 
-                                                aria-selected="false">
-                                            {{ $key }}
-                                        </button>
-                                    </li>
+                            @if(isset($groupedData['peers']))
+                                @foreach ($groupedData['peers'] as $key => $peers)
+                                    @foreach ($peers as $value)
+                                        <li class="nav-item">
+                                            <button class="btn btn-sm btn-outline-primary position-relative me-2 mb-2 type-button" 
+                                                    id="{{ $key }}-tab" 
+                                                    data-id="{{ $value->contributor->id ?? null }}"
+                                                    data-bs-toggle="tab" 
+                                                    data-bs-target="#{{ $key }}" 
+                                                    type="button" 
+                                                    role="tab" 
+                                                    aria-controls="{{ $key }}" 
+                                                    aria-selected="false">
+                                                {{ $key }}
+                                            </button>
+                                        </li>
+                                    @endforeach
                                 @endforeach
-                            @endforeach
-                            @foreach ($groupedData['subordinate'] as $key => $subs)
-                                @foreach ($subs as $value)
-                                    <li class="nav-item">
-                                        <button class="btn btn-sm btn-outline-primary position-relative me-2 mb-2 type-button" 
-                                                id="{{ $key }}-tab" 
-                                                data-id="{{ $value->contributor->id ?? null }}"
-                                                data-bs-toggle="tab" 
-                                                data-bs-target="#{{ $key }}" 
-                                                type="button" 
-                                                role="tab" 
-                                                aria-controls="{{ $key }}" 
-                                                aria-selected="false">
-                                            {{ $key }}
-                                        </button>
-                                    </li>
+                            @endif
+                            @if(isset($groupedData['subordinate']))
+                                @foreach ($groupedData['subordinate'] as $key => $subs)
+                                    @foreach ($subs as $value)
+                                        <li class="nav-item">
+                                            <button class="btn btn-sm btn-outline-primary position-relative me-2 mb-2 type-button" 
+                                                    id="{{ $key }}-tab" 
+                                                    data-id="{{ $value->contributor->id ?? null }}"
+                                                    data-bs-toggle="tab" 
+                                                    data-bs-target="#{{ $key }}" 
+                                                    type="button" 
+                                                    role="tab" 
+                                                    aria-controls="{{ $key }}" 
+                                                    aria-selected="false">
+                                                {{ $key }}
+                                            </button>
+                                        </li>
+                                    @endforeach
                                 @endforeach
-                            @endforeach
+                            @endif
+                            @if ($groupedData['manager'])
                                 <li class="nav-item">
                                     <button class="btn btn-sm btn-outline-primary position-relative me-2 mb-2 type-button" 
                                         id="summary-tab" 
@@ -185,6 +190,7 @@
                                         Summary
                                     </button>
                                 </li>
+                            @endif
                           </ul>
                     </div>
                     <div class="card-body">
