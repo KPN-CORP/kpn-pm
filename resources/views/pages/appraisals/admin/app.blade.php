@@ -145,7 +145,7 @@
                                 @if ($employee['appraisalStatus'] && count(collect($employee['approvalStatus'])->except('calibrator')) != 0)
                                     <a href="{{ route('admin.appraisal.details', $employee['id']) }}" class="btn btn-sm btn-outline-info"><i class="ri-eye-line"></i></a>
                                 @else
-                                    <a class="btn btn-sm btn-outline-secondary" onclick="alert('no data appraisal or some of layer are empty')"><i class="ri-eye-line"></i></a>
+                                    <a class="btn btn-sm btn-outline-secondary" onclick="alert('no data appraisal or pending reviewer')"><i class="ri-eye-line"></i></a>
                                 @endif
                             </td>
                         </tr>

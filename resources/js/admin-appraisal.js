@@ -47,31 +47,40 @@ document.addEventListener('DOMContentLoaded', function() {
 
             // Make AJAX request
             fetch(`/admin-appraisal/get-detail-data/${id}`)
-                .then(response => response.text())
-                .then(html => {
-                    // Hide the loading spinner
-                    loadingSpinner.classList.add('d-none');
+            .then(response => {
+                // Hide the loading spinner
+                loadingSpinner.classList.add('d-none');
+                
+                // Check if the response is successful (status code 200-299)
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
 
-                    // Check if the response is empty
-                    if (!html.trim()) {
-                        detailContent.innerHTML = `
-                            <div class="alert alert-info" role="alert">
-                                No data available for this item.
-                            </div>
-                        `;
-                    } else {
-                        detailContent.innerHTML = html;
-                    }
-                }).catch(error => {
-                    // Handle any errors
-                    loadingSpinner.classList.add('d-none');
+                return response.text();
+            })
+            .then(html => {
+                // Check if the response is empty
+                if (!html.trim()) {
                     detailContent.innerHTML = `
-                        <div class="alert alert-danger" role="alert">
-                            Error loading data. Please try again.
+                        <div class="alert alert-secondary" role="alert">
+                            No data available for this item.
                         </div>
                     `;
-                    console.error('Error:', error);
-                });
+                } else {
+                    detailContent.innerHTML = html;
+                }
+            })
+            .catch(error => {
+                // Handle any errors, including network errors and non-OK responses
+                loadingSpinner.classList.add('d-none');
+                detailContent.innerHTML = `
+                    <div class="alert alert-secondary" role="alert">
+                        No data available for this item.
+                    </div>
+                `;
+                console.error('Error:', error);
+            });
+
         });
     });
 
