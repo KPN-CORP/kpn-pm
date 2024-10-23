@@ -55,7 +55,7 @@
                                             <tr>
                                                 <th></th>
                                                 <th>Name</th>
-                                                <th>Position</th>
+                                                <th>Designation</th>
                                                 <th>Office</th>
                                                 <th>Business Unit</th>
                                                 <th>{{ __('Initiated Date') }}</th>
@@ -71,7 +71,7 @@
                                             <tr>
                                                 <th></th>
                                                 <th>Name</th>
-                                                <th>Position</th>
+                                                <th>Designation</th>
                                                 <th>Office</th>
                                                 <th>Business Unit</th>
                                                 <th>{{ __('Initiated Date') }}</th>

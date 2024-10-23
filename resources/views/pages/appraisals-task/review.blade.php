@@ -14,66 +14,54 @@
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md">
-                                    <div class="row">
-                                        <div class="col-3">
-                                            <div class="mb-1">
-                                                <span class="text-muted">Employee ID</span>
-                                            </div>
+                                    <div class="row mb-1">
+                                        <div class="col-lg-4 col-md-5">
+                                            <span class="text-muted">Employee ID</span>
                                         </div>
                                         <div class="col">
-                                            : {{ $goals->employee->employee_id }}
+                                            : {{ $goal->employee->employee_id }}
                                         </div>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-3">
-                                            <div class="mb-1">
-                                                <span class="text-muted">Employee Name</span>
-                                            </div>
+                                    <div class="row mb-1">
+                                        <div class="col-lg-4 col-md-5">
+                                            <span class="text-muted">Employee Name</span>
                                         </div>
                                         <div class="col">
-                                            : {{ $goals->employee->fullname }}
+                                            : {{ $goal->employee->fullname }}
                                         </div>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-3">
-                                            <div class="mb-1">
-                                                <span class="text-muted">Job Level</span>
-                                            </div>
+                                    <div class="row mb-1">
+                                        <div class="col-lg-4 col-md-5">
+                                            <span class="text-muted">Job Level</span>
                                         </div>
                                         <div class="col">
-                                            : {{ $goals->employee->job_level }}
+                                            : {{ $goal->employee->job_level }}
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md">
-                                    <div class="row">
-                                        <div class="col-3">
-                                            <div class="mb-1">
-                                                <span class="text-muted">Business Unit</span>
-                                            </div>
+                                    <div class="row mb-1">
+                                        <div class="col-lg-4 col-md-5">
+                                            <span class="text-muted">Business Unit</span>
                                         </div>
                                         <div class="col">
-                                            : {{ $goals->employee->group_company }}
+                                            : {{ $goal->employee->group_company }}
                                         </div>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-3">
-                                            <div class="mb-1">
-                                                <span class="text-muted">Division</span>
-                                            </div>
+                                    <div class="row mb-1">
+                                        <div class="col-lg-4 col-md-5">
+                                            <span class="text-muted">Division</span>
                                         </div>
                                         <div class="col">
-                                            : {{ $goals->employee->unit }}
+                                            : {{ $goal->employee->unit }}
                                         </div>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-3">
-                                            <div class="mb-1">
-                                                <span class="text-muted">Designation</span>
-                                            </div>
+                                    <div class="row mb-1">
+                                        <div class="col-lg-4 col-md-5">
+                                            <span class="text-muted">Designation</span>
                                         </div>
                                         <div class="col">
-                                            : {{ $goals->employee->designation }}
+                                            : {{ $goal->employee->designation_name }}
                                         </div>
                                     </div>
                                 </div>

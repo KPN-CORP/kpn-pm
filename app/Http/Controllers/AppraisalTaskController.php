@@ -156,7 +156,7 @@ class AppraisalTaskController extends Controller
                 'employee' => [
                     'fullname' => $team->employee->fullname .' <span class="text-muted">'.$team->employee->employee_id.'</span>',
                     'employee_id' => $team->employee->employee_id,
-                    'designation' => $team->employee->designation,
+                    'designation' => $team->employee->designation_name,
                     'office_area' => $team->employee->office_area,
                     'group_company' => $team->employee->group_company,
                 ],
@@ -228,7 +228,7 @@ class AppraisalTaskController extends Controller
                 'employee' => [
                     'fullname' => $team->employee->fullname .' <span class="text-muted">'.$team->employee->employee_id.'</span>',
                     'employee_id' => $team->employee->employee_id,
-                    'designation' => $team->employee->designation,
+                    'designation' => $team->employee->designation_name,
                     'office_area' => $team->employee->office_area,
                     'group_company' => $team->employee->group_company,
                     'category' => $team->layer_type,

@@ -456,6 +456,7 @@ $('#importButton').on('click', function(e) {
     const form = $('#importForm').get(0);
     const submitButton = $('#importButton');
     const spinner = submitButton.find(".spinner-border");
+    console.log(spinner);
 
     if (form.checkValidity()) {
     // Disable submit button

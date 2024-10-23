@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Exports\InvalidApprovalAppraisalImport;
+use App\Models\AppraisalContributor;
 use App\Models\ApprovalLayerAppraisal;
 use App\Models\Employee;
 use Illuminate\Support\Collection;
@@ -48,7 +49,21 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
 
         foreach ($collection as $row) {
             // Debug each row of data
-            // dd($row);
+
+            $contributor = AppraisalContributor::where('employee_id', $row['employee_id'])
+                            ->where('status', 'Approved')
+                            ->get();
+
+            if ($contributor->count() > 0) {
+                $this->invalidEmployees[] = [
+                    'employee_id' => $row['employee_id'],
+                    'approver_id' => $row['approver_id'],
+                    'layer_type' => $row['layer_type'],
+                    'layer' => $row['layer'],
+                    'message' => 'Layer update failed: Employee is already in the calibration process.'
+                ];
+                $this->invalidEmployeeIds[] = $row['employee_id']; // Track invalid employee_id
+            }
 
             if (empty($row['approver_id'])) {
                 $this->invalidEmployees[] = [
@@ -93,6 +108,18 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
                     'layer_type' => $row['layer_type'],
                     'layer' => $row['layer'],
                     'message' => 'Layer is missing.'
+                ];
+                $this->invalidEmployeeIds[] = $row['employee_id']; // Track invalid employee_id
+            }
+
+            // Additional validation for layer_type = 'manager'
+            if (in_array($row['layer_type'], ['manager']) && $row['layer'] > 1) {
+                $this->invalidEmployees[] = [
+                    'employee_id' => $row['employee_id'],
+                    'approver_id' => $row['approver_id'],
+                    'layer_type' => $row['layer_type'],
+                    'layer' => $row['layer'],
+                    'message' => 'Manager cannot be more than 1.'
                 ];
                 $this->invalidEmployeeIds[] = $row['employee_id']; // Track invalid employee_id
             }
