@@ -150,6 +150,10 @@ Route::middleware('auth', 'locale')->group(function () {
     // Rating | Calibration
     Route::get('/rating', [RatingController::class, 'index'])->name('rating');
     Route::post('/rating-submit', [RatingController::class, 'store'])->name('rating.submit');
+
+    Route::get('/export-ratings/{level}', [RatingController::class, 'exportToExcel'])->name('rating.export');
+    Route::post('/rating/import', [RatingController::class, 'importFromExcel'])->name('rating.import');
+
     
     // Approval
     Route::post('/approval/goal', [ApprovalController::class, 'store'])->name('approval.goal');

@@ -449,6 +449,30 @@ class AppService
 
     }
 
+    // public function ratingValue($employee, $approver, $period)
+    // {
+
+    //     $rating = Calibration::with(['masterCalibration'])
+    //                     ->where('employee_id', $employee)
+    //                     ->where('approver_id', $approver)
+    //                     ->where('status', 'Approved')
+    //                     ->where('period', $period)
+    //                     ->first();
+                        
+    //     $id_rating = $rating->masterCalibration->first()->id_rating_group;
+        
+    //     $ratings = MasterRating::select('parameter', 'value')
+    //                 ->where('id_rating_group', $id_rating)
+    //                 ->get();
+        
+    //     $ratingMap = $ratings->pluck('parameter', 'value')->toArray();
+
+    //     $convertedValue = $ratingMap[$rating->rating] ?? null;
+
+    //     return $rating ? $convertedValue : null; // null means finish the calibrator layer.
+
+    // }
+
     public function ratingAllowedCheck($employeeId)
     {
         // Cari data pada ApprovalLayerAppraisal berdasarkan employee_id
@@ -460,7 +484,6 @@ class AppService
         
         foreach ($approvalLayerAppraisals as $approvalLayer) {
             
-            // dd($approvalLayer->employee->access_menu);
             $review360 = json_decode($approvalLayer->employee->access_menu, true);
 
             if (!array_key_exists('review360', $review360)) {

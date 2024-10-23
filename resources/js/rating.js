@@ -261,3 +261,28 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     });
 });
+
+$('#importRatingButton').on('click', function(e) {
+    e.preventDefault();
+    const form = $('#importRating').get(0);
+    const submitButton = $(this);
+    const spinner = submitButton.find(".spinner-border");
+
+    if (form.checkValidity()) {
+    // Disable submit button
+    submitButton.prop('disabled', true);
+    submitButton.addClass("disabled");
+
+    // Remove d-none class from spinner if it exists
+    if (spinner.length) {
+        spinner.removeClass("d-none");
+    }
+
+    // Submit form
+    form.submit();
+    
+    } else {
+        // If the form is not valid, trigger HTML5 validation messages
+        form.reportValidity();
+    }
+});

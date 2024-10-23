@@ -17,4 +17,9 @@ class Calibration extends Model
     {
         return $this->belongsTo(EmployeeAppraisal::class, 'approver_id', 'employee_id')->select(['id', 'employee_id', 'fullname']);
     }
+
+    public function masterCalibration()
+    {
+        return $this->hasMany(MasterCalibration::class, 'id_calibration_group', 'id_calibration_group');
+    }
 }

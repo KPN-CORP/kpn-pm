@@ -75,9 +75,13 @@ class MyAppraisalController extends Controller
             Session::flash('error', "Appraisal $period already initiated.");
             return redirect()->back();
         }
-
-        $approval = ApprovalLayerAppraisal::select('approver_id')->where('employee_id', $request->id)->where('layer', 1)->first();
-
+        
+        $approval = ApprovalLayerAppraisal::select('approver_id')->where('employee_id', $request->id)->where('layer_type', 'manager')->where('layer', 1)->first();
+  
+        if (!$approval) {
+            Session::flash('error', "No Reviewer assigned, please contact admin to assign reviewer");
+            return redirect()->back();
+        }
         // Read the content of the JSON files
         $formGroupContent = storage_path('../resources/testFormGroup.json');
 

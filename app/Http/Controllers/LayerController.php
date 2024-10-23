@@ -348,8 +348,9 @@ class LayerController extends Controller
             $datas->formattedDoj = $this->appService->formatDate($datas->date_of_joining);
         }
 
-        $groupLayers = $datas->appraisalLayer->groupBy('layer_type');
-
+        $groupLayers = $datas->appraisalLayer->groupBy('layer_type')->map(function ($layers) {
+            return $layers->sortBy('layer')->values();
+        });
 
         $calibratorCount = isset($groupLayers['calibrator']) ? $groupLayers['calibrator']->count() : 1;
 
@@ -422,10 +423,18 @@ class LayerController extends Controller
             if($currentManager->approver_id != $manager){
                 // Check if the employee record exists
                 if ($approvalRequest) {
+
+                    $appraisal = Appraisal::where('id', $approvalRequest->form_id)->where('created_by', $currentManager->approver->id)->first();
         
                     if ($approvalRequest->created_by == $currentManager->approver->id) {
                         // Soft delete the record
                         $approvalRequest->delete();
+
+                        if ($appraisal) {
+                            // Soft delete the record
+                            $appraisal->delete();
+                            
+                        }
                         
                     } else {
                         // Update the current_approval_id if not created by the current user
@@ -444,14 +453,6 @@ class LayerController extends Controller
                         
                     }
         
-                    $appraisal = Appraisal::where('id', $approvalRequest->form_id)->where('created_by', $currentManager->approver->id)->first();
-        
-                    if ($appraisal) {
-                        // Soft delete the record
-                        $appraisal->delete();
-                        
-                    }
-        
                     $contributor = AppraisalContributor::where('appraisal_id', $approvalRequest->form_id)->where('contributor_id', $currentManager->approver_id)->first();
         
                     if ($contributor) {
@@ -464,37 +465,47 @@ class LayerController extends Controller
             }
         }
 
-        if (!empty($peersToDelete)) {
-            // Iterate through each peer that needs to be deleted
-            foreach ($peersToDelete as $peerId) {
-                // Find the record in the AppraisalContributor table based on appraisal_id and contributor_id
-                $contributor = AppraisalContributor::where('appraisal_id', $approvalRequest->form_id)
-                    ->where('contributor_id', $peerId)
-                    ->where('contributor_type', 'peers')
-                    ->first();
+        if ($currentManager && $approvalRequest) {
+            if($approvalRequest->created_by == $currentManager->approver->id){
+
+            AppraisalContributor::where('appraisal_id', $approvalRequest->form_id)
+                                ->whereIn('contributor_type', ['peers', 'subordinate'])
+                                ->delete();
+
+            }else{
+                if (!empty($peersToDelete)) {
+                    foreach ($peersToDelete as $peerId) {
+                        // Find the record in the AppraisalContributor table based on appraisal_id and contributor_id
+                        $contributor = AppraisalContributor::where('appraisal_id', $approvalRequest->form_id)
+                            ->where('contributor_id', $peerId)
+                            ->where('contributor_type', 'peers')
+                            ->first();
+                
+                        // If a record is found, perform a soft delete
+                        if ($contributor) {
+                            $contributor->delete();
+                        }
+                    }
+                }
         
-                // If a record is found, perform a soft delete
-                if ($contributor) {
-                    $contributor->delete();
+                if (!empty($subsToDelete)) {
+                    // Iterate through each peer that needs to be deleted
+                    foreach ($subsToDelete as $subId) {
+                        // Find the record in the AppraisalContributor table based on appraisal_id and contributor_id
+                        $contributor = AppraisalContributor::where('appraisal_id', $approvalRequest->form_id)
+                            ->where('contributor_id', $subId)
+                            ->where('contributor_type', 'subordinate')
+                            ->first();
+                
+                        // If a record is found, perform a soft delete
+                        if ($contributor) {
+                            $contributor->delete();
+                        }
+                    }
                 }
             }
         }
 
-        if (!empty($subsToDelete)) {
-            // Iterate through each peer that needs to be deleted
-            foreach ($subsToDelete as $subId) {
-                // Find the record in the AppraisalContributor table based on appraisal_id and contributor_id
-                $contributor = AppraisalContributor::where('appraisal_id', $approvalRequest->form_id)
-                    ->where('contributor_id', $subId)
-                    ->where('contributor_type', 'subordinate')
-                    ->first();
-        
-                // If a record is found, perform a soft delete
-                if ($contributor) {
-                    $contributor->delete();
-                }
-            }
-        }
         
         // Delete existing records for the employee_id
         ApprovalLayerAppraisal::where('employee_id', $validated['employee_id'])->delete();
@@ -678,7 +689,7 @@ class LayerController extends Controller
                 'group_company' => $employee->group_company,
                 'company_name' => $employee->company_name,
                 'unit' => $employee->unit,
-                'designation' => $employee->designation,
+                'designation' => $employee->designation_name,
                 'office_area' => $employee->office_area,
                 'history' => $history->map(function($entry) {
                     return [

@@ -61,7 +61,7 @@
                                             <p class="text-muted">Designation</p>
                                         </div>
                                         <div class="col">
-                                            : {{ $goal->employee->designation }}
+                                            : {{ $goal->employee->designation_name }}
                                         </div>
                                     </div>
                                 </div>
