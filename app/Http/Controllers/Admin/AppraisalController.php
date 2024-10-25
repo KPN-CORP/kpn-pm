@@ -28,24 +28,51 @@ class AppraisalController extends Controller
     protected $category;
     protected $user;
     protected $appService;
+    protected $roles;
 
     public function __construct(AppService $appService)
     {
         $this->appService = $appService;
         $this->user = Auth()->user()->employee_id;
         $this->category = 'Appraisal';
+        $this->roles = Auth()->user()->roles;
     }
     
     public function index(Request $request)
     {
         $period = 2024;
 
+        $restrictionData = [];
+        if(!is_null($this->roles)){
+            $restrictionData = json_decode($this->roles->first()->restriction, true);
+        }
+        
+        $permissionGroupCompanies = $restrictionData['group_company'] ?? [];
+        $permissionCompanies = $restrictionData['contribution_level_code'] ?? [];
+        $permissionLocations = $restrictionData['work_area_code'] ?? [];
+
+        $criteria = [
+            'work_area_code' => $permissionLocations,
+            'group_company' => $permissionGroupCompanies,
+            'contribution_level_code' => $permissionCompanies,
+        ];
+
         $query = EmployeeAppraisal::with(['appraisal' => function($query) use ($period) {
                 $query->where('period', $period);
-            // }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration'])->get();
-            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration'])->where('employee_id', '01120040011')->get();
+            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration']);
+            // }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration'])->where('employee_id', '01120040011')->get();
 
-        $datas = $query->map(function ($employee) {
+        $query->where(function ($query) use ($criteria) {
+            foreach ($criteria as $key => $value) {
+                if ($value !== null && !empty($value)) {
+                    $query->whereIn($key, $value);
+                }
+            }
+        });
+
+        $data = $query->get();
+
+        $datas = $data->map(function ($employee) {
             $approvalStatus = [];
 
             foreach ($employee->appraisalLayer as $layer) {
@@ -108,20 +135,27 @@ class AppraisalController extends Controller
 
             // Join content with line breaks
             $popoverText = implode("<br>", $popoverContent);
-
-            $masterRating = MasterRating::select('id_rating_group', 'parameter', 'value', 'min_range', 'max_range')
-                ->where('id_rating_group', $employee->appraisal->first()->id_rating_group)
-                ->get();
-
-            $convertRating = [];
-
-            foreach ($masterRating as $rating) {
-                $convertRating[$rating->value] = $rating->parameter;
-            }
             
-            $appraisal = $employee->appraisal && $employee->appraisal->first()->rating
-                            ? $convertRating[$employee->appraisal->first()->rating] 
-                            : null;
+            if ($employee->appraisal->first()) {
+                # code...
+                $masterRating = MasterRating::select('id_rating_group', 'parameter', 'value', 'min_range', 'max_range')
+                    ->where('id_rating_group', $employee->appraisal->first()->id_rating_group)
+                    ->get();
+                $convertRating = [];
+    
+                foreach ($masterRating as $rating) {
+                    $convertRating[$rating->value] = $rating->parameter;
+                }
+            }
+
+            if ($employee->appraisal->first()) {
+                $appraisal =  $employee->appraisal->first()->rating
+                                ? $convertRating[$employee->appraisal->first()->rating] 
+                                : null;
+            }else{
+                $appraisal = '-';
+            }
+
             return [
                 'id' => $employee->employee_id,
                 'name' => $employee->fullname,

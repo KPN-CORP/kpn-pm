@@ -80,7 +80,7 @@ $(document).ready(function() {
 $(document).ready(function() {
     
     // Initialize DataTable for 360 Appraisal
-    $('#tableAppraisal360').DataTable({
+    var table360 = $('#tableAppraisal360').DataTable({
         stateSave: true,
         autoWidth: false,
         dom: 'Bfrtip',
