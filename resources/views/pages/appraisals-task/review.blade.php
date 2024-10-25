@@ -19,7 +19,7 @@
                                             <span class="text-muted">Employee ID</span>
                                         </div>
                                         <div class="col">
-                                            : {{ $goal->employee->employee_id }}
+                                            : {{ $appraisal->employee->employee_id }}
                                         </div>
                                     </div>
                                     <div class="row mb-1">
@@ -27,7 +27,7 @@
                                             <span class="text-muted">Employee Name</span>
                                         </div>
                                         <div class="col">
-                                            : {{ $goal->employee->fullname }}
+                                            : {{ $appraisal->employee->fullname }}
                                         </div>
                                     </div>
                                     <div class="row mb-1">
@@ -35,7 +35,7 @@
                                             <span class="text-muted">Job Level</span>
                                         </div>
                                         <div class="col">
-                                            : {{ $goal->employee->job_level }}
+                                            : {{ $appraisal->employee->job_level }}
                                         </div>
                                     </div>
                                 </div>
@@ -45,7 +45,7 @@
                                             <span class="text-muted">Business Unit</span>
                                         </div>
                                         <div class="col">
-                                            : {{ $goal->employee->group_company }}
+                                            : {{ $appraisal->employee->group_company }}
                                         </div>
                                     </div>
                                     <div class="row mb-1">
@@ -53,7 +53,7 @@
                                             <span class="text-muted">Division</span>
                                         </div>
                                         <div class="col">
-                                            : {{ $goal->employee->unit }}
+                                            : {{ $appraisal->employee->unit }}
                                         </div>
                                     </div>
                                     <div class="row mb-1">
@@ -61,7 +61,7 @@
                                             <span class="text-muted">Designation</span>
                                         </div>
                                         <div class="col">
-                                            : {{ $goal->employee->designation_name }}
+                                            : {{ $appraisal->employee->designation_name }}
                                         </div>
                                     </div>
                                 </div>
@@ -98,8 +98,9 @@
                         @csrf
                         <input type="hidden" name="appraisal_id" value="{{ $appraisalId }}">
                         <input type="hidden" name="employee_id" value="{{ $goals->employee_id }}">
+                        <input type="hidden" name="form_group_id" value="{{ $formGroupData['data']['id'] }}">
                         <input type="hidden" class="form-control" name="approver_id" value="{{ $approval->approver_id }}">
-                        <input type="hidden" name="formGroupName" value="{{ $formGroupData['name'] }}">
+                        <input type="hidden" name="formGroupName" value="{{ $formGroupData['data']['name'] }}">
                         @foreach ($filteredFormDatas['filteredFormData'] as $index => $row)
                             <div class="form-step {{ $step == $index + 1 ? 'active' : '' }}" data-step="{{ $index + 1 }}">
                                 <div class="card-title h4 mb-4">{{ $row['title'] }}</div>

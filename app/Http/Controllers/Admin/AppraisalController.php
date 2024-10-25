@@ -9,6 +9,8 @@ use App\Models\ApprovalLayerAppraisal;
 use App\Models\ApprovalRequest;
 use App\Models\Calibration;
 use App\Models\EmployeeAppraisal;
+use App\Models\FormGroupAppraisal;
+use App\Models\MasterRating;
 use App\Models\MasterWeightage;
 use Illuminate\Http\Request;
 use App\Services\AppService;
@@ -40,7 +42,8 @@ class AppraisalController extends Controller
 
         $query = EmployeeAppraisal::with(['appraisal' => function($query) use ($period) {
                 $query->where('period', $period);
-            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration'])->get();
+            // }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration'])->get();
+            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration'])->where('employee_id', '01120040011')->get();
 
         $datas = $query->map(function ($employee) {
             $approvalStatus = [];
@@ -106,8 +109,18 @@ class AppraisalController extends Controller
             // Join content with line breaks
             $popoverText = implode("<br>", $popoverContent);
 
-            $appraisal = $employee->appraisal && $employee->appraisal->first() 
-                            ? $employee->appraisal->first()->id 
+            $masterRating = MasterRating::select('id_rating_group', 'parameter', 'value', 'min_range', 'max_range')
+                ->where('id_rating_group', $employee->appraisal->first()->id_rating_group)
+                ->get();
+
+            $convertRating = [];
+
+            foreach ($masterRating as $rating) {
+                $convertRating[$rating->value] = $rating->parameter;
+            }
+            
+            $appraisal = $employee->appraisal && $employee->appraisal->first()->rating
+                            ? $convertRating[$employee->appraisal->first()->rating] 
                             : null;
             return [
                 'id' => $employee->employee_id,
@@ -191,7 +204,21 @@ class AppraisalController extends Controller
             $parentLink = __('Reports');
             $link = __('Appraisal');
 
-            return view('pages.appraisals.admin.detail', compact('datas', 'groupedData', 'parentLink', 'link'));
+            $formGroup = FormGroupAppraisal::with(['rating'])->find($datas->appraisal->first()->form_group_id);
+            
+            $ratings = [];
+
+            foreach ($formGroup->rating as $rating) {
+                $ratings[$rating->value] = $rating->parameter;
+            }
+
+            $final_rating = '-';
+
+            if ($datas->appraisal->first()->rating) {
+                $final_rating = $ratings[$datas->appraisal->first()->rating];
+            }
+
+            return view('pages.appraisals.admin.detail', compact('datas', 'groupedData', 'parentLink', 'link', 'final_rating'));
 
         } catch (Exception $e) {
             Log::error('Error in index method: ' . $e->getMessage());

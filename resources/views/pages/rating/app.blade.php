@@ -172,10 +172,13 @@
                                                                         <div class="col-md col-sm-12 text-md-center">
                                                                             <span class="text-muted">Review Status</span>
                                                                             <div class="mb-2">
-                                                                                @if ($item->rating_incomplete)
                                                                                 @if ($item->rating_allowed['status'] && $item->form_id)
                                                                                     @if ($item->rating_allowed['status'] && $item->form_id && $item->current_calibrator)
-                                                                                        <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $item->current_calibrator }}" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending Calibration</a>
+                                                                                        @if ($item->rating_incomplete)
+                                                                                            <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $item->current_calibrator }}" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending Calibration</a>
+                                                                                        @else
+                                                                                            <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="" class="badge bg-success rounded-pill py-1 px-2 mt-1">Approved</a>
+                                                                                        @endif
                                                                                     @else
                                                                                         <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="360 Review incomplete" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending 360</a>
                                                                                     @endif
@@ -186,9 +189,6 @@
                                                                                         <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="360 Review incomplete" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending 360</a>
                                                                                     @endif
                                                                                 @endif 
-                                                                                @else
-                                                                                    <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="" class="badge bg-success rounded-pill py-1 px-2 mt-1">Approved</a>
-                                                                                @endif
                                                                             </div>
                                                                         </div>
                                                                         <div class="col text-center">

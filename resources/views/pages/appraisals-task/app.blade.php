@@ -29,7 +29,7 @@
             <div class="col">
                 <div class="card">
                     <div class="card-body">
-                        <ul class="nav nav-pills mb-md-0 mb-3" id="myTab" role="tablist">
+                        <ul class="nav nav-pills mb-3" id="myTab" role="tablist">
                             <li class="nav-item">
                               <button class="btn btn-outline-primary position-relative active me-2" id="team-tab" data-bs-toggle="tab" data-bs-target="#team" type="button" role="tab" aria-controls="team" aria-selected="true">
                                 {{ __('My Team') }}
@@ -54,6 +54,7 @@
                                         <thead>
                                             <tr>
                                                 <th></th>
+                                                <th>Employee ID</th>
                                                 <th>Name</th>
                                                 <th>Designation</th>
                                                 <th>Office</th>
@@ -70,6 +71,7 @@
                                         <thead>
                                             <tr>
                                                 <th></th>
+                                                <th>Employee ID</th>
                                                 <th>Name</th>
                                                 <th>Designation</th>
                                                 <th>Office</th>

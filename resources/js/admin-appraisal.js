@@ -6,15 +6,31 @@ window.Swal = Swal;
 $(document).ready(function() {
     $('#adminAppraisalTable').DataTable({
         stateSave: true,
+        dom: 'Bfrtip',
         buttons: [
-            'copy', 'csv'
+            {
+                extend: 'csvHtml5',
+                text: '<i class="ri-download-cloud-2-line fs-16 me-1"></i>Download Report',
+                className: 'btn btn-sm btn-outline-success',
+                title: 'Employee Data',
+                exportOptions: {
+                    columns: ':not(:last-child)', // Excludes the last column (Details)
+                    format: {
+                        body: function(data, row, column, node) {
+                            // Check if the <td> has a 'data-id' attribute and use that for the export
+                            var dataId = $(node).attr('data-id');
+                            return dataId ? dataId : data; // Use the data-id value if available, else fallback to default text
+                        }
+                    }
+                }
+            }
         ],
         fixedColumns: {
             leftColumns: 0,
             rightColumns: 1
         },
         scrollCollapse: true,
-        scrollX: true // Enable horizontal scrolling for large tables
+        scrollX: true
     });
 });
 

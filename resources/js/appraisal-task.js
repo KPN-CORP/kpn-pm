@@ -5,6 +5,44 @@ $(document).ready(function() {
     var tableTeam = $('#tableAppraisalTeam').DataTable({
         stateSave: true,
         autoWidth: false,
+        dom: 'Bfrtip',
+        buttons: [
+            {
+                extend: 'csvHtml5',
+                text: '<i class="ri-download-cloud-2-line fs-16 me-1"></i>Download Report',
+                className: 'btn btn-sm btn-outline-success',
+                title: 'My Appraisal Team',
+                exportOptions: {
+                    columns: ':not(:first-child):not(:last-child)'
+                },
+                customize: function(csv) {
+                    // Split CSV into rows
+                    let csvRows = csv.split('\n');
+                    
+                    // Get data from the DataTable
+                    let dt = $('#tableAppraisalTeam').DataTable();
+                    let data = dt.data().toArray();
+                    
+                    // Add new headers
+                    csvRows[0] = csvRows[0].slice(0, -1) + ',KPI Score,Culture Score,Leadership Score,Total Score';
+                    
+                    // Process each data row
+                    for(let i = 1; i < csvRows.length; i++) {
+                        if(csvRows[i]) {
+                            let rowData = data[i-1];
+                            let scores = getScores(rowData);
+                            
+                            // Add the scores to the CSV row
+                            csvRows[i] = csvRows[i].slice(0, -1)
+                            + scores.kpiScore + '"' + scores.cultureScore + '",' + '"' + scores.leadershipScore + '",' +
+                            '"' + scores.totalScore + '"';
+                        }
+                    }
+                    
+                    return csvRows.join('\n');
+                }
+            }
+        ],
         fixedColumns: {
             leftColumns: 0,
             rightColumns: 1
@@ -24,6 +62,7 @@ $(document).ready(function() {
                 data: null,
                 defaultContent: ''
              },
+            { data: 'employee.employee_id' },
             { data: 'employee.fullname' },
             { data: 'employee.designation' },
             { data: 'employee.office_area' },
@@ -33,10 +72,55 @@ $(document).ready(function() {
         ]
     });
 
+    // Add event listener for both tables
+    addChildRowToggle(tableTeam, '#tableAppraisalTeam');
+
+});
+
+$(document).ready(function() {
+    
     // Initialize DataTable for 360 Appraisal
-    var table360 = $('#tableAppraisal360').DataTable({
+    $('#tableAppraisal360').DataTable({
         stateSave: true,
         autoWidth: false,
+        dom: 'Bfrtip',
+        buttons: [
+            {
+                extend: 'csvHtml5',
+                text: '<i class="ri-download-cloud-2-line fs-16 me-1"></i>Download Report',
+                className: 'btn btn-sm btn-outline-success',
+                title: 'My Appraisal 360',
+                exportOptions: {
+                    columns: ':not(:first-child):not(:last-child)'
+                },
+                customize: function(csv) {
+                    // Split CSV into rows
+                    let csvRows = csv.split('\n');
+                    
+                    // Get data from the DataTable
+                    let dt = $('#tableAppraisal360').DataTable();
+                    let data = dt.data().toArray();
+                    
+                    // Add new headers
+                    csvRows[0] = csvRows[0].slice(0, -1) + ',KPI Score,Culture Score,Leadership Score,Total Score';
+                    
+                    // Process each data row
+                    for(let i = 1; i < csvRows.length; i++) {
+                        if(csvRows[i]) {
+                            let rowData = data[i-1];
+                            let scores = getScores(rowData);
+                            
+                            // Add the scores to the CSV row
+                            csvRows[i] = csvRows[i].slice(0, -1)
+                                + scores.kpiScore + '"' + scores.cultureScore + '",' + '"' + scores.leadershipScore + '",' +
+                                '"' + scores.totalScore + '"';
+                        }
+                    }
+                    
+                    return csvRows.join('\n');
+                }
+            }
+        ],
         fixedColumns: {
             leftColumns: 0,
             rightColumns: 1
@@ -50,12 +134,13 @@ $(document).ready(function() {
             dataSrc: ''
         },
         columns: [
-            {   
+            {
                 className: 'dt-control',
                 orderable: false,
                 data: null,
                 defaultContent: ''
             },
+            { data: 'employee.employee_id' },
             { data: 'employee.fullname' },
             { data: 'employee.designation' },
             { data: 'employee.office_area' },
@@ -65,94 +150,112 @@ $(document).ready(function() {
             { data: 'action', className: 'sorting_1 text-center' }
         ]
     });
-
+    
     // Add event listener for both tables
-    addChildRowToggle(tableTeam, '#tableAppraisalTeam');
     addChildRowToggle(table360, '#tableAppraisal360');
 
-    // Function to add child row toggle functionality
-    function addChildRowToggle(table, tableId, speed = 250) {
-        $(tableId + ' tbody').on('click', 'td.dt-control', function () {
-            var tr = $(this).closest('tr');
-            var row = table.row(tr);
-    
-            if (row.child.isShown()) {
-                // Close the row with animation
-                $('div.slider', row.child()).slideUp(speed, function () {
-                    row.child.hide(); // After the slide-up animation, hide the row
-                    tr.removeClass('shown');
-                });
-            } else {
-                // Format and show the child row but initially hide it with display:none
-                row.child('<div class="slider" style="display:none;">' + formatChildRow(row.data()) + '</div>').show();
-                // Then slide it down to make it visible with animation
-                $('div.slider', row.child()).slideDown(speed);
-                tr.addClass('shown');
-            }
-        });
-    }
-    
-
-    // Function to format child row content
-    function formatChildRow(rowData) {
-        let kpiContent = '<div>No scores available</div>';
-        let totalScoreContent = '';
-        let kpiScoreContent = '';
-        let cultureScoreContent = '';
-        let leadershipScoreContent = '';
-
-        if (rowData.kpi && rowData.kpi.kpi_status) {
-            if (rowData.kpi.total_score) {
-                totalScoreContent = `<div class="row">
-                    <div class="col-2">
-                        <div class="mb-1 border-bottom border-secondary"><strong>Total Score</strong></div>
-                    </div>
-                    <div class="col-auto">
-                        <div class="mb-1 border-bottom border-secondary"><strong>: ${rowData.kpi.total_score}</strong></div>
-                    </div>
-                </div>`;
-            }
-
-            if (rowData.kpi.kpi_score) {
-                kpiScoreContent = `<div class="row">
-                    <div class="col-2">
-                        <div class="mb-1">KPI</div>
-                    </div>
-                    <div class="col">
-                        <div class="mb-1">: ${rowData.kpi.kpi_score}</div>
-                    </div>
-                </div>`;
-            }
-
-            if (rowData.kpi.culture_score) {
-                cultureScoreContent = `<div class="row">
-                    <div class="col-2">
-                        <div class="mb-1">Culture</div>
-                    </div>
-                    <div class="col">
-                        <div class="mb-1">: ${rowData.kpi.culture_score}</div>
-                    </div>
-                </div>`;
-            }
-
-            if (rowData.kpi.leadership_score) {
-                leadershipScoreContent = `<div class="row">
-                    <div class="col-2">
-                        <div class="mb-1">Leadership</strong></div>
-                    </div>
-                    <div class="col">
-                        <div class="mb-1">: ${rowData.kpi.leadership_score}</div>
-                    </div>
-                </div>`;
-            }
-
-            kpiContent = `${totalScoreContent}${kpiScoreContent}${cultureScoreContent}${leadershipScoreContent}`;
-        }
-
-        return kpiContent;
-    }
 });
 
+// Function to get formatted scores for export
+function getScores(rowData) {
+    let scores = {
+        totalScore: 'N/A',
+        kpiScore: '","N/A",',
+        cultureScore: 'N/A',
+        leadershipScore: 'N/A'
+    };
+
+    if (rowData.kpi && rowData.kpi.kpi_status) {
+        scores.totalScore = rowData.kpi.total_score || 'N/A';
+        scores.kpiScore = ',"' + rowData.kpi.kpi_score + '",' || 'N/A';
+        scores.cultureScore = rowData.kpi.culture_score || 'N/A';
+        scores.leadershipScore = rowData.kpi.leadership_score || 'N/A';
+    }
+
+    return scores;
+}
+
+// Function to add child row toggle functionality
+function addChildRowToggle(table, tableId, speed = 250) {
+    $(tableId + ' tbody').on('click', 'td.dt-control', function () {
+        var tr = $(this).closest('tr');
+        var row = table.row(tr);
+
+        if (row.child.isShown()) {
+            // Close the row with animation
+            $('div.slider', row.child()).slideUp(speed, function () {
+                row.child.hide(); // After the slide-up animation, hide the row
+                tr.removeClass('shown');
+            });
+        } else {
+            // Format and show the child row but initially hide it with display:none
+            row.child('<div class="slider" style="display:none;">' + formatChildRow(row.data()) + '</div>').show();
+            // Then slide it down to make it visible with animation
+            $('div.slider', row.child()).slideDown(speed);
+            tr.addClass('shown');
+        }
+    });
+}
+
+
+// Function to format child row content
+function formatChildRow(rowData) {
+    let kpiContent = '<div>No scores available</div>';
+    let totalScoreContent = '';
+    let kpiScoreContent = '';
+    let cultureScoreContent = '';
+    let leadershipScoreContent = '';
+
+    if (rowData.kpi && rowData.kpi.kpi_status) {
+        if (rowData.kpi.total_score) {
+            totalScoreContent = `<div class="row">
+                <div class="col-2">
+                    <div class="mb-1 border-bottom border-secondary"><strong>Total Score</strong></div>
+                </div>
+                <div class="col-auto">
+                    <div class="mb-1 border-bottom border-secondary"><strong>: ${rowData.kpi.total_score}</strong></div>
+                </div>
+            </div>`;
+        }
+
+        if (rowData.kpi.kpi_score) {
+            kpiScoreContent = `<div class="row">
+                <div class="col-2">
+                    <div class="mb-1">KPI</div>
+                </div>
+                <div class="col">
+                    <div class="mb-1">: ${rowData.kpi.kpi_score}</div>
+                </div>
+            </div>`;
+        }
+
+        if (rowData.kpi.culture_score) {
+            cultureScoreContent = `<div class="row">
+                <div class="col-2">
+                    <div class="mb-1">Culture</div>
+                </div>
+                <div class="col">
+                    <div class="mb-1">: ${rowData.kpi.culture_score}</div>
+                </div>
+            </div>`;
+        }
+
+        if (rowData.kpi.leadership_score) {
+            leadershipScoreContent = `<div class="row">
+                <div class="col-2">
+                    <div class="mb-1">Leadership</strong></div>
+                </div>
+                <div class="col">
+                    <div class="mb-1">: ${rowData.kpi.leadership_score}</div>
+                </div>
+            </div>`;
+        }
+
+        kpiContent = `${totalScoreContent}${kpiScoreContent}${cultureScoreContent}${leadershipScoreContent}`;
+    }
+
+    return kpiContent;
+}
 
 $(document).ready(function() {
     let currentStep = $('.step').data('step');

@@ -9,6 +9,8 @@ use App\Models\ApprovalLayerAppraisal;
 use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
 use App\Models\EmployeeAppraisal;
+use App\Models\FormAppraisal;
+use App\Models\FormGroupAppraisal;
 use App\Models\Goal;
 use App\Models\User;
 use Carbon\Carbon;
@@ -24,6 +26,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use RealRashid\SweetAlert\Facades\Alert;
 use stdClass;
 use App\Services\AppService;
+use Illuminate\Support\Facades\Http;
 
 class MyAppraisalController extends Controller
 {
@@ -50,163 +53,6 @@ class MyAppraisalController extends Controller
         } else {
             return $carbonDate->format('d M ga');
         }
-    }
-
-    public function create(Request $request)
-    {
-        $step = $request->input('step', 1);
-
-        $period = 2024;
-
-        $goal = Goal::where('employee_id', $request->id)->where('period', $period)->first();
-
-        $appraisal = Appraisal::where('employee_id', $request->id)->where('period', $period)->first();
-
-        // check goals
-        if ($goal) {
-            $goalData = json_decode($goal->form_data, true);
-        } else {
-            Session::flash('error', "Your Goals for $period are not found.");
-            return redirect()->back();
-        }
-
-        // check appraisals
-        if ($appraisal) {
-            Session::flash('error', "Appraisal $period already initiated.");
-            return redirect()->back();
-        }
-        
-        $approval = ApprovalLayerAppraisal::select('approver_id')->where('employee_id', $request->id)->where('layer_type', 'manager')->where('layer', 1)->first();
-  
-        if (!$approval) {
-            Session::flash('error', "No Reviewer assigned, please contact admin to assign reviewer");
-            return redirect()->back();
-        }
-        // Read the content of the JSON files
-        $formGroupContent = storage_path('../resources/testFormGroup.json');
-
-        // Decode the JSON content
-        $formGroupData = json_decode(File::get($formGroupContent), true);
-        
-        
-        $formTypes = $formGroupData['data']['formName'] ?? [];
-        $formDatas = $formGroupData['data']['formData'] ?? [];
-
-        
-        $filteredFormData = array_filter($formDatas, function($form) use ($formTypes) {
-            return in_array($form['name'], $formTypes);
-        });
-        
-        $parentLink = __('Appraisal');
-        $link = 'Initiate Appraisal';
-
-        // Pass the data to the view
-        return view('pages/appraisals/create', compact('step', 'parentLink', 'link', 'filteredFormData', 'formGroupData', 'goalData', 'goal', 'approval'));
-    }
-
-    public function store(Request $request)
-    {
-        $submit_status = 'Submitted';
-        $period = 2024;
-
-        // Validate the request data
-        $validatedData = $request->validate([
-            'employee_id' => 'required|string|size:11',
-            'approver_id' => 'required|string|size:11',
-            'formGroupName' => 'required|string|min:5|max:100',
-            'formData' => 'required|array',
-        ]);
-
-        // Extract formGroupName
-        $formGroupName = $validatedData['formGroupName'];
-        $formData = $validatedData['formData'];
-
-        $goals = Goal::with(['employee'])->where('employee_id', $validatedData['employee_id'])->where('period', $period)->first();
-
-        // Create the array structure
-        $datas = [
-            'formGroupName' => $formGroupName,
-            'formData' => $formData,
-        ];
-
-        // Create a new Appraisal instance and save the data
-        $appraisal = new Appraisal;
-        $appraisal->id = Str::uuid();
-        $appraisal->goals_id = $goals->id;
-        $appraisal->employee_id = $validatedData['employee_id'];
-        $appraisal->category = $this->category;
-        $appraisal->form_data = json_encode($datas); // Store the form data as JSON
-        $appraisal->form_status = $submit_status;
-        $appraisal->period = $period;
-        $appraisal->created_by = Auth::user()->id;
-        
-        $appraisal->save();
-        
-        $snapshot =  new ApprovalSnapshots;
-        $snapshot->id = Str::uuid();
-        $snapshot->form_id = $appraisal->id;
-        $snapshot->form_data = json_encode($datas);
-        $snapshot->employee_id = $validatedData['employee_id'];
-        $snapshot->created_by = Auth::user()->id;
-        
-        $snapshot->save();
-
-        $approval = new ApprovalRequest();
-        $approval->form_id = $appraisal->id;
-        $approval->category = $this->category;
-        $approval->period = $period;
-        $approval->employee_id = $validatedData['employee_id'];
-        $approval->current_approval_id = $validatedData['approver_id'];
-        $approval->created_by = Auth::user()->id;
-        // Set other attributes as needed
-        $approval->save();
-
-        // Return a response, such as a redirect or a JSON response
-        return redirect('appraisals')->with('success', 'Appraisal submitted successfully.');
-    }
-
-    private function getDataByName($data, $name) {
-        foreach ($data as $item) {
-            if ($item['name'] === $name) {
-                return $item['data'];
-            }
-        }
-        return null;
-    }
-
-    private function mergeFormData(array $formDataSets)
-    {
-        $mergedData = [];
-
-        foreach ($formDataSets as $formData) {
-            foreach ($formData['formData'] as $form) {
-
-                $formName = $form['formName'];
-
-                // Check if formName already exists in the merged data
-                $existingFormIndex = collect($mergedData)->search(function ($item) use ($formName) {
-                    return $item['formName'] === $formName;
-                });
-
-                if ($existingFormIndex !== false) {
-                    // Merge scores for the existing form
-                    foreach ($form as $key => $scores) {
-                        if (is_numeric($key)) {
-                            $mergedData[$existingFormIndex][$key] = array_merge($mergedData[$existingFormIndex][$key] ?? [], $scores);
-                        }
-                    }
-                } else {
-                    // Add the form to the merged data
-                    $mergedData[] = $form;
-                }
-            }
-        }
-
-        return [
-            'formGroupName' => 'Appraisal Form',
-            'formData' => $mergedData
-        ];
-
     }
 
     public function index(Request $request) {
@@ -311,16 +157,10 @@ class MyAppraisalController extends Controller
             $employeeData = $datas->first()->employee;
 
             // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
-            
-            $formGroupContent = storage_path('../resources/testFormGroup.json');
-            if (!File::exists($formGroupContent)) {
-                $appraisalForm = ['data' => ['formData' => []]];
-            } else {
-                $appraisalForm = json_decode(File::get($formGroupContent), true);
-            }
-            
-            $cultureData = $this->getDataByName($appraisalForm['data']['formData'], 'Culture') ?? [];
-            $leadershipData = $this->getDataByName($appraisalForm['data']['formData'], 'Leadership') ?? [];
+            $formGroupData = $this->appService->formGroupAppraisal($user, 'Appraisal Form');
+                        
+            $cultureData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Culture') ?? [];
+            $leadershipData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership') ?? [];
 
             $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData);
 
@@ -402,7 +242,162 @@ class MyAppraisalController extends Controller
             ]);
         }
     }
-    
+
+    public function create(Request $request)
+    {
+        $step = $request->input('step', 1);
+
+        $period = 2024;
+
+        $goal = Goal::where('employee_id', $request->id)->where('period', $period)->first();
+
+        $appraisal = Appraisal::where('employee_id', $request->id)->where('period', $period)->first();
+
+        // check goals
+        if ($goal) {
+            $goalData = json_decode($goal->form_data, true);
+        } else {
+            Session::flash('error', "Your Goals for $period are not found.");
+            return redirect()->back();
+        }
+
+        // check appraisals
+        if ($appraisal) {
+            Session::flash('error', "Appraisal $period already initiated.");
+            return redirect()->back();
+        }
+        
+        $approval = ApprovalLayerAppraisal::select('approver_id')->where('employee_id', $request->id)->where('layer_type', 'manager')->where('layer', 1)->first();
+  
+        if (!$approval) {
+            Session::flash('error', "No Reviewer assigned, please contact admin to assign reviewer");
+            return redirect()->back();
+        }
+        // Get form group appraisal
+        $formGroupData = $this->appService->formGroupAppraisal($request->id, 'Appraisal Form');
+                
+        $formTypes = $formGroupData['data']['form_names'] ?? [];
+        $formDatas = $formGroupData['data']['form_appraisals'] ?? [];
+                
+        $filteredFormData = array_filter($formDatas, function($form) use ($formTypes) {
+            return in_array($form['name'], $formTypes);
+        });
+
+        $ratings = $formGroupData['data']['rating'];
+
+        $parentLink = __('Appraisal');
+        $link = 'Initiate Appraisal';
+
+        // Pass the data to the view
+        return view('pages/appraisals/create', compact('step', 'parentLink', 'link', 'filteredFormData', 'formGroupData', 'goalData', 'goal', 'approval', 'ratings'));
+    }
+
+    public function store(Request $request)
+    {
+        $submit_status = 'Submitted';
+        $period = 2024;
+
+        // Validate the request data
+        $validatedData = $request->validate([
+            'form_group_id' => 'required|string',
+            'employee_id' => 'required|string|size:11',
+            'approver_id' => 'required|string|size:11',
+            'formGroupName' => 'required|string|min:5|max:100',
+            'formData' => 'required|array',
+        ]);
+
+        // Extract formGroupName
+        $formGroupName = $validatedData['formGroupName'];
+        $formData = $validatedData['formData'];
+
+        $goals = Goal::with(['employee'])->where('employee_id', $validatedData['employee_id'])->where('period', $period)->first();
+
+        // Create the array structure
+        $datas = [
+            'formGroupName' => $formGroupName,
+            'formData' => $formData,
+        ];
+
+        // Create a new Appraisal instance and save the data
+        $appraisal = new Appraisal;
+        $appraisal->id = Str::uuid();
+        $appraisal->goals_id = $goals->id;
+        $appraisal->employee_id = $validatedData['employee_id'];
+        $appraisal->form_group_id = $validatedData['form_group_id'];
+        $appraisal->category = $this->category;
+        $appraisal->form_data = json_encode($datas); // Store the form data as JSON
+        $appraisal->form_status = $submit_status;
+        $appraisal->period = $period;
+        $appraisal->created_by = Auth::user()->id;
+        
+        $appraisal->save();
+        
+        $snapshot =  new ApprovalSnapshots;
+        $snapshot->id = Str::uuid();
+        $snapshot->form_id = $appraisal->id;
+        $snapshot->form_data = json_encode($datas);
+        $snapshot->employee_id = $validatedData['employee_id'];
+        $snapshot->created_by = Auth::user()->id;
+        
+        $snapshot->save();
+
+        $approval = new ApprovalRequest();
+        $approval->form_id = $appraisal->id;
+        $approval->category = $this->category;
+        $approval->period = $period;
+        $approval->employee_id = $validatedData['employee_id'];
+        $approval->current_approval_id = $validatedData['approver_id'];
+        $approval->created_by = Auth::user()->id;
+        // Set other attributes as needed
+        $approval->save();
+
+        // Return a response, such as a redirect or a JSON response
+        return redirect('appraisals')->with('success', 'Appraisal submitted successfully.');
+    }
+
+    private function getDataByName($data, $name) {
+        foreach ($data as $item) {
+            if ($item['name'] === $name) {
+                return $item['data'];
+            }
+        }
+        return null;
+    }
+
+    private function mergeFormData(array $formDataSets)
+    {
+        $mergedData = [];
+
+        foreach ($formDataSets as $formData) {
+            foreach ($formData['formData'] as $form) {
+
+                $formName = $form['formName'];
+
+                // Check if formName already exists in the merged data
+                $existingFormIndex = collect($mergedData)->search(function ($item) use ($formName) {
+                    return $item['formName'] === $formName;
+                });
+
+                if ($existingFormIndex !== false) {
+                    // Merge scores for the existing form
+                    foreach ($form as $key => $scores) {
+                        if (is_numeric($key)) {
+                            $mergedData[$existingFormIndex][$key] = array_merge($mergedData[$existingFormIndex][$key] ?? [], $scores);
+                        }
+                    }
+                } else {
+                    // Add the form to the merged data
+                    $mergedData[] = $form;
+                }
+            }
+        }
+
+        return [
+            'formGroupName' => 'Appraisal Form',
+            'formData' => $mergedData
+        ];
+
+    }
 
     function show($id) {
         $data = Goal::find($id);

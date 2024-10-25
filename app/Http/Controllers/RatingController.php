@@ -154,7 +154,10 @@ class RatingController extends Controller
 
                     $data->rating_incomplete = $calibration->whereNull('rating')->where('appraisal_id', $data->approvalRequest->first()->form_id)->count();
 
-                    $data->rating_status = $calibration->where('appraisal_id', $data->approvalRequest->first()->form_id)->first()->status;
+                    if($calibration->where('appraisal_id', $data->approvalRequest->first()->form_id)->first()){
+                        $data->rating_status = $calibration->where('appraisal_id', $data->approvalRequest->first()->form_id)->first()->status;
+                    }
+            
             
                     // Fetch the current calibrator if it exists
                     $currentCalibrator = Calibration::with(['approver'])
@@ -522,8 +525,6 @@ class RatingController extends Controller
                 // Filter to get only records where `is_calibrator` is true
                 return $combinedResults;
             });
-
-            // $rating = $masterRating;
 
             $ratings = [];
 
