@@ -7,6 +7,8 @@ use App\Models\ApprovalLayerAppraisal;
 use App\Models\ApprovalRequest;
 use App\Models\Calibration;
 use App\Models\Employee;
+use App\Models\EmployeeAppraisal;
+use App\Models\FormGroupAppraisal;
 use App\Models\MasterRating;
 use App\Models\MasterWeightage;
 use Carbon\Carbon;
@@ -18,6 +20,46 @@ use stdClass;
 
 class AppService
 {
+    public function formGroupAppraisal($employee_id, $form_name)
+    {
+        $employee = EmployeeAppraisal::select('employee_id', 'group_company', 'job_level', 'company_name', 'work_area_code')->where('employee_id', $employee_id)->first();
+        
+        $datas = FormGroupAppraisal::with(['formAppraisals', 'rating'])->where('name', $form_name)->get();
+
+        // dd($datas);
+
+        $data = json_decode($datas, true);
+
+        $criteria = [
+            "job_level" => $employee->job_level,
+            "work_area" => $employee->work_area_code,
+            "group_company" => $employee->group_company,
+        ];
+
+        $filteredData = $this->filterByRestrict($data, $criteria);
+        
+        return [
+            'status' => 'success',
+            'data' => array_values($filteredData)[0] ?? []
+        ];
+    }
+
+    private function filterByRestrict($data, $criteria) {
+        return array_filter($data, function ($item) use ($criteria) {
+            $restrict = $item['restrict'];
+    
+            // Check each criterion
+            $jobLevelMatch = in_array($criteria['job_level'], $restrict['job_level']);
+            $workAreaMatch = in_array($criteria['work_area'], $restrict['work_area']);
+            $companyMatch = empty($restrict['company_name']) || 
+                            (isset($criteria['company_name']) && in_array($criteria['company_name'], $restrict['company_name']));
+            $groupCompanyMatch = in_array($criteria['group_company'], $restrict['group_company']);
+    
+            // Return true if all criteria match
+            return $jobLevelMatch && $workAreaMatch && $companyMatch && $groupCompanyMatch;
+        });
+    }
+
     // Function to calculate the average score
     public function averageScore($formData) {
         $totalScore = 0;

@@ -14,31 +14,25 @@
                         <div class="card-body">
                             <div class="row">
                                 <div class="col-md">
-                                    <div class="row">
-                                        <div class="col-4">
-                                            <div class="mb-1">
+                                    <div class="row mb-1">
+                                        <div class="col-lg-4">
                                                 <span class="text-muted">Employee ID</span>
-                                            </div>
                                         </div>
                                         <div class="col">
                                             : <span class="employee-id">{{ $datas->employee_id }}</span>
                                         </div>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-4">
-                                            <div class="mb-1">
+                                    <div class="row mb-1">
+                                        <div class="col-lg-4">
                                                 <span class="text-muted">Employee Name</span>
-                                            </div>
                                         </div>
                                         <div class="col">
                                             : <span>{{ $datas->fullname }}</span>
                                         </div>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-4">
-                                            <div class="mb-1">
+                                    <div class="row mb-1 d-none d-md-flex">
+                                        <div class="col-lg-4">
                                                 <span class="text-muted">Join Date</span>
-                                            </div>
                                         </div>
                                         <div class="col">
                                             : <span>{{ $datas->join_date }}</span>
@@ -46,31 +40,25 @@
                                     </div>
                                 </div>
                                 <div class="col-md">
-                                    <div class="row">
-                                        <div class="col-4">
-                                            <div class="mb-1">
+                                    <div class="row mb-1">
+                                        <div class="col-lg-4">
                                                 <span class="text-muted">Company</span>
-                                            </div>
                                         </div>
                                         <div class="col">
                                             : <span>{{ $datas->company_name }}</span>
                                         </div>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-4">
-                                            <div class="mb-1">
+                                    <div class="row mb-1">
+                                        <div class="col-lg-4">
                                                 <span class="text-muted">Office Location</span>
-                                            </div>
                                         </div>
                                         <div class="col">
                                             : <span>{{ $datas->office_area }}</span>
                                         </div>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-4">
-                                            <div class="mb-1">
+                                    <div class="row mb-1">
+                                        <div class="col-lg-4">
                                                 <span class="text-muted">Business Unit</span>
-                                            </div>
                                         </div>
                                         <div class="col">
                                             : <span>{{ $datas->group_company }}</span>
@@ -78,34 +66,28 @@
                                     </div>
                                 </div>
                                 <div class="col-md">
-                                    <div class="row">
-                                        <div class="col-4">
-                                            <div class="mb-1">
+                                    <div class="row mb-1 d-none d-md-flex">
+                                        <div class="col-lg-4">
                                                 <span class="text-muted">Unit</span>
-                                            </div>
                                         </div>
                                         <div class="col">
                                             : <span>{{ $datas->unit }}</span>
                                         </div>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-4">
-                                            <div class="mb-1">
+                                    <div class="row mb-1">
+                                        <div class="col-lg-4">
                                                 <span class="text-muted">Designation</span>
-                                            </div>
                                         </div>
                                         <div class="col">
-                                            : <span>{{ $datas->designation }}</span>
+                                            : <span>{{ $datas->designation_name }}</span>
                                         </div>
                                     </div>
-                                    <div class="row">
-                                        <div class="col-4">
-                                            <div class="mb-1">
-                                                <span class="text-muted">Final Score</span>
-                                            </div>
+                                    <div class="row mb-1">
+                                        <div class="col-lg-4">
+                                                <span class="text-muted">Final Rating</span>
                                         </div>
                                         <div class="col">
-                                            : <span>-</span>
+                                            : <span>{{ $final_rating }}</span>
                                         </div>
                                     </div>
                                 </div>

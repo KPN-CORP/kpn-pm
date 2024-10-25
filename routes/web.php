@@ -34,6 +34,8 @@ use App\Http\Controllers\MyAppraisalController;
 use App\Http\Controllers\MyGoalController;
 use App\Http\Controllers\RatingAdminController;
 use App\Http\Controllers\CalibrationController;
+use App\Http\Controllers\FormAppraisalController;
+use App\Http\Controllers\FormGroupAppraisalController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\TeamAppraisalController;
 use App\Http\Controllers\TeamGoalController;
@@ -300,6 +302,7 @@ Route::middleware('auth', 'locale')->group(function () {
         Route::get('/employees', [EmployeeController::class, 'employee'])->name('employees');
         Route::get('/employee/filter', [EmployeeController::class, 'filterEmployees'])->name('employee.filter');
     });
+
 });
 
 

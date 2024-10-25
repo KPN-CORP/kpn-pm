@@ -12,6 +12,7 @@ use App\Models\Calibration;
 use App\Models\Employee;
 use App\Models\EmployeeAppraisal;
 use App\Models\Goal;
+use App\Models\KpiUnits;
 use App\Services\AppService;
 use Carbon\Carbon;
 use Exception;
@@ -154,7 +155,7 @@ class AppraisalTaskController extends Controller
             $data[] = [
                 'index' => $index + 1,
                 'employee' => [
-                    'fullname' => $team->employee->fullname .' <span class="text-muted">'.$team->employee->employee_id.'</span>',
+                    'fullname' => $team->employee->fullname,
                     'employee_id' => $team->employee->employee_id,
                     'designation' => $team->employee->designation_name,
                     'office_area' => $team->employee->office_area,
@@ -226,7 +227,7 @@ class AppraisalTaskController extends Controller
             $data[] = [
                 'index' => $index + 1,
                 'employee' => [
-                    'fullname' => $team->employee->fullname .' <span class="text-muted">'.$team->employee->employee_id.'</span>',
+                    'fullname' => $team->employee->fullname,
                     'employee_id' => $team->employee->employee_id,
                     'designation' => $team->employee->designation_name,
                     'office_area' => $team->employee->office_area,
@@ -267,19 +268,17 @@ class AppraisalTaskController extends Controller
             return redirect()->back();
         }
 
-        // Read the content of the JSON files
-        $formGroupContent = storage_path('../resources/testFormGroupTask.json');
-
-        // Decode the JSON content
-        $formGroupData = json_decode(File::get($formGroupContent), true);
+        // Get form group appraisal
+        $formGroupData = $this->appService->formGroupAppraisal($request->id, 'Appraisal Form');                
         
-        
-        $formTypes = $formGroupData['data']['formName'] ?? [];
-        $formDatas = $formGroupData['data']['formData'] ?? [];
-        
+        $formTypes = $formGroupData['data']['form_names'] ?? [];
+        $formDatas = $formGroupData['data']['form_appraisals'] ?? [];
+                
         $filteredFormData = array_filter($formDatas, function($form) use ($formTypes) {
             return in_array($form['name'], $formTypes);
         });
+
+        $ratings = $formGroupData['data']['rating'];
 
         $filteredFormDatas = [
             'viewCategory' => 'initiate',
@@ -290,7 +289,7 @@ class AppraisalTaskController extends Controller
         $link = 'Initiate Appraisal';
 
         // Pass the data to the view
-        return view('pages.appraisals-task.initiate', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'approval', 'goalData', 'user'));
+        return view('pages.appraisals-task.initiate', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'approval', 'goalData', 'user', 'ratings'));
     }
 
     public function approval(Request $request)
@@ -312,14 +311,10 @@ class AppraisalTaskController extends Controller
         }
 
         // Read the content of the JSON files
-        $formGroupContent = storage_path('../resources/testFormGroupTask.json');
-
-        // Decode the JSON content
-        $formGroupData = json_decode(File::get($formGroupContent), true);
+        $formGroupData = $this->appService->formGroupAppraisal($request->id, 'Appraisal Form Task');
         
-        
-        $formTypes = $formGroupData['data']['formName'] ?? [];
-        $formDatas = $formGroupData['data']['formData'] ?? [];
+        $formTypes = $formGroupData['data']['form_names'] ?? [];
+        $formDatas = $formGroupData['data']['form_appraisals'] ?? [];
 
         
         $filteredFormData = array_filter($formDatas, function($form) use ($formTypes) {
@@ -347,7 +342,7 @@ class AppraisalTaskController extends Controller
         
         $goals = Goal::with(['employee'])->where('employee_id', $request->id)->where('period', $period)->first();
         
-        $appraisal = Appraisal::with(['approvalRequest' => function($query) use ($period) {
+        $appraisal = Appraisal::with(['employee', 'approvalRequest' => function($query) use ($period) {
             $query->where('category', 'Appraisal')->where('period', $period);
         }])->where('employee_id', $request->id)->where('period', $period)->first();
 
@@ -356,6 +351,7 @@ class AppraisalTaskController extends Controller
         $appraisalId = $appraisal->id;
         
         $data = json_decode($appraisal['form_data'], true);
+
         $achievement = array_filter($data['formData'], function ($form) {
             return $form['formName'] === 'KPI';
         });
@@ -375,20 +371,12 @@ class AppraisalTaskController extends Controller
             }
         }
 
-        $form360 = 'testFormGroup360.json';
-        $formManager = 'testFormGroupReview.json';
+        $form_name = $approval->layer_type == 'manager' ? 'Appraisal Form Review' : 'Appraisal Form 360' ;
 
-        $formSource = $approval->layer_type == 'manager' ? $formManager : $form360 ;
-
-        // Read the content of the JSON files
-        $formGroupContent = storage_path('../resources/'. $formSource);
-
-        // Decode the JSON content
-        $formGroupData = json_decode(File::get($formGroupContent), true);
+        $formGroupData = $this->appService->formGroupAppraisal($request->id, $form_name);   
             
-            
-        $formTypes = $formGroupData['data']['formName'] ?? [];
-        $formDatas = $formGroupData['data']['formData'] ?? [];
+        $formTypes = $formGroupData['data']['form_names'] ?? [];
+        $formDatas = $formGroupData['data']['form_appraisals'] ?? [];
         
         
         $filteredFormData = array_filter($formDatas, function($form) use ($formTypes) {
@@ -451,15 +439,17 @@ class AppraisalTaskController extends Controller
         $filteredFormData = $this->appService->mergeScores($formData, $filteredFormData);
 
         $filteredFormDatas = [
-            'viewCategory' => 'initiate',
+            'viewCategory' => 'Review',
             'filteredFormData' => $filteredFormData,
         ];
+
+        $ratings = $formGroupData['data']['rating'];
         
         $parentLink = __('Appraisal');
-        $link = 'Initiate Appraisal';
+        $link = 'Review Appraisal';
 
         // Pass the data to the view
-        return view('pages.appraisals-task.review', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'goals', 'approval', 'goalData', 'user', 'achievement', 'appraisalId'));
+        return view('pages.appraisals-task.review', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'goals', 'approval', 'goalData', 'user', 'achievement', 'appraisalId', 'ratings', 'appraisal'));
     }
 
     public function detail(Request $request)
@@ -496,16 +486,17 @@ class AppraisalTaskController extends Controller
             $employeeData = $datas->first()->employee;
 
             // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
+
+            $formGroupData = $this->appService->formGroupAppraisal($employeeData->employee_id, 'Appraisal Form');
             
-            $formGroupContent = storage_path('../resources/testFormGroup.json');
-            if (!File::exists($formGroupContent)) {
+            if (!$formGroupData) {
                 $appraisalForm = ['data' => ['formData' => []]];
             } else {
-                $appraisalForm = json_decode(File::get($formGroupContent), true);
+                $appraisalForm = $formGroupData;
             }
             
-            $cultureData = $this->getDataByName($appraisalForm['data']['formData'], 'Culture') ?? [];
-            $leadershipData = $this->getDataByName($appraisalForm['data']['formData'], 'Leadership') ?? [];
+            $cultureData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
+            $leadershipData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
 
             $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData);
 
@@ -607,6 +598,7 @@ class AppraisalTaskController extends Controller
 
         // Validate the request data
         $validatedData = $request->validate([
+            'form_group_id' => 'required|string',
             'employee_id' => 'required|string|size:11',
             'approver_id' => 'required|string|size:11',
             'formGroupName' => 'required|string|min:5|max:100',
@@ -634,6 +626,7 @@ class AppraisalTaskController extends Controller
         $appraisal->id = Str::uuid();
         $appraisal->goals_id = $goals->id;
         $appraisal->employee_id = $validatedData['employee_id'];
+        $appraisal->form_group_id = $validatedData['form_group_id'];
         $appraisal->category = $this->category;
         $appraisal->form_data = json_encode($datas); // Store the form data as JSON
         $appraisal->form_status = $submit_status;
@@ -646,6 +639,9 @@ class AppraisalTaskController extends Controller
 
         $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $validatedData['employee_id'])->value('approver_id');
 
+        $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $firstCalibrator)->first();
+
+        $calibrationGroupID = $kpiUnit->masterCalibration->id_calibration_group;
 
         $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee);
 
@@ -683,6 +679,7 @@ class AppraisalTaskController extends Controller
         $approval->save();
 
         $calibration = new Calibration();
+        $calibration->id_calibration_group = $calibrationGroupID;
         $calibration->appraisal_id = $appraisal->id;
         $calibration->employee_id = $validatedData['employee_id'];
         $calibration->approver_id = $firstCalibrator;
@@ -759,6 +756,10 @@ class AppraisalTaskController extends Controller
 
             $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $validatedData['employee_id'])->value('approver_id');
 
+            $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $firstCalibrator)->first();
+
+            $calibrationGroupID = $kpiUnit->masterCalibration->id_calibration_group;
+
             if (!$nextApprover) {
                 $approver = $validatedData['approver_id'];
                 $statusRequest = 'Approved';
@@ -769,36 +770,38 @@ class AppraisalTaskController extends Controller
                 $statusForm = 'Submitted';
             }
 
-            $model = Appraisal::find($validatedData['appraisal_id']);
-            $model->form_data = json_encode($datas);
-            $model->form_status = $statusForm;
-
-            $model->save();
-            
-            $approvalRequest = ApprovalRequest::where('form_id', $validatedData['appraisal_id'])->first();
-            $approvalRequest->current_approval_id = $approver;
-            $approvalRequest->status = $statusRequest;
-            $approvalRequest->updated_by = Auth::user()->id;
-
-            $approvalRequest->save();
-
-
-            $approval = new Approval;
-            $approval->request_id = $approvalRequest->id;
-            $approval->approver_id = Auth::user()->employee_id;
-            $approval->created_by = Auth::user()->id;
-            $approval->status = 'Approved';
-
-            $approval->save();
-
             $calibration = new Calibration();
             $calibration->appraisal_id = $validatedData['appraisal_id'];
+            $calibration->id_calibration_group = $calibrationGroupID;
             $calibration->employee_id = $validatedData['employee_id'];
             $calibration->approver_id = $firstCalibrator;
             $calibration->period = $period;
             $calibration->created_by = Auth::user()->id;
 
-            $calibration->save();
+            if ($calibration->save()) {
+
+                $model = Appraisal::find($validatedData['appraisal_id']);
+                $model->form_data = json_encode($datas);
+                $model->form_status = $statusForm;
+    
+                $model->save();
+                
+                $approvalRequest = ApprovalRequest::where('form_id', $validatedData['appraisal_id'])->first();
+                $approvalRequest->current_approval_id = $approver;
+                $approvalRequest->status = $statusRequest;
+                $approvalRequest->updated_by = Auth::user()->id;
+    
+                $approvalRequest->save();
+    
+    
+                $approval = new Approval;
+                $approval->request_id = $approvalRequest->id;
+                $approval->approver_id = Auth::user()->employee_id;
+                $approval->created_by = Auth::user()->id;
+                $approval->status = 'Approved';
+    
+                $approval->save();
+            }
 
         }
 

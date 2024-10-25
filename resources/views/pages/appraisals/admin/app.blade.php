@@ -27,8 +27,7 @@
         <div class="row">
             <div class="col-lg">
                 <div class="mb-3 text-end">
-                    <button type="button" class="btn btn-sm btn-outline-success me-1" title="Download Report">Download Report</button>
-                    <button type="button" class="btn btn-sm btn-outline-success" title="Download Detail Report">Download Detail Report</button>
+                    <button type="button" class="btn btn-sm btn-outline-success" title="Download Detail Report"><i class="ri-download-cloud-2-line me-1 fs-16"></i>Download Detail Report</button>
                 </div>
             </div>
         </div>
@@ -85,7 +84,8 @@
                                     @else
                                         table-light
                                     @endif
-                                ">
+                                "
+                                data-id="{{ $peerLayer ? ($peerLayer['status'] ? 'Approved - '.$peerLayer['approver_name'].' ('.$peerLayer['approver_id'].')' : 'Pending - '.$peerLayer['approver_name'].' ('.$peerLayer['approver_id'].')') : '-' }}">
                                     @if ($peerLayer)
                                         @if($peerLayer['status'])
                                             <i class="ri-check-line text-success fs-20 fw-medium"></i>
@@ -106,8 +106,8 @@
                                         {{ $subordinateLayer['status'] ? 'table-success' : 'table-warning' }} 
                                     @else
                                         table-light
-                                    @endif
-                                ">
+                                    @endif"
+                                data-id="{{ $subordinateLayer ? ($subordinateLayer['status'] ? 'Approved - '.$subordinateLayer['approver_name'].' ('.$subordinateLayer['approver_id'].')' : 'Pending - '.$subordinateLayer['approver_name'].' ('.$subordinateLayer['approver_id'].')') : '-' }}">
                                     @if ($subordinateLayer)
                                         @if($subordinateLayer['status'])
                                             <i class="ri-check-line text-success fs-20 fw-medium"></i>
@@ -128,13 +128,13 @@
                                         {{ $calibratorLayer['status'] ? 'table-success' : 'table-warning' }} 
                                     @else
                                         table-light
-                                    @endif
-                                ">
+                                    @endif"
+                                data-id="{{ $calibratorLayer ? ($calibratorLayer['status'] ? 'Approved - '.$calibratorLayer['approver_name'].' ('.$calibratorLayer['approver_id'].')' : 'Pending - '.$calibratorLayer['approver_name'].' ('.$calibratorLayer['approver_id'].')') : '-' }}">
                                     @if ($calibratorLayer)
                                         @if($calibratorLayer['status'])
                                             <i class="ri-check-line text-success fs-20 fw-medium"></i>
                                         @else
-                                            <i class="ri-error-warning-line text-warning fs-20 fw-medium"></i>
+                                            <i class="ri-error-warning-line text-warning fs-20 fw-medium"></i>{{ $calibratorLayer['status'] }}
                                         @endif
                                     @endif
                                 </td>

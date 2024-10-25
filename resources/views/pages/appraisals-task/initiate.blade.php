@@ -97,8 +97,9 @@
                         <form id="appraisalForm" action="{{ route('appraisals-task.submit') }}" method="POST">
                         @csrf
                         <input type="hidden" name="employee_id" value="{{ $goal->employee_id }}">
+                        <input type="hidden" name="form_group_id" value="{{ $formGroupData['data']['id'] }}">
                         <input type="hidden" class="form-control" name="approver_id" value="{{ $approval->approver_id }}">
-                        <input type="hidden" name="formGroupName" value="{{ $formGroupData['name'] }}">
+                        <input type="hidden" name="formGroupName" value="{{ $formGroupData['data']['name'] }}">
                         @foreach ($filteredFormDatas['filteredFormData'] as $index => $row)
                             <div class="form-step {{ $step == $index + 1 ? 'active' : '' }}" data-step="{{ $index + 1 }}">
                                 <div class="card-title h4 mb-4">{{ $row['title'] }}</div>
