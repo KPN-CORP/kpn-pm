@@ -28,7 +28,6 @@ return new class extends Migration
             $table->string('manager_l2_id', 25);
             $table->enum('employee_type', ['Permanent', 'Contract', 'Probation', 'Service Bond']);
             $table->string('unit', 255);
-            $table->json('access_menu')->nullable();
             $table->date('date_of_joining');
             $table->string('contribution_level_code')->nullable();
             $table->json('access_menu')->nullable();

@@ -17,6 +17,7 @@ return new class extends Migration
             $table->string('category');
             $table->json('form_data');
             $table->enum('form_status', ['Draft', 'Submitted', 'Approved', 'Rejected']);
+            $table->unsignedInteger('period');
             $table->timestamps();
             $table->softDeletes();
         });

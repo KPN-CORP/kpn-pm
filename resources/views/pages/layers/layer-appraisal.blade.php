@@ -79,10 +79,23 @@
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" id="importModalLabel">Import Superior</h4>
+                <h4 class="modal-title" id="importModalLabel">Import Layer</h4>
                 {{-- <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> --}}
             </div>
             <div class="modal-body">
+                <!-- Notes Section -->
+                <div class="row">
+                    <div class="col">
+                        <div class="alert alert-info">
+                            <strong>Notes:</strong>
+                            <ul class="mb-0">
+                                <li><strong>Managers</strong> are limited to <strong>1 layer</strong>.</li>
+                                <li><strong>Peers</strong> and <strong>Subordinates</strong> are allowed a maximum of <strong>3 layers</strong> each.</li>
+                                <li><strong>Calibrators</strong> can have up to <strong>10 layers</strong>.</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
                 <form id="importForm" action="{{ route('layer-appraisal.import') }}" method="POST" enctype="multipart/form-data">
                     @csrf
                     <div class="row">
@@ -97,14 +110,14 @@
                         <div class="col">
                             <div class="mb-2">
                                 <label class="form-label" for="fullname">Download Templete here : </label>
-                                <a href="{{ asset('storage/files/template.xls') }}" class="badge-outline-primary p-1" download><i class="ri-file-text-line me-1"></i>Import_Excel_Template</a>
+                                <a href="{{ asset('storage/files/template_import_appraisal_layer.xls') }}" class="badge-outline-primary p-1" download><i class="ri-file-text-line me-1"></i>Import_Excel_Template</a>
                             </div>
                         </div>
                     </div>
                 </form>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">Cancel</button>
                 <button type="submit" id="importButton" class="btn btn-primary"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Import Data</button>
             </div>
         </div>

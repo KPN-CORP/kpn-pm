@@ -1,3 +1,4 @@
+import { log } from 'handlebars';
 import $ from 'jquery';
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -14,13 +15,211 @@ document.addEventListener("DOMContentLoaded", function () {
         scrollX: true
     });
 
+    $('#customsearch').val(layerAppraisalTable.search());
+    
     $("#customsearch").on("keyup", function () {
         layerAppraisalTable.search($(this).val()).draw();
     });
 
+    let previousValue = $('#manager').val();
+
+    // Event listener for when an option is selected
+    $('#manager').on('select2:select', function(e) {
+        const selectedValue = e.params.data.id;
+
+        // Show confirmation alert
+        Swal.fire({
+            title: 'Change the Manager?',
+            text: 'Changing current manager will delete the approved appraisal. This action cannot be undone',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: "#3e60d5",
+            cancelButtonColor: "#f15776",
+            reverseButtons: true,
+            confirmButtonText: 'Yes, change it!',
+            cancelButtonText: 'No, keep the current',
+            reverseButtons: true,
+        }).then((result) => {
+            if (result.isConfirmed) {
+                previousValue = selectedValue;
+            } else {
+                $('#manager').val(previousValue).trigger('change');
+            }
+        });
+        e.preventDefault();
+    });
+
+    $('#submit-btn').click(function () {
+
+        let title1;
+        let title2;
+        let text;
+        let confirmText;
+    
+        const submitButton = $("#submit-btn");
+        const spinner = submitButton.find(".spinner-border");
+    
+        title1 = "Save layer?";
+        text = "This can't be reverted";
+        title2 = "Layer saved successfully!";
+        confirmText = "Ok, save it";
+    
+        // Get values of the select elements with ids containing sub
+        let manager = $('#manager');
+
+        let sub1 = $('#sub1');
+        let sub2 = $('#sub2');
+        let sub3 = $('#sub3');
+    
+        // Get values of the select elements with ids containing peer
+        let peer1 = $('#peer1');
+        let peer2 = $('#peer2');
+        let peer3 = $('#peer3');
+    
+        // Get values of the select elements with ids containing calibrator
+        let calibrators = $("select[name='calibrators[]']");
+    
+        // Clear previous invalid classes and error messages
+        sub1.removeClass('is-invalid');
+        sub2.removeClass('is-invalid');
+        sub3.removeClass('is-invalid');
+        peer1.removeClass('is-invalid');
+        peer2.removeClass('is-invalid');
+        peer3.removeClass('is-invalid');
+        calibrators.removeClass('is-invalid');
+        
+        $('.error-message').text(''); // Clear all previous error messages
+    
+        // Step 1: Check for duplicates in peer selections
+        let peerValues = [peer1.val(), peer2.val(), peer3.val()].filter(Boolean); // Filter out empty values
+        let hasPeerDuplicates = peerValues.some((value, index) => peerValues.indexOf(value) !== index);
+    
+        if (!manager.val()) {
+            Swal.fire({
+                title: "Error",
+                text: "Manager cannot empty.",
+                icon: "error",
+                confirmButtonColor: "#f15776"
+            });
+
+            manager.addClass('is-invalid')
+            .siblings('.error-message')
+            .text('Manager cannot be empty.');
+    
+            return false; // Prevent form submission if peers have duplicates
+        }
+
+        if (hasPeerDuplicates) {
+            Swal.fire({
+                title: "Error",
+                text: "Peers must be unique.",
+                icon: "error",
+                confirmButtonColor: "#f15776"
+            });
+    
+            // Add is-invalid class and show error message to duplicate peer select elements
+            [peer1, peer2, peer3].forEach(function (element) {
+                let value = element.val();
+                if (value && [peer1, peer2, peer3].filter(e => e.val() === value).length > 1) {
+                    element.addClass('is-invalid');
+                    element.siblings('.error-message').text('Peers must be unique.');
+                }
+            });
+    
+            return false; // Prevent form submission if peers have duplicates
+        }
+    
+        // Step 2: Check for duplicates in subordinate selections (if peer validation passed)
+        let subValues = [sub1.val(), sub2.val(), sub3.val()].filter(Boolean); // Filter out empty values
+        let hasSubDuplicates = subValues.some((value, index) => subValues.indexOf(value) !== index);
+    
+        if (hasSubDuplicates) {
+            Swal.fire({
+                title: "Error",
+                text: "Subordinate must be unique.",
+                icon: "error",
+                confirmButtonColor: "#f15776"
+            });
+    
+            // Add is-invalid class and show error message to duplicate subordinate select elements
+            [sub1, sub2, sub3].forEach(function (element) {
+                let value = element.val();
+                if (value && [sub1, sub2, sub3].filter(e => e.val() === value).length > 1) {
+                    element.addClass('is-invalid');
+                    element.siblings('.error-message').text('Subordinate must be unique.');
+                }
+            });
+    
+            return false; // Prevent form submission if subordinates have duplicates
+        }
+    
+        // Step 3: Check for duplicates in calibrator selections (if peer and sub validation passed)
+        let calibratorValues = calibrators.map(function () {
+            return $(this).val();
+        }).get().filter(Boolean); // Filter out empty values
+        let hasCalibratorDuplicates = calibratorValues.some((value, index) => calibratorValues.indexOf(value) !== index);
+    
+        if (hasCalibratorDuplicates) {
+            Swal.fire({
+                title: "Error",
+                text: "Calibrators must be unique.",
+                icon: "error",
+                confirmButtonColor: "#f15776"
+            });
+    
+            // Add is-invalid class and show error message to duplicate calibrator select elements
+            calibrators.each(function () {
+                let value = $(this).val();
+                if (value && calibratorValues.filter(e => e === value).length > 1) {
+                    $(this).addClass('is-invalid');
+                    $(this).siblings('.error-message').text('Calibrators must be unique.');
+                }
+            });
+    
+            return false; // Prevent form submission if calibrators have duplicates
+        }
+    
+        // Proceed with confirmation dialog if all validations passed
+        Swal.fire({
+            title: title1,
+            text: text,
+            showCancelButton: true,
+            confirmButtonColor: "#3e60d5",
+            cancelButtonColor: "#f15776",
+            confirmButtonText: confirmText,
+            reverseButtons: true,
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Disable submit button
+                submitButton.prop("disabled", true);
+                submitButton.addClass("disabled");
+    
+                // Show spinner if it exists
+                if (spinner.length) {
+                    spinner.removeClass("d-none");
+                }
+    
+                // Submit the form
+                document.getElementById("layer-appraisal").submit();
+    
+                // Show success message
+                Swal.fire({
+                    title: title2,
+                    icon: "success",
+                    showConfirmButton: false,
+                    timer: 1500, // Optional: Auto close the success message after 1.5 seconds
+                });
+            }
+        });
+    
+        return false; // Prevent default form submission
+    });    
+
     $(document).ready(function() {
         $('.selection2').select2({
             minimumInputLength: 1,
+            placeholder: "Please select",
+            allowClear: true,
             theme: 'bootstrap-5',
             ajax: {
                 url: '/search-employee', // Route for your Laravel search endpoint
@@ -68,6 +267,7 @@ $(document).ready(function(){
                         <select name="calibrators[]" id="calibrator${calibratorCount}" class="form-select selection2">
                             ${options}
                         </select>
+                        <div class="text-danger error-message fs-14"></div>
                     </div>
                     <div class="col-2 d-flex align-items-end justify-content-end">
                         <div class="mt-1">
@@ -83,6 +283,8 @@ $(document).ready(function(){
 
             $('.selection2').select2({
                 minimumInputLength: 1,
+                placeholder: "Please select",
+                allowClear: true,
                 theme: 'bootstrap-5',
                 ajax: {
                     url: '/search-employee', // Route for your Laravel search endpoint
@@ -249,34 +451,12 @@ var locationId = $('#locationFilter').val().toUpperCase();
 table.column(10).search(locationId).draw(); // Adjust index based on your table structure
 }
 
-$('#submitButton').on('click', function(e) {
-    e.preventDefault();
-    const form = $('#editForm').get(0);
-    const submitButton = $('#submitButton');
-    const spinner = submitButton.find(".spinner-border");
-
-    if (form.checkValidity()) {
-    // Disable submit button
-    submitButton.prop('disabled', true);
-    submitButton.addClass("disabled");
-
-    // Remove d-none class from spinner if it exists
-    if (spinner.length) {
-        spinner.removeClass("d-none");
-    }
-
-    // Submit form
-    form.submit();
-    } else {
-        // If the form is not valid, trigger HTML5 validation messages
-        form.reportValidity();
-    }
-});
 $('#importButton').on('click', function(e) {
     e.preventDefault();
     const form = $('#importForm').get(0);
     const submitButton = $('#importButton');
     const spinner = submitButton.find(".spinner-border");
+    console.log(spinner);
 
     if (form.checkValidity()) {
     // Disable submit button

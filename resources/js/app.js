@@ -34,6 +34,7 @@ import './quill.min.js';
 import './goal-form.js';
 import './goal-approval.js';
 
+import './appraisal.js';
 import './appraisal-task.js';
 import './layer-appraisal.js';
 import './rating.js';

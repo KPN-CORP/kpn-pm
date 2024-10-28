@@ -1,3 +1,4 @@
+import { log } from 'handlebars';
 import $ from 'jquery';
 
 $(document).ready(function() {
@@ -84,25 +85,24 @@ document.addEventListener('DOMContentLoaded', function() {
             e.preventDefault();
             
             const selects = form.querySelectorAll('select[id^="rating"]');
-
+        
             const allSelectsDisabled = Array.from(selects).some(select => select.disabled);
-
+        
             if (allSelectsDisabled) {
                 Swal.fire({
                     title: 'Submit Not Allowed',
-                    text: 'Some employees are still incomplete. Please reach out the pending employees',
+                    text: 'Some employees are still incomplete. Please reach out to the pending employees.',
                     icon: 'warning',
                     confirmButtonColor: "#3e60d5",
                     confirmButtonText: 'OK'
                 });
                 return; // Stop further execution
             }
-
+        
             let isValid = true;
             const ratings = {};
-
+        
             selects.forEach(select => {
-
                 if (select.disabled) return;
                 
                 if (select.value === '') {
@@ -114,36 +114,53 @@ document.addEventListener('DOMContentLoaded', function() {
                     ratings[employeeName] = select.value;
                 }
             });
-
+        
             // Validate table data
             const table = document.querySelector(`table:has(.key-${level})`);
             const rows = table.querySelectorAll('tbody tr:not(:last-child)');
             let tableIsValid = true;
             let mismatchedRatings = [];
-
+        
             // Remove previous table-danger classes
             table.querySelectorAll('.table-danger').forEach(el => {
                 el.classList.remove('table-danger');
             });
 
+            const totalRatingCell = parseInt(table.querySelector(`td.rating-total-count-${level}`).textContent);
+            const firstKey = table.querySelector(`td.key-${level}`).textContent.trim();
+            
             rows.forEach(row => {
                 const key = row.querySelector(`td.key-${level}`).textContent;
                 const ratingCell = row.querySelector('td.rating');
                 const suggestedRatingCell = row.querySelector(`td.suggested-rating-count-${key}-${level}`);
                 const ratingCount = parseInt(ratingCell.textContent);
                 const suggestedRatingCount = parseInt(suggestedRatingCell.textContent);
-
-                if (ratingCount !== suggestedRatingCount) {
+                        
+                if (totalRatingCell === 1) {
+                    // Allow mismatch only if key is not 'A'
+                    if (key === firstKey && ratingCount !== suggestedRatingCount) {
+                        tableIsValid = false;
+                        mismatchedRatings.push(`${key}: Expected ${ratingCount}, Got ${suggestedRatingCount}`);
+                        suggestedRatingCell.classList.add('table-danger');
+                    }
+                } else if (totalRatingCell === 2) {
+                    // Allow mismatch if key has no more than 1 unique rating value
+                    if (suggestedRatingCount > 1 && ratingCount !== suggestedRatingCount) {
+                        tableIsValid = false;
+                        mismatchedRatings.push(`${key}: Maximum Expected 1, Got ${suggestedRatingCount}`);
+                        suggestedRatingCell.classList.add('table-danger');
+                    }
+                } else if (ratingCount !== suggestedRatingCount) {
+                    // General case: Handle any other mismatch
                     tableIsValid = false;
                     mismatchedRatings.push(`${key}: Expected ${ratingCount}, Got ${suggestedRatingCount}`);
-                    // ratingCell.classList.add('table-danger');
                     suggestedRatingCell.classList.add('table-danger');
                 }
             });
-
+        
             if (!isValid) {
                 Swal.fire({
-                    title: 'Ratings is Empty!',
+                    title: 'Ratings are Empty!',
                     text: 'Please select a rating for all employees.',
                     icon: 'error',
                     confirmButtonColor: "#3e60d5",
@@ -166,11 +183,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 for (const [employee, rating] of Object.entries(ratings)) {
                     ratingsList += `${employee}: ${rating}\n`;
                 }
-
+        
                 Swal.fire({
                     title: "Submit Ratings?",
-                    text: "This can't be revert",
-                    // html: `<pre>${ratingsList}</pre>`,
+                    text: "This can't be reverted.",
                     icon: "question",
                     showCancelButton: true,
                     confirmButtonColor: "#3e60d5",
@@ -186,6 +202,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 });
             }
         });
+        
     });
 });
 
@@ -243,4 +260,29 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
     });
+});
+
+$('#importRatingButton').on('click', function(e) {
+    e.preventDefault();
+    const form = $('#importRating').get(0);
+    const submitButton = $(this);
+    const spinner = submitButton.find(".spinner-border");
+
+    if (form.checkValidity()) {
+    // Disable submit button
+    submitButton.prop('disabled', true);
+    submitButton.addClass("disabled");
+
+    // Remove d-none class from spinner if it exists
+    if (spinner.length) {
+        spinner.removeClass("d-none");
+    }
+
+    // Submit form
+    form.submit();
+    
+    } else {
+        // If the form is not valid, trigger HTML5 validation messages
+        form.reportValidity();
+    }
 });

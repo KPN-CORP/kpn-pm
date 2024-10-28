@@ -174,11 +174,12 @@ class MyGoalController extends Controller
     
     function create($id) {
 
-        $year = Carbon::now()->year;
-        $goal = Goal::where('employee_id', $id)->whereYear('created_at', $year)->get();
+        $period = 2024;
+
+        $goal = Goal::where('employee_id', $id)->where('period', $period)->get();
         if ($goal->isNotEmpty()) {
             // User ID doesn't match the condition, show error message
-            Session::flash('error', "You already initiated Goals for $year.");
+            Session::flash('error', "You already initiated Goals for $period.");
             return redirect()->back(); // Redirect back with error message
         }
 
@@ -261,7 +262,7 @@ class MyGoalController extends Controller
     function store(Request $request)
     {
         $user = $this->user;
-        $year = Carbon::now()->year;
+        $period = 2024;
 
         $layer = ApprovalLayer::select('approver_id')->where('employee_id', $user)->where('layer', 1)->first();
 
@@ -311,11 +312,11 @@ class MyGoalController extends Controller
         // Check for duplicate data
         $existingGoal = Goal::where('employee_id', $request->employee_id)
             ->where('category', $request->category)
-            ->whereYear('created_at', $year)
+            ->where('period', $period)
             ->first();
 
         if ($existingGoal) {
-            Session::flash('error', "You already initiated Goals for $year.");
+            Session::flash('error', "You already initiated Goals for $period.");
             return redirect('goals');
         }
 
@@ -358,6 +359,7 @@ class MyGoalController extends Controller
         $model->category = $request->category;
         $model->form_data = $jsonData;
         $model->form_status = $status;
+        $model->period = $period;
         
         $model->save();
 
@@ -375,6 +377,7 @@ class MyGoalController extends Controller
         $approval->category = $this->category;
         $approval->employee_id = $request->employee_id;
         $approval->current_approval_id = $layer->approver_id;
+        $approval->period = $period;
         $approval->created_by = Auth::user()->id;
         // Set other attributes as needed
         $approval->save();

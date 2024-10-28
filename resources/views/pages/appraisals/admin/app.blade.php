@@ -1,4 +1,4 @@
-@extends('layouts_.vertical', ['page_title' => 'Settings'])
+@extends('layouts_.vertical', ['page_title' => 'Reports'])
 
 @section('css')
 <style>
@@ -27,19 +27,18 @@
         <div class="row">
             <div class="col-lg">
                 <div class="mb-3 text-end">
-                    <button type="button" class="btn btn-sm btn-outline-success me-1" title="Download Report">Download Report</button>
-                    <button type="button" class="btn btn-sm btn-outline-success" title="Download Detail Report">Download Detail Report</button>
+                    <button type="button" class="btn btn-sm btn-outline-success" title="Download Detail Report"><i class="ri-download-cloud-2-line me-1 fs-16"></i>Download Detail Report</button>
                 </div>
             </div>
         </div>
         <div class="row">
             <div class="col-auto">
-                <div class="mb-3 p-1 bg-info-subtle">
-                    <span class="mx-2">L = Layer</span>|
+                <div class="mb-3 p-1 bg-info-subtle rounded shadow">
+                    <span class="mx-2">C = Calibrator</span>|
                     <span class="mx-2">P = Peers</span>|
                     <span class="mx-2">S = Subordinate</span>|
-                    <span class="mx-2"><i class="ri-check-line bg-subtle-success text-success fs-18"></i> = Done</span>|
-                    <span class="mx-2"><i class="ri-error-warning-line bg-subtle-warning text-warning fs-20"></i> = Pending</span>
+                    <span class="mx-2"><i class="ri-check-line bg-success-subtle text-success rounded fs-18"></i> = Done</span>|
+                    <span class="mx-2"><i class="ri-error-warning-line bg-warning-subtle text-warning rounded fs-20"></i> = Pending</span>
                 </div>
             </div>
         </div>
@@ -54,17 +53,17 @@
                             <th>No</th>
                             <th>Employee ID</th>
                             <th>Employee Name</th>
-                            @foreach(['L1', 'L2', 'L3', 'L4', 'L5', 'L6', 'L7', 'L8'] as $calibrator)
-                                <th>{{ $calibrator }}</th>
-                            @endforeach
                             @foreach(['P1', 'P2', 'P3'] as $peers)
-                                <th>{{ $peers }}</th>
+                            <th>{{ $peers }}</th>
                             @endforeach
                             @foreach(['S1', 'S2', 'S3'] as $subordinate)
-                                <th>{{ $subordinate }}</th>
+                            <th>{{ $subordinate }}</th>
                             @endforeach
-                            <th>Final Score</th>
-                            <th class="sorting_1">Action</th>
+                            @foreach($layerHeaders as $calibrator)
+                                <th>{{ $calibrator }}</th>
+                            @endforeach
+                            <th>Final Rating</th>
+                            <th class="sorting_1">Details</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -73,38 +72,20 @@
                             <td>{{ $index + 1 }}</td>
                             <td>{{ $employee['id'] }}</td>
                             <td>{{ $employee['name'] }}</td>
-                            
-                            {{-- Calibrator Layers --}}
-                            @foreach (range(1, 8) as $layer)
-                                @php
-                                    $calibratorLayer = collect($employee['approvalStatus']['calibrator'] ?? [])->firstWhere('layer', $layer);
-                                @endphp
-                                <td class="text-center
-                                    @if ($calibratorLayer) 
-                                        {{ $calibratorLayer['status'] ? 'table-success' : 'table-warning' }} 
-                                    @endif
-                                ">
-                                    @if ($calibratorLayer)
-                                        @if($calibratorLayer['status'])
-                                            <i class="ri-check-line text-success fs-20 fw-medium"></i>
-                                        @else
-                                            <i class="ri-error-warning-line text-warning fs-20 fw-medium"></i>
-                                        @endif
-                                    @endif
-                                </td>
-                            @endforeach
     
                             {{-- Peers Layers --}}
                             @foreach (range(1, 3) as $layer)
                                 @php
-                                    // $peerLayer = collect($employee['approvalStatus']['peers'] ?? [])->firstWhere('layer', $layer);
                                     $peerLayer = $employee['approvalStatus']['peers'][$layer - 1] ?? null;
                                 @endphp
                                 <td class="text-center
                                     @if ($peerLayer) 
                                         {{ $peerLayer['status'] ? 'table-success' : 'table-warning' }} 
+                                    @else
+                                        table-light
                                     @endif
-                                ">
+                                "
+                                data-id="{{ $peerLayer ? ($peerLayer['status'] ? 'Approved - '.$peerLayer['approver_name'].' ('.$peerLayer['approver_id'].')' : 'Pending - '.$peerLayer['approver_name'].' ('.$peerLayer['approver_id'].')') : '-' }}">
                                     @if ($peerLayer)
                                         @if($peerLayer['status'])
                                             <i class="ri-check-line text-success fs-20 fw-medium"></i>
@@ -118,14 +99,15 @@
                             {{-- Subordinate Layers --}}
                             @foreach (range(1, 3) as $layer)
                                 @php
-                                    // $subordinateLayer = collect($employee['approvalStatus']['subordinate'] ?? [])->firstWhere('layer', $layer);
                                     $subordinateLayer = $employee['approvalStatus']['subordinate'][$layer - 1] ?? null;
                                 @endphp
                                 <td class="text-center
                                     @if ($subordinateLayer) 
                                         {{ $subordinateLayer['status'] ? 'table-success' : 'table-warning' }} 
-                                    @endif
-                                ">
+                                    @else
+                                        table-light
+                                    @endif"
+                                data-id="{{ $subordinateLayer ? ($subordinateLayer['status'] ? 'Approved - '.$subordinateLayer['approver_name'].' ('.$subordinateLayer['approver_id'].')' : 'Pending - '.$subordinateLayer['approver_name'].' ('.$subordinateLayer['approver_id'].')') : '-' }}">
                                     @if ($subordinateLayer)
                                         @if($subordinateLayer['status'])
                                             <i class="ri-check-line text-success fs-20 fw-medium"></i>
@@ -135,10 +117,36 @@
                                     @endif
                                 </td>
                             @endforeach
+
+                            {{-- Calibrator Layers --}}
+                            @foreach ($layerBody as $layer)
+                                @php
+                                    $calibratorLayer = collect($employee['approvalStatus']['calibrator'] ?? [])->firstWhere('layer', $layer);
+                                @endphp
+                                <td class="text-center
+                                    @if ($calibratorLayer) 
+                                        {{ $calibratorLayer['status'] ? 'table-success' : 'table-warning' }} 
+                                    @else
+                                        table-light
+                                    @endif"
+                                data-id="{{ $calibratorLayer ? ($calibratorLayer['status'] ? 'Approved - '.$calibratorLayer['approver_name'].' ('.$calibratorLayer['approver_id'].')' : 'Pending - '.$calibratorLayer['approver_name'].' ('.$calibratorLayer['approver_id'].')') : '-' }}">
+                                    @if ($calibratorLayer)
+                                        @if($calibratorLayer['status'])
+                                            <i class="ri-check-line text-success fs-20 fw-medium"></i>
+                                        @else
+                                            <i class="ri-error-warning-line text-warning fs-20 fw-medium"></i>{{ $calibratorLayer['status'] }}
+                                        @endif
+                                    @endif
+                                </td>
+                            @endforeach
                             
                             <td class="text-center">{{ $employee['finalScore'] }}</td>
                             <td class="sorting_1 text-center">
-                                <button class="btn btn-sm btn-outline-info" onclick="alert('belom ada')"><i class="ri-eye-line"></i></button>
+                                @if ($employee['appraisalStatus'] && count(collect($employee['approvalStatus'])->except('calibrator')) != 0)
+                                    <a href="{{ route('admin.appraisal.details', $employee['id']) }}" class="btn btn-sm btn-outline-info"><i class="ri-eye-line"></i></a>
+                                @else
+                                    <a class="btn btn-sm btn-outline-secondary" onclick="alert('no data appraisal or pending reviewer')"><i class="ri-eye-line"></i></a>
+                                @endif
                             </td>
                         </tr>
                         @endforeach
