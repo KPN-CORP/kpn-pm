@@ -127,6 +127,9 @@
                         <ul class="side-nav-second-level">
                             @can('mastercalibration')
                             <li>
+                                <a href="{{ route('admemployee') }}">Employee</a>
+                            </li>
+                            <li>
                                 <a href="{{ route('admcalibrations') }}">Calibration</a>
                             </li>
                             @endcan
