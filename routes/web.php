@@ -34,6 +34,7 @@ use App\Http\Controllers\MyAppraisalController;
 use App\Http\Controllers\MyGoalController;
 use App\Http\Controllers\RatingAdminController;
 use App\Http\Controllers\CalibrationController;
+use App\Http\Controllers\EmployeePAController;
 use App\Http\Controllers\FormAppraisalController;
 use App\Http\Controllers\FormGroupAppraisalController;
 use App\Http\Controllers\RatingController;
@@ -241,6 +242,11 @@ Route::middleware('auth', 'locale')->group(function () {
         Route::get('/update/Calibrations/{id}', [CalibrationController::class, 'formupdate'])->name('update.Calibrations');
         Route::delete('/calibrationDestroy/{id}', [CalibrationController::class, 'destroy'])->name('calibrationDestroy');
         Route::post('/CalibrationsUpdate', [CalibrationController::class, 'update'])->name('updatecalibrations');
+
+        Route::get('/admemployees', [EmployeePAController::class, 'index'])->name('admemployee');
+        Route::delete('/admemployeedestroy/{id}', [EmployeePAController::class, 'destroy'])->name('admemployeeDestroy');
+        Route::put('/employeepa/update', [EmployeePAController::class, 'update'])->name('employeepa.update');
+        
     });
     
     Route::middleware(['permission:viewlayer'])->group(function () {
