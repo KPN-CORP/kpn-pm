@@ -21,6 +21,9 @@ import 'select2/dist/css/select2.css';
 import 'select2-bootstrap-5-theme/dist/select2-bootstrap-5-theme.css';
 import 'quill/dist/quill.snow.css';
 
+import 'bootstrap-datepicker';
+import 'bootstrap-datepicker/dist/css/bootstrap-datepicker.min.css';
+
 import 'datatables.net';
 import 'datatables.net-buttons';
 import 'jszip';
@@ -43,6 +46,7 @@ import './schedule.js';
 import './role.js';
 import './layer.js';
 import './admin-appraisal.js';
+import './weightage.js';
 
 function googleTranslateElementInit() {
     new google.translate.TranslateElement({

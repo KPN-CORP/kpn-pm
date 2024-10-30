@@ -18,7 +18,7 @@ document.addEventListener('DOMContentLoaded', function () {
 $(document).ready(function() {
     // Initialize Select2 on the select elements
     $('.select-uom').select2({
-        theme: "bootstrap-5",
+         theme : "bootstrap-5",
     });
 
     // Event listener for select element with Select2
