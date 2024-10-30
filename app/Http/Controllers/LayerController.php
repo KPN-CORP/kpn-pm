@@ -14,10 +14,13 @@ use Illuminate\Support\Facades\DB;
 use RealRashid\SweetAlert\Facades\Alert;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Imports\ApprovalLayerImport;
+use App\Models\Appraisal;
+use App\Models\AppraisalContributor;
 use App\Models\ApprovalLayerAppraisal;
 use App\Models\ApprovalLayerAppraisalBackup;
 use Illuminate\Support\Facades\Log;
 use App\Models\ApprovalLayerBackup;
+use App\Models\Calibration;
 use App\Models\Goal;
 use App\Services\AppService;
 use Exception;
@@ -345,8 +348,9 @@ class LayerController extends Controller
             $datas->formattedDoj = $this->appService->formatDate($datas->date_of_joining);
         }
 
-        $groupLayers = $datas->appraisalLayer->groupBy('layer_type');
-
+        $groupLayers = $datas->appraisalLayer->groupBy('layer_type')->map(function ($layers) {
+            return $layers->sortBy('layer')->values();
+        });
 
         $calibratorCount = isset($groupLayers['calibrator']) ? $groupLayers['calibrator']->count() : 1;
 
@@ -364,6 +368,9 @@ class LayerController extends Controller
 
     public function layerAppraisalUpdate(Request $request)
     {
+        $userId = Auth::id();
+        $period = 2024;
+
         // Define validation rules
         $validator = Validator::make($request->all(), [
             'employee_id' => 'required|string',
@@ -390,6 +397,116 @@ class LayerController extends Controller
         $subs = $validated['subs'] ?? [];
         $calibrators = $validated['calibrators'] ?? [];
 
+        $currentLayers = ApprovalLayerAppraisal::with(['approver'])->where('employee_id', $validated['employee_id'])
+                                       ->whereIn('layer_type', ['manager', 'peers', 'subordinate'])
+                                       ->get();
+        $currentPeers = $currentLayers->where('layer_type', 'peers');
+
+        // Get the manager (assuming there is only one)
+        $currentManager = $currentLayers->where('layer_type', 'manager')->first();
+
+        // Get all peers (already limited by the database to a max of 3)
+        $currentPeers = $currentLayers->where('layer_type', 'peers')->pluck('approver.employee_id')->toArray();
+
+        $peersToDelete = array_diff($currentPeers, $peers);
+        
+        // Get all subordinates (already limited by the database to a max of 3)
+        $currentSub = $currentLayers->where('layer_type', 'subordinate')->pluck('approver.employee_id')->toArray();
+        $subsToDelete = array_diff($currentSub, $subs);
+
+        // return response()->json($peersToDelete);
+
+        
+        $approvalRequest = ApprovalRequest::where('employee_id', $validated['employee_id'])->where('category', 'Appraisal')->where('period', $period)->first();
+
+        if ($currentManager) {
+            if($currentManager->approver_id != $manager){
+                // Check if the employee record exists
+                if ($approvalRequest) {
+
+                    $appraisal = Appraisal::where('id', $approvalRequest->form_id)->where('created_by', $currentManager->approver->id)->first();
+        
+                    if ($approvalRequest->created_by == $currentManager->approver->id) {
+                        // Soft delete the record
+                        $approvalRequest->delete();
+
+                        if ($appraisal) {
+                            // Soft delete the record
+                            $appraisal->delete();
+                            
+                        }
+                        
+                    } else {
+                        // Update the current_approval_id if not created by the current user
+                        $approvalRequest->update([
+                            'current_approval_id' => $manager,
+                            'status' => 'Pending'
+                        ]);
+                        
+                    }
+        
+                    $calibration = Calibration::where('appraisal_id', $approvalRequest->form_id)->where('created_by', $currentManager->approver->id)->where('status', 'Pending')->first();
+        
+                    if ($calibration) {
+                        // Soft delete the record
+                        $calibration->delete();
+                        
+                    }
+        
+                    $contributor = AppraisalContributor::where('appraisal_id', $approvalRequest->form_id)->where('contributor_id', $currentManager->approver_id)->first();
+        
+                    if ($contributor) {
+                        // Soft delete the record
+                        $contributor->delete();
+                        
+                    }
+        
+                }
+            }
+        }
+
+        if ($currentManager && $approvalRequest) {
+            if($approvalRequest->created_by == $currentManager->approver->id){
+
+            AppraisalContributor::where('appraisal_id', $approvalRequest->form_id)
+                                ->whereIn('contributor_type', ['peers', 'subordinate'])
+                                ->delete();
+
+            }else{
+                if (!empty($peersToDelete)) {
+                    foreach ($peersToDelete as $peerId) {
+                        // Find the record in the AppraisalContributor table based on appraisal_id and contributor_id
+                        $contributor = AppraisalContributor::where('appraisal_id', $approvalRequest->form_id)
+                            ->where('contributor_id', $peerId)
+                            ->where('contributor_type', 'peers')
+                            ->first();
+                
+                        // If a record is found, perform a soft delete
+                        if ($contributor) {
+                            $contributor->delete();
+                        }
+                    }
+                }
+        
+                if (!empty($subsToDelete)) {
+                    // Iterate through each peer that needs to be deleted
+                    foreach ($subsToDelete as $subId) {
+                        // Find the record in the AppraisalContributor table based on appraisal_id and contributor_id
+                        $contributor = AppraisalContributor::where('appraisal_id', $approvalRequest->form_id)
+                            ->where('contributor_id', $subId)
+                            ->where('contributor_type', 'subordinate')
+                            ->first();
+                
+                        // If a record is found, perform a soft delete
+                        if ($contributor) {
+                            $contributor->delete();
+                        }
+                    }
+                }
+            }
+        }
+
+        
         // Delete existing records for the employee_id
         ApprovalLayerAppraisal::where('employee_id', $validated['employee_id'])->delete();
 
@@ -399,7 +516,8 @@ class LayerController extends Controller
                 [
                     'layer_type' => 'manager',
                     'employee_id' => $validated['employee_id'],
-                    'approver_id' => $manager
+                    'approver_id' => $manager,
+                    'created_by' => $userId
                 ]
             );
         }
@@ -413,7 +531,8 @@ class LayerController extends Controller
                             'layer_type' => 'peers',
                             'layer' => $index + 1,
                             'employee_id' => $validated['employee_id'],
-                            'approver_id' => $peer
+                            'approver_id' => $peer,
+                            'created_by' => $userId
                         ]
                     );
                 }
@@ -429,7 +548,8 @@ class LayerController extends Controller
                             'layer_type' => 'subordinate',
                             'layer' => $index + 1,
                             'employee_id' => $validated['employee_id'],
-                            'approver_id' => $sub
+                            'approver_id' => $sub,
+                            'created_by' => $userId
                         ]
                     );
                 }
@@ -445,7 +565,8 @@ class LayerController extends Controller
                             'layer_type' => 'calibrator',
                             'layer' => $index + 1,
                             'employee_id' => $validated['employee_id'],
-                            'approver_id' => $calibrator
+                            'approver_id' => $calibrator,
+                            'created_by' => $userId
                         ]
                     );
                 }
@@ -568,7 +689,7 @@ class LayerController extends Controller
                 'group_company' => $employee->group_company,
                 'company_name' => $employee->company_name,
                 'unit' => $employee->unit,
-                'designation' => $employee->designation,
+                'designation' => $employee->designation_name,
                 'office_area' => $employee->office_area,
                 'history' => $history->map(function($entry) {
                     return [

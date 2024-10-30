@@ -55,7 +55,7 @@
                                     <td>{{ $employee->date_of_joining }}</td>
                                     <td>{{ $employee->employee_type }}</td>
                                     <td>{{ $employee->unit }}</td>
-                                    <td>{{ $employee->designation }}</td>
+                                    <td>{{ $employee->designation_name }}</td>
                                     <td>{{ $employee->job_level }}</td>
                                     <td>{{ $employee->contribution_level_code }}</td>
                                     <td>{{ $employee->office_area." (".$employee->group_company.")" }}</td>

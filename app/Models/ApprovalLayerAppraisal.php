@@ -52,10 +52,14 @@ class ApprovalLayerAppraisal extends Model
     }
     public function createBy()
     {
-        return $this->belongsTo(EmployeeAppraisal::class, 'created_by', 'id')->select('id', 'employee_id', 'fullname');;
+        return $this->belongsTo(EmployeeAppraisal::class, 'created_by', 'id')->select('id', 'employee_id', 'fullname');
     }
     public function updateBy()
     {
-        return $this->belongsTo(EmployeeAppraisal::class, 'updated_by', 'id')->select('id', 'employee_id', 'fullname');;
+        return $this->belongsTo(EmployeeAppraisal::class, 'updated_by', 'id')->select('id', 'employee_id', 'fullname');
+    }
+    public function goal()
+    {
+        return $this->hasMany(Goal::class, 'employee_id', 'employee_id');
     }
 }

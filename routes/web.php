@@ -35,6 +35,8 @@ use App\Http\Controllers\MyGoalController;
 use App\Http\Controllers\RatingAdminController;
 use App\Http\Controllers\CalibrationController;
 use App\Http\Controllers\EmployeePAController;
+use App\Http\Controllers\FormAppraisalController;
+use App\Http\Controllers\FormGroupAppraisalController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\TeamAppraisalController;
 use App\Http\Controllers\TeamGoalController;
@@ -140,6 +142,9 @@ Route::middleware('auth', 'locale')->group(function () {
     Route::post('/appraisals-task/submitReview', [AppraisalTaskController::class, 'storeReview'])->name('appraisals-task.submitReview');
     Route::get('/appraisals-task/approval/{id}', [AppraisalTaskController::class, 'approval'])->name('appraisals-task.approval');
     Route::get('/appraisals-task/initiate/{id}', [AppraisalTaskController::class, 'initiate'])->name('appraisals-task.initiate');
+
+    Route::get('/appraisals-task/teams-data', [AppraisalTaskController::class, 'getTeamData']);
+    Route::get('/appraisals-task/360-data', [AppraisalTaskController::class, 'get360Data']);
     
     // Appraisal 360
     Route::get('/appraisals-task/review/{id}', [AppraisalTaskController::class, 'review'])->name('appraisals-360.review');
@@ -148,6 +153,10 @@ Route::middleware('auth', 'locale')->group(function () {
     // Rating | Calibration
     Route::get('/rating', [RatingController::class, 'index'])->name('rating');
     Route::post('/rating-submit', [RatingController::class, 'store'])->name('rating.submit');
+
+    Route::get('/export-ratings/{level}', [RatingController::class, 'exportToExcel'])->name('rating.export');
+    Route::post('/rating/import', [RatingController::class, 'importFromExcel'])->name('rating.import');
+
     
     // Approval
     Route::post('/approval/goal', [ApprovalController::class, 'store'])->name('approval.goal');
@@ -272,7 +281,9 @@ Route::middleware('auth', 'locale')->group(function () {
     });
 
     Route::get('/admin-appraisal', [AdminAppraisalController::class, 'index'])->name('admin.appraisal');
-    Route::get('/admin-appraisal/details', [AdminAppraisalController::class, 'index'])->name('admin.appraisal.details');
+    Route::get('/admin-appraisal/details/{id}', [AdminAppraisalController::class, 'detail'])->name('admin.appraisal.details');
+    Route::get('/admin-appraisal/get-peers/{peerId}', [AdminAppraisalController::class, 'getPeerData'])->name('get.peer.data');
+    Route::get('/admin-appraisal/get-detail-data/{id}', [AdminAppraisalController::class, 'getDetailData'])->name('get.detail.data');
     
     Route::middleware(['permission:viewonbehalf'])->group(function () {
         // Approval-Admin
@@ -297,6 +308,7 @@ Route::middleware('auth', 'locale')->group(function () {
         Route::get('/employees', [EmployeeController::class, 'employee'])->name('employees');
         Route::get('/employee/filter', [EmployeeController::class, 'filterEmployees'])->name('employee.filter');
     });
+
 });
 
 
