@@ -237,7 +237,7 @@ Route::middleware('auth', 'locale')->group(function () {
         Route::get('/admemployees', [EmployeePAController::class, 'index'])->name('admemployee');
         Route::delete('/admemployeedestroy/{id}', [EmployeePAController::class, 'destroy'])->name('admemployeeDestroy');
         Route::put('/employeepa/update', [EmployeePAController::class, 'update'])->name('employeepa.update');
-        
+        Route::get('/export-employeepa', [EmployeePAController::class, 'exportEmployeepa'])->name('employeepa.export');
     });
     
     Route::middleware(['permission:viewlayer'])->group(function () {

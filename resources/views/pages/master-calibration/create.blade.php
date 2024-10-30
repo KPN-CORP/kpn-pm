@@ -120,21 +120,67 @@
 @endsection
 @push('scripts')
 <script>
-    function calculateTotal() {
-        @if(!empty($kpiUnits))
+    @if(!empty($kpiUnits))
+        function calculateTotal() {
             @foreach($kpiUnits as $unit)
-                let total_{{ $unit }} = 0; // Variabel untuk menyimpan total per KPI Unit
+                var total = 0;
+                var lastInput = null;
 
-                // Cari semua input yang sesuai dengan KPI Unit ini (menggunakan pencarian pola yang spesifik)
-                document.querySelectorAll('input[name*="Xx[{{ $unit }}]"]').forEach(function(input) {
-                    let value = parseFloat(input.value) || 0; // Jika tidak ada nilai, anggap 0
-                    total_{{ $unit }} += value; // Tambahkan nilai ke total
+                document.querySelectorAll(`input[name^="Xx[{{ $unit }}]"]`).forEach(function(input) {
+                    var value = parseFloat(input.value);
+                    
+                    if (document.activeElement === input) {
+                        lastInput = input;
+                    }
+
+                    if (!isNaN(value)) {
+                        total += value;
+                    }
                 });
 
-                // Tampilkan hasil di elemen <td> untuk total KPI Unit ini
-                document.getElementById('total-V{{ $unit }}').innerText = total_{{ $unit }} + '%';
+                if (total > 100) {
+                    alert("Total persentase untuk KPI Unit '{{ $unit }}' tidak boleh lebih dari 100%");
+                    
+                    if (lastInput !== null) {
+                        lastInput.value = 0;
+                    }
+
+                    calculateTotal();
+                    return;
+                }
+
+                document.getElementById(`total-V{{ $unit }}`).textContent = total.toFixed(0) + '%';
             @endforeach
-        @endif
-    }
+        }
+
+        document.querySelectorAll('.kpi-input').forEach(function(input) {
+            input.addEventListener('input', calculateTotal);
+        });
+    @endif
+
+    // function calculateTotal() {
+    //     @if(!empty($kpiUnits))
+    //         @foreach($individualKpis as $kpi)
+    //             @foreach($kpiUnits as $unit)
+    //                 let total_{{ $unit }} = 0;
+
+    //                 document.querySelectorAll('input[name*="Xx[{{ $unit }}]"]').forEach(function(input) {
+    //                     let value = parseFloat(input.value) || 0;
+    //                     total_{{ $unit }} += value;
+    //                     lastInput = input;
+    //                     console.log(lastInput);
+    //                 });
+
+    //                 if (total_{{ $unit }} > 100) {
+    //                     alert("Total untuk KPI Unit '{{ $unit }}' tidak boleh lebih dari 100%");
+    //                     lastInput.value = 0;
+    //                     total_{{ $unit }} -= parseFloat(lastInput.value) || 0;
+    //                 }
+
+    //                 document.getElementById('total-V{{ $unit }}').innerText = total_{{ $unit }} + '%';
+    //             @endforeach
+    //         @endforeach
+    //     @endif
+    // }
 </script>
 @endpush

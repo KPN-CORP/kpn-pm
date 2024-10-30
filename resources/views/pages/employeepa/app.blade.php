@@ -1,6 +1,56 @@
 @extends('layouts_.vertical', ['page_title' => 'Ratings'])
 
 @section('css')
+<style>
+    .table {
+            border-collapse: separate;
+            width: 100%;
+            position: relative;
+            overflow: auto;
+        }
+
+        .table thead th {
+            position: -webkit-sticky !important;
+            /* For Safari */
+            position: sticky !important;
+            top: 0 !important;
+            z-index: 2 !important;
+            background-color: #fff !important;
+            /* border-bottom: 2px solid #ddd !important; */
+            padding-right: 6px;
+            box-shadow: inset 2px 0 0 #fff;
+        }
+
+        .table tbody td {
+            background-color: #fff !important;
+            padding-right: 10px;
+            position: relative;
+        }
+
+        .table th.sticky-col-header {
+            position: -webkit-sticky !important;
+            /* For Safari */
+            position: sticky !important;
+            left: 0 !important;
+            z-index: 3 !important;
+            background-color: #fff !important;
+            /* border-right: 2px solid #ddd !important; */
+            padding-right: 10px;
+            box-shadow: inset 2px 0 0 #fff;
+        }
+
+        .table td.sticky-col {
+            position: -webkit-sticky !important;
+            /* For Safari */
+            position: sticky !important;
+            left: 0 !important;
+            z-index: 1 !important;
+            background-color: #fff !important;
+            /* border-right: 2px solid #ddd !important; */
+            padding-right: 10px;
+            box-shadow: inset 6px 0 0 #fff;
+        }
+</style>
 @endsection
 
 @section('content')
@@ -31,7 +81,7 @@
             </div>
             </div>
             <div class="col-2" style="text-align:right">
-                <a href="" class="btn btn-success shadow">Export to Excel</a>
+                <a href="{{ route('employeepa.export') }}" class="btn btn-success shadow">Export to Excel</a>
             </div>
         </div>
         
@@ -55,7 +105,7 @@
                                   <th>Designation</th>
                                   <th>Job Level</th>
                                   <th>Office Location</th>
-                                  <th>Action</th>
+                                  <th class="sticky-col-header" style="background-color: white">Action</th>
                               </tr>
                           </thead>
                           <tbody>
@@ -71,7 +121,7 @@
                                     <td>{{ $employee->designation_name }}</td>
                                     <td>{{ $employee->job_level }}</td>
                                     <td>{{ $employee->office_area }}</td>
-                                    <td class="text-center">
+                                    <td class="text-center" style="background-color: white;" class="sticky-col">
                                         <button class="btn btn-sm btn-outline-warning" title="Edit" onclick="showEditModal({{ json_encode($employee) }})">
                                             <i class="ri-edit-box-line"></i>
                                         </button>
@@ -129,21 +179,64 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="editUnit" class="form-label">Unit</label>
-                                <input type="text" class="form-control" id="editUnit" name="unit" required>
+                                {{-- <input type="text" class="form-control" id="editUnit" name="unit" required> --}}
+                                <select class="form-control" id="editUnit" name="unit" required>
+                                    @foreach($departments as $department)
+                                        <option value="{{ $department->department_name }}">
+                                            {{ $department->department_name }}
+                                        </option>
+                                    @endforeach
+                                </select>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="editDesignationName" class="form-label">Designation</label>
-                                <input type="text" class="form-control" id="editDesignationName" name="designation_name" required>
+                                {{-- <input type="text" class="form-control" id="editDesignationName" name="designation_name" required> --}}
+                                <select class="form-control" id="editDesignationName" name="designation_name" required>
+                                    @foreach($designations as $designation)
+                                        <option value="{{ $designation->job_code }}">
+                                            {{ $designation->designation_name }} ({{ $designation->job_code }})
+                                        </option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label for="editJobLevel" class="form-label">Job Level</label>
-                                <input type="text" class="form-control" id="editJobLevel" name="job_level" required>
+                                {{-- <input type="text" class="form-control" id="editJobLevel" name="job_level" required> --}}
+                                <select class="form-control" id="editJobLevel" name="job_level" required>
+                                    <option value="2A">2A</option>
+                                    <option value="2B">2B</option>
+                                    <option value="2C">2C</option>
+                                    <option value="2D">2D</option>
+                                    <option value="3A">3A</option>
+                                    <option value="3B">3B</option>
+                                    <option value="4A">4A</option>
+                                    <option value="4B">4B</option>
+                                    <option value="5A">5A</option>
+                                    <option value="5B">5B</option>
+                                    <option value="6A">6A</option>
+                                    <option value="6B">6B</option>
+                                    <option value="7A">7A</option>
+                                    <option value="7B">7B</option>
+                                    <option value="8A">8A</option>
+                                    <option value="8B">8B</option>
+                                    <option value="9A">9A</option>
+                                    <option value="9B">9B</option>
+                                    <option value="10A">10A</option>
+                                    <option value="10B">10B</option>
+                                </select>
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label for="editOfficeArea" class="form-label">Office Area</label>
-                                <input type="text" class="form-control" id="editOfficeArea" name="office_area" required>
+                                {{-- <input type="text" class="form-control" id="editOfficeArea" name="office_area" required> --}}
+                                <select class="form-control" id="editOfficeArea" name="office_area" required>
+                                    @foreach($locations as $location)
+                                        <option value="{{ $location->work_area }}">
+                                            {{ $location->area }} ({{ $location->company_name }})
+                                        </option>
+                                    @endforeach
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -195,9 +288,9 @@
         document.getElementById('editDateOfJoining').value = employee.date_of_joining;
         document.getElementById('editContributionLevelCode').value = employee.contribution_level_code;
         document.getElementById('editUnit').value = employee.unit;
-        document.getElementById('editDesignationName').value = employee.designation_name;
+        document.getElementById('editDesignationName').value = employee.designation_code;
         document.getElementById('editJobLevel').value = employee.job_level;
-        document.getElementById('editOfficeArea').value = employee.office_area;
+        document.getElementById('editOfficeArea').value = employee.work_area_code;
 
         // Tampilkan modal
         var editModal = new bootstrap.Modal(document.getElementById('editEmployeeModal'));
