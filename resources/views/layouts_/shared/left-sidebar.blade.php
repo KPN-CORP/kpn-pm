@@ -158,6 +158,11 @@
                                 <a href="{{ route('admratings') }}">Rating</a>
                             </li>
                             @endcan
+                            @can('masterweightage')
+                            <li>
+                                <a href="{{ route('admin-weightage') }}">Weightage</a>
+                            </li>
+                            @endcan
                             @can('viewrole')
                             <li>
                                 <a href="{{ route('roles') }}">Role</a>
@@ -192,7 +197,7 @@
                             <li>
                                 <a href="{{ route('admin.reports') }}">{{ __('Report') }}</a>
                             </li>
-                            @can('viewreport')
+                            @can('reportpa')
                             <li>
                                 <a href="{{ route('admin.appraisal') }}">{{ __('Appraisal') }}</a>
                             </li>
