@@ -11,6 +11,7 @@ use App\Models\EmployeeAppraisal;
 use App\Models\FormGroupAppraisal;
 use App\Models\MasterRating;
 use App\Models\MasterWeightage;
+use App\Models\Schedule;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\File;
@@ -135,7 +136,7 @@ class AppService
         }
     }
 
-    public function combineFormData($appraisalData, $goalData, $typeWeightage360, $employeeData) {
+    public function combineFormData($appraisalData, $goalData, $typeWeightage360, $employeeData, $period) {
         $totalKpiScore = 0; // Initialize the total score
         $cultureAverageScore = 0; // Initialize Culture average score
         $leadershipAverageScore = 0; // Initialize Culture average score
@@ -175,10 +176,11 @@ class AppService
             $appraisalDatas['formData'] = []; // Optionally, set to an empty array
         }
 
-        $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->first();
+        $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $period)->first();
+
         
         $weightageContent = json_decode($weightageData->form_data, true);
-
+        
         $kpiWeightage = 0;
         $cultureWeightage = 0;
         $leadershipWeightage = 0;
@@ -198,7 +200,7 @@ class AppService
                     }
 
                     switch ($competency['competency']) {
-                        case 'Key Performance Indicator':
+                        case 'KPI':
                             $kpiWeightage = $competency['weightage'];
                             $kpiWeightage360 = $employeeWeightage;
                             break;
@@ -215,7 +217,7 @@ class AppService
                 break; // Exit after processing the relevant job level
             }
         }
-    
+            
         $appraisalDatas['kpiWeightage360'] = $kpiWeightage360; // get KPI 360 weightage
         $appraisalDatas['cultureWeightage360'] = $cultureWeightage360 / 100; // get Culture 360 weightage
         $appraisalDatas['leadershipWeightage360'] = $leadershipWeightage360 / 100; // get Leadership 360 weightage
@@ -562,6 +564,50 @@ class AppService
             'status' => true,
             'message' => '360 Review completed'
         ];
+    }
+
+    public function goalPeriod()
+    {
+        $today = Carbon::today()->toDateString();
+
+        $period = Schedule::where('event_type', 'goals')
+                        ->orderByDesc('id')
+                        ->value('schedule_periode');
+        return $period;
+    }
+
+    public function goalActivePeriod()
+    {
+        $today = Carbon::today()->toDateString();
+
+        $period = Schedule::where('event_type', 'goals')
+                        ->where('start_date', '<=', $today)
+                        ->where('end_date', '>=', $today)
+                        ->orderByDesc('id')
+                        ->value('schedule_periode');
+        return $period;
+    }
+
+    public function appraisalPeriod()
+    {
+        $today = Carbon::today()->toDateString();
+
+        $period = Schedule::where('event_type', 'masterschedulepa')
+                        ->orderByDesc('id')
+                        ->value('schedule_periode');
+        return $period;
+    }
+
+    public function appraisalActivePeriod()
+    {
+        $today = Carbon::today()->toDateString();
+
+        $period = Schedule::where('event_type', 'masterschedulepa')
+                        ->where('start_date', '<=', $today)
+                        ->where('end_date', '>=', $today)
+                        ->orderByDesc('id')
+                        ->value('schedule_periode');
+        return $period;
     }
     
 }

@@ -369,7 +369,7 @@ class LayerController extends Controller
     public function layerAppraisalUpdate(Request $request)
     {
         $userId = Auth::id();
-        $period = 2024;
+        $period = $this->appService->appraisalPeriod();
 
         // Define validation rules
         $validator = Validator::make($request->all(), [
