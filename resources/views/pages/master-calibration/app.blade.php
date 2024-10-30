@@ -59,8 +59,29 @@
                               <tr>
                                     <td>{{ $loop->index + 1 }}</td>
                                     <td style="width: 20%; word-wrap: break-word; white-space: normal;">{!! $calibration->name !!}</td>
-                                    <td style="width: 60%; word-wrap: break-word; white-space: normal; overflow-wrap: break-word; word-break: break-word;">
-                                        {!! $calibration->detail !!}
+                                    <td>
+                                        @php
+                                            // Ubah field JSON menjadi array
+                                            $details = explode('||', $calibration->percentage);
+                                            $grades = explode('||', $calibration->grade); // Mengambil field 'grade' yang relevan
+                        
+                                            // Loop setiap baris dalam detail dan tampilkan dengan grade
+                                            for ($i = 0; $i < count($details); $i++) {
+                                                $percentageData = json_decode($details[$i], true);
+                                                $grade = isset($grades[$i]) ? $grades[$i] : "Grade"; // Dapatkan nilai grade terkait
+                        
+                                                if ($percentageData) {
+                                                    // Tampilkan grade dan isinya dalam format JSON
+                                                    echo "<b>{$grade}</b> - {";
+                                                    $jsonArray = [];
+                                                    foreach ($percentageData as $key => $value) {
+                                                        // Kalikan dengan 100 untuk konversi ke persentase
+                                                        $jsonArray[] = "\"$key\": " . ($value * 100) . "%";
+                                                    }
+                                                    echo implode(", ", $jsonArray) . "}<br>";
+                                                }
+                                            }
+                                        @endphp
                                     </td>
                                     <td>{{ $calibration->created_by_name }}</td>
                                     <td class="text-center">
