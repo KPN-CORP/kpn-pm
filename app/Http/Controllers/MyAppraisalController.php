@@ -162,7 +162,7 @@ class MyAppraisalController extends Controller
             $cultureData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Culture') ?? [];
             $leadershipData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership') ?? [];
 
-            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData);
+            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $datas->first()->period);
 
             if (isset($formData['totalKpiScore'])) {
                 $appraisalData['kpiScore'] = round($formData['kpiScore'], 2);

@@ -137,6 +137,7 @@ class AppService
     }
 
     public function combineFormData($appraisalData, $goalData, $typeWeightage360, $employeeData, $period) {
+
         $totalKpiScore = 0; // Initialize the total score
         $cultureAverageScore = 0; // Initialize Culture average score
         $leadershipAverageScore = 0; // Initialize Culture average score
