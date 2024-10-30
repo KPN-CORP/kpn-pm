@@ -22,6 +22,7 @@ use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Str;
+use PhpParser\Node\Expr\Empty_;
 use stdClass;
 
 use function PHPUnit\Framework\isEmpty;
@@ -42,8 +43,10 @@ class AppraisalTaskController extends Controller
     public function index(Request $request) {
         try {
 
+            $employee = EmployeeAppraisal::with(['schedule'])->where('employee_id', '01120040011')->first();
+
             $user = $this->user;
-            $period = 2024;
+            $period = $this->appService->appraisalPeriod();
             $filterYear = $request->input('filterYear');
             
             $dataTeams = ApprovalLayerAppraisal::with(['approver', 'contributors' => function($query) use ($user, $period) {
@@ -108,7 +111,7 @@ class AppraisalTaskController extends Controller
     public function getTeamData(Request $request)
     {
         $user = $this->user;
-        $period = 2024;
+        $period = $this->appService->appraisalPeriod();
         $filterYear = $request->input('filterYear');
 
         $datas = ApprovalLayerAppraisal::with(['employee', 'approver', 'contributors' => function($query) use ($user, $period) {
@@ -122,7 +125,8 @@ class AppraisalTaskController extends Controller
         ->where('layer_type', 'manager')
         ->get();
 
-        $datas->map(function($item) {
+        $datas->map(function($item) use ($period) {
+
             // Check if goal and contributors exist and if form_data is not null
             $goalData = $item && $item->goal->isNotEmpty() && $item->goal->first()->form_data 
                 ? json_decode($item->goal->first()->form_data, true) 
@@ -131,12 +135,16 @@ class AppraisalTaskController extends Controller
             $appraisalData = $item && $item->contributors->isNotEmpty() && $item->contributors->first()->form_data 
                 ? json_decode($item->contributors->first()->form_data, true) 
                 : [];
+
+            if (!Empty($appraisalData)) {
+                $period = $item->contributors->first()->period;
+            }
         
             // Get employee data
             $employeeData = $item->first()->employee ?? null;
         
             // Combine form data
-            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'manager', $employeeData);
+            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'manager', $employeeData, $period);
         
             // Assign form scores to the item
             $item->total_score = round($formData['totalScore'], 2) ?? [];
@@ -180,7 +188,7 @@ class AppraisalTaskController extends Controller
     public function get360Data(Request $request)
     {
         $user = $this->user;
-        $period = 2024;
+        $period = $this->appService->appraisalPeriod();
         $filterYear = $request->input('filterYear');
 
         $datas = ApprovalLayerAppraisal::with(['employee', 'approver', 'contributors' => function($query) use ($user, $period) {
@@ -195,7 +203,7 @@ class AppraisalTaskController extends Controller
         
         $datas = $datas->has('approvalRequest')->get();
 
-        $datas->map(function($item) {
+        $datas->map(function($item) use ($period){
             // Check if goal and contributors exist and if form_data is not null
             $goalData = $item && $item->goal->isNotEmpty() && $item->goal->first()->form_data 
                 ? json_decode($item->goal->first()->form_data, true) 
@@ -204,12 +212,16 @@ class AppraisalTaskController extends Controller
             $appraisalData = $item && $item->contributors->isNotEmpty() && $item->contributors->first()->form_data 
                 ? json_decode($item->contributors->first()->form_data, true) 
                 : [];
+
+            if (!Empty($appraisalData)) {
+                $period = $item->contributors->first()->period;
+            }
         
             // Get employee data
             $employeeData = $item->first()->employee ?? null;
         
             // Combine form data
-            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'manager', $employeeData);
+            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'manager', $employeeData, $period);
         
             // Assign form scores to the item
             $item->kpi_score = round($formData['kpiScore'], 2) ?? [];
@@ -255,7 +267,7 @@ class AppraisalTaskController extends Controller
 
         $step = $request->input('step', 1);
 
-        $period = 2024;
+        $period = $this->appService->appraisalPeriod();
 
         $approval = ApprovalLayerAppraisal::select('approver_id')->where('employee_id', $request->id)->where('layer', 1)->first();
 
@@ -295,7 +307,7 @@ class AppraisalTaskController extends Controller
     public function approval(Request $request)
     {
         $user = $this->user;
-        $period = 2024;
+        $period = $this->appService->appraisalPeriod();
 
         $step = $request->input('step', 1);
 
@@ -336,7 +348,7 @@ class AppraisalTaskController extends Controller
     public function review(Request $request)
     {
         $user = $this->user;
-        $period = 2024;
+        $period = $this->appService->appraisalPeriod();
 
         $step = $request->input('step', 1);
         
@@ -483,6 +495,13 @@ class AppraisalTaskController extends Controller
             $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->goal->form_data, true) : [];
             $appraisalData = $datas->isNotEmpty() ? json_decode($datas->first()->form_data, true) : [];
 
+            if (!Empty($appraisalData)) {
+                $period = $datas->first()->period;
+            } else {
+                $period = $this->appService->appraisalPeriod();
+            }
+            
+
             $employeeData = $datas->first()->employee;
 
             // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
@@ -498,7 +517,7 @@ class AppraisalTaskController extends Controller
             $cultureData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
             $leadershipData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
 
-            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData);
+            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $period);
 
             if (isset($formData['totalKpiScore'])) {
                 $appraisalData['kpiScore'] = round($formData['kpiScore'], 2);
@@ -594,7 +613,7 @@ class AppraisalTaskController extends Controller
     public function storeInitiate(Request $request)
     {
         $submit_status = 'Submitted';
-        $period = 2024;
+        $period = $this->appService->appraisalPeriod();
 
         // Validate the request data
         $validatedData = $request->validate([
@@ -643,7 +662,7 @@ class AppraisalTaskController extends Controller
 
         $calibrationGroupID = $kpiUnit->masterCalibration->id_calibration_group;
 
-        $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee);
+        $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee, $contributorData->period);
 
         AppraisalContributor::create([
             'appraisal_id' => $appraisal->id,
@@ -695,7 +714,7 @@ class AppraisalTaskController extends Controller
 
     public function storeReview(Request $request)
     {
-        $period = 2024;
+        $period = $this->appService->appraisalPeriod();
 
         // Validate the request data
         $validatedData = $request->validate([
@@ -722,7 +741,7 @@ class AppraisalTaskController extends Controller
             'formData' => $formData,
         ];
         
-        $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee);
+        $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee, $contributorData->period);
 
         AppraisalContributor::create([
             'appraisal_id' => $validatedData['appraisal_id'],
