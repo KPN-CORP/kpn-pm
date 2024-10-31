@@ -24,22 +24,41 @@ $(document).ready(function() {
                     let data = dt.data().toArray();
                     
                     // Add new headers
-                    csvRows[0] = csvRows[0].slice(0, -1) + ',KPI Score,Culture Score,Leadership Score,Total Score';
-                    
+                    csvRows[0] = csvRows[0].replace(/\r?\n|\r/g, '') + ',KPI Score,Culture Score,Leadership Score,Total Score';
+                
                     // Process each data row
-                    for(let i = 1; i < csvRows.length; i++) {
-                        if(csvRows[i]) {
-                            let rowData = data[i-1];
+                    for (let i = 1; i < csvRows.length; i++) {
+                        if (csvRows[i]) {
+                            let rowData = data[i - 1];
                             let scores = getScores(rowData);
                             
-                            // Add the scores to the CSV row
-                            csvRows[i] = csvRows[i].slice(0, -1)
-                             + scores.kpiScore + scores.cultureScore + scores.leadershipScore + scores.totalScore + '"';
+                            // Split the current row into an array of values
+                            let rowColumns = csvRows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                
+                            // Ensure we have enough columns; if not, fill them with blank entries
+                            // while (rowColumns.length < 10) rowColumns.push('');
+                
+                            // Add the scores to the specific columns
+                            rowColumns[6] = scores.kpiScore;           // KPI Score
+                            rowColumns[7] = scores.cultureScore;       // Culture Score
+                            rowColumns[8] = scores.leadershipScore;    // Leadership Score
+                            rowColumns[9] = scores.totalScore;         // Total Score
+                
+                            // Reassemble the row with each field correctly quoted if necessary
+                            csvRows[i] = rowColumns.map(value => {
+                                // Add quotes around values containing commas or quotes
+                                if (value.includes(',') || value.includes('"')) {
+                                    return `"${value.replace(/"/g, '')}"`; // Escape any existing double quotes
+                                }
+                                return value;
+                            }).join(",");
                         }
                     }
                     
+                    // Join rows back into a single CSV string
                     return csvRows.join('\n');
                 }
+                    
             }
         ],
         fixedColumns: {
@@ -65,8 +84,8 @@ $(document).ready(function() {
             { data: 'employee.fullname' },
             { data: 'employee.designation' },
             { data: 'employee.office_area' },
-            { data: 'employee.group_company' },
             { data: 'approval_date', className: 'text-end' },
+            { data: 'employee.group_company' },
             { data: 'action', className: 'sorting_1 text-center' }
         ]
     });
@@ -97,24 +116,42 @@ $(document).ready(function() {
                     let csvRows = csv.split('\n');
                     
                     // Get data from the DataTable
-                    let dt = $('#tableAppraisal360').DataTable();
+                    let dt = $('#tableAppraisalTeam').DataTable();
                     let data = dt.data().toArray();
                     
                     // Add new headers
-                    csvRows[0] = csvRows[0].slice(0, -1) + ',KPI Score,Culture Score,Leadership Score,Total Score';
-                    
+                    csvRows[0] = csvRows[0].replace(/\r?\n|\r/g, '') + ',KPI Score,Culture Score,Leadership Score,Total Score';
+                
                     // Process each data row
-                    for(let i = 1; i < csvRows.length; i++) {
-                        if(csvRows[i]) {
-                            let rowData = data[i-1];
+                    for (let i = 1; i < csvRows.length; i++) {
+                        if (csvRows[i]) {
+                            let rowData = data[i - 1];
                             let scores = getScores(rowData);
                             
-                            // Add the scores to the CSV row
-                            csvRows[i] = csvRows[i].slice(0, -1)
-                            + scores.kpiScore + scores.cultureScore + scores.leadershipScore + scores.totalScore + '"';
+                            // Split the current row into an array of values
+                            let rowColumns = csvRows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                
+                            // Ensure we have enough columns; if not, fill them with blank entries
+                            // while (rowColumns.length < 10) rowColumns.push('');
+                
+                            // Add the scores to the specific columns
+                            rowColumns[6] = scores.kpiScore;           // KPI Score
+                            rowColumns[7] = scores.cultureScore;       // Culture Score
+                            rowColumns[8] = scores.leadershipScore;    // Leadership Score
+                            rowColumns[9] = scores.totalScore;         // Total Score
+                
+                            // Reassemble the row with each field correctly quoted if necessary
+                            csvRows[i] = rowColumns.map(value => {
+                                // Add quotes around values containing commas or quotes
+                                if (value.includes(',') || value.includes('"')) {
+                                    return `"${value.replace(/"/g, '')}"`; // Escape any existing double quotes
+                                }
+                                return value;
+                            }).join(",");
                         }
                     }
                     
+                    // Join rows back into a single CSV string
                     return csvRows.join('\n');
                 }
             }
@@ -164,10 +201,10 @@ function getScores(rowData) {
     };
 
     if (rowData.kpi && rowData.kpi.kpi_status) {
-        scores.kpiScore = ',"' + rowData.kpi.kpi_score || '","N/A';
-        scores.cultureScore = '","' + rowData.kpi.culture_score || '","N/A';
-        scores.leadershipScore = '","' + rowData.kpi.leadership_score || '","N/A';
-        scores.totalScore = '","' + rowData.kpi.total_score || '","N/A';
+        scores.kpiScore = '' + rowData.kpi.kpi_score || '","N/A';
+        scores.cultureScore = '' + rowData.kpi.culture_score || '","N/A';
+        scores.leadershipScore = '' + rowData.kpi.leadership_score || '","N/A';
+        scores.totalScore = '' + rowData.kpi.total_score || '","N/A';
     }
 
     return scores;
