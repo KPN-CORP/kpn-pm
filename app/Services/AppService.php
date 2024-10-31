@@ -27,8 +27,6 @@ class AppService
         
         $datas = FormGroupAppraisal::with(['formAppraisals', 'rating'])->where('name', $form_name)->get();
 
-        // dd($datas);
-
         $data = json_decode($datas, true);
 
         $criteria = [
@@ -50,11 +48,14 @@ class AppService
             $restrict = $item['restrict'];
     
             // Check each criterion
-            $jobLevelMatch = in_array($criteria['job_level'], $restrict['job_level']);
-            $workAreaMatch = in_array($criteria['work_area'], $restrict['work_area']);
+            $jobLevelMatch = empty($restrict['job_level']) || 
+            (isset($criteria['job_level']) && in_array($criteria['job_level'], $restrict['job_level']));
+            $workAreaMatch = empty($restrict['work_area']) || 
+            (isset($criteria['work_area']) && in_array($criteria['work_area'], $restrict['work_area']));
             $companyMatch = empty($restrict['company_name']) || 
                             (isset($criteria['company_name']) && in_array($criteria['company_name'], $restrict['company_name']));
-            $groupCompanyMatch = in_array($criteria['group_company'], $restrict['group_company']);
+            $groupCompanyMatch = empty($restrict['group_company']) || 
+            (isset($criteria['group_company']) && in_array($criteria['group_company'], $restrict['group_company']));
     
             // Return true if all criteria match
             return $jobLevelMatch && $workAreaMatch && $companyMatch && $groupCompanyMatch;
