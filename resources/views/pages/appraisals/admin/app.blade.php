@@ -63,7 +63,9 @@
                                 <th>{{ $calibrator }}</th>
                             @endforeach
                             <th>Final Rating</th>
+                            @can('reportpadetail')                                
                             <th class="sorting_1">Details</th>
+                            @endcan
                         </tr>
                     </thead>
                     <tbody>
@@ -141,6 +143,7 @@
                             @endforeach
                             
                             <td class="text-center">{{ $employee['finalScore'] }}</td>
+                            @can('reportpadetail')
                             <td class="sorting_1 text-center">
                                 @if ($employee['appraisalStatus'] && count(collect($employee['approvalStatus'])->except('calibrator')) != 0)
                                     <a href="{{ route('admin.appraisal.details', $employee['id']) }}" class="btn btn-sm btn-outline-info"><i class="ri-eye-line"></i></a>
@@ -148,6 +151,7 @@
                                     <a class="btn btn-sm btn-outline-secondary" onclick="alert('no data appraisal or pending reviewer')"><i class="ri-eye-line"></i></a>
                                 @endif
                             </td>
+                            @endcan
                         </tr>
                         @endforeach
                     </tbody>

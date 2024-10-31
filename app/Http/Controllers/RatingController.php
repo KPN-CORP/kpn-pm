@@ -40,7 +40,7 @@ class RatingController extends Controller
     public function index(Request $request) {
         try {
             $user = $this->user;
-            $period = 2024;
+            $period = $this->appService->appraisalPeriod();
             $filterYear = $request->input('filterYear');
 
             // Get the KPI unit and calibration percentage
@@ -355,7 +355,7 @@ class RatingController extends Controller
     {
         try {
             $user = $this->user;
-            $period = 2024;
+            $period = $this->appService->appraisalPeriod();
 
             // Get the KPI unit and calibration percentage
             $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $user)->first();

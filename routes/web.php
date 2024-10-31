@@ -41,6 +41,7 @@ use App\Http\Controllers\RatingController;
 use App\Http\Controllers\TeamAppraisalController;
 use App\Http\Controllers\TeamGoalController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\WeightageController;
 use App\Imports\ApprovalLayerAppraisalImport;
 use Illuminate\Support\Facades\Route;
 
@@ -251,6 +252,18 @@ Route::middleware('auth', 'locale')->group(function () {
         Route::get('/export-employeepa', [EmployeePAController::class, 'exportEmployeepa'])->name('employeepa.export');
     });
 
+    Route::middleware(['permission:masterweightage'])->group(function () {
+        Route::get('/admin-weightage', [WeightageController::class, 'index'])->name('admin-weightage');
+        Route::get('/create-weightage', [WeightageController::class, 'create'])->name('admin-weightage.create');
+        Route::get('/admin-weightage/detail/{id}', [WeightageController::class, 'detail'])->name('admin-weightage.detail');
+        Route::get('/admin-weightage/edit/{id}', [WeightageController::class, 'edit'])->name('admin-weightage.edit');
+        Route::get('/admin-weightage/archive/{id}', [WeightageController::class, 'archive'])->name('admin-weightage.archive');
+        Route::post('/archive-weightage', [WeightageController::class, 'archiving'])->name('archive-weightage');
+        Route::post('/admin-weightage/submit', [WeightageController::class, 'store'])->name('admin-weightage.submit');
+        Route::post('/admin-weightage/update', [WeightageController::class, 'update'])->name('admin-weightage.update');
+        Route::post('/check-master-weightage', [WeightageController::class, 'checkMasterWeightage'])->name('check.master-weightage');
+    });
+
     Route::middleware(['permission:viewlayer'])->group(function () {
         // layer
         Route::get('/layer', [LayerController::class, 'layer'])->name('layer');
@@ -282,10 +295,12 @@ Route::middleware('auth', 'locale')->group(function () {
         Route::post('/admin/assign-user', [RoleController::class, 'assignUser'])->name('assign.user');
     });
 
-    Route::get('/admin-appraisal', [AdminAppraisalController::class, 'index'])->name('admin.appraisal');
-    Route::get('/admin-appraisal/details/{id}', [AdminAppraisalController::class, 'detail'])->name('admin.appraisal.details');
-    Route::get('/admin-appraisal/get-peers/{peerId}', [AdminAppraisalController::class, 'getPeerData'])->name('get.peer.data');
-    Route::get('/admin-appraisal/get-detail-data/{id}', [AdminAppraisalController::class, 'getDetailData'])->name('get.detail.data');
+    Route::middleware(['permission:reportpa'])->group(function () {
+        Route::get('/admin-appraisal', [AdminAppraisalController::class, 'index'])->name('admin.appraisal');
+        Route::get('/admin-appraisal/details/{id}', [AdminAppraisalController::class, 'detail'])->name('admin.appraisal.details');
+        Route::get('/admin-appraisal/get-peers/{peerId}', [AdminAppraisalController::class, 'getPeerData'])->name('get.peer.data');
+        Route::get('/admin-appraisal/get-detail-data/{id}', [AdminAppraisalController::class, 'getDetailData'])->name('get.detail.data');
+    });
     
     Route::middleware(['permission:viewonbehalf'])->group(function () {
         // Approval-Admin

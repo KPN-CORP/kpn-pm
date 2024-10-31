@@ -9,6 +9,7 @@ use App\Models\ApprovalSnapshots;
 use App\Models\Employee;
 use App\Models\Goal;
 use App\Models\User;
+use App\Services\AppService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -24,10 +25,12 @@ class MyGoalController extends Controller
 {
     protected $category;
     protected $user;
+    protected $appService;
 
-    public function __construct()
+    public function __construct(AppService $appService)
     {
         $this->category = 'Goals';
+        $this->appService = $appService;
         $this->user = Auth::user()->employee_id;;
     }
 
@@ -174,7 +177,7 @@ class MyGoalController extends Controller
     
     function create($id) {
 
-        $period = 2024;
+        $period = $this->appService->goalPeriod();
 
         $goal = Goal::where('employee_id', $id)->where('period', $period)->get();
         if ($goal->isNotEmpty()) {
@@ -262,7 +265,7 @@ class MyGoalController extends Controller
     function store(Request $request)
     {
         $user = $this->user;
-        $period = 2024;
+        $period = $this->appService->goalPeriod();
 
         $layer = ApprovalLayer::select('approver_id')->where('employee_id', $user)->where('layer', 1)->first();
 
