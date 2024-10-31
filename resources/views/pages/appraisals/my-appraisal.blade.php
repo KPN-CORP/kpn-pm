@@ -117,7 +117,7 @@
                                                                 <li>
                                                                     <div>
                                                                         @if(isset($subItem['formItem']))
-                                                                            <p class="mb-1">{{ $subItem['formItem'] }}</p>
+                                                                            <p class="mb-1">{!! $subItem['formItem'] !!}</p>
                                                                         @endif
                                                                         @if(isset($subItem['score']))
                                                                             <p><strong>Score:</strong> {{ $subItem['score'] }}</p>
@@ -153,7 +153,7 @@
                                                                 <li>
                                                                     <div>
                                                                         @if(isset($subItem['formItem']))
-                                                                            <p class="mb-1">{{ $subItem['formItem'] }}</p>
+                                                                            <p class="mb-1">{!! $subItem['formItem'] !!}</p>
                                                                         @endif
                                                                         @if(isset($subItem['score']))
                                                                             <p><strong>Score:</strong> {{ $subItem['score'] }}</p>
