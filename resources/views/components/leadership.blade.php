@@ -6,7 +6,7 @@
             <div class="col-lg">
                 <div class="mb-4">
                     <h4><strong>{{ $dataItem['title'] }}</strong></h4>
-                    <p class="mb-3"><strong>{{ $dataItem['description'] }}</strong></p>
+                    <p class="mb-3"><strong>{!! $dataItem['description'] !!}</strong></p>
                     @if(is_array($dataItem['items']))
                         <ul>
                             @foreach($dataItem['items'] as $indexItem => $item)

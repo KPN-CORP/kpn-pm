@@ -285,6 +285,8 @@ class MyAppraisalController extends Controller
 
         $ratings = $formGroupData['data']['rating'];
 
+        dd($ratings);
+
         $parentLink = __('Appraisal');
         $link = 'Initiate Appraisal';
 
@@ -434,6 +436,7 @@ class MyAppraisalController extends Controller
             } else {
                 $formGroupData = $formGroupContent;
             }
+
             
             $formTypes = $formGroupData['data']['form_names'] ?? [];
             $formDatas = $formGroupData['data']['form_appraisals'] ?? [];
@@ -442,10 +445,8 @@ class MyAppraisalController extends Controller
             $filteredFormData = array_filter($formDatas, function($form) use ($formTypes) {
                 return in_array($form['name'], $formTypes);
             });
-
+            
             $ratings = $formGroupData['data']['rating'];
-
-            // dd($ratings);
             
             $approval = ApprovalLayerAppraisal::select('approver_id')->where('employee_id', $appraisal->employee_id)->where('layer', 1)->first();
             // Read the contents of the JSON file
