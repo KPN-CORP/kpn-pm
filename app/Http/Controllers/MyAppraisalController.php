@@ -58,7 +58,7 @@ class MyAppraisalController extends Controller
     public function index(Request $request) {
         try {
             $user = Auth::user()->employee_id;
-            $period = 2024;
+            $period = $this->appService->appraisalPeriod();
             $filterYear = $request->input('filterYear');
 
             // Retrieve approval requests
@@ -162,7 +162,7 @@ class MyAppraisalController extends Controller
             $cultureData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Culture') ?? [];
             $leadershipData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership') ?? [];
 
-            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData);
+            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $datas->first()->period);
 
             if (isset($formData['totalKpiScore'])) {
                 $appraisalData['kpiScore'] = round($formData['kpiScore'], 2);
@@ -247,7 +247,7 @@ class MyAppraisalController extends Controller
     {
         $step = $request->input('step', 1);
 
-        $period = 2024;
+        $period = $this->appService->appraisalPeriod();
 
         $goal = Goal::where('employee_id', $request->id)->where('period', $period)->first();
 
@@ -295,7 +295,7 @@ class MyAppraisalController extends Controller
     public function store(Request $request)
     {
         $submit_status = 'Submitted';
-        $period = 2024;
+        $period = $this->appService->appraisalPeriod();
 
         // Validate the request data
         $validatedData = $request->validate([
@@ -410,7 +410,7 @@ class MyAppraisalController extends Controller
 
         $step = $request->input('step', 1);
 
-        $period = 2024;
+        $period = $this->appService->appraisalPeriod();
 
         $appraisal = Appraisal::with(['approvalRequest'])->where('id', $request->id)->where('period', $period)->first();
 
@@ -531,7 +531,7 @@ class MyAppraisalController extends Controller
     }
 
     function update(Request $request) {
-        $period = 2024;
+        $period = $this->appService->appraisalPeriod();
         // Validate the request data
         $validatedData = $request->validate([
             'id' => 'required|uuid',

@@ -195,6 +195,6 @@
 @endsection
 @push('scripts')
 <script>
-    var employeesData = {!! json_encode($employees) !!};
+    var employeesData = { json_encode($employees) };
 </script>
 @endpush

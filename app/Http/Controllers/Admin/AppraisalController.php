@@ -40,7 +40,7 @@ class AppraisalController extends Controller
     
     public function index(Request $request)
     {
-        $period = 2024;
+        $period = $this->appService->appraisalPeriod();
 
         $restrictionData = [];
         if(!is_null($this->roles)){
@@ -190,7 +190,7 @@ class AppraisalController extends Controller
 
     public function detail(Request $request)
     {
-        $period = 2024;
+        $period = $this->appService->appraisalPeriod();
         $data = EmployeeAppraisal::with(['appraisalLayer' => function ($query) {
             $query->where('layer_type', '!=', 'calibrator');
         }, 'appraisal' => function ($query) use ($period) {
@@ -265,7 +265,7 @@ class AppraisalController extends Controller
     {
         try {
             $user = Auth::user()->employee_id;
-            $period = 2024;
+            $period = $this->appService->appraisalPeriod();
             $contributorId = $request->id;
 
             $parts = explode('_', $contributorId);
