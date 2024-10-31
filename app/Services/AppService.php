@@ -178,7 +178,6 @@ class AppService
         }
 
         $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $period)->first();
-
         
         $weightageContent = json_decode($weightageData->form_data, true);
         
@@ -187,6 +186,7 @@ class AppService
         $leadershipWeightage = 0;
 
         foreach ($weightageContent as $item) {
+
             if (in_array($jobLevel, $item['jobLevel'])) {
                 foreach ($item['competencies'] as $competency) {
 
@@ -376,22 +376,22 @@ class AppService
 
             // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
             if (!empty($contributorManagerContent)) {
-                $formDataManager = $this->combineFormData($contributorManagerContent, $goalData, 'manager', $employeeData);
+                $formDataManager = $this->combineFormData($contributorManagerContent, $goalData, 'manager', $employeeData, $datas->first()->period);
             } else {
                 $formDataManager = [];  // or null, depending on your needs
             }
             if (!empty($combinedPeersData)) {
-                $formDataPeers = $this->combineFormData($combinedPeersData, $goalData, 'peers', $employeeData);
+                $formDataPeers = $this->combineFormData($combinedPeersData, $goalData, 'peers', $employeeData, $datas->first()->period);
             } else {
                 $formDataPeers = [];  // or null, depending on your needs
             }
             if (!empty($combinedSubData)) {
-                $formDataSub = $this->combineFormData($combinedSubData, $goalData, 'subordinate', $employeeData);
+                $formDataSub = $this->combineFormData($combinedSubData, $goalData, 'subordinate', $employeeData, $datas->first()->period);
             } else {
                 $formDataSub = [];  // or null, depending on your needs
             }
             
-            $formData = $this->combineFormData($appraisalData, $goalData, 'employee', $employeeData);
+            $formData = $this->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $datas->first()->period);
             
             $suggestedKpi = ($formDataManager['totalKpiScore'] ?? 0) 
             + ($formDataPeers['totalKpiScore'] ?? 0) 

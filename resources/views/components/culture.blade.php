@@ -14,7 +14,7 @@
                                     <div class="row mb-3 align-items-center">
                                         <div  class="col-md">
                                             <div class="mb-2 mb-lg-auto">
-                                                <span>{{ $item }}</span>
+                                                <span>{!! $item !!}</span>
                                             </div>
                                         </div>
                                         <div class="col-md-auto justify-content-end">

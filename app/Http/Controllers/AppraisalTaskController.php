@@ -662,7 +662,7 @@ class AppraisalTaskController extends Controller
 
         $calibrationGroupID = $kpiUnit->masterCalibration->id_calibration_group;
 
-        $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee, $contributorData->period);
+        $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee, $period);
 
         AppraisalContributor::create([
             'appraisal_id' => $appraisal->id,
@@ -741,7 +741,7 @@ class AppraisalTaskController extends Controller
             'formData' => $formData,
         ];
         
-        $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee, $contributorData->period);
+        $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee, $period);
 
         AppraisalContributor::create([
             'appraisal_id' => $validatedData['appraisal_id'],

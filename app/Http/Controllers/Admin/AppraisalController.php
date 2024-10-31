@@ -282,17 +282,19 @@ class AppraisalController extends Controller
                 $appraisalDataCollection = [];
                 $goalDataCollection = [];
 
-                $formGroupContent = storage_path('../resources/testFormGroup.json');
-                if (!File::exists($formGroupContent)) {
+                $formGroupContent = $this->appService->formGroupAppraisal($datas->first()->employee_id, 'Appraisal Form');
+            
+                if (!$formGroupContent) {
                     $appraisalForm = ['data' => ['formData' => []]];
                 } else {
-                    $appraisalForm = json_decode(File::get($formGroupContent), true);
+                    $appraisalForm = $formGroupContent;
                 }
 
-                $cultureData = $this->getDataByName($appraisalForm['data']['formData'], 'Culture') ?? [];
-                $leadershipData = $this->getDataByName($appraisalForm['data']['formData'], 'Leadership') ?? [];
+                $cultureData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
+                $leadershipData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
 
                 foreach ($datas as $request) {
+
                     // Create data item object
                     $dataItem = new stdClass();
                     $dataItem->request = $request;
@@ -326,13 +328,14 @@ class AppraisalController extends Controller
                 
                 $jobLevel = $employeeData->job_level;
 
-                $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->first();
+                $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $request->period)->first();
             
                 $weightageContent = json_decode($weightageData->form_data, true);
-
+                
                 $result = $this->appraisalSummary($weightageContent, $formData);
 
-                $formData = $this->appService->combineFormData($result['summary'], $goalData, $result['summary']['contributor_type'], $employeeData);
+                $formData = $this->appService->combineFormData($result['summary'], $goalData, $result['summary']['contributor_type'], $employeeData, $request->period);
+
                 
                 if (isset($formData['totalKpiScore'])) {
                     $appraisalData['kpiScore'] = round($formData['kpiScore'], 2);
@@ -398,18 +401,19 @@ class AppraisalController extends Controller
                 $employeeData = $datas->first()->employee;
     
                 // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
-                
-                $formGroupContent = storage_path('../resources/testFormGroup.json');
-                if (!File::exists($formGroupContent)) {
+
+                $formGroupContent = $this->appService->formGroupAppraisal($datas->first()->employee_id, 'Appraisal Form');
+            
+                if (!$formGroupContent) {
                     $appraisalForm = ['data' => ['formData' => []]];
                 } else {
-                    $appraisalForm = json_decode(File::get($formGroupContent), true);
+                    $appraisalForm = $formGroupContent;
                 }
                 
-                $cultureData = $this->getDataByName($appraisalForm['data']['formData'], 'Culture') ?? [];
-                $leadershipData = $this->getDataByName($appraisalForm['data']['formData'], 'Leadership') ?? [];
+                $cultureData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
+                $leadershipData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
     
-                $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData);
+                $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $datas->first()->period);
     
                 if (isset($formData['totalKpiScore'])) {
                     $appraisalData['kpiScore'] = round($formData['kpiScore'], 2);
@@ -514,6 +518,7 @@ class AppraisalController extends Controller
                             }
                         } else {
                             foreach ($item['competencies'] as $competency) {
+
                                 if ($competency['competency'] == $formName) {
                                     // Fixed weightage360 handling
                                     $weightage360 = 0;
@@ -544,6 +549,8 @@ class AppraisalController extends Controller
                         
                         $formDataWithCalculatedScores[] = $calculatedForm;
                     }
+
+
                     
                     $calculatedFormData[] = [
                         "formGroupName" => $formGroupName,
@@ -718,8 +725,6 @@ class AppraisalController extends Controller
                 }
             }
         }
-
-        dd($calculatedFormData);
 
         // Return the calculated form data
         return response()->json([

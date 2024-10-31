@@ -34,8 +34,7 @@ $(document).ready(function() {
                             
                             // Add the scores to the CSV row
                             csvRows[i] = csvRows[i].slice(0, -1)
-                            + scores.kpiScore + '"' + scores.cultureScore + '",' + '"' + scores.leadershipScore + '",' +
-                            '"' + scores.totalScore + '"';
+                             + scores.kpiScore + scores.cultureScore + scores.leadershipScore + scores.totalScore + '"';
                         }
                     }
                     
@@ -112,8 +111,7 @@ $(document).ready(function() {
                             
                             // Add the scores to the CSV row
                             csvRows[i] = csvRows[i].slice(0, -1)
-                                + scores.kpiScore + '"' + scores.cultureScore + '",' + '"' + scores.leadershipScore + '",' +
-                                '"' + scores.totalScore + '"';
+                            + scores.kpiScore + scores.cultureScore + scores.leadershipScore + scores.totalScore + '"';
                         }
                     }
                     
@@ -159,17 +157,17 @@ $(document).ready(function() {
 // Function to get formatted scores for export
 function getScores(rowData) {
     let scores = {
-        totalScore: 'N/A',
-        kpiScore: '","N/A",',
-        cultureScore: 'N/A',
-        leadershipScore: 'N/A'
+        totalScore: '","N/A',
+        kpiScore: '","N/A',
+        cultureScore: '","N/A',
+        leadershipScore: '","N/A'
     };
 
     if (rowData.kpi && rowData.kpi.kpi_status) {
-        scores.totalScore = rowData.kpi.total_score || 'N/A';
-        scores.kpiScore = ',"' + rowData.kpi.kpi_score + '",' || 'N/A';
-        scores.cultureScore = rowData.kpi.culture_score || 'N/A';
-        scores.leadershipScore = rowData.kpi.leadership_score || 'N/A';
+        scores.kpiScore = ',"' + rowData.kpi.kpi_score || '","N/A';
+        scores.cultureScore = '","' + rowData.kpi.culture_score || '","N/A';
+        scores.leadershipScore = '","' + rowData.kpi.leadership_score || '","N/A';
+        scores.totalScore = '","' + rowData.kpi.total_score || '","N/A';
     }
 
     return scores;
