@@ -107,7 +107,7 @@
                                     <div class="col-md-4">
                                         <div class="mb-3 {{ $competencies['formName']=='KPI'?'d-none':'' }}">
                                             <h5>Form Name</h5>
-                                            <select name="form-name-{{ $key }}{{ $index }}" id="form-name-{{ $key }}{{ $index }}" class="form-select select2" {{ $competencies['competency']=='Key Performance Indicator'?'':'required' }} {{ $competencies['formName']=='KPI'?'disabled':'' }}>
+                                            <select name="form-name-{{ $key }}{{ $index }}" id="form-name-{{ $key }}{{ $index }}" class="form-select select2" {{ $competencies['competency']=='KPI'?'':'required' }} {{ $competencies['formName']=='KPI'?'disabled':'' }}>
                                                 <option value="">please select</option>
                                                 @foreach ($formAppraisal as $form)
                                                     <option value="{{ $form->name }}" {{ $form->name == $competencies['formName'] ? 'selected' : '' }}>{{ $form->name }}</option>
@@ -119,7 +119,7 @@
                                     <div class="col-md">
                                         <div class="mb-3 {{ $competencies['formName']=='KPI'?'d-none':'' }}">
                                             <h5>{{ $competencies['competency'] }} Weightage 360 in %</h5>
-                                            <select name="weightage-360-{{ $key }}-{{ $index }}" id="weightage-360-{{ $key }}{{ $index }}" class="form-select select2" {{ $competencies['competency']=='Key Performance Indicator'?'':'required' }} {{ $competencies['formName']=='KPI'?'disabled':'' }}>
+                                            <select name="weightage-360-{{ $key }}-{{ $index }}" id="weightage-360-{{ $key }}{{ $index }}" class="form-select select2" {{ $competencies['competency']=='KPI'?'':'required' }} {{ $competencies['formName']=='KPI'?'disabled':'' }}>
                                                 <option value="">please select</option>
                                                 @foreach ($data360s as $data)
                                                     <option value="{{ $data->form_data }}" {{ str_replace(' ', '', $data->form_data) == json_encode($competencies['weightage360']) ? 'selected' : '' }}>{{ $data->name .' '.str_replace(' ', '', $data->form_data) }}</option>

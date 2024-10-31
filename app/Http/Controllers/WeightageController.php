@@ -64,6 +64,7 @@ class WeightageController extends Controller
         try {
             // Retrieve master weightage
             $datas = MasterWeightage::find($id);
+            $data360s = MasterWeightage360::all();
             $formAppraisal = FormAppraisal::select('name')->get();
             $allJobLevels = [];
 
@@ -88,7 +89,7 @@ class WeightageController extends Controller
             $parentLink = __('Weightage');
             $link = __('Details');
 
-            return view('pages.weightage.detail', compact('datas', 'link', 'parentLink', 'group_company', 'formAppraisal', 'job_level'));
+            return view('pages.weightage.detail', compact('datas', 'data360s', 'link', 'parentLink', 'group_company', 'formAppraisal', 'job_level'));
 
         } catch (Exception $e) {
             Log::error('Error in index method: ' . $e->getMessage());
@@ -235,6 +236,8 @@ class WeightageController extends Controller
                 
                 if ($weightage360) {
                     $competencyData['weightage360'] = json_decode($weightage360);
+                }else{
+                    $competencyData['weightage360'] = [];
                 }
 
                 $competencies[] = $competencyData;
@@ -336,6 +339,8 @@ class WeightageController extends Controller
                 
                 if ($weightage360) {
                     $competencyData['weightage360'] = json_decode($weightage360);
+                }else{
+                    $competencyData['weightage360'] = [];
                 }
  
                  $competencies[] = $competencyData;
