@@ -43,7 +43,7 @@ class AppraisalTaskController extends Controller
     public function index(Request $request) {
         try {
 
-            $employee = EmployeeAppraisal::with(['schedule'])->where('employee_id', '01120040011')->first();
+            $employee = EmployeeAppraisal::with(['schedule'])->first();
 
             $user = $this->user;
             $period = $this->appService->appraisalPeriod();
