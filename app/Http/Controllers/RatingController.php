@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\EmployeeRatingExport;
 use App\Exports\InvalidAppraisalRatingImport;
 use App\Imports\AppraisalRatingImport;
+use App\Models\Appraisal;
 use App\Models\AppraisalContributor;
 use App\Models\ApprovalLayerAppraisal;
 use App\Models\ApprovalRequest;
@@ -305,8 +306,8 @@ class RatingController extends Controller
         $rating = $validatedData['rating'];
 
         foreach ($employees as $index => $employee) {
-
-            $nextApprover = $this->appService->processApproval('01117040008', $validatedData['approver_id']);
+            
+            $nextApprover = $this->appService->processApproval($employees, $validatedData['approver_id']);
 
             $ratingData[$index] = [
                 'employee_id' => $employee,
@@ -342,6 +343,12 @@ class RatingController extends Controller
                     $calibration->period = $this->period;
                     $calibration->created_by = Auth()->user()->id;
                     $calibration->save();
+                }else{
+                    Appraisal::where('id', $rating['appraisal_id'])
+                        ->update([
+                            'rating' => $rating['rating'],
+                            'updated_by' => Auth()->user()->id
+                    ]);
                 }
             }else{
                 return redirect('rating')->with('error', 'No record found for employee ' . $rating['employee_id'] . ' in period '.$this->period.'.');

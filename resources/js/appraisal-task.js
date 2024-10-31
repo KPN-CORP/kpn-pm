@@ -84,8 +84,8 @@ $(document).ready(function() {
             { data: 'employee.fullname' },
             { data: 'employee.designation' },
             { data: 'employee.office_area' },
-            { data: 'approval_date', className: 'text-end' },
             { data: 'employee.group_company' },
+            { data: 'approval_date',  className: 'text-end' },
             { data: 'action', className: 'sorting_1 text-center' }
         ]
     });
