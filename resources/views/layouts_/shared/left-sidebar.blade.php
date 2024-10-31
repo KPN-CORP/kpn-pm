@@ -125,10 +125,12 @@
                     </a>
                     <div class="collapse" id="sidebarSettings">
                         <ul class="side-nav-second-level">
-                            @can('mastercalibration')
+                            @can('employeepa')
                             <li>
-                                <a href="{{ route('admemployee') }}">Employee</a>
+                                <a href="{{ route('admemployee') }}">Employee PA</a>
                             </li>
+                            @endcan
+                            @can('mastercalibration')
                             <li>
                                 <a href="{{ route('admcalibrations') }}">Calibration</a>
                             </li>

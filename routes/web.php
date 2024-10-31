@@ -243,7 +243,9 @@ Route::middleware('auth', 'locale')->group(function () {
         Route::get('/update/Calibrations/{id}', [CalibrationController::class, 'formupdate'])->name('update.Calibrations');
         Route::delete('/calibrationDestroy/{id}', [CalibrationController::class, 'destroy'])->name('calibrationDestroy');
         Route::post('/CalibrationsUpdate', [CalibrationController::class, 'update'])->name('updatecalibrations');
+    });
 
+    Route::middleware(['permission:employeepa'])->group(function () {
         Route::get('/admemployees', [EmployeePAController::class, 'index'])->name('admemployee');
         Route::delete('/admemployeedestroy/{id}', [EmployeePAController::class, 'destroy'])->name('admemployeeDestroy');
         Route::put('/employeepa/update', [EmployeePAController::class, 'update'])->name('employeepa.update');
@@ -261,7 +263,7 @@ Route::middleware('auth', 'locale')->group(function () {
         Route::post('/admin-weightage/update', [WeightageController::class, 'update'])->name('admin-weightage.update');
         Route::post('/check-master-weightage', [WeightageController::class, 'checkMasterWeightage'])->name('check.master-weightage');
     });
-    
+
     Route::middleware(['permission:viewlayer'])->group(function () {
         // layer
         Route::get('/layer', [LayerController::class, 'layer'])->name('layer');

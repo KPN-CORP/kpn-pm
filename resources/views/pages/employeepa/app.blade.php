@@ -295,6 +295,6 @@
         // Tampilkan modal
         var editModal = new bootstrap.Modal(document.getElementById('editEmployeeModal'));
         editModal.show();
-    }
+    }    
 </script>
 @endpush

@@ -141,19 +141,64 @@ class EmployeePAController extends Controller
     }
     public function update(Request $request)
     {
+        $userId = Auth::id();
         $employee = EmployeeAppraisal::where('employee_id',$request->employee_id)->first();
         $companies = Company::where('contribution_level_code',$request->contribution_level_code)->first();
         $locations = Location::where('work_area',$request->office_area)->first();
+        $designations = Designation::where('job_code',$request->designation_name)->first();
+        $value_desg = $designations->designation_name." (".$designations->job_code.")";
+
+        // Data before and after update as JSON
+        $beforeData = [
+            'fullname' => $employee->fullname,
+            'date_of_joining' => $employee->date_of_joining,
+            'company_name' => $employee->company_name,
+            'contribution_level_code' => $employee->contribution_level_code,
+            'unit' => $employee->unit,
+            'designation' => $employee->designation,
+            'designation_code' => $employee->designation_code,
+            'designation_name' => $employee->designation_name,
+            'job_level' => $employee->job_level,
+            'work_area_code' => $employee->work_area_code,
+            'office_area' => $employee->office_area,
+        ];
+
+        $afterData = [
+            'fullname' => $request->fullname,
+            'date_of_joining' => $request->date_of_joining,
+            'company_name' => $companies->contribution_level,
+            'contribution_level_code' => $request->contribution_level_code,
+            'unit' => $request->unit,
+            'designation' => $value_desg,
+            'designation_code' => $designations->job_code,
+            'designation_name' => $designations->designation_name,
+            'job_level' => $request->job_level,
+            'work_area_code' => $locations->work_area,
+            'office_area' => $locations->area,
+        ];
+
+        // Insert data before and after as JSON in employee_pa_histories
+        DB::table('employee_pa_histories')->insert([
+            'employee_id' => $employee->employee_id,
+            'before' => json_encode($beforeData),
+            'after' => json_encode($afterData),
+            'updated_by' => $userId,
+            'updated_at' => now(),
+        ]);
+
         $employee->update([
             'fullname' => $request->fullname,
             'date_of_joining' => $request->date_of_joining,
             'company_name' => $companies->contribution_level,
             'contribution_level_code' => $request->contribution_level_code,
             'unit' => $request->unit,
-            'designation_name' => $request->designation_name,
+            'designation' => $value_desg,
+            'designation_code' => $designations->job_code,
+            'designation_name' => $designations->designation_name,
             'job_level' => $request->job_level,
             'work_area_code' => $locations->work_area,
             'office_area' => $locations->area,
+            'updated_by' => $userId,
         ]);
 
         return redirect()->back()->with('success', 'Employee updated successfully');
