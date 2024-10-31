@@ -21,6 +21,7 @@ use App\Models\ApprovalLayerAppraisalBackup;
 use Illuminate\Support\Facades\Log;
 use App\Models\ApprovalLayerBackup;
 use App\Models\Calibration;
+use App\Models\EmployeeAppraisal;
 use App\Models\Goal;
 use App\Services\AppService;
 use Exception;
@@ -299,7 +300,11 @@ class LayerController extends Controller
             }
         }
         
-        $datas = Employee::select('fullname', 'employee_id', 'group_company', 'designation', 'company_name', 'contribution_level_code', 'work_area_code', 'office_area', 'unit', )->get();
+        $datas = EmployeeAppraisal::with(['calibration' => function($query) {
+            $query->where('status', 'Approved'); // Filter only 'Approved' calibrations
+        }])
+        ->select('fullname', 'employee_id', 'group_company', 'designation', 'company_name', 'contribution_level_code', 'work_area_code', 'office_area', 'unit')
+        ->get();
         
         return view('pages.layers.layer-appraisal', [
             'parentLink' => $parentLink,
@@ -419,6 +424,22 @@ class LayerController extends Controller
         
         $approvalRequest = ApprovalRequest::where('employee_id', $validated['employee_id'])->where('category', 'Appraisal')->where('period', $period)->first();
 
+        // $firstNonNullValue = reset(array_filter($calibrators));
+
+        $filteredCalibrator = array_filter($calibrators, fn($value) => !is_null($value) && $value !== '');
+
+        // Now reset the filtered array to get the first non-null, non-empty value
+        $firstNonNullCalibrator = reset($filteredCalibrator);
+
+        $checkCalibration = Calibration::where('appraisal_id', $approvalRequest->form_id)->where('created_by', $currentManager->approver->id)->where('status', 'Pending')->first();
+
+        // Check if a record was found, then update `approver_id` and `updated_by` fields
+        if ($checkCalibration->approver_id != $firstNonNullCalibrator) {
+            $checkCalibration->approver_id = $firstNonNullCalibrator; // Assign the new approver ID
+            $checkCalibration->updated_by = auth()->id(); // Set the current authenticated user as `updated_by`
+            $checkCalibration->save(); // Save changes to the database
+        }
+        
         if ($currentManager) {
             if($currentManager->approver_id != $manager){
                 // Check if the employee record exists

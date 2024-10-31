@@ -285,8 +285,6 @@ class MyAppraisalController extends Controller
 
         $ratings = $formGroupData['data']['rating'];
 
-        dd($ratings);
-
         $parentLink = __('Appraisal');
         $link = 'Initiate Appraisal';
 
