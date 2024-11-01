@@ -131,7 +131,7 @@ $(document).ready(function() {
                     let data = dt.data().toArray();
                     
                     // Add new headers
-                    csvRows[0] = csvRows[0].replace(/\r?\n|\r/g, '') + ',KPI Score,Culture Score,Leadership Score,Total Score';
+                    csvRows[0] = csvRows[0].replace(/\r?\n|\r/g, '') + ',Culture Score,Leadership Score';
                 
                     // Process each data row
                     for (let i = 1; i < csvRows.length; i++) {

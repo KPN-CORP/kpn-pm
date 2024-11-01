@@ -27,5 +27,9 @@ class Appraisal extends Model
     {
         return $this->belongsTo(EmployeeAppraisal::class, 'employee_id', 'employee_id');
     }
+    public function formGroupAppraisal()
+    {
+        return $this->belongsTo(FormGroupAppraisal::class, 'form_group_id', 'id');
+    }
     
 }
