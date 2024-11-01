@@ -49,6 +49,7 @@
                                   <th>No</th>
                                   <th>Name</th>
                                   <th>Detail</th>
+                                  <th>Period</th>
                                   <th>Created By</th>
                                   <th>Action</th>
                               </tr>
@@ -83,6 +84,7 @@
                                             }
                                         @endphp
                                     </td>
+                                    <td>{{ $calibration->period }}</td>
                                     <td>{{ $calibration->created_by_name }}</td>
                                     <td class="text-center">
                                         @if($userId == $calibration->created_by)
