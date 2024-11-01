@@ -85,13 +85,16 @@
                                                 </thead>
                                                 <tbody>
                                                         @foreach ($data['combined'] as $key => $values)
-                                                            <tr>
-                                                                <td class="key-{{ $level }}">{{ $key }}</td>
-                                                                <td class="rating">{{ $values['rating_count'] }}</td>
-                                                                <td>{{ $values['percentage'] }}</td>
-                                                                <td class="suggested-rating-count-{{ $key.'-'.$level }}">{{ $values['suggested_rating_count'] }}</td>
-                                                                <td class="suggested-rating-percentage-{{ $key.'-'.$level }}">{{ $values['suggested_rating_percentage'] }}</td>
-                                                            </tr>
+                                                        @php
+                                                            $formattedKey = str_replace(' ', '', $key); // Replace spaces with hyphens
+                                                        @endphp
+                                                        <tr>
+                                                            <td class="key-{{ $level }}">{{ $key }}</td>
+                                                            <td class="rating">{{ $values['rating_count'] }}</td>
+                                                            <td>{{ $values['percentage'] }}</td>
+                                                            <td class="suggested-rating-count-{{ $formattedKey.'-'.$level }}">{{ $values['suggested_rating_count'] }}</td>
+                                                            <td class="suggested-rating-percentage-{{ $formattedKey.'-'.$level }}">{{ $values['suggested_rating_percentage'] }}</td>
+                                                        </tr>
                                                         @endforeach
                                                         <tr>
                                                             <td>Total</td>

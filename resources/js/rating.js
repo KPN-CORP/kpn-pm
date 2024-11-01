@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const firstKey = table.querySelector(`td.key-${level}`).textContent.trim();
             
             rows.forEach(row => {
-                const key = row.querySelector(`td.key-${level}`).textContent;
+                const key = row.querySelector(`td.key-${level}`).textContent.trim().replace(/\s+/g, '');
                 const ratingCell = row.querySelector('td.rating');
                 const suggestedRatingCell = row.querySelector(`td.suggested-rating-count-${key}-${level}`);
                 const ratingCount = parseInt(ratingCell.textContent);

@@ -178,7 +178,7 @@ class AppService
             // Handle the case where formData is null or not an array
             $appraisalDatas['formData'] = []; // Optionally, set to an empty array
         }
-
+        
         $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $period)->first();
         
         $weightageContent = json_decode($weightageData->form_data, true);
@@ -425,13 +425,31 @@ class AppService
     public function convertRating(float $value, $formID): ?string
     {
         $formGroup = MasterCalibration::where('id_calibration_group', $formID)->first();
-
-        $condition = MasterRating::where('id_rating_group', $formGroup->id_rating_group)
-        ->where('min_range', '<=', $value)
-        ->where('max_range', '>=', $value)
-        ->orderBy('min_range', 'desc')
-        ->first();
         
+        $condition = null;
+        
+        $roundedValue = (int) round($value);
+
+        if ($value == 0) {
+            // If value is 0, get the record with the smallest value
+            $condition = MasterRating::orderBy('value', 'asc')->first();
+        } else {
+            // Otherwise, proceed with the original query logic
+            $condition = MasterRating::where(function ($query) use ($formGroup, $value) {
+                $query->where('id_rating_group', $formGroup->id_rating_group)
+                      ->where('min_range', '<=', $value)
+                      ->where('max_range', '>=', $value);
+            })
+            ->orWhere(function ($query) use ($formGroup, $roundedValue) {
+                        $query->where('id_rating_group', $formGroup->id_rating_group)
+                              ->where('min_range', 0)
+                              ->where('max_range', 0)
+                              ->where('value', $roundedValue); // Use rounded value here
+                    })
+                    ->orderBy('min_range', 'desc')
+                    ->first();
+        }
+
         return $condition ? $condition->parameter : null;
     }
 
