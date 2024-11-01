@@ -136,9 +136,10 @@ class RatingController extends Controller
                     $previousRating = $calibration->whereNotNull('rating')->where('appraisal_id', $data->approvalRequest->first()->form_id)->first();
                     // Calculate the suggested rating
                     $suggestedRating = $this->appService->suggestedRating($data->employee->employee_id, $data->approvalRequest->first()->form_id);
+                    
 
                     $data->suggested_rating = $this->appService->convertRating($suggestedRating, $calibration->first()->id_calibration_group);
-                    
+
                     $data->previous_rating = $previousRating ? $this->appService->convertRating($previousRating->rating, $calibration->first()->id_calibration_group) : null;
 
                     $data->rating_value = $this->appService->ratingValue($data->employee->employee_id, $this->user, $this->period);
@@ -293,12 +294,13 @@ class RatingController extends Controller
     public function store(Request $request) {
 
         $validatedData = $request->validate([
-            'id_calibration_group' => 'required|integer',
+            'id_calibration_group' => 'required|string',
             'approver_id' => 'required|string|size:11',
             'employee_id' => 'required|array',
             'appraisal_id' => 'required|array',
             'rating' => 'required|array',
         ]);
+        
 
         $status = 'Approved';
 
@@ -321,7 +323,7 @@ class RatingController extends Controller
 
             $index++;
         }
-
+        
         foreach ($ratingData as $rating) {
 
             $updated = Calibration::where('approver_id', $validatedData['approver_id'])
@@ -333,10 +335,10 @@ class RatingController extends Controller
                     'status' => $status,
                     'updated_by' => Auth()->user()->id
                 ]);
-
+                
             // Optionally, check if update was successful
             if ($updated) {
-                if ($rating['approver']['next_approver_id']) {
+                if ($rating['approver']) {
                     # code...
                     $calibration = new Calibration();
                     $calibration->id_calibration_group = $id_calibration_group;

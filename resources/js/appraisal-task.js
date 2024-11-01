@@ -127,7 +127,7 @@ $(document).ready(function() {
                     let csvRows = csv.split('\n');
                     
                     // Get data from the DataTable
-                    let dt = $('#tableAppraisalTeam').DataTable();
+                    let dt = $('#tableAppraisal360').DataTable();
                     let data = dt.data().toArray();
                     
                     // Add new headers
@@ -147,10 +147,8 @@ $(document).ready(function() {
                             while (rowColumns.length < 10) rowColumns.push('');
                     
                             // Insert the scores into specified columns
-                            rowColumns[7] = scores.kpiScore;           // KPI Score
-                            rowColumns[8] = scores.cultureScore;       // Culture Score
-                            rowColumns[9] = scores.leadershipScore;    // Leadership Score
-                            rowColumns[10] = scores.totalScore;         // Total Score
+                            rowColumns[7] = scores.cultureScore;       // Culture Score
+                            rowColumns[8] = scores.leadershipScore;    // Leadership Score
                     
                             // Reassemble the row with fields correctly quoted if necessary
                             csvRows[i] = rowColumns.map(value => {
