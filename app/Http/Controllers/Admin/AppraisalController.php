@@ -59,8 +59,8 @@ class AppraisalController extends Controller
 
         $query = EmployeeAppraisal::with(['appraisal' => function($query) use ($period) {
                 $query->where('period', $period);
-            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration']);
-            // }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration'])->where('employee_id', '01120040011')->get();
+            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.form_group_appraisals']);
+            // }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.form_group_appraisals'])->where('employee_id', '01120040011');
 
         $query->where(function ($query) use ($criteria) {
             foreach ($criteria as $key => $value) {
@@ -324,7 +324,6 @@ class AppraisalController extends Controller
                     $formData[] = $appraisalData;
 
                 }
-
                 
                 $jobLevel = $employeeData->job_level;
 
