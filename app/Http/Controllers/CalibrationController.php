@@ -20,9 +20,9 @@ class CalibrationController extends Controller
         $link = 'Calibration';
         // $ratings = Rating::orderBy('created_at', 'desc')->get();
         $calibrations = MasterCalibration::with('createdBy')->orderBy('created_at', 'desc')->get();
-        $calibrations = MasterCalibration::select('id_calibration_group','master_calibrations.name as name','users.name as created_by_name','users.id as created_by', DB::raw("GROUP_CONCAT(CONCAT('<b>',grade, '</b> - ', percentage) SEPARATOR ' <br> ') as detail"), DB::raw("GROUP_CONCAT(CONCAT(percentage) SEPARATOR '||') as percentage"), DB::raw("GROUP_CONCAT(CONCAT(grade) SEPARATOR '||') as grade"))
+        $calibrations = MasterCalibration::select('id_calibration_group','master_calibrations.name as name','users.name as created_by_name','users.id as created_by','period', DB::raw("GROUP_CONCAT(CONCAT('<b>',grade, '</b> - ', percentage) SEPARATOR ' <br> ') as detail"), DB::raw("GROUP_CONCAT(CONCAT(percentage) SEPARATOR '||') as percentage"), DB::raw("GROUP_CONCAT(CONCAT(grade) SEPARATOR '||') as grade"))
         ->leftJoin('users', 'master_calibrations.created_by', '=', 'users.id')
-        ->groupBy('id_calibration_group', 'master_calibrations.name', 'users.name', 'users.id')
+        ->groupBy('id_calibration_group', 'master_calibrations.name', 'users.name', 'users.id','period')
         ->orderBy('master_calibrations.created_at', 'desc')->get();
         
         return view('pages.master-calibration.app', [
@@ -40,6 +40,17 @@ class CalibrationController extends Controller
         $parentLink = 'Settings';
         $link = 'Calibration';
         $sublink = 'Create Rating';
+        $startYear = 2024;
+        $endYear = date('Y') + 2;
+        $years = range($startYear, $endYear);
+
+        $periodCalibration = MasterCalibration::select('period')
+        ->groupBy('period')
+        ->orderBy('period', 'asc')
+        ->get()
+        ->pluck('period')
+        ->toArray();
+
         $ratings = MasterRating::select('id_rating_group', DB::raw('MAX(rating_group_name) as rating_group_name'))
                         ->whereNull('deleted_at')
                         ->groupBy('id_rating_group')
@@ -52,6 +63,8 @@ class CalibrationController extends Controller
             'sublink' => $sublink,
             'userId' => $userId,
             'ratings' => $ratings,
+            'years' => $years,
+            'periodCalibration' => $periodCalibration,
         ]);
     }
     public function show(Request $request)
@@ -60,8 +73,20 @@ class CalibrationController extends Controller
         $parentLink = 'Settings';
         $link = 'Calibration';
         $sublink = 'Create Rating';
+        
+        $startYear = 2024;
+        $endYear = date('Y') + 2;
+        $years = range($startYear, $endYear);
+
+        $periodCalibration = MasterCalibration::select('period')
+        ->groupBy('period')
+        ->orderBy('period', 'asc')
+        ->get()
+        ->pluck('period')
+        ->toArray();
 
         $value_calibration_name = $request->calibration_name;
+        $value_periode = $request->periode;
         $value_kpi_unit = $request->kpi_unit;
         $value_indi_kpi = $request->individual_kpi;
 
@@ -82,7 +107,7 @@ class CalibrationController extends Controller
 
         $individualKpis = MasterRating::where('id_rating_group', $request->individual_kpi)->pluck('parameter');
     
-        return view('pages.master-calibration.create', compact('kpiUnits', 'individualKpis', 'validatedData', 'ratings', 'link', 'parentLink', 'sublink', 'jumlahKpiUnits', 'value_calibration_name', 'value_kpi_unit', 'value_indi_kpi'));
+        return view('pages.master-calibration.create', compact('kpiUnits', 'individualKpis', 'validatedData', 'ratings', 'link', 'parentLink', 'sublink', 'jumlahKpiUnits', 'value_calibration_name', 'value_periode', 'value_kpi_unit', 'value_indi_kpi', 'years','periodCalibration'));
     }
 
     public function formupdate(string $id)
@@ -102,6 +127,7 @@ class CalibrationController extends Controller
         }
         $value_calibration_id = $firstCalibration->id_calibration_group;
         $value_calibration_name = $firstCalibration->name;
+        $value_period = $firstCalibration->period;
         $value_kpi_unit = $firstCalibration->kpi_unit;
         $value_indi_kpi = $firstCalibration->individual_kpi;
 
@@ -116,7 +142,7 @@ class CalibrationController extends Controller
 
         $individualKpis = MasterRating::where('id_rating_group', $firstCalibration->individual_kpi)->pluck('parameter');
     
-        return view('pages.master-calibration.update', compact('kpiUnits', 'individualKpis', 'ratings', 'link', 'parentLink', 'sublink', 'jumlahKpiUnits', 'value_calibration_name', 'value_kpi_unit', 'value_indi_kpi','fetchCalibration','calibrationPercentages','value_calibration_id'));
+        return view('pages.master-calibration.update', compact('kpiUnits', 'individualKpis', 'ratings', 'link', 'parentLink', 'sublink', 'jumlahKpiUnits', 'value_calibration_name', 'value_kpi_unit', 'value_indi_kpi','fetchCalibration','calibrationPercentages','value_calibration_id','value_period'));
     }
 
     public function store(Request $request) {
@@ -124,6 +150,7 @@ class CalibrationController extends Controller
         $userId = Auth::id();
         $idCalibrationGroup = Str::uuid();
         $calibrationName    = $request->calibration_name;
+        $periode           = $request->periode;
         $kpi_unit           = $request->kpi_unit;
         $individual_kpi     = $request->individual_kpi;
         
@@ -142,6 +169,7 @@ class CalibrationController extends Controller
                 $percentage = json_encode($detailKpiUnit);
                 MasterCalibration::create([
                     'id_calibration_group' => $idCalibrationGroup,
+                    'period' => $periode,
                     'id_rating_group' => $individual_kpi,
                     'kpi_unit' => $kpi_unit,
                     'individual_kpi' => $individual_kpi,

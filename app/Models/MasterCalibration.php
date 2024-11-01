@@ -13,7 +13,7 @@ class MasterCalibration extends Model
 
     protected $fillable = [
         // Kolom-kolom lainnya,
-        'id_rating_group','id_calibration_group','kpi_unit','individual_kpi','name','grade','percentage','created_by'
+        'id_rating_group','id_calibration_group','kpi_unit','individual_kpi','name','grade','percentage','created_by','period'
     ];
     
     public function masterRating() {

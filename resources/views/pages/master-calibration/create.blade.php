@@ -24,6 +24,22 @@
                                         <input type="text" class="form-control" placeholder="Enter name.." id="calibration_name" name="calibration_name" value="{{ isset($value_calibration_name) ? $value_calibration_name : '' }}" required>
                                     </div>
                                 </div>
+                                <div class="col-md-2">
+                                    <div class="mb-2">
+                                        <label class="form-label" for="name">Periode</label>
+                                        <select class="form-control" id="periode" name="periode" required>
+                                            @foreach ($years as $year)
+                                                @if (!in_array($year, $periodCalibration))
+                                                    <option value="{{ $year }}" 
+                                                        @if(isset($value_periode) && $value_periode == $year) selected @endif>
+                                                        {{ $year }}
+                                                    </option>
+                                                @endif
+                                            @endforeach
+                                            
+                                        </select>
+                                    </div>
+                                </div>
                                 <div class="col-md-3">
                                     <div class="mb-2">
                                         <label class="form-label" for="name">KPI Unit</label>
@@ -46,7 +62,7 @@
                                         </select>
                                     </div>
                                 </div>
-                                <div class="col-md-3 ">
+                                <div class="col-md-1">
                                     <div class="mb-2">
                                         <label class="form-label" for="name">&nbsp;&nbsp;</label>
                                         <button type="submit" class="btn btn-primary form-control" >Set</button>
@@ -65,6 +81,7 @@
                 @csrf
                 <input type="hidden" name="calibration_name" value="{{ $value_calibration_name }}">
                 <input type="hidden" name="kpi_unit" value="{{ $value_kpi_unit }}">
+                <input type="hidden" name="periode" value="{{ $value_periode }}">
                 <input type="hidden" name="individual_kpi" value="{{ $value_indi_kpi }}">
             
                 <div class="col-md-12">
@@ -106,10 +123,10 @@
                         </div>
                     </div>
                 </div>
-                <div class="col-md-3">
-                    <div class="mb-2">
-                        <button type="submit" class="btn btn-primary" >Submit Calibration</button>
+                <div class="col-md-12">
+                    <div class="mb-2 text-end">
                         <a href="{{ route('admcalibrations') }}" type="button" class="btn btn-outline-secondary">Cancel</a>
+                        <button type="submit" class="btn btn-primary" >Submit Calibration</button>
                     </div>
                 </div>
             </form>
