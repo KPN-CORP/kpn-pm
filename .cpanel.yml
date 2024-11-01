@@ -29,7 +29,7 @@ deployment:
     - rsync -av app bootstrap config database routes resources $DEPLOYPATH
 
     # Copy public assets to the public_html directory
-    - rsync -av public/css public/img /home/hcis8257/public_html/kpnpm.hcis.dev
+    - rsync -av public/assets public/css public/img public/images public/js public/scss public/vendor /home/hcis8257/public_html/kpnpm.hcis.dev
 
     # Change directory to the deployment path
     - cd $DEPLOYPATH
