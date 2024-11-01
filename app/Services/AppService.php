@@ -9,6 +9,7 @@ use App\Models\Calibration;
 use App\Models\Employee;
 use App\Models\EmployeeAppraisal;
 use App\Models\FormGroupAppraisal;
+use App\Models\MasterCalibration;
 use App\Models\MasterRating;
 use App\Models\MasterWeightage;
 use App\Models\Schedule;
@@ -421,9 +422,11 @@ class AppService
 
     }
 
-    public function convertRating(float $value): ?string
+    public function convertRating(float $value, $formID): ?string
     {
-        $condition = MasterRating::where('rating_group_name', 'ratings')
+        $formGroup = MasterCalibration::where('id_calibration_group', $formID)->first();
+
+        $condition = MasterRating::where('id_rating_group', $formGroup->id_rating_group)
         ->where('min_range', '<=', $value)
         ->where('max_range', '>=', $value)
         ->orderBy('min_range', 'desc')

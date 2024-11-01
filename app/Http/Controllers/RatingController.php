@@ -137,9 +137,9 @@ class RatingController extends Controller
                     // Calculate the suggested rating
                     $suggestedRating = $this->appService->suggestedRating($data->employee->employee_id, $data->approvalRequest->first()->form_id);
 
-                    $data->suggested_rating = $this->appService->convertRating($suggestedRating);
+                    $data->suggested_rating = $this->appService->convertRating($suggestedRating, $calibration->first()->id_calibration_group);
                     
-                    $data->previous_rating = $previousRating ? $this->appService->convertRating($previousRating->rating) : null;
+                    $data->previous_rating = $previousRating ? $this->appService->convertRating($previousRating->rating, $calibration->first()->id_calibration_group) : null;
 
                     $data->rating_value = $this->appService->ratingValue($data->employee->employee_id, $this->user, $this->period);
             
@@ -177,12 +177,13 @@ class RatingController extends Controller
                 });
             
                 // Process `without_requests`
-                $withoutRequests = $group['without_requests']->map(function ($data) use ($user) {
+                $withoutRequests = $group['without_requests']->map(function ($data) use ($user, $calibration) {
                     // Calculate the suggested rating
+                    dd($data);
                     $suggestedRating = 0;
             
                     // Since there are no approval requests, handle the suggested rating logic accordingly
-                    $data->suggested_rating = $this->appService->convertRating($suggestedRating);
+                    $data->suggested_rating = $this->appService->convertRating($suggestedRating, $calibration->first()->id_calibration_group);
             
                     // Check if the user is a calibrator for this employee
                     $isCalibrator = Calibration::where('approver_id', $user)
@@ -273,6 +274,8 @@ class RatingController extends Controller
                     break;
                 }
             }
+
+            // dd($ratingDatas);
     
             $parentLink = 'Calibration';
             $link = 'Rating';
@@ -460,9 +463,9 @@ class RatingController extends Controller
                     $suggestedRating = $this->appService->suggestedRating($data->employee->employee_id, $data->approvalRequest->first()->form_id);
 
                     
-                    $data->suggested_rating = $this->appService->convertRating($suggestedRating);
+                    $data->suggested_rating = $this->appService->convertRating($suggestedRating, $calibration->first()->id_calibration_group);
                     
-                    $data->previous_rating = $previousRating ? $this->appService->convertRating($previousRating->rating) : null;
+                    $data->previous_rating = $previousRating ? $this->appService->convertRating($previousRating->rating, $calibration->first()->id_calibration_group) : null;
 
                     $data->rating_value = $this->appService->ratingValue($data->employee->employee_id, $this->user, $this->period);
             
@@ -493,12 +496,12 @@ class RatingController extends Controller
                 });
             
                 // Process `without_requests`
-                $withoutRequests = $group['without_requests']->map(function ($data) use ($user) {
+                $withoutRequests = $group['without_requests']->map(function ($data) use ($user, $calibration) {
                     // Calculate the suggested rating
                     $suggestedRating = 0;
             
                     // Since there are no approval requests, handle the suggested rating logic accordingly
-                    $data->suggested_rating = $this->appService->convertRating($suggestedRating);
+                    $data->suggested_rating = $this->appService->convertRating($suggestedRating, $calibration->first()->id_calibration_group);
             
                     // Check if the user is a calibrator for this employee
                     $isCalibrator = Calibration::where('approver_id', $user)
