@@ -81,7 +81,7 @@ class ExportExcelController extends Controller
             return Excel::download($employee, 'employee.xlsx');
         }
         if($reportType==='EmployeePA'){
-            $employee = new EmployeepaExport($permissionLocations, $permissionCompanies, $permissionGroupCompanies);
+            $employee = new EmployeepaExport($groupCompany, $location, $company, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
             return Excel::download($employee, 'employeePA.xlsx');
         }
         return;
