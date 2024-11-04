@@ -273,6 +273,13 @@ class AppraisalTaskController extends Controller
 
         $goal = Goal::with(['employee'])->where('employee_id', $request->id)->where('period', $period)->first();
 
+        $calibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $request->id)->value('approver_id');
+
+        if (!$calibrator) {
+            Session::flash('error', "No Layer assigned, please contact admin to assign layer");
+            return redirect()->back();
+        }
+        
         if ($goal) {
             $goalData = json_decode($goal->form_data, true);
         } else {
@@ -659,7 +666,7 @@ class AppraisalTaskController extends Controller
         $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $validatedData['employee_id'])->value('approver_id');
 
         $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $firstCalibrator)->first();
-
+        
         $calibrationGroupID = $kpiUnit->masterCalibration->id_calibration_group;
 
         $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee, $period);

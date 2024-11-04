@@ -147,7 +147,8 @@
                             <td class="text-center">{{ $employee['finalScore'] }}</td>
                             @can('reportpadetail')
                             <td class="sorting_1 text-center">
-                                @if ($employee['appraisalStatus'] && count(collect($employee['approvalStatus'])->except('calibrator')) != 0)
+                                <!--count(collect($employee['approvalStatus'])->except('calibrator'))-->
+                                @if ($employee['appraisalStatus'] && count(collect($employee['approvalStatus'])) != 0)
                                     <a href="{{ route('admin.appraisal.details', $employee['id']) }}" class="btn btn-sm btn-outline-info"><i class="ri-eye-line"></i></a>
                                 @else
                                     <a class="btn btn-sm btn-outline-secondary" onclick="alert('no data appraisal or pending reviewer')"><i class="ri-eye-line"></i></a>

@@ -59,8 +59,8 @@ class AppraisalController extends Controller
 
         $query = EmployeeAppraisal::with(['appraisal' => function($query) use ($period) {
                 $query->where('period', $period);
-            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.form_group_appraisals']);
-            // }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.form_group_appraisals'])->where('employee_id', '01120040011');
+            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal']);
+            // }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal'])->where('employee_id', '01120040011');
 
         $query->where(function ($query) use ($criteria) {
             foreach ($criteria as $key => $value) {
@@ -139,16 +139,13 @@ class AppraisalController extends Controller
             if ($employee->appraisal->first()) {
                 # code...
                 $masterRating = MasterRating::select('id_rating_group', 'parameter', 'value', 'min_range', 'max_range')
-                    ->where('id_rating_group', $employee->appraisal->first()->id_rating_group)
+                    ->where('id_rating_group', $employee->appraisal->first()->formGroupAppraisal->id_rating_group)
                     ->get();
                 $convertRating = [];
     
                 foreach ($masterRating as $rating) {
                     $convertRating[$rating->value] = $rating->parameter;
                 }
-            }
-
-            if ($employee->appraisal->first()) {
                 $appraisal =  $employee->appraisal->first()->rating
                                 ? $convertRating[$employee->appraisal->first()->rating] 
                                 : null;
