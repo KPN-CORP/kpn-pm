@@ -11,12 +11,20 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 class EmployeepaExport implements FromCollection, WithHeadings, WithMapping, WithStyles, ShouldAutoSize
 {
+    protected $groupCompany;
+    protected $location;
+    protected $company;
     protected $permissionLocations;
     protected $permissionCompanies;
     protected $permissionGroupCompanies;
+    //ss
 
-    public function __construct($permissionLocations, $permissionCompanies, $permissionGroupCompanies)
+    public function __construct($groupCompany, $location, $company,$permissionLocations, $permissionCompanies, $permissionGroupCompanies)
     {
+        $this->groupCompany = $groupCompany;
+        $this->location = $location;
+        $this->company = $company;
+        
         $this->permissionLocations = $permissionLocations;
         $this->permissionCompanies = $permissionCompanies;
         $this->permissionGroupCompanies = $permissionGroupCompanies;
@@ -26,17 +34,40 @@ class EmployeepaExport implements FromCollection, WithHeadings, WithMapping, Wit
     {
         $query = EmployeeAppraisal::select('employee_id', 'fullname', 'date_of_joining', 'contribution_level_code', 'unit', 'designation_name', 'job_level', 'office_area');
 
-        if (!empty($this->permissionLocations)) {
-            $query->whereIn('work_area_code', $this->permissionLocations);
+        $groupCompany = is_array($this->groupCompany) ? $this->groupCompany : explode(',', $this->groupCompany);
+        $location = is_array($this->location) ? $this->location : explode(',', $this->location);
+        $company = is_array($this->company) ? $this->company : explode(',', $this->company);
+
+        if (!empty($this->location)) {
+            $query->whereIn('work_area_code', $location);
         }
 
-        if (!empty($this->permissionCompanies)) {
-            $query->whereIn('contribution_level_code', $this->permissionCompanies);
+        if (!empty($this->company)) {
+            $query->whereIn('contribution_level_code', $company);
+            // dd($query);
         }
 
-        if (!empty($this->permissionGroupCompanies)) {
-            $query->whereIn('group_company', $this->permissionGroupCompanies);
+        if (!empty($this->groupCompany)) {
+            $query->whereIn('group_company', $groupCompany);
         }
+
+        $permissionLocations = $this->permissionLocations;
+        $permissionCompanies = $this->permissionCompanies;
+        $permissionGroupCompanies = $this->permissionGroupCompanies;
+
+        $criteria = [
+            'work_area_code' => $permissionLocations,
+            'group_company' => $permissionGroupCompanies,
+            'contribution_level_code' => $permissionCompanies,
+        ];
+
+        $query->where(function ($query) use ($criteria) {
+            foreach ($criteria as $key => $value) {
+                if ($value !== null && !empty($value)) {
+                    $query->whereIn($key, $value);
+                }
+            }
+        });
 
         return $query->get();
     }
