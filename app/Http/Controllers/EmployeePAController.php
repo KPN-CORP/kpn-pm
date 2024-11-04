@@ -137,7 +137,10 @@ class EmployeePAController extends Controller
             $employees->delete();
         }
 
-        return redirect()->route('admemployee')->with('success', 'Employee deleted successfully.');
+        // return redirect()->route('admemployee')->with('success', 'Employee deleted successfully.');
+        // return back()->with('success', 'Employee deleted successfully.');
+        return redirect()->back()->with('success', 'Employee deleted successfully.')->with('triggerFunction', 'EmployeePA');
+
     }
     public function update(Request $request)
     {
@@ -201,7 +204,8 @@ class EmployeePAController extends Controller
             'updated_by' => $userId,
         ]);
 
-        return redirect()->back()->with('success', 'Employee updated successfully');
+        // return redirect()->back()->with('success', 'Employee updated successfully');
+        return redirect()->back()->with('success', 'Employee deleted successfully.')->with('triggerFunction', 'EmployeePA');
     }
     public function exportEmployeepa()
     {

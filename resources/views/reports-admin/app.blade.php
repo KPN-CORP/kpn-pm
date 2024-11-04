@@ -2,7 +2,6 @@
 
 @section('css')
 @endsection
-
 @section('content')
     <!-- Begin Page Content -->
     <div class="container-fluid">
@@ -14,10 +13,15 @@
                 <div class="col-md-auto">
                   <div class="mb-3">
                     <label class="form-label" for="report_type">Select Report:</label>
-                    <select class="form-select border-dark-subtle" onchange="adminReportType(this.value)">
+                    <select class="form-select border-dark-subtle" id="reportType" onchange="adminReportType(this.value)">
                     <option value="">- select -</option>
                     <option value="Goal">Detailed Goals</option>
                     <option value="Employee">Goal Menu Access</option>
+                    @if(auth()->check())
+                      @can('employeepa')
+                        <option value="EmployeePA">Employee PA</option>
+                      @endcan
+                    @endif
                     </select>
                   </div>
                 </div>
@@ -141,4 +145,66 @@
       </div>
     </div>
     <!-- Content -->
+    
 @endsection
+@push('scripts')
+@if(session('triggerFunction'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const reportSelect = document.getElementById('reportType');
+            const triggerValue = "{{ session('triggerFunction') }}";
+
+            // Set the select value to 'EmployeePA' and trigger the onchange event
+            if (triggerValue) {
+                reportSelect.value = triggerValue;
+                adminReportType(triggerValue);
+            }
+        });
+    </script>
+@endif
+<script>
+    function handleDeleteEmployeePA(element) {
+        var id = element.getAttribute('data-id');
+        var deleteUrl = "{{ route('admemployeeDestroy', ':id') }}";
+        deleteUrl = deleteUrl.replace(':id', id);
+        
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "This Employee will terminated!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Yes, delete it!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Jika dikonfirmasi, buat form dan submit ke server
+                var form = document.createElement('form');
+                form.action = deleteUrl;
+                form.method = 'POST';
+                form.innerHTML = `
+                    @csrf
+                    @method('DELETE')
+                `;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        });
+    }
+    function showEditModal(employee) {
+        // Isi data dari karyawan yang akan diedit ke dalam modal
+        document.getElementById('editEmployeeId').value = employee.employee_id;
+        document.getElementById('editFullname').value = employee.fullname;
+        document.getElementById('editDateOfJoining').value = employee.date_of_joining;
+        document.getElementById('editContributionLevelCode').value = employee.contribution_level_code;
+        document.getElementById('editUnit').value = employee.unit;
+        document.getElementById('editDesignationName').value = employee.designation_code;
+        document.getElementById('editJobLevel').value = employee.job_level;
+        document.getElementById('editOfficeArea').value = employee.work_area_code;
+
+        // Tampilkan modal
+        var editModal = new bootstrap.Modal(document.getElementById('editEmployeeModal'));
+        editModal.show();
+    }    
+</script>
+@endpush

@@ -7,7 +7,10 @@ use App\Http\Controllers\Controller;
 use App\Models\ApprovalLayer;
 use App\Models\ApprovalRequest;
 use App\Models\Company;
+use App\Models\Department;
+use App\Models\Designation;
 use App\Models\Employee;
+use App\Models\EmployeeAppraisal;
 use App\Models\Location;
 use App\Models\Report;
 use Carbon\Carbon;
@@ -233,7 +236,56 @@ class ReportController extends Controller
                 $employee->access_menu = json_decode($employee->access_menu, true);
             }
             $route = 'reports-admin.employee';
-        } else {
+        } elseif ($report_type === 'EmployeePA') {
+            $query = EmployeeAppraisal::query()->orderBy('fullname'); // Start with Employee model
+
+            if (!empty($group_company)) {
+                    $query->whereIn('group_company', $group_company)->orderBy('fullname');
+            }
+            if (!empty($location)) {
+                    $query->whereIn('work_area_code', $location);
+            }
+            if (!empty($company)) {
+                    $query->whereIn('contribution_level_code', $company);
+            }
+
+            $criteria = [
+                'work_area_code' => $permissionLocations,
+                'group_company' => $permissionGroupCompanies,
+                'contribution_level_code' => $permissionCompanies,
+            ];
+    
+            $query->where(function ($query) use ($criteria) {
+                foreach ($criteria as $key => $value) {
+                    if ($value !== null && !empty($value)) {
+                        $query->whereIn($key, $value);
+                    }
+                }
+            });
+
+            $designations = Designation::select('designation_name','job_code')
+            ->orderBy('parent_company_id', 'asc')
+            ->orderBy('designation_name', 'asc')
+            ->orderBy('job_code', 'asc')
+            ->groupBy('job_code','designation_name')
+            ->get();
+            $departments = Department::select('department_name')
+            ->orderBy('department_name', 'asc')
+            ->groupBy('department_name')
+            ->get();
+            $companies = Company::orderBy('contribution_level_code', 'asc')->get();
+            $locations = Location::orderBy('area', 'asc')->get();
+
+            $data = $query->get();
+            foreach ($data as $employee) {
+                $employee->access_menu = json_decode($employee->access_menu, true);
+            }
+            $route = 'reports-admin.employeepa';
+
+            $link = __('Report');
+
+            return view($route, compact('data', 'link', 'filters', 'designations','departments','companies','locations'));
+        }else {
             $data = collect(); // Empty collection for unknown report types
             $route = 'reports-admin.empty';
         }
