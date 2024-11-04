@@ -21,14 +21,14 @@ $(document).ready(function() {
                     
                     // Get data from the DataTable
                     let dt = $('#tableAppraisalTeam').DataTable();
-                    let data = dt.data().toArray();
+                    let data = dt.rows({ order: 'applied' }).data().toArray(); // Use rows with current order
                     
                     // Add new headers
                     csvRows[0] = csvRows[0].replace(/\r?\n|\r/g, '') + ',KPI Score,Culture Score,Leadership Score,Total Score';
                 
                     // Process each data row
                     for (let i = 1; i < csvRows.length; i++) {
-                        if (csvRows[i]) {
+                        if (csvRows[i] && data[i - 1]) { // Ensure alignment with data array
                             // Fetch row data and calculate scores
                             let rowData = data[i - 1];
                             let scores = getScores(rowData);
@@ -44,7 +44,7 @@ $(document).ready(function() {
                             rowColumns[7] = scores.cultureScore;       // Culture Score
                             rowColumns[8] = scores.leadershipScore;    // Leadership Score
                             rowColumns[9] = scores.totalScore;         // Total Score
-                    
+                            
                             // Reassemble the row with fields correctly quoted if necessary
                             csvRows[i] = rowColumns.map(value => {
                                 // Remove any carriage returns
@@ -69,7 +69,6 @@ $(document).ready(function() {
                     return csvRows.join('\n');
                     
                 }
-                    
             }
         ],
         fixedColumns: {
@@ -103,7 +102,6 @@ $(document).ready(function() {
 
     // Add event listener for both tables
     addChildRowToggle(tableTeam, '#tableAppraisalTeam');
-
 });
 
 $(document).ready(function() {
@@ -128,38 +126,38 @@ $(document).ready(function() {
                     
                     // Get data from the DataTable
                     let dt = $('#tableAppraisal360').DataTable();
-                    let data = dt.data().toArray();
+                    let data = dt.rows().data().toArray(); // Use rows().data() to avoid misalignment
                     
                     // Add new headers
                     csvRows[0] = csvRows[0].replace(/\r?\n|\r/g, '') + ',Culture Score,Leadership Score';
-                
+                    
                     // Process each data row
                     for (let i = 1; i < csvRows.length; i++) {
-                        if (csvRows[i]) {
+                        if (csvRows[i] && data[i - 1]) { // Ensure data alignment
                             // Fetch row data and calculate scores
                             let rowData = data[i - 1];
                             let scores = getScores(rowData);
-                    
+                            
                             // Split the current row into an array of values, considering quoted values
                             let rowColumns = csvRows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    
+                            
                             // Ensure we have enough columns; fill with blank entries if needed
                             while (rowColumns.length < 10) rowColumns.push('');
-                    
+                            
                             // Insert the scores into specified columns
-                            rowColumns[7] = scores.cultureScore;       // Culture Score
-                            rowColumns[8] = scores.leadershipScore;    // Leadership Score
-                    
+                            rowColumns[7] = scores.leadershipScore; // Leadership Score
+                            rowColumns[8] = scores.cultureScore;    // Culture Score
+                            
                             // Reassemble the row with fields correctly quoted if necessary
                             csvRows[i] = rowColumns.map(value => {
                                 // Remove any carriage returns
                                 value = value.replace(/\r/g, ''); 
-                    
+                                
                                 // Strip surrounding quotes if they exist around the entire value
                                 if (value.startsWith('"') && value.endsWith('"')) {
                                     value = value.slice(1, -1); // Remove the first and last quote
                                 }
-                    
+                                
                                 // Check if the value needs quotes (e.g., contains a comma or internal quotes)
                                 if (value.includes(',') || value.includes('"')) {
                                     // Escape quotes inside the value and wrap it in double quotes
@@ -172,8 +170,8 @@ $(document).ready(function() {
                     
                     // Join rows back into a single CSV string
                     return csvRows.join('\n');
-                    
                 }
+                
             }
         ],
         fixedColumns: {

@@ -331,7 +331,6 @@ class AppraisalController extends Controller
                 $result = $this->appraisalSummary($weightageContent, $formData);
 
                 $formData = $this->appService->combineFormData($result['summary'], $goalData, $result['summary']['contributor_type'], $employeeData, $request->period);
-
                 
                 if (isset($formData['totalKpiScore'])) {
                     $appraisalData['kpiScore'] = round($formData['kpiScore'], 2);
