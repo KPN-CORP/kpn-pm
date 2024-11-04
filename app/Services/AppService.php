@@ -544,7 +544,6 @@ class AppService
     {
         // Cari data pada ApprovalLayerAppraisal berdasarkan employee_id
         $approvalLayerAppraisals = ApprovalLayerAppraisal::with(['approver', 'employee'])->where('employee_id', $employeeId)->where('layer_type', '!=', 'calibrator')->get();
-
         
         // Simpan data yang tidak ada di AppraisalContributor
         $notFoundData = [];

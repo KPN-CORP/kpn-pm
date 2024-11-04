@@ -137,9 +137,8 @@ class RatingController extends Controller
                     // Calculate the suggested rating
                     $suggestedRating = $this->appService->suggestedRating($data->employee->employee_id, $data->approvalRequest->first()->form_id);
                     
-
-                    $data->suggested_rating = $this->appService->convertRating($suggestedRating, $calibration->first()->id_calibration_group);
-
+                    $data->suggested_rating = $calibration->where('employee_id', $data->employee_id)->where('approver_id', $user)->first() ? $this->appService->convertRating($suggestedRating, $calibration->where('employee_id', $data->employee_id)->where('approver_id', $user)->first()->id_calibration_group) : null;
+                    
                     $data->previous_rating = $previousRating ? $this->appService->convertRating($previousRating->rating, $calibration->first()->id_calibration_group) : null;
 
                     $data->rating_value = $this->appService->ratingValue($data->employee->employee_id, $this->user, $this->period);
@@ -180,11 +179,11 @@ class RatingController extends Controller
                 // Process `without_requests`
                 $withoutRequests = $group['without_requests']->map(function ($data) use ($user, $calibration) {
                     // Calculate the suggested rating
-                    dd($data);
+
                     $suggestedRating = 0;
-            
+                    
                     // Since there are no approval requests, handle the suggested rating logic accordingly
-                    $data->suggested_rating = $this->appService->convertRating($suggestedRating, $calibration->first()->id_calibration_group);
+                    $data->suggested_rating = $calibration->where('employee_id', $data->employee_id)->where('approver_id', $user)->first() ? $this->appService->convertRating($suggestedRating, $calibration->where('employee_id', $data->employee_id)->first()->id_calibration_group) : null;
             
                     // Check if the user is a calibrator for this employee
                     $isCalibrator = Calibration::where('approver_id', $user)
@@ -275,8 +274,6 @@ class RatingController extends Controller
                     break;
                 }
             }
-
-            // dd($ratingDatas);
     
             $parentLink = 'Calibration';
             $link = 'Rating';
@@ -398,15 +395,16 @@ class RatingController extends Controller
             $masterRating = MasterRating::select('id_rating_group', 'parameter', 'value', 'min_range', 'max_range')
             ->where('id_rating_group', $kpiUnit->masterCalibration->id_rating_group)
             ->get();
-    
-            $allData = ApprovalLayerAppraisal::with(['employee'])
-                ->where('approver_id', $user)
-                ->where('layer_type', 'calibrator')
-                ->get();
 
+            
+            $allData = ApprovalLayerAppraisal::with(['employee'])
+            ->where('approver_id', $user)
+            ->where('layer_type', 'calibrator')
+            ->get();
+            
             // Query for ApprovalLayerAppraisal data with approval requests
             $dataWithRequests = ApprovalLayerAppraisal::join('approval_requests', 'approval_requests.employee_id', '=', 'approval_layer_appraisals.employee_id')
-                ->where('approval_layer_appraisals.approver_id', $user)
+            ->where('approval_layer_appraisals.approver_id', $user)
                 ->where('approval_layer_appraisals.layer_type', 'calibrator')
                 ->where('approval_requests.category', $this->category)
                 ->whereNull('approval_requests.deleted_at')
@@ -414,7 +412,6 @@ class RatingController extends Controller
                 ->get()
                 ->keyBy('id');
                 
-
             // Group the data
             $datas = $allData->groupBy(function ($data) {
                 $jobLevel = $data->employee->job_level;
@@ -450,22 +447,20 @@ class RatingController extends Controller
                         return !$dataWithRequests->has($item->id);
                     })
                 ];
-            })->sortKeys();
-
-            
-            
+            })->sortKeys();   
+                        
             $ratingDatas = $datas->map(function ($group) use ($user, $period) {
                 // Process `with_requests`
-                $calibration = Calibration::where('period', $period)->orderBy('id', 'asc')->whereNotNull('rating')->get();
+                $calibration = Calibration::where('period', $period)->orderBy('id', 'asc')->get();
                 
                 $withRequests = $group['with_requests']->map(function ($data) use ($user, $calibration) {
 
-                    $previousRating = $calibration->where('appraisal_id', $data->approvalRequest->first()->form_id)->first();
+                    $previousRating = $calibration->whereNotNull('rating')->where('appraisal_id', $data->approvalRequest->first()->form_id)->first();
                     // Calculate the suggested rating
                     $suggestedRating = $this->appService->suggestedRating($data->employee->employee_id, $data->approvalRequest->first()->form_id);
-
                     
-                    $data->suggested_rating = $this->appService->convertRating($suggestedRating, $calibration->first()->id_calibration_group);
+                    $data->suggested_rating = $calibration->where('employee_id', $data->employee_id)->where('approver_id', $user)->first() ? $this->appService->convertRating($suggestedRating, $calibration->where('employee_id', $data->employee_id)->where('approver_id', $user)->first()->id_calibration_group) : null;
+
                     
                     $data->previous_rating = $previousRating ? $this->appService->convertRating($previousRating->rating, $calibration->first()->id_calibration_group) : null;
 
@@ -480,6 +475,13 @@ class RatingController extends Controller
             
                     // Check if rating is allowed for the employee
                     $data->rating_allowed = $this->appService->ratingAllowedCheck($data->employee->employee_id);
+
+                    $data->rating_incomplete = $calibration->whereNull('rating')->where('appraisal_id', $data->approvalRequest->first()->form_id)->count();
+
+                    if($calibration->where('appraisal_id', $data->approvalRequest->first()->form_id)->first()){
+                        $data->rating_status = $calibration->where('appraisal_id', $data->approvalRequest->first()->form_id)->first()->status;
+                    }
+            
             
                     // Fetch the current calibrator if it exists
                     $currentCalibrator = Calibration::with(['approver'])
@@ -500,10 +502,11 @@ class RatingController extends Controller
                 // Process `without_requests`
                 $withoutRequests = $group['without_requests']->map(function ($data) use ($user, $calibration) {
                     // Calculate the suggested rating
+
                     $suggestedRating = 0;
-            
+                    
                     // Since there are no approval requests, handle the suggested rating logic accordingly
-                    $data->suggested_rating = $this->appService->convertRating($suggestedRating, $calibration->first()->id_calibration_group);
+                    $data->suggested_rating = $calibration->where('employee_id', $data->employee_id)->where('approver_id', $user)->first() ? $this->appService->convertRating($suggestedRating, $calibration->where('employee_id', $data->employee_id)->first()->id_calibration_group) : null;
             
                     // Check if the user is a calibrator for this employee
                     $isCalibrator = Calibration::where('approver_id', $user)
@@ -530,16 +533,18 @@ class RatingController extends Controller
             
                     return $data;
                 });
-            
+
+                
+                
                 // Combine both `with_requests` and `without_requests` results
                 $combinedResults = $withRequests->merge($withoutRequests);
-
+                
                 // Filter to get only records where `is_calibrator` is true
                 return $combinedResults;
             });
-
+            
             $ratings = [];
-
+            
             foreach ($masterRating as $rating) {
                 $ratings[$rating->value] = $rating->parameter;
             }
@@ -548,7 +553,7 @@ class RatingController extends Controller
             
         } catch (Exception $e) {
             Log::error('Error in exportToExcel method: ' . $e->getMessage());
-            return redirect()->back()->with('error', 'Failed to export data.');
+            return redirect()->route('rating')->with('error', 'Failed to export data.');
         }
     }
 
@@ -575,12 +580,23 @@ class RatingController extends Controller
         // Ambil employee_ids dari data
         // $employeeIds = array_unique(array_column($data, 'employee_id'));
         try {
+
+            // Get the KPI unit and calibration percentage
+            $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $this->user)->first();
+
+            $masterRating = MasterRating::select('id_rating_group', 'parameter', 'value', 'min_range', 'max_range')
+                ->where('id_rating_group', $kpiUnit->masterCalibration->id_rating_group)
+                ->get();
+
+            $allowedRating = $masterRating->pluck('parameter')->toArray();
+
             
             // Get the ID of the currently authenticated user
             $userId = Auth::id();
+            // $allowedRating = ;
 
             // Initialize the import process with the user ID
-            $import = new AppraisalRatingImport($userId);
+            $import = new AppraisalRatingImport($userId, $allowedRating);
 
             // Retrieve invalid employees after import
             
@@ -599,14 +615,14 @@ class RatingController extends Controller
             }
 
             // If successful, redirect back with a success message
-            return redirect()->back()->with('success', $message);
+            return redirect()->route('rating')->with('success', $message);
         } catch (ValidationException $e) {
 
             // Catch the validation exception and redirect back with the error message
-            return redirect()->back()->with('error', $e->errors()['error'][0]);
+            return redirect()->route('rating')->with('error', $e->errors()['error'][0]);
         } catch (\Exception $e) {
             // Handle any other exceptions
-            return redirect()->back()->with('error', 'An error occurred during the import process.');
+            return redirect()->route('rating')->with('error', 'An error occurred during the import process.');
         }
 
     }

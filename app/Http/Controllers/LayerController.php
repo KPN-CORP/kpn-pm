@@ -435,7 +435,7 @@ class LayerController extends Controller
             $checkCalibration = Calibration::where('appraisal_id', $approvalRequest->form_id)->where('created_by', $currentManager->approver->id)->where('status', 'Pending')->first();
 
             // Check if a record was found, then update `approver_id` and `updated_by` fields
-            if ($checkCalibration->approver_id != $firstNonNullCalibrator) {
+            if ($checkCalibration && $checkCalibration->approver_id != $firstNonNullCalibrator) {
                 $checkCalibration->approver_id = $firstNonNullCalibrator; // Assign the new approver ID
                 $checkCalibration->updated_by = auth()->id(); // Set the current authenticated user as `updated_by`
                 $checkCalibration->save(); // Save changes to the database

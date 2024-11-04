@@ -273,6 +273,15 @@ class MyAppraisalController extends Controller
             Session::flash('error', "No Reviewer assigned, please contact admin to assign reviewer");
             return redirect()->back();
         }
+        
+        $calibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $request->id)->value('approver_id');
+
+        if (!$calibrator) {
+            Session::flash('error', "No Layer assigned, please contact admin to assign layer");
+            return redirect()->back();
+        }
+        
+        
         // Get form group appraisal
         $formGroupData = $this->appService->formGroupAppraisal($request->id, 'Appraisal Form');
                 

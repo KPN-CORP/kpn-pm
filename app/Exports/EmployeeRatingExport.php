@@ -34,7 +34,7 @@ class EmployeeRatingExport implements FromCollection, WithHeadings, WithEvents, 
                 'Approver_Rating_Name' => $item->approver->fullname,
                 'Approver_Rating_ID'   => $item->approver->employee_id,
                 'Review_Status'    => $item->rating_value ? 'Approved' : 'Pending',
-                'Suggested_Rating' => $item->suggested_rating ?? '-',
+                'Score_to_Rating' => $item->suggested_rating ?? '-',
                 'Previous_Rating'  => $item->previous_rating ?? '-',
                 'Your_Rating'      => $this->ratings[$item->rating_value] ?? '-',  // This column needs dropdown
             ];
