@@ -9,7 +9,7 @@ use App\Exports\InitiatedExport;
 use App\Exports\NotInitiatedExport;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
-
+use App\Exports\EmployeepaExport;
 
 class ExportExcelController extends Controller
 {
@@ -79,6 +79,10 @@ class ExportExcelController extends Controller
         if($reportType==='Employee'){
             $employee = new EmployeeExport($groupCompany, $location, $company, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
             return Excel::download($employee, 'employee.xlsx');
+        }
+        if($reportType==='EmployeePA'){
+            $employee = new EmployeepaExport($permissionLocations, $permissionCompanies, $permissionGroupCompanies);
+            return Excel::download($employee, 'employeePA.xlsx');
         }
         return;
 
