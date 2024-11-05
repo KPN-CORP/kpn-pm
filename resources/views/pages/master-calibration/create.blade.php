@@ -77,7 +77,7 @@
             </div>
         </form>
             @if(isset($kpiUnits) && isset($individualKpis))
-            <form action="{{ route('savecalibrations') }}" method="POST">
+            <form action="{{ route('savecalibrations') }}" method="POST" id="calibrationFormSubmit">
                 @csrf
                 <input type="hidden" name="calibration_name" value="{{ $value_calibration_name }}">
                 <input type="hidden" name="kpi_unit" value="{{ $value_kpi_unit }}">
@@ -126,7 +126,7 @@
                 <div class="col-md-12">
                     <div class="mb-2 text-end">
                         <a href="{{ route('admcalibrations') }}" type="button" class="btn btn-outline-secondary">Cancel</a>
-                        <button type="submit" class="btn btn-primary" >Submit Calibration</button>
+                        <button type="submit" class="btn btn-primary">Submit Calibration</button>
                     </div>
                 </div>
             </form>
@@ -139,16 +139,13 @@
 <script>
     @if(!empty($kpiUnits))
         function calculateTotal() {
+            let isValid = true; // Flag untuk mengecek apakah semua KPI sudah 100%
+
             @foreach($kpiUnits as $unit)
                 var total = 0;
-                var lastInput = null;
 
                 document.querySelectorAll(`input[name^="Xx[{{ $unit }}]"]`).forEach(function(input) {
                     var value = parseFloat(input.value);
-                    
-                    if (document.activeElement === input) {
-                        lastInput = input;
-                    }
 
                     if (!isNaN(value)) {
                         total += value;
@@ -156,48 +153,44 @@
                 });
 
                 if (total > 100) {
-                    alert("Total persentase untuk KPI Unit '{{ $unit }}' tidak boleh lebih dari 100%");
                     
-                    if (lastInput !== null) {
-                        lastInput.value = 0;
-                    }
-
-                    calculateTotal();
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Percentage Exceeded',
+                        text: `The total percentage for KPI Unit '{{ $unit }}' must not exceed 100%.`,
+                        confirmButtonText: 'Okay'
+                    });
                     return;
                 }
 
                 document.getElementById(`total-V{{ $unit }}`).textContent = total.toFixed(0) + '%';
+
+                // Jika total tidak 100%, set isValid ke false
+                if (total !== 100) {
+                    isValid = false;
+                }
             @endforeach
+
+            return isValid;
         }
-
-        document.querySelectorAll('.kpi-input').forEach(function(input) {
-            input.addEventListener('input', calculateTotal);
-        });
     @endif
+    // Event listener untuk submit form
+    document.getElementById('calibrationFormSubmit').addEventListener('submit', function(event) {
+        if (!calculateTotal()) {
+            event.preventDefault(); // Cegah submit jika total belum mencapai 100%
+            
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Total Percentage',
+                text: 'The total percentage for each KPI Unit must be 100% before submission.',
+                confirmButtonText: 'Okay'
+            });
+        }
+    });
 
-    // function calculateTotal() {
-    //     @if(!empty($kpiUnits))
-    //         @foreach($individualKpis as $kpi)
-    //             @foreach($kpiUnits as $unit)
-    //                 let total_{{ $unit }} = 0;
-
-    //                 document.querySelectorAll('input[name*="Xx[{{ $unit }}]"]').forEach(function(input) {
-    //                     let value = parseFloat(input.value) || 0;
-    //                     total_{{ $unit }} += value;
-    //                     lastInput = input;
-    //                     console.log(lastInput);
-    //                 });
-
-    //                 if (total_{{ $unit }} > 100) {
-    //                     alert("Total untuk KPI Unit '{{ $unit }}' tidak boleh lebih dari 100%");
-    //                     lastInput.value = 0;
-    //                     total_{{ $unit }} -= parseFloat(lastInput.value) || 0;
-    //                 }
-
-    //                 document.getElementById('total-V{{ $unit }}').innerText = total_{{ $unit }} + '%';
-    //             @endforeach
-    //         @endforeach
-    //     @endif
-    // }
+    // Pastikan total dihitung ulang setiap kali input diubah
+    document.querySelectorAll('.kpi-input').forEach(function(input) {
+        input.addEventListener('input', calculateTotal);
+    });
 </script>
 @endpush
