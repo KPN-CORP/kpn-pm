@@ -13,7 +13,7 @@
     <!-- Nucleo Icons -->
     @vite('resources/css/nucleo-icons.css')
     @vite('resources/css/nucleo-svg.css')
-    @vite('resources/css/soft-ui-dashboard-tailwind.css?v=1.0.5')
+    @vite('resources/css/soft-ui-dashboard-tailwind.css')
 
     <!-- Nepcha Analytics (nepcha.com) -->
     <!-- Nepcha is a easy-to-use web analytics. No cookies and fully compliant with GDPR, CCPA and PECR. -->

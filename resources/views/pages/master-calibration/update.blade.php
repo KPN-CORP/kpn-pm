@@ -60,7 +60,7 @@
             </div>
         </form>
             @if(isset($kpiUnits) && isset($individualKpis))
-            <form action="{{ route('updatecalibrations') }}" method="POST">
+            <form action="{{ route('updatecalibrations') }}" method="POST" id="calibrationFormSubmit">
                 @csrf
                 <input type="hidden" name="idcalibration" value="{{ $value_calibration_id }}">
                 <input type="hidden" name="calibration_name" value="{{ $value_calibration_name }}">
@@ -125,6 +125,8 @@
 <script>
     @if(!empty($kpiUnits))
         function calculateTotal() {
+            let isValid = true;
+
             @foreach($kpiUnits as $unit)
                 var total = 0;
                 var lastInput = null;
@@ -142,7 +144,12 @@
                 });
 
                 if (total > 100) {
-                    alert("Total persentase untuk KPI Unit '{{ $unit }}' tidak boleh lebih dari 100%");
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Percentage Exceeded',
+                        text: `The total percentage for KPI Unit '{{ $unit }}' must not exceed 100%.`,
+                        confirmButtonText: 'Okay'
+                    });
                     
                     if (lastInput !== null) {
                         lastInput.value = 0;
@@ -153,13 +160,32 @@
                 }
 
                 document.getElementById(`total-V{{ $unit }}`).textContent = total.toFixed(0) + '%';
-            @endforeach
-        }
 
-        document.querySelectorAll('.kpi-input').forEach(function(input) {
-            input.addEventListener('input', calculateTotal);
-        });
+                if (total !== 100) {
+                    isValid = false;
+                }
+
+            @endforeach
+
+            return isValid;
+        }
     @endif
+    document.getElementById('calibrationFormSubmit').addEventListener('submit', function(event) {
+        if (!calculateTotal()) {
+            event.preventDefault(); // Cegah submit jika total belum mencapai 100%
+            Swal.fire({
+                icon: 'error',
+                title: 'Invalid Total Percentage',
+                text: 'The total percentage for each KPI Unit must be 100% before submission.',
+                confirmButtonText: 'Okay'
+            });
+        }
+    });
+
+    document.querySelectorAll('.kpi-input').forEach(function(input) {
+        input.addEventListener('input', calculateTotal);
+    });
+
     document.addEventListener('DOMContentLoaded', function() {
         @foreach($kpiUnits as $unit)
             let total_{{ $unit }} = 0; // Variabel untuk menyimpan total per KPI Unit
