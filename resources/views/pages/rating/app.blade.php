@@ -85,13 +85,16 @@
                                                 </thead>
                                                 <tbody>
                                                         @foreach ($data['combined'] as $key => $values)
-                                                            <tr>
-                                                                <td class="key-{{ $level }}">{{ $key }}</td>
-                                                                <td class="rating">{{ $values['rating_count'] }}</td>
-                                                                <td>{{ $values['percentage'] }}</td>
-                                                                <td class="suggested-rating-count-{{ $key.'-'.$level }}">{{ $values['suggested_rating_count'] }}</td>
-                                                                <td class="suggested-rating-percentage-{{ $key.'-'.$level }}">{{ $values['suggested_rating_percentage'] }}</td>
-                                                            </tr>
+                                                        @php
+                                                            $formattedKey = str_replace(' ', '', $key); // Replace spaces with hyphens
+                                                        @endphp
+                                                        <tr>
+                                                            <td class="key-{{ $level }}">{{ $key }}</td>
+                                                            <td class="rating">{{ $values['rating_count'] }}</td>
+                                                            <td>{{ $values['percentage'] }}</td>
+                                                            <td class="suggested-rating-count-{{ $formattedKey.'-'.$level }}">{{ $values['suggested_rating_count'] }}</td>
+                                                            <td class="suggested-rating-percentage-{{ $formattedKey.'-'.$level }}">{{ $values['suggested_rating_percentage'] }}</td>
+                                                        </tr>
                                                         @endforeach
                                                         <tr>
                                                             <td>Total</td>
@@ -172,15 +175,15 @@
                                                                         <div class="col-md col-sm-12 text-md-center">
                                                                             <span class="text-muted">Review Status</span>
                                                                             <div class="mb-2">
-                                                                                @if ($item->rating_allowed['status'] && $item->form_id)
-                                                                                    @if ($item->rating_allowed['status'] && $item->form_id && $item->current_calibrator)
-                                                                                        @if ($item->rating_incomplete)
+                                                                                @if ($item->rating_allowed['status'])
+                                                                                    @if ($item->rating_incomplete || !$requestApproved)
+                                                                                        @if ($item->rating_allowed['status'] && $item->form_id && $item->current_calibrator)
                                                                                             <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $item->current_calibrator }}" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending Calibration</a>
                                                                                         @else
-                                                                                            <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="" class="badge bg-success rounded-pill py-1 px-2 mt-1">Approved</a>
+                                                                                            <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="360 Review incomplete" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending 360</a>
                                                                                         @endif
                                                                                     @else
-                                                                                        <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="360 Review incomplete" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending 360</a>
+                                                                                        <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="" class="badge bg-success rounded-pill py-1 px-2 mt-1">Approved</a>
                                                                                     @endif
                                                                                 @else
                                                                                     @if (!$item->form_id)
@@ -193,11 +196,11 @@
                                                                         </div>
                                                                         <div class="col text-center">
                                                                             <span class="text-muted">Score To Rating</span>
-                                                                            <p class="mt-1 fw-medium">{{ $item->rating_allowed['status'] && $item->form_id && $item->current_calibrator ? $item->suggested_rating : '-' }}</p>
+                                                                            <p class="mt-1 fw-medium">{{ $item->rating_allowed['status'] && $item->form_id && $item->current_calibrator || !$item->rating_incomplete ? $item->suggested_rating : '-' }}</p>
                                                                         </div>
                                                                         <div class="col text-center">
                                                                             <span class="text-muted">Previous Rating</span>
-                                                                            <p class="mt-1 fw-medium">{{ $item->rating_allowed['status'] && $item->form_id && $item->current_calibrator && $item->previous_rating ? $item->previous_rating : '-' }}</p>
+                                                                            <p class="mt-1 fw-medium">{{ $item->rating_allowed['status'] && $item->form_id && $item->current_calibrator && $item->previous_rating || !$item->rating_incomplete ? $item->previous_rating : '-' }}</p>
                                                                         </div>
                                                                         <div class="col">
                                                                             <span class="text-muted">Your Rating</span>

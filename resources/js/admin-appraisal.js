@@ -12,7 +12,7 @@ $(document).ready(function() {
                 extend: 'csvHtml5',
                 text: '<i class="ri-download-cloud-2-line fs-16 me-1"></i>Download Report',
                 className: 'btn btn-sm btn-outline-success',
-                title: 'Employee Data',
+                title: 'PA Details',
                 exportOptions: {
                     columns: ':not(:last-child)', // Excludes the last column (Details)
                     format: {

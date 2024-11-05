@@ -29,7 +29,7 @@ function updateRatingTable(selectElement) {
     ratingSelects.forEach(select => {
         const selectedOption = select.options[select.selectedIndex];
         if (selectedOption) {
-            const text = selectedOption.textContent.trim();
+            const text = selectedOption.textContent.trim().replace(/\s+/g, '');
             if (text && text !== 'Please Select') {
                 ratingCounts[text] = (ratingCounts[text] || 0) + 1;
             }
@@ -37,7 +37,7 @@ function updateRatingTable(selectElement) {
     });
     
     // Get all unique keys (ratings) from the table
-    const keys = Array.from(document.querySelectorAll(`.key-${level}`)).map(el => el.textContent.trim());
+    const keys = Array.from(document.querySelectorAll(`.key-${level}`)).map(el => el.textContent.trim().replace(/\s+/g, ''));
     
     // Update each row in the table
     keys.forEach(key => {
@@ -130,7 +130,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const firstKey = table.querySelector(`td.key-${level}`).textContent.trim();
             
             rows.forEach(row => {
-                const key = row.querySelector(`td.key-${level}`).textContent;
+                const key = row.querySelector(`td.key-${level}`).textContent.trim().replace(/\s+/g, '');
                 const ratingCell = row.querySelector('td.rating');
                 const suggestedRatingCell = row.querySelector(`td.suggested-rating-count-${key}-${level}`);
                 const ratingCount = parseInt(ratingCell.textContent);

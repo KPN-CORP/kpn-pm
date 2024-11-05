@@ -268,7 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
         validateWeightages();
 
         // Validate form names
-        validateFormNames();
+        // validateFormNames();
 
         // Prevent form submission if there are errors or configuration is invalid
         if (hasErrors) {
@@ -423,7 +423,7 @@ $(document).ready(function() {
                 defaultCompetencies.map((competency, index) => 
                     $('<div>', { class: 'row align-items-center' }).append(
                         // Competency Name
-                        $('<div>', { class: 'col-md' }).append(
+                        $('<div>', { class: 'col-md-4' }).append(
                             $('<div>', { class: 'mb-3' }).append(
                                 $('<h5>').text(competency.competency_name),
                                 $('<input>', {
@@ -434,7 +434,7 @@ $(document).ready(function() {
                             )
                         ),
                         // Weightage Input
-                        $('<div>', { class: 'col-md' }).append(
+                        $('<div>', { class: 'col-md-4' }).append(
                             $('<div>', { class: 'mb-3' }).append(
                                 $('<h5>').text('Weightage'),
                                 $('<div>', { class: 'input-group' }).append(
@@ -454,7 +454,7 @@ $(document).ready(function() {
                             )
                         ),
                         // Form Name Select
-                        $('<div>', { class: 'col-md' }).append(
+                        $('<div>', { class: 'col-md-4' }).append(
                             $('<div>', {
                                 class: `mb-3 ${competency.competency_name === 'KPI' ? 'd-none' : ''}`
                             }).append(
@@ -479,17 +479,58 @@ $(document).ready(function() {
                                 ),
                                 $('<div>', { class: 'text-danger error-message fs-14' })
                             )
+                        ),
+
+                        $('<div>', { class: 'col-md' }).append(
+                            $('<div>', {
+                                class: `mb-3 ${competency.competency_name === 'KPI' ? 'd-none' : ''}`
+                            }).append(
+                                $('<h5>').text(competency.competency_name + ' Weightage 360 in %'),
+                                $('<select>', {
+                                    name: `weightage-360-${formIndex}-${index}`,
+                                    id: `weightage-360-${formIndex}-${index}`,
+                                    class: 'form-select select2',
+                                    required: competency.competency_name !== 'KPI',
+                                    disabled: competency.competency_name === 'KPI'
+                                }).append(
+                                    $('<option>', {
+                                        value: '',
+                                        text: 'please select'
+                                    }),
+                                    data360s.map(data => {
+                                        // Parse form_data if it is in JSON string format
+                                        let formData = typeof data.form_data === 'string' ? JSON.parse(data.form_data) : data.form_data;
+                                        
+                                        // Convert formData array of objects into a single object
+                                        let formDataObject = {};
+                                        formData.forEach(item => {
+                                            let key = Object.keys(item)[0];
+                                            formDataObject[key] = item[key];
+                                        });
+                                    
+                                        // Create a string in the format "employee: 20, manager: 30, peers: 30, subordinate: 20"
+                                        let formDataText = Object.entries(formDataObject).map(([key, value]) => `${key}: ${value}`).join(', ');
+                                    
+                                        // Create the option element
+                                        return $('<option>', {
+                                            value: data.form_data,
+                                            text: `${data.name} { ${formDataText} }`
+                                        });
+                                    })
+                                ),
+                                $('<div>', { class: 'text-danger error-message fs-14' })
+                            )
                         )
                     )
                 ),
                 // Total Section
                 $('<div>', { class: 'row align-items-center' }).append(
-                    $('<div>', { class: 'col-md' }).append(
+                    $('<div>', { class: 'col-md-4' }).append(
                         $('<div>', { class: 'mb-3' }).append(
                             $('<h5>').text('Total')
                         )
                     ),
-                    $('<div>', { class: 'col-md' }).append(
+                    $('<div>', { class: 'col-md-4' }).append(
                         $('<div>', { class: 'mb-3' }).append(
                             $('<div>', { class: 'input-group' }).append(
                                 $('<input>', {

@@ -6,6 +6,7 @@ use App\Models\EmployeeAppraisal;
 use App\Models\FormAppraisal;
 use App\Models\MasterCompetencyType;
 use App\Models\MasterWeightage;
+use App\Models\MasterWeightage360;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Log;
@@ -63,6 +64,7 @@ class WeightageController extends Controller
         try {
             // Retrieve master weightage
             $datas = MasterWeightage::find($id);
+            $data360s = MasterWeightage360::all();
             $formAppraisal = FormAppraisal::select('name')->get();
             $allJobLevels = [];
 
@@ -87,7 +89,7 @@ class WeightageController extends Controller
             $parentLink = __('Weightage');
             $link = __('Details');
 
-            return view('pages.weightage.detail', compact('datas', 'link', 'parentLink', 'group_company', 'formAppraisal', 'job_level'));
+            return view('pages.weightage.detail', compact('datas', 'data360s', 'link', 'parentLink', 'group_company', 'formAppraisal', 'job_level'));
 
         } catch (Exception $e) {
             Log::error('Error in index method: ' . $e->getMessage());
@@ -101,6 +103,7 @@ class WeightageController extends Controller
         try {
             // Retrieve master weightage
             $datas = MasterWeightage::all();
+            $data360s = MasterWeightage360::all();
             $formAppraisal = FormAppraisal::select('name')->get();
             $competency = MasterCompetencyType::select('id','competency_name')->orderBy('id', 'asc')->get();
 
@@ -112,7 +115,7 @@ class WeightageController extends Controller
 
             $max_form = 10;
 
-            return view('pages.weightage.create', compact('datas', 'link', 'parentLink', 'group_company', 'formAppraisal', 'job_level', 'max_form', 'competency'));
+            return view('pages.weightage.create', compact('datas', 'data360s', 'link', 'parentLink', 'group_company', 'formAppraisal', 'job_level', 'max_form', 'competency'));
 
         } catch (Exception $e) {
             Log::error('Error in index method: ' . $e->getMessage());
@@ -126,6 +129,7 @@ class WeightageController extends Controller
         try {
             // Retrieve master weightage
             $datas = MasterWeightage::find($id);
+            $data360s = MasterWeightage360::all();
             $formAppraisal = FormAppraisal::select('name')->get();
             $competency = MasterCompetencyType::select('id','competency_name')->orderBy('id', 'asc')->get();
             $allJobLevels = [];
@@ -153,7 +157,7 @@ class WeightageController extends Controller
 
             $max_form = 10;
 
-            return view('pages.weightage.edit', compact('datas', 'link', 'parentLink', 'group_company', 'formAppraisal', 'job_level', 'max_form', 'competency'));
+            return view('pages.weightage.edit', compact('datas', 'data360s', 'link', 'parentLink', 'group_company', 'formAppraisal', 'job_level', 'max_form', 'competency'));
 
         } catch (Exception $e) {
             Log::error('Error in index method: ' . $e->getMessage());
@@ -226,14 +230,14 @@ class WeightageController extends Controller
                 ];
 
                 // Add weightage360 if it exists
-                $weightage360 = $request->input("weightage360-$i-$index");
+                $weightage360 = $request->input("weightage-360-$i-$index");
+
+                $weightage360DecodedData = is_string($weightage360) ? json_decode($weightage360, true) : $weightage360;
+                
                 if ($weightage360) {
-                    $competencyData['weightage360'] = [
-                        'employee' => 20,
-                        'manager' => 30,
-                        'peers' => 30,
-                        'subordinate' => 20
-                    ];
+                    $competencyData['weightage360'] = json_decode($weightage360);
+                }else{
+                    $competencyData['weightage360'] = [];
                 }
 
                 $competencies[] = $competencyData;
@@ -328,7 +332,18 @@ class WeightageController extends Controller
                     ];
                 }
 
-                $competencies[] = $competencyData;
+                 // Add weightage360 if it exists
+                $weightage360 = $request->input("weightage-360-$i-$index");
+
+                $weightage360DecodedData = is_string($weightage360) ? json_decode($weightage360, true) : $weightage360;
+                
+                if ($weightage360) {
+                    $competencyData['weightage360'] = json_decode($weightage360);
+                }else{
+                    $competencyData['weightage360'] = [];
+                }
+ 
+                 $competencies[] = $competencyData;
             }
 
             // Validate total weightage

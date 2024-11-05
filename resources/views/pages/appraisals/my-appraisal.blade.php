@@ -48,7 +48,7 @@
                 <div class="col">
                     <div class="card">
                         <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
-                            <h4 class="m-0 font-weight-bold text-primary">Appraisals {{ $row->request->appraisal->period }}</h4>
+                            <h4 class="m-0 font-weight-bold text-primary">Appraisal {{ $row->request->appraisal->period }}</h4>
                             @if ($row->request->status == 'Pending' && count($row->request->approval) == 0 || $row->request->sendback_to == $row->request->employee_id)
                                 <a class="btn btn-outline-warning fw-semibold rounded-pill" href="{{ route('edit.appraisal', $row->request->appraisal->id) }}">{{ __('Edit') }}</a>
                             @endif
@@ -117,7 +117,7 @@
                                                                 <li>
                                                                     <div>
                                                                         @if(isset($subItem['formItem']))
-                                                                            <p class="mb-1">{{ $subItem['formItem'] }}</p>
+                                                                            <p class="mb-1">{!! $subItem['formItem'] !!}</p>
                                                                         @endif
                                                                         @if(isset($subItem['score']))
                                                                             <p><strong>Score:</strong> {{ $subItem['score'] }}</p>
@@ -153,7 +153,7 @@
                                                                 <li>
                                                                     <div>
                                                                         @if(isset($subItem['formItem']))
-                                                                            <p class="mb-1">{{ $subItem['formItem'] }}</p>
+                                                                            <p class="mb-1">{!! $subItem['formItem'] !!}</p>
                                                                         @endif
                                                                         @if(isset($subItem['score']))
                                                                             <p><strong>Score:</strong> {{ $subItem['score'] }}</p>
