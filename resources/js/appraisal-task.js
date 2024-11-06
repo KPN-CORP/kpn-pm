@@ -41,7 +41,7 @@ $(document).ready(function() {
                     
                             // Insert the scores into specified columns
                             rowColumns[6] = scores.kpiScore;           // KPI Score
-                            rowColumns[7] = scores.cultureScore;       // Culture Score
+                            rowColumns[7] = scores.cultureScore;        // Culture Score
                             rowColumns[8] = scores.leadershipScore;    // Leadership Score
                             rowColumns[9] = scores.totalScore;         // Total Score
                             
@@ -145,8 +145,8 @@ $(document).ready(function() {
                             while (rowColumns.length < 10) rowColumns.push('');
                             
                             // Insert the scores into specified columns
-                            rowColumns[7] = scores.leadershipScore; // Leadership Score
-                            rowColumns[8] = scores.cultureScore;    // Culture Score
+                            rowColumns[7] = scores.cultureScore; // Leadership Score
+                            rowColumns[8] = scores.leadershipScore;    // Culture Score
                             
                             // Reassemble the row with fields correctly quoted if necessary
                             csvRows[i] = rowColumns.map(value => {

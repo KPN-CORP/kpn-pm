@@ -5,6 +5,7 @@ namespace App\Imports;
 use App\Exports\InvalidApprovalAppraisalImport;
 use App\Models\AppraisalContributor;
 use App\Models\ApprovalLayerAppraisal;
+use App\Models\ApprovalLayerAppraisalBackup;
 use App\Models\Employee;
 use Illuminate\Support\Collection;
 use Illuminate\Validation\ValidationException;
@@ -16,15 +17,17 @@ use Maatwebsite\Excel\Facades\Excel;
 class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
 {
     protected $userId;
+    protected $period;
     protected $invalidEmployees = [];
     protected $usedCombinations = [];
     protected $invalidEmployeeIds = [];
     protected $employeeIds = [];
 
 
-    public function __construct($userId)
+    public function __construct($userId, $period)
     {
         $this->userId = $userId;
+        $this->period = $period;
     }
     /**
     * @param array $row
@@ -52,6 +55,7 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
 
             $contributor = AppraisalContributor::where('employee_id', $row['employee_id'])
                             ->where('status', 'Approved')
+                            ->where('period', $this->period)
                             ->get();
 
             if ($contributor->count() > 0) {
@@ -175,6 +179,20 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
 
         if (!in_array($row['employee_id'], $this->invalidEmployeeIds)) {
 
+            // Backup data sebelum menghapus
+            $appraisalLayersToDelete = ApprovalLayerAppraisal::whereIn('employee_id', $this->employeeIds)->get();
+
+            foreach ($appraisalLayersToDelete as $layer) {
+                ApprovalLayerAppraisalBackup::create([
+                    'employee_id' => $layer->employee_id,
+                    'approver_id' => $layer->approver_id,
+                    'layer_type' => $layer->layer_type,
+                    'layer' => $layer->layer,
+                    'created_by' => $layer->created_by ? $layer->created_by : 0,
+                    'created_at' => $layer->created_at,
+                ]);
+            }
+                
             ApprovalLayerAppraisal::whereIn('employee_id', $this->employeeIds)->delete();
 
             // Second pass to process and import data

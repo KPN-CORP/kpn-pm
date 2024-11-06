@@ -602,75 +602,43 @@ class LayerController extends Controller
 
     public function layerAppraisalImport(Request $request)
     {
-        $request->validate([
-            'excelFile' => 'required|mimes:xlsx,xls,csv'
-        ]);
-        
-        // Muat file Excel ke dalam array
-        $rows = Excel::toArray([], $request->file('excelFile'));
+        $period = $this->appService->appraisalPeriod();
 
-        $data = $rows[0]; // Ambil sheet pertama
-        $employeeIds = [];
-
-        // Mulai dari indeks 1 untuk mengabaikan header
-        for ($i = 1; $i < count($data); $i++) {
-            $employeeIds[] = $data[$i][0];
+        try {
+            $request->validate([
+                'excelFile' => 'required|mimes:xlsx,xls,csv'
+            ]);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
         }
 
-        
-        $employeeIds = array_unique($employeeIds);
-
-        // Ambil employee_ids dari data
-        // $employeeIds = array_unique(array_column($data, 'employee_id'));
         try {
-            
-            if (!empty($employeeIds)) {
-                // Backup data sebelum menghapus
-                $appraisalLayersToDelete = ApprovalLayerAppraisal::whereIn('employee_id', $employeeIds)->get();
-
-                foreach ($appraisalLayersToDelete as $layer) {
-                    ApprovalLayerAppraisalBackup::create([
-                        'employee_id' => $layer->employee_id,
-                        'approver_id' => $layer->approver_id,
-                        'layer_type' => $layer->layer_type,
-                        'layer' => $layer->layer,
-                        'created_by' => $layer->created_by ? $layer->created_by : 0,
-                        'created_at' => $layer->created_at,
-                    ]);
-                }
-                
-            }
             // Get the ID of the currently authenticated user
             $userId = Auth::id();
-
-            // Initialize the import process with the user ID
-            $import = new ApprovalLayerAppraisalImport($userId);
-
-            // Retrieve invalid employees after import
-            
-            // Prepare the success message
-            $message = 'Data imported successfully.';
+    
+            // Initialize the import process with the user ID and period
+            $import = new ApprovalLayerAppraisalImport($userId, $period);
+    
+            // Perform the import
             Excel::import($import, $request->file('excelFile'));
-            
+    
+            // Check for any invalid employees
             $invalidEmployees = $import->getInvalidEmployees();
-
-            // Check if there are any invalid employees
+            $message = 'Data imported successfully.';
+    
             if (!empty($invalidEmployees)) {
-                // Append error information to the success message
                 session()->put('invalid_employees', $invalidEmployees);
-
                 $message .= ' With some errors. <a href="' . route('export.invalid.layer.appraisal') . '">Click here to download the list of errors.</a>';
             }
-
-            // If successful, redirect back with a success message
+    
             return redirect()->back()->with('success', $message);
+    
         } catch (ValidationException $e) {
-
-            // Catch the validation exception and redirect back with the error message
+            // Catch the validation exception and redirect back with a custom error message
             return redirect()->back()->with('error', $e->errors()['error'][0]);
         } catch (\Exception $e) {
             // Handle any other exceptions
-            return redirect()->back()->with('error', 'An error occurred during the import process.');
+            return redirect()->back()->with('error', 'An unexpected error occurred during the import process. Please try again.');
         }
 
     }
