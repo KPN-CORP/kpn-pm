@@ -152,6 +152,22 @@ document.addEventListener("DOMContentLoaded", function () {
     
             return false; // Prevent form submission if subordinates have duplicates
         }
+
+        let firstCalibrator = calibrators.first();
+        if (!firstCalibrator.val()) {
+            Swal.fire({
+                title: "Error",
+                text: "Calibrator is required.",
+                icon: "error",
+                confirmButtonColor: "#f15776"
+            });
+            
+            // Add is-invalid class and show error message on the first calibrator
+            firstCalibrator.addClass('is-invalid');
+            firstCalibrator.siblings('.error-message').text('Calibrator is required.');
+
+            return false; // Stop execution if the first calibrator is not selected
+        }
     
         // Step 3: Check for duplicates in calibrator selections (if peer and sub validation passed)
         let calibratorValues = calibrators.map(function () {

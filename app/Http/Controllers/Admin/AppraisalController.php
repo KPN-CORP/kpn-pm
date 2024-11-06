@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Exports\AppraisalDetailExport;
 use App\Http\Controllers\Controller;
 use App\Models\Appraisal;
 use App\Models\AppraisalContributor;
@@ -19,6 +20,8 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
+use Maatwebsite\Excel\Facades\Excel;
 use stdClass;
 
 use function Pest\Laravel\json;
@@ -59,8 +62,8 @@ class AppraisalController extends Controller
 
         $query = EmployeeAppraisal::with(['appraisal' => function($query) use ($period) {
                 $query->where('period', $period);
-            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal']);
-            // }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal'])->where('employee_id', '01120040011');
+            // }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal']);
+            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal'])->where('employee_id', '01119060003');
 
         $query->where(function ($query) use ($criteria) {
             foreach ($criteria as $key => $value) {
@@ -158,9 +161,7 @@ class AppraisalController extends Controller
                 'name' => $employee->fullname,
                 'appraisalStatus' => $employee->appraisal->first(),
                 'approvalStatus' => $approvalStatus,
-                'finalScore' => $appraisal 
-                ? $this->calculateFinalScore($employee->employee_id, $appraisal) 
-                : '-',
+                'finalScore' => $appraisal,
                 'popoverContent' => $popoverText, // Add popover content here
             ];
         });
@@ -301,6 +302,7 @@ class AppraisalController extends Controller
 
                     // Get appraisal form data for each record
                     $appraisalData = [];
+
                     if ($request->form_data) {
                         $appraisalData = json_decode($request->form_data, true);
                         $contributorType = $request->contributor_type;
@@ -313,7 +315,6 @@ class AppraisalController extends Controller
                         $goalData = json_decode($request->goal->form_data, true);
                         $goalDataCollection[] = $goalData;
                     }
-
                     
                     // Combine the appraisal and goal data for each contributor
                     $employeeData = $request->employee; // Get employee data
@@ -321,7 +322,7 @@ class AppraisalController extends Controller
                     $formData[] = $appraisalData;
 
                 }
-                
+
                 $jobLevel = $employeeData->job_level;
 
                 $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $request->period)->first();
@@ -331,11 +332,12 @@ class AppraisalController extends Controller
                 $result = $this->appraisalSummary($weightageContent, $formData);
 
                 $formData = $this->appService->combineFormData($result['summary'], $goalData, $result['summary']['contributor_type'], $employeeData, $request->period);
+
                 
                 if (isset($formData['totalKpiScore'])) {
-                    $appraisalData['kpiScore'] = round($formData['kpiScore'], 2);
-                    $appraisalData['cultureScore'] = round($formData['cultureScore'], 2);
-                    $appraisalData['leadershipScore'] = round($formData['leadershipScore'], 2);
+                    $formData['kpiScore'] = round($formData['kpiScore'], 2);
+                    $formData['cultureScore'] = round($formData['cultureScore'], 2);
+                    $formData['leadershipScore'] = round($formData['leadershipScore'], 2);
                 }
 
                 foreach ($formData['formData'] as &$form) {
@@ -352,6 +354,7 @@ class AppraisalController extends Controller
                             $form[$index]['title'] = $leadershipItem['title'];
                         }
                     }
+                    
                     if ($form['formName'] === 'Culture') {
                         foreach ($cultureData as $index => $cultureItem) {
                             foreach ($cultureItem['items'] as $itemIndex => $item) {
@@ -365,7 +368,11 @@ class AppraisalController extends Controller
                             $form[$index]['title'] = $cultureItem['title'];
                         }
                     }
-                }
+                
+                }       
+                
+                $appraisalData = $formData;
+                // dd($appraisalData);
 
             }else{
 
@@ -848,6 +855,26 @@ class AppraisalController extends Controller
 
         // Return the rating if it exists, otherwise return '-'
         return $score ? $score->rating : '-';
+    }
+
+    public function exportAppraisalDetail(Request $request)
+    {
+        $query = AppraisalContributor::query()
+            ->with(['employee']);
+            
+        if ($request->has('search')) {
+            $search = $request->input('search.value');
+            $query->where(function($q) use ($search) {
+                $q->where('employee_id', 'LIKE', "%{$search}%")
+                  ->orWhereHas('employee', function($query) use ($search) {
+                      $query->where('name', 'LIKE', "%{$search}%");
+                  });
+            });
+        }
+        
+        $appraisalData = $query->get();
+        
+        return Excel::download(new AppraisalDetailExport($appraisalData), 'appraisal_details.xlsx');
     }
 
 }
