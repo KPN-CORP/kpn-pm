@@ -631,5 +631,14 @@ class AppService
                         ->value('schedule_periode');
         return $period;
     }
+
+    public function getDataByName($data, $name) {
+        foreach ($data as $item) {
+            if ($item['name'] === $name) {
+                return $item['data'];
+            }
+        }
+        return null;
+    }
     
 }

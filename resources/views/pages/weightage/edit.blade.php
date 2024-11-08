@@ -110,7 +110,7 @@
                                             <select name="form-name-{{ $key }}{{ $index }}" id="form-name-{{ $key }}{{ $index }}" class="form-select select2" {{ $competencies['competency']=='KPI'?'':'required' }} {{ $competencies['formName']=='KPI'?'disabled':'' }}>
                                                 <option value="">please select</option>
                                                 @foreach ($formAppraisal as $form)
-                                                    <option value="{{ $form->name }}" {{ $form->name == $competencies['formName'] ? 'selected' : '' }}>{{ $form->name }}</option>
+                                                    <option value="{{ $form->name.'_'.$form->desc }}" {{ $form->name.'_'.$form->desc == $competencies['formName'] ? 'selected' : '' }}>{{ $form->name.'_'.$form->desc }}</option>
                                                 @endforeach
                                             </select>
                                             <div class="text-danger error-message fs-14"></div>

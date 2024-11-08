@@ -291,7 +291,7 @@ Route::middleware('auth', 'locale')->group(function () {
         Route::get('/admin-appraisal', [AdminAppraisalController::class, 'index'])->name('admin.appraisal');
         Route::get('/admin-appraisal/details/{id}', [AdminAppraisalController::class, 'detail'])->name('admin.appraisal.details');
         Route::get('/admin-appraisal/get-detail-data/{id}', [AdminAppraisalController::class, 'getDetailData'])->name('get.detail.data');
-        Route::post('/export-appraisal-detail', [AdminAppraisalController::class, 'exportAppraisalDetail'])->name('export.appraisal.detail');
+        Route::post('/export-appraisal-detail', [AdminAppraisalController::class, 'exportAppraisalDetail']);
 
     });
     
