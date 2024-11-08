@@ -62,8 +62,8 @@ class AppraisalController extends Controller
 
         $query = EmployeeAppraisal::with(['appraisal' => function($query) use ($period) {
                 $query->where('period', $period);
-            // }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal']);
-            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal'])->where('employee_id', '01119060003');
+            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal']);
+            // }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal'])->where('employee_id', '01119060003');
 
         $query->where(function ($query) use ($criteria) {
             foreach ($criteria as $key => $value) {
@@ -326,7 +326,7 @@ class AppraisalController extends Controller
                 $jobLevel = $employeeData->job_level;
 
                 $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $request->period)->first();
-            
+                            
                 $weightageContent = json_decode($weightageData->form_data, true);
                 
                 $result = $this->appraisalSummary($weightageContent, $formData);
@@ -372,7 +372,6 @@ class AppraisalController extends Controller
                 }       
                 
                 $appraisalData = $formData;
-                // dd($appraisalData);
 
             }else{
 
@@ -500,66 +499,64 @@ class AppraisalController extends Controller
         
         // First part: Calculate weighted scores
         foreach ($weightages as $item) {
-            if (in_array('4A', $item['jobLevel'])) {
-                foreach ($formData as $data) {
-                    $contributorType = $data['contributor_type'];
-                    $formGroupName = $data['formGroupName'];
-                    $formDataWithCalculatedScores = [];
+            foreach ($formData as $data) {
+                $contributorType = $data['contributor_type'];
+                $formGroupName = $data['formGroupName'];
+                $formDataWithCalculatedScores = [];
+                
+                foreach ($data['formData'] as $form) {
+                    $formName = $form['formName'];
+                    $calculatedForm = [
+                        "formName" => $formName,
+                    ];
                     
-                    foreach ($data['formData'] as $form) {
-                        $formName = $form['formName'];
-                        $calculatedForm = [
-                            "formName" => $formName,
-                        ];
-                        
-                        if ($formName === "KPI") {
-                            foreach ($form as $key => $achievement) {
-                                if (is_numeric($key)) {
-                                    $calculatedForm[$key] = $achievement;
-                                }
+                    if ($formName === "KPI") {
+                        foreach ($form as $key => $achievement) {
+                            if (is_numeric($key)) {
+                                $calculatedForm[$key] = $achievement;
                             }
-                        } else {
-                            foreach ($item['competencies'] as $competency) {
+                        }
+                    } else {
+                        foreach ($item['competencies'] as $competency) {
 
-                                if ($competency['competency'] == $formName) {
-                                    // Fixed weightage360 handling
-                                    $weightage360 = 0;
-                                    if (isset($competency['weightage360'])) {
-                                        foreach ($competency['weightage360'] as $weightageData) {
-                                            if (isset($weightageData[$contributorType])) {
-                                                $weightage360 = $weightageData[$contributorType];
-                                                break;
-                                            }
+                            if ($competency['competency'] == $formName) {
+                                // Fixed weightage360 handling
+                                $weightage360 = 0;
+                                if (isset($competency['weightage360'])) {
+                                    foreach ($competency['weightage360'] as $weightageData) {
+                                        if (isset($weightageData[$contributorType])) {
+                                            $weightage360 = $weightageData[$contributorType];
+                                            break;
                                         }
                                     }
-                                    
-                                    foreach ($form as $key => $scores) {
-                                        if (is_numeric($key)) {
-                                            $calculatedForm[$key] = [];
-                                            foreach ($scores as $scoreData) {
-                                                $score = $scoreData['score'];
-                                                $weightedScore = $score * ($weightage360 / 100);
-                                                $calculatedForm[$key][] = [
-                                                    "score" => $weightedScore
-                                                ];
-                                            }
+                                }
+                                
+                                foreach ($form as $key => $scores) {
+                                    if (is_numeric($key)) {
+                                        $calculatedForm[$key] = [];
+                                        foreach ($scores as $scoreData) {
+                                            $score = $scoreData['score'];
+                                            $weightedScore = $score * ($weightage360 / 100);
+                                            $calculatedForm[$key][] = [
+                                                "score" => $weightedScore
+                                            ];
                                         }
                                     }
                                 }
                             }
                         }
-                        
-                        $formDataWithCalculatedScores[] = $calculatedForm;
                     }
-
-
                     
-                    $calculatedFormData[] = [
-                        "formGroupName" => $formGroupName,
-                        "formData" => $formDataWithCalculatedScores,
-                        "contributor_type" => $contributorType
-                    ];
+                    $formDataWithCalculatedScores[] = $calculatedForm;
                 }
+
+
+                
+                $calculatedFormData[] = [
+                    "formGroupName" => $formGroupName,
+                    "formData" => $formDataWithCalculatedScores,
+                    "contributor_type" => $contributorType
+                ];
             }
         }
         
@@ -649,8 +646,6 @@ class AppraisalController extends Controller
 
     private function summarizeScoresPerItem($formData, $goal, $employee) 
     {
-        // echo json_encode($data, JSON_PRETTY_PRINT);
-        // dd($data[0]);
         try {
 
             $averageFormData = [
@@ -673,58 +668,54 @@ class AppraisalController extends Controller
 
         // Loop through each job level
         foreach ($weightageContent as $item) {
-            // Check if the job level contains "4A"
-            if (in_array('4A', $item['jobLevel'])) {
+            // Loop through the formData (contributor's input)
+            foreach ($formData as $data) {
+                $contributorType = $data['contributor_type']; // e.g., 'manager', 'subordinate'
+                $formGroupName = $data['formGroupName'];
+                $formDataWithCalculatedScores = [];
 
-                // Loop through the formData (contributor's input)
-                foreach ($formData as $data) {
-                    $contributorType = $data['contributor_type']; // e.g., 'manager', 'subordinate'
-                    $formGroupName = $data['formGroupName'];
-                    $formDataWithCalculatedScores = [];
+                // Loop through each form in formData
+                foreach ($data['formData'] as $form) {
+                    $formName = $form['formName']; // e.g., 'Culture', 'Leadership'
+                    $calculatedForm = [
+                        "formName" => $formName,
+                    ];
 
-                    // Loop through each form in formData
-                    foreach ($data['formData'] as $form) {
-                        $formName = $form['formName']; // e.g., 'Culture', 'Leadership'
-                        $calculatedForm = [
-                            "formName" => $formName,
-                        ];
+                    // Find the corresponding competency for the form
+                    foreach ($item['competencies'] as $competency) {
+                        if ($competency['competency'] == $formName) {
+                            $weightage360 = $competency['weightage360'][$contributorType] ?? 0;
 
-                        // Find the corresponding competency for the form
-                        foreach ($item['competencies'] as $competency) {
-                            if ($competency['competency'] == $formName) {
-                                $weightage360 = $competency['weightage360'][$contributorType] ?? 0;
+                            // Loop through each score set (e.g., "0", "1", "2")
+                            foreach ($form as $key => $scores) {
+                                if (is_numeric($key)) {
+                                    $calculatedForm[$key] = [];
+                                    foreach ($scores as $scoreData) {
+                                        $score = $scoreData['score'];
 
-                                // Loop through each score set (e.g., "0", "1", "2")
-                                foreach ($form as $key => $scores) {
-                                    if (is_numeric($key)) {
-                                        $calculatedForm[$key] = [];
-                                        foreach ($scores as $scoreData) {
-                                            $score = $scoreData['score'];
+                                        // Calculate weighted score and replace the original score
+                                        $weightedScore = $score * ($weightage360 / 100);
 
-                                            // Calculate weighted score and replace the original score
-                                            $weightedScore = $score * ($weightage360 / 100);
-
-                                            // Add the weighted score in place of the original score
-                                            $calculatedForm[$key][] = [
-                                                "score" => $weightedScore
-                                            ];
-                                        }
+                                        // Add the weighted score in place of the original score
+                                        $calculatedForm[$key][] = [
+                                            "score" => $weightedScore
+                                        ];
                                     }
                                 }
                             }
                         }
-
-                        // Add calculated form data
-                        $formDataWithCalculatedScores[] = $calculatedForm;
                     }
 
-                    // Append the calculated form data to the final response
-                    $calculatedFormData[] = [
-                        "formGroupName" => $formGroupName,
-                        "formData" => $formDataWithCalculatedScores,
-                        "contributor_type" => $contributorType
-                    ];
+                    // Add calculated form data
+                    $formDataWithCalculatedScores[] = $calculatedForm;
                 }
+
+                // Append the calculated form data to the final response
+                $calculatedFormData[] = [
+                    "formGroupName" => $formGroupName,
+                    "formData" => $formDataWithCalculatedScores,
+                    "contributor_type" => $contributorType
+                ];
             }
         }
 
@@ -819,62 +810,12 @@ class AppraisalController extends Controller
         }
     }
 
-
-    public function getPeerData($peerId)
-    {
-        // Sample data - replace with your actual data logic
-        $peerData = [
-            'P1' => [
-                'name' => 'Peer Group 1',
-                'members' => ['John', 'Jane', 'Mike'],
-                'status' => 'Active'
-            ],
-            'P2' => [
-                'name' => 'Peer Group 2',
-                'members' => ['Sarah', 'Tom', 'Lisa'],
-                'status' => 'Active'
-            ],
-            'P3' => [
-                'name' => 'Peer Group 3',
-                'members' => ['Alex', 'Emma', 'Ryan'],
-                'status' => 'Inactive'
-            ]
-        ];
-
-        return response()->json($peerData[$peerId] ?? []);
-    }
-
-    private function calculateFinalScore($employeeId, $appraisalId)
-    {
-        // Retrieve the score, checking if a rating exists for the given employee and appraisal
-        $score = Appraisal::select('id', 'employee_id', 'rating')
-            ->where('employee_id', $employeeId)
-            ->where('id', $appraisalId)
-            ->whereNotNull('rating')
-            ->first();
-
-        // Return the rating if it exists, otherwise return '-'
-        return $score ? $score->rating : '-';
-    }
-
     public function exportAppraisalDetail(Request $request)
     {
-        $query = AppraisalContributor::query()
-            ->with(['employee']);
-            
-        if ($request->has('search')) {
-            $search = $request->input('search.value');
-            $query->where(function($q) use ($search) {
-                $q->where('employee_id', 'LIKE', "%{$search}%")
-                  ->orWhereHas('employee', function($query) use ($search) {
-                      $query->where('name', 'LIKE', "%{$search}%");
-                  });
-            });
-        }
-        
-        $appraisalData = $query->get();
-        
-        return Excel::download(new AppraisalDetailExport($appraisalData), 'appraisal_details.xlsx');
+        $data = $request->input('data'); // Retrieve the data sent by DataTable
+        $headers = $request->input('headers'); // Dynamic headers from the request
+
+        return Excel::download(new AppraisalDetailExport($this->appService, $data, $headers), 'appraisal_details.xlsx');
     }
 
 }

@@ -42,9 +42,19 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
 
         // Define the expected headers in the correct order
         $expectedHeaders = ['employee_id', 'approver_id', 'layer_type', 'layer'];
+        $fileHeaders = $headers->values()->toArray(); // Get all headers from the file
+        $filteredHeaders = array_values(array_intersect($expectedHeaders, $fileHeaders));
 
-        // Check if the headers match exactly in the right order
-        if ($headers->slice(0, 4)->values()->toArray() !== $expectedHeaders) {
+        $missingHeaders = array_diff($expectedHeaders, $fileHeaders);
+        if (!empty($missingHeaders)) {
+            // Handle missing headers case
+            throw ValidationException::withMessages([
+                'error' => 'Missing headers: '. implode(', ', $missingHeaders)
+            ]);
+        }
+
+        // Check if the filtered headers match the expected headers in both content and order
+        if ($filteredHeaders !== $expectedHeaders) {
             throw ValidationException::withMessages([
                 'error' => 'Invalid excel format. The header must contain employee_id, approver_id, layer_type, layer.'
             ]);
@@ -123,7 +133,7 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
                     'approver_id' => $row['approver_id'],
                     'layer_type' => $row['layer_type'],
                     'layer' => $row['layer'],
-                    'message' => 'Manager cannot be more than 1.'
+                    'message' => 'Manager cannot be more than 1 layer.'
                 ];
                 $this->invalidEmployeeIds[] = $row['employee_id']; // Track invalid employee_id
             }

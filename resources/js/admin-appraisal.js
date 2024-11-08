@@ -1,3 +1,4 @@
+import { log } from 'handlebars';
 import $ from 'jquery';
 
 import Swal from "sweetalert2";
@@ -23,7 +24,76 @@ $(document).ready(function() {
                         }
                     }
                 }
+            },
+            {
+                text: '<i class="ri-file-excel-line fs-16 me-1"></i>Download Excel Report',
+                className: 'btn btn-sm btn-outline-success',
+                action: function (e, dt, node, config) {
+                    // Get headers from DataTable (excluding the last column if needed)
+                    let headers = dt.columns(':not(:last-child)').header().toArray().map(header => $(header).text().trim());
+            
+                    // Get all row nodes for DOM access and data content
+                    let rowNodes = dt.rows({ filter: 'applied' }).nodes().toArray(); // Access row nodes for DOM manipulation
+                    let rowData = dt.rows({ filter: 'applied' }).data().toArray(); // Get data content for each row
+            
+                    // Combine headers with data and data-id for each row
+                    let combinedData = rowData.map((row, rowIndex) => {
+                        let rowObject = {};
+                        
+                        // Loop through each cell in the row, excluding the last column
+                        row.slice(0, -1).forEach((cellContent, colIndex) => {
+                            // Get the corresponding header for this column
+                            let header = headers[colIndex];
+                            
+                            // Get the cell node to access its data-id attribute
+                            let cellNode = $(rowNodes[rowIndex]).find('td').eq(colIndex);
+                            let dataId = cellNode.attr('data-id'); // Get data-id attribute if present
+                            
+                            // Set each cell as a key-value pair with header as the key
+                            rowObject[header] = {
+                                dataId: dataId ? dataId : cellContent // Include dataId if present, otherwise set to null
+                            };
+                        });
+                        
+                        return rowObject; // Each row is an object with header keys
+                    });
+            
+                    if (combinedData.length > 0) {
+                        // Send a POST request with the headers and combined data
+                        fetch('/export-appraisal-detail', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            body: JSON.stringify({ headers: headers, data: combinedData })
+                        })
+                        .then(response => {
+                            if (!response.ok) {
+                                throw new Error('Network response was not ok');
+                            }
+                            return response.blob(); // Treat the response as a Blob for file download
+                        })
+                        .then(blob => {
+                            // Create a download link for the Excel file
+                            const url = window.URL.createObjectURL(blob);
+                            const link = document.createElement('a');
+                            link.href = url;
+                            link.download = 'appraisal_report.xlsx';
+                            document.body.appendChild(link);
+                            link.click();
+                            document.body.removeChild(link);
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('Failed to download the report.');
+                        });
+                    } else {
+                        alert('No employees found in the current table view.');
+                    }
+                }
             }
+            
         ],
         fixedColumns: {
             leftColumns: 0,

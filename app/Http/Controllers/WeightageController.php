@@ -65,7 +65,7 @@ class WeightageController extends Controller
             // Retrieve master weightage
             $datas = MasterWeightage::find($id);
             $data360s = MasterWeightage360::all();
-            $formAppraisal = FormAppraisal::select('name')->get();
+            $formAppraisal = FormAppraisal::select('name', 'desc')->get();
             $allJobLevels = [];
 
             if ($datas) {
@@ -104,7 +104,7 @@ class WeightageController extends Controller
             // Retrieve master weightage
             $datas = MasterWeightage::all();
             $data360s = MasterWeightage360::all();
-            $formAppraisal = FormAppraisal::select('name')->get();
+            $formAppraisal = FormAppraisal::select('name', 'desc')->get();
             $competency = MasterCompetencyType::select('id','competency_name')->orderBy('id', 'asc')->get();
 
             $group_company = EmployeeAppraisal::select('group_company')->distinct()->get();
@@ -130,7 +130,7 @@ class WeightageController extends Controller
             // Retrieve master weightage
             $datas = MasterWeightage::find($id);
             $data360s = MasterWeightage360::all();
-            $formAppraisal = FormAppraisal::select('name')->get();
+            $formAppraisal = FormAppraisal::select('name', 'desc')->get();
             $competency = MasterCompetencyType::select('id','competency_name')->orderBy('id', 'asc')->get();
             $allJobLevels = [];
 
@@ -389,7 +389,7 @@ class WeightageController extends Controller
         try {
             // Retrieve master weightage
             $datas = MasterWeightage::onlyTrashed()->findOrFail($id);
-            $formAppraisal = FormAppraisal::select('name')->get();
+            $formAppraisal = FormAppraisal::select('name', 'desc')->get();
             $allJobLevels = [];
 
             if (Empty($datas)) {
