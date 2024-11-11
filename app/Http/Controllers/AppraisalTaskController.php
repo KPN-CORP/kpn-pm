@@ -271,6 +271,8 @@ class AppraisalTaskController extends Controller
 
         $approval = ApprovalLayerAppraisal::select('approver_id')->where('employee_id', $request->id)->where('layer', 1)->first();
 
+        $employee = EmployeeAppraisal::where('employee_id', $request->id)->first();
+
         $goal = Goal::with(['employee'])->where('employee_id', $request->id)->where('period', $period)->first();
 
         $calibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $request->id)->value('approver_id');
@@ -308,7 +310,7 @@ class AppraisalTaskController extends Controller
         $link = 'Initiate Appraisal';
 
         // Pass the data to the view
-        return view('pages.appraisals-task.initiate', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'approval', 'goalData', 'user', 'ratings'));
+        return view('pages.appraisals-task.initiate', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'approval', 'goalData', 'user', 'ratings', 'employee'));
     }
 
     public function approval(Request $request)

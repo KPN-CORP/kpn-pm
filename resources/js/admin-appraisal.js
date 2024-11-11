@@ -12,7 +12,7 @@ $(document).ready(function() {
             {
                 extend: 'csvHtml5',
                 text: '<i class="ri-download-cloud-2-line fs-16 me-1"></i>Download Report',
-                className: 'btn btn-sm btn-outline-success',
+                className: 'btn btn-sm btn-outline-success me-1 mb-1',
                 title: 'PA Details',
                 exportOptions: {
                     columns: ':not(:last-child)', // Excludes the last column (Details)
@@ -26,8 +26,11 @@ $(document).ready(function() {
                 }
             },
             {
-                text: '<i class="ri-file-excel-line fs-16 me-1"></i>Download Excel Report',
-                className: 'btn btn-sm btn-outline-success',
+                text: '<i class="ri-download-cloud-2-line fs-16 me-1"></i>Download Report Details',
+                className: 'btn btn-sm btn-outline-success mb-1',
+                available: function() {
+                    return $('#permission-reportpadetail').data('report-pa-detail') === true;
+                },
                 action: function (e, dt, node, config) {
                     // Get headers from DataTable (excluding the last column if needed)
                     let headers = dt.columns(':not(:last-child)').header().toArray().map(header => $(header).text().trim());
@@ -102,6 +105,7 @@ $(document).ready(function() {
         scrollCollapse: true,
         scrollX: true
     });
+    
 });
 
 document.addEventListener('DOMContentLoaded', function() {

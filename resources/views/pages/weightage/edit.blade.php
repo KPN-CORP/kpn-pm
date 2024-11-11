@@ -105,7 +105,7 @@
                                         </div>
                                     </div>
                                     <div class="col-md-4">
-                                        <div class="mb-3 {{ $competencies['formName']=='KPI'?'d-none':'' }}">
+                                        <div class="mb-3 {{ $competencies['competency']=='KPI'?'d-none':'' }}">
                                             <h5>Form Name</h5>
                                             <select name="form-name-{{ $key }}{{ $index }}" id="form-name-{{ $key }}{{ $index }}" class="form-select select2" {{ $competencies['competency']=='KPI'?'':'required' }} {{ $competencies['formName']=='KPI'?'disabled':'' }}>
                                                 <option value="">please select</option>
@@ -117,7 +117,7 @@
                                         </div>
                                     </div>
                                     <div class="col-md">
-                                        <div class="mb-3 {{ $competencies['formName']=='KPI'?'d-none':'' }}">
+                                        <div class="mb-3 {{ $competencies['competency']=='KPI'?'d-none':'' }}">
                                             <h5>{{ $competencies['competency'] }} Weightage 360 in %</h5>
                                             <select name="weightage-360-{{ $key }}-{{ $index }}" id="weightage-360-{{ $key }}{{ $index }}" class="form-select select2" {{ $competencies['competency']=='KPI'?'':'required' }} {{ $competencies['formName']=='KPI'?'disabled':'' }}>
                                                 <option value="">please select</option>

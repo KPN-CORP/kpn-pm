@@ -81,27 +81,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
                 foreach ($formGroup as $index => $itemGroup) {
                     if (is_array($itemGroup)) {
                         // Handle Culture and Leadership attributes with title, formItem, and score
-                        if ($formName === 'Culture') {
-                            $title = $itemGroup['title'] ?? 'Unknown Title';
-
-                            foreach ($itemGroup as $subIndex => $item) {
-                                if (is_array($item) && isset($item['formItem'], $item['score'])) {
-                                    // Create headers and values for formItem and score
-                                    $header = "{$formName}_{$title}";
-
-                                    // Add headers to dynamic headers array to ensure unique headers for each item
-                                    if (!array_key_exists($header, $this->dynamicHeaders)) {
-                                        $this->dynamicHeaders[$header] = $header;
-                                    }
-
-                                    $combinedValue = strip_tags($formName . "|" . $title . "|" . $item['formItem']) . "|" . $item['score'];
-
-                                    // Populate the row with formItem text (without HTML tags) and score
-                                    $contributorRow[$header] = ['dataId' => $combinedValue];
-                                }
-                            }
-                        } 
-                        if ($formName === 'Leadership') {
+                        if ($formName === 'Culture' || $formName === 'Leadership') {
                             $title = $itemGroup['title'] ?? 'Unknown Title';
 
                             foreach ($itemGroup as $subIndex => $item) {
@@ -136,10 +116,10 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             }
 
             // Add summary scores if available
-            $contributorRow['KPI Score'] = ['dataId' => $formData['kpiScore'] ?? '-'];
-            $contributorRow['Culture Score'] = ['dataId' => $formData['cultureScore'] ?? '-'];
-            $contributorRow['Leadership Score'] = ['dataId' => $formData['leadershipScore'] ?? '-'];
-            $contributorRow['Total Score'] = ['dataId' => $formData['totalScore'] ?? '-'];
+            $contributorRow['KPI Score'] = ['dataId' => round($formData['kpiScore'], 2) ?? '-'];
+            $contributorRow['Culture Score'] = ['dataId' => round($formData['cultureScore'], 2) ?? '-'];
+            $contributorRow['Leadership Score'] = ['dataId' => round($formData['leadershipScore'], 2) ?? '-'];
+            $contributorRow['Total Score'] = ['dataId' => round($formData['totalScore'], 2) ?? '-'];
         }
     }
 
@@ -170,27 +150,8 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             $employeeData,
             $contributor->period
         );
-
-        if (isset($formData['totalKpiScore'])) {
-            $appraisalData['kpiScore'] = round($formData['kpiScore'], 2);
-            $appraisalData['cultureScore'] = round($formData['cultureScore'], 2);
-            $appraisalData['leadershipScore'] = round($formData['leadershipScore'], 2);
-        }
         
         foreach ($formData['formData'] as &$form) {
-            if ($form['formName'] === 'Leadership') {
-                foreach ($leadershipData as $index => $leadershipItem) {
-                    foreach ($leadershipItem['items'] as $itemIndex => $item) {
-                        if (isset($form[$index][$itemIndex])) {
-                            $form[$index][$itemIndex] = [
-                                'formItem' => $item,
-                                'score' => $form[$index][$itemIndex]['score']
-                            ];
-                        }
-                    }
-                    $form[$index]['title'] = $leadershipItem['title'];
-                }
-            }
             if ($form['formName'] === 'Culture') {
                 foreach ($cultureData as $index => $cultureItem) {
                     foreach ($cultureItem['items'] as $itemIndex => $item) {
@@ -204,6 +165,20 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
                     $form[$index]['title'] = $cultureItem['title'];
                 }
             }
+            if ($form['formName'] === 'Leadership') {
+                foreach ($leadershipData as $index => $leadershipItem) {
+                    foreach ($leadershipItem['items'] as $itemIndex => $item) {
+                        if (isset($form[$index][$itemIndex])) {
+                            $form[$index][$itemIndex] = [
+                                'formItem' => $item,
+                                'score' => $form[$index][$itemIndex]['score']
+                            ];
+                        }
+                    }
+                    $form[$index]['title'] = $leadershipItem['title'];
+                }
+            }
+            
         }
 
         return $formData;
@@ -226,7 +201,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         $extendedHeaders = $this->headers;
 
         // Add standard contributor-specific headers
-        foreach (['Contributor ID', 'Contributor Type', 'KPI Score', 'Culture Score', 'Leadership Score', 'Total Score'] as $header) {
+        foreach (['Contributor ID', 'Contributor Type', 'KPI Score', 'Culture Score', 'Leadership Score', 'Total Score', 'Data =>'] as $header) {
             if (!in_array($header, $extendedHeaders)) {
                 $extendedHeaders[] = $header;
             }
