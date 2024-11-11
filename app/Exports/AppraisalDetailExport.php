@@ -86,15 +86,16 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
                             foreach ($itemGroup as $subIndex => $item) {
                                 if (is_array($item) && isset($item['formItem'], $item['score'])) {
+                                    $subNumber = $subIndex + 1;
                                     // Create headers and values for formItem and score
-                                    $header = "{$formName}_{$title}";
+                                    $header = "{$formName}_{$title}_{$subIndex}";
 
                                     // Add headers to dynamic headers array to ensure unique headers for each item
                                     if (!array_key_exists($header, $this->dynamicHeaders)) {
                                         $this->dynamicHeaders[$header] = $header;
                                     }
 
-                                    $combinedValue = strip_tags($formName . "|" . $title . "|" . $item['formItem']) . "|" . $item['score'];
+                                    $combinedValue = strip_tags($formName . "|" . $title . "_" .$subNumber. "|" . $item['formItem']) . "|" . $item['score'];
 
                                     // Populate the row with formItem text (without HTML tags) and score
                                     $contributorRow[$header] = ['dataId' => $combinedValue];
@@ -103,13 +104,15 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
                         } 
                         if ($formName === 'KPI') {
                             // Handle KPI-specific fields
-                            foreach ($itemGroup as $key => $value) {
-                                $kpiKey = "KPI_{$key}"; // Add index to ensure unique keys per item
-                                if (!array_key_exists($kpiKey, $this->dynamicHeaders)) {
-                                    $this->dynamicHeaders[$kpiKey] = $kpiKey;
+                                $key = $index + 1;
+                                foreach ($itemGroup as $subKey => $value) {
+    
+                                    $kpiKey = "{$formName}_{$key}_{$subKey}"; // Add index to ensure unique keys per item
+                                    if (!array_key_exists($kpiKey, $this->dynamicHeaders)) {
+                                        $this->dynamicHeaders[$kpiKey] = $kpiKey;
+                                    }
+                                    $contributorRow[$kpiKey] = ['dataId' => $kpiKey . "|" . $value];
                                 }
-                                $contributorRow[$kpiKey] = ['dataId' => $kpiKey . "|" . $value];
-                            }
                         }
                     }
                 }
