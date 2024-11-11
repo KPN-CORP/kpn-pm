@@ -90,7 +90,7 @@
                                                         @endphp
                                                         <tr>
                                                             <td class="key-{{ $level }}">{{ $key }}</td>
-                                                            <td class="rating">{{ $values['rating_count'] }}</td>
+                                                            <td class="rating">{{ $data['count'] <= 2 ? 0 : $values['rating_count'] }}</td>
                                                             <td>{{ $values['percentage'] }}</td>
                                                             <td class="suggested-rating-count-{{ $formattedKey.'-'.$level }}">{{ $values['suggested_rating_count'] }}</td>
                                                             <td class="suggested-rating-percentage-{{ $formattedKey.'-'.$level }}">{{ $values['suggested_rating_percentage'] }}</td>
@@ -98,7 +98,7 @@
                                                         @endforeach
                                                         <tr>
                                                             <td>Total</td>
-                                                            <td>{{ $data['count'] }}</td>
+                                                            <td>{{ $data['count'] <= 2 ? 0 : $data['count'] }}</td>
                                                             <td>100%</td>
                                                             <td class="rating-total-count-{{ $level }}">{{ count($ratingDatas[$level]) }}</td>
                                                             <td class="rating-total-percentage-{{ $level }}">100%</td>
