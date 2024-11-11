@@ -45,7 +45,9 @@ class RatingController extends Controller
             $filterYear = $request->input('filterYear');
 
             // Get the KPI unit and calibration percentage
-            $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $user)->first();
+            $kpiUnit = KpiUnits::with(['masterCalibration' => function($query) use ($period) {
+                $query->where('period', $period);
+            }])->where('employee_id', $user)->first();
             
             if (!$kpiUnit) {
                 Session::flash('error', "Your KPI unit data not found");
@@ -234,6 +236,7 @@ class RatingController extends Controller
                     $ratingResults[$key] = round($count * $weight);
                     $percentageResults[$key] = round(100 * $weight);
                 }
+
     
                 // Process suggested ratings
                 $suggestedRatingCounts = $group['with_requests']->pluck('suggested_rating')->countBy();
@@ -274,7 +277,7 @@ class RatingController extends Controller
                     break;
                 }
             }
-    
+                
             $parentLink = 'Calibration';
             $link = 'Rating';
             $id_calibration_group = $kpiUnit->masterCalibration->id_calibration_group;

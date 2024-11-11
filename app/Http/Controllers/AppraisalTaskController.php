@@ -716,7 +716,6 @@ class AppraisalTaskController extends Controller
 
         $calibration->save();
 
-
         // Return a response, such as a redirect or a JSON response
         return redirect('appraisals-task')->with('success', 'Appraisal submitted successfully.');
     }
