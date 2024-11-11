@@ -294,17 +294,20 @@ class LayerController extends Controller
         $parentLink = 'Settings';
         $link = 'Layers';
 
-        foreach ($criteria as $key => $value) {
-            if (!is_array($value)) {
-                $criteria[$key] = (array) $value;
-            }
-        }
-        
-        $datas = EmployeeAppraisal::with(['calibration' => function($query) {
+        $query = EmployeeAppraisal::with(['calibration' => function($query) {
             $query->where('status', 'Approved'); // Filter only 'Approved' calibrations
         }])
-        ->select('fullname', 'employee_id', 'group_company', 'designation', 'company_name', 'contribution_level_code', 'work_area_code', 'office_area', 'unit')
-        ->get();
+        ->select('fullname', 'employee_id', 'group_company', 'designation', 'company_name', 'contribution_level_code', 'work_area_code', 'office_area', 'unit');
+
+        $query->where(function ($query) use ($criteria) {
+            foreach ($criteria as $key => $value) {
+                if ($value !== null && !empty($value)) {
+                    $query->whereIn($key, $value);
+                }
+            }
+        });
+
+        $datas = $query->get();
         
         return view('pages.layers.layer-appraisal', [
             'parentLink' => $parentLink,
@@ -341,7 +344,7 @@ class LayerController extends Controller
             }
         }
 
-        $datas = Employee::select('fullname', 'employee_id', 'date_of_joining', 'group_company', 'company_name', 'unit', 'designation', 'office_area')->with(['appraisalLayer' => function($query) {
+        $datas = EmployeeAppraisal::select('fullname', 'employee_id', 'date_of_joining', 'group_company', 'company_name', 'unit', 'designation', 'office_area')->with(['appraisalLayer' => function($query) {
             $query->with(['approver' => function($subquery) {
                 $subquery->select('fullname', 'employee_id', 'designation');
             }])->select('employee_id', 'approver_id', 'layer_type', 'layer');
@@ -359,7 +362,7 @@ class LayerController extends Controller
 
         $calibratorCount = isset($groupLayers['calibrator']) ? $groupLayers['calibrator']->count() : 1;
 
-        $employee = Employee::select('fullname', 'employee_id', 'designation')->get();
+        $employee = EmployeeAppraisal::select('fullname', 'employee_id', 'designation')->get();
 
         return view('pages.layers.layer-appraisal-edit', [
             'parentLink' => $parentLink,

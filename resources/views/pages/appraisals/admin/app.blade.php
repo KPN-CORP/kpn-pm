@@ -24,15 +24,7 @@
                 {!! session('error') !!}
             </div>
         @endif
-        @can('reportpadetail')                                
-            <div class="row">
-                <div class="col-lg">
-                    <div class="mb-3 text-end">
-                        <button id="reportAppraisalDetailsButton" type="button" class="btn btn-sm btn-outline-success" title="Download Detail Report"><i class="ri-download-cloud-2-line me-1 fs-16"></i>Download Detail Report</button>
-                    </div>
-                </div>
-            </div>
-        @endcan
+        <input id="permission-reportpadetail" data-report-pa-detail="{{ Auth::user()->can('reportpadetail') ? 'true' : 'false' }}" type="hidden">
         <div class="row">
             <div class="col-auto">
                 <div class="mb-3 p-1 bg-info-subtle rounded shadow">

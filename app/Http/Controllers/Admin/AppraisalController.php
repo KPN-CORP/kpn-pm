@@ -123,7 +123,7 @@ class AppraisalController extends Controller
             
             // Add calibrator layers
             foreach ($approvalStatus['calibrator'] ?? [] as $layerIndex => $layer) {
-                $popoverContent[] = "L" . ($layerIndex + 1) . ": " . ($layer['approver_name'] .' ('.$layer['approver_id'].')' ?? 'N/A');
+                $popoverContent[] = "C" . ($layerIndex + 1) . ": " . ($layer['approver_name'] .' ('.$layer['approver_id'].')' ?? 'N/A');
             }
 
             // Add peer layers

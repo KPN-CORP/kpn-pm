@@ -317,7 +317,7 @@ class WeightageController extends Controller
 
                 $competencyData = [
                     'competency' => $competency,
-                    'formName' => $formName ?: 'KPI', // Default to KPI if not provided
+                    'formName' => $formName, // Default to KPI if not provided
                     'weightage' => (int)$weightage,
                 ];
 
