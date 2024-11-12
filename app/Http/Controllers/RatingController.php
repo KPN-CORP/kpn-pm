@@ -352,6 +352,7 @@ class RatingController extends Controller
                     Appraisal::where('id', $rating['appraisal_id'])
                         ->update([
                             'rating' => $rating['rating'],
+                            'form_status' => 'Approved',
                             'updated_by' => Auth()->user()->id
                     ]);
                 }
@@ -592,7 +593,6 @@ class RatingController extends Controller
                 ->get();
 
             $allowedRating = $masterRating->pluck('parameter')->toArray();
-
             
             // Get the ID of the currently authenticated user
             $userId = Auth::id();
@@ -614,11 +614,16 @@ class RatingController extends Controller
                 // Append error information to the success message
                 session()->put('invalid_employees', $invalidEmployees);
 
-                $message .= ' With some errors. <a href="' . route('export.invalid.layer.appraisal') . '">Click here to download the list of errors.</a>';
+                // $message .= ' <u><a href="' . route('export.invalid.rating') . '">Click here to download the list of errors.</a></u>';
+                $errorMessage = ' <u><a href="' . route('export.invalid.rating') . '">Click here to download the list of errors.</a></u>';
             }
 
             // If successful, redirect back with a success message
-            return redirect()->route('rating')->with('success', $message);
+            if (!empty($invalidEmployees)) {
+                return redirect()->route('rating')->with('error', 'An error occurred during the import process.')->with('errorMessage', $errorMessage);
+            }else{ 
+                return redirect()->route('rating')->with('success', $message);
+            }
         } catch (ValidationException $e) {
 
             // Catch the validation exception and redirect back with the error message

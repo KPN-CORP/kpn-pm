@@ -27,8 +27,6 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
     public function collection(): Collection
     {
         $year = $this->appService->appraisalPeriod();
-
-        // Fetch all AppraisalContributor data grouped by employee_id
         $contributorsGroupedByEmployee = AppraisalContributor::with('employee')
             ->where('period', $year)
             ->get()
@@ -36,15 +34,11 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
         $expandedData = collect();
 
-        // Iterate over each employee row in the main data collection
         foreach ($this->data as $row) {
             $employeeId = $row['Employee ID']['dataId'] ?? null;
-
             if ($employeeId && $contributorsGroupedByEmployee->has($employeeId)) {
-                // Expand the row for each contributor if they exist
                 $this->expandRowForContributors($expandedData, $row, $contributorsGroupedByEmployee->get($employeeId));
             } else {
-                // If no contributors, add the row with empty contributor fields
                 $expandedData->push($this->createDefaultContributorRow($row));
             }
         }
@@ -56,18 +50,10 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
     {
         foreach ($contributors as $contributor) {
             $contributorRow = $row;
-
-            // Use the contributor's type as the key in combineFormData
             $formData = $this->getFormDataForContributor($contributor);
-
-            // Add contributor-specific details to the row
             $contributorRow['Contributor ID'] = ['dataId' => $contributor->contributor_id];
             $contributorRow['Contributor Type'] = ['dataId' => $contributor->contributor_type];
-
-            // Flatten formData and add it as dynamic columns
             $this->addFormDataToRow($contributorRow, $formData);
-
-            // Add this expanded row to the collection
             $expandedData->push($contributorRow);
         }
     }
@@ -80,45 +66,32 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
                 foreach ($formGroup as $index => $itemGroup) {
                     if (is_array($itemGroup)) {
-                        // Handle Culture and Leadership attributes with title, formItem, and score
                         if ($formName === 'Culture' || $formName === 'Leadership') {
                             $title = $itemGroup['title'] ?? 'Unknown Title';
-
                             foreach ($itemGroup as $subIndex => $item) {
                                 if (is_array($item) && isset($item['formItem'], $item['score'])) {
                                     $subNumber = $subIndex + 1;
-                                    // Create headers and values for formItem and score
-                                    $header = "{$formName}_{$title}_{$subNumber}";
-
-                                    // Add headers to dynamic headers array to ensure unique headers for each item
-                                    if (!array_key_exists($header, $this->dynamicHeaders)) {
+                                    $header = $formName.'_'.$title.'_'.$subNumber;
+                                    if (!isset($this->dynamicHeaders[$header])) {
                                         $this->dynamicHeaders[$header] = $header;
                                     }
-
-                                    $combinedValue = strip_tags($item['formItem']) . "|" . $item['score'];
-
-                                    // Populate the row with formItem text (without HTML tags) and score
-                                    $contributorRow[$header] = ['dataId' => $combinedValue];
+                                    $contributorRow[$header] = ['dataId' => strip_tags($item['formItem']) . "|" . $item['score']];
                                 }
                             }
-                        } 
-                        if ($formName === 'KPI') {
-                            // Handle KPI-specific fields
-                                $key = $index + 1;
-                                foreach ($itemGroup as $subKey => $value) {
-    
-                                    $kpiKey = "{$formName}_{$key}_{$subKey}"; // Add index to ensure unique keys per item
-                                    if (!array_key_exists($kpiKey, $this->dynamicHeaders)) {
-                                        $this->dynamicHeaders[$kpiKey] = $kpiKey;
-                                    }
-                                    $contributorRow[$kpiKey] = ['dataId' => $kpiKey . "|" . $value];
+                        } elseif ($formName === 'KPI') {
+                            $key = $index + 1;
+                            foreach ($itemGroup as $subKey => $value) {
+                                $kpiKey = $formName.'_'.$key.'_'.$subKey;
+                                if (!isset($this->dynamicHeaders[$kpiKey])) {
+                                    $this->dynamicHeaders[$kpiKey] = $kpiKey;
                                 }
+                                $contributorRow[$kpiKey] = ['dataId' => $kpiKey . "|" . $value];
+                            }
                         }
                     }
                 }
             }
 
-            // Add summary scores if available
             $contributorRow['KPI Score'] = ['dataId' => round($formData['kpiScore'], 2) ?? '-'];
             $contributorRow['Culture Score'] = ['dataId' => round($formData['cultureScore'], 2) ?? '-'];
             $contributorRow['Leadership Score'] = ['dataId' => round($formData['leadershipScore'], 2) ?? '-'];
@@ -200,19 +173,18 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
     public function headings(): array
     {
-        // Start with base headers
         $extendedHeaders = $this->headers;
 
-        // Add standard contributor-specific headers
-        foreach (['Contributor ID', 'Contributor Type', 'KPI Score', 'Culture Score', 'Leadership Score', 'Total Score', 'Data =>'] as $header) {
+        foreach (['Contributor ID', 'Contributor Type', 'KPI Score', 'Culture Score', 'Leadership Score', 'Total Score'] as $header) {
             if (!in_array($header, $extendedHeaders)) {
                 $extendedHeaders[] = $header;
             }
         }
 
-        // Add dynamically generated headers from formData in the correct order
         foreach ($this->dynamicHeaders as $header) {
-            $extendedHeaders[] = $header;
+            if (!in_array($header, $extendedHeaders)) {
+                $extendedHeaders[] = $header;
+            }
         }
 
         return $extendedHeaders;
@@ -220,7 +192,6 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
     public function map($row): array
     {
-        // Map each row according to the dynamic headers, ensuring consistent column order
         $data = [];
         foreach ($this->headings() as $header) {
             $data[] = $row[$header]['dataId'] ?? '';

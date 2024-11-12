@@ -8,12 +8,12 @@
     <div class="container-fluid">
         @if(session('success'))
             <div class="alert alert-success mt-3">
-                {{ session('success') }}
+                {!! session('success') !!}
             </div>
         @endif
         <div class="mandatory-field">
             <div id="alertField" class="alert alert-danger alert-dismissible {{ Session::has('error') ? '':'fade' }}" role="alert" {{ Session::has('error') ? '':'hidden' }}>
-                <strong>{{ Session::get('error') }}</strong>
+                <strong>{!! Session::get('error') !!}{!! Session::get('errorMessage') !!}</strong>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         </div>
@@ -108,7 +108,7 @@
                                         </div>
                                         @endif
                                         <div class="col-md text-end order-1 order-md-2 mb-2">
-                                            <a class="btn btn-outline-info m-1 {{ $ratingNotAllowed || $calibratorCount ? 'd-none' : '' }}" data-bs-toggle="modal" data-bs-target="#importModal" title="Import Rating"><i class="ri-upload-cloud-2-line d-md-none"></i><span class="d-none d-md-block">Upload Rating</span></a>
+                                            <a class="btn btn-outline-info m-1 {{ $ratingNotAllowed || $calibratorCount ? 'd-none' : '' }}" data-bs-toggle="modal" data-bs-id="{{ $level }}" data-bs-target="#importModal" title="Import Rating"><i class="ri-upload-cloud-2-line d-md-none"></i><span class="d-none d-md-block">Upload Rating</span></a>
                                             <a href="{{ route('rating.export', $level) }}" class="btn btn-outline-success m-1 {{ $ratingNotAllowed ? 'disabled' : '' }}"><i class="ri-download-cloud-2-line d-md-none "></i><span class="d-none d-md-block">Download Rating</span></a>
                                             <button class="btn btn-primary m-1 {{ $ratingDone ? '' : 'd-none' }}" data-id="{{ $level }}">Submit Rating</button>
                                         </div>
@@ -241,13 +241,12 @@
         @endif
     </div>
 
-    <!-- importModal -->
+<!-- Modal -->
 <div class="modal fade" id="importModal" role="dialog" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" id="importModalLabel">Upload Rating</h4>
-                {{-- <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> --}}
+                <h4 class="modal-title" id="importModalLabel">Upload Rating - Level: <span id="modalLevel"></span></h4>
             </div>
             <div class="modal-body">
                 <form id="importRating" action="{{ route('rating.import') }}" method="POST" enctype="multipart/form-data">
@@ -264,24 +263,43 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" id="importRatingButton" class="btn btn-primary"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Submit</button>
+                <button type="submit" id="importRatingButton" class="btn btn-primary">
+                    <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
+                    Submit
+                </button>
             </div>
         </div>
     </div>
 </div>
 @endsection
 @push('scripts')
-    @if(Session::has('error') || !$calibrations)
+    @if(!$calibrations)
     <script>
         document.addEventListener('DOMContentLoaded', function () {                
             Swal.fire({
                 icon: "error",
                 title: "Cannot initiate rating!",
-                text: '{{ Session::get('error') }}',
+                text: '{{ Session::pull('error') }}',
                 confirmButtonText: "OK",
             }).then((result) => {
                 if (result.isConfirmed) {
                     history.back(); // Go back to the previous page
+                }
+            });
+        });
+    </script>
+    @endif
+    @if(Session::has('error'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {                
+            Swal.fire({
+                icon: "error",
+                title: "Error!",
+                text: '{{ Session::pull('error') }}',
+                confirmButtonText: "OK",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    return; // Go back to the previous page
                 }
             });
         });
