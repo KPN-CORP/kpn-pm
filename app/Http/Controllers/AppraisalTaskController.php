@@ -273,7 +273,7 @@ class AppraisalTaskController extends Controller
 
         $employee = EmployeeAppraisal::where('employee_id', $request->id)->first();
 
-        $goal = Goal::with(['employee'])->where('employee_id', $request->id)->where('period', $period)->first();
+        $goal = Goal::with(['employee'])->where('employee_id', $request->id)->where('form_status', 'Approved')->where('period', $period)->first();
 
         $calibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $request->id)->value('approver_id');
 
