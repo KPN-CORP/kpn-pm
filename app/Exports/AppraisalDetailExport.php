@@ -88,14 +88,14 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
                                 if (is_array($item) && isset($item['formItem'], $item['score'])) {
                                     $subNumber = $subIndex + 1;
                                     // Create headers and values for formItem and score
-                                    $header = "{$formName}_{$title}_{$subIndex}";
+                                    $header = "{$formName}_{$title}_{$subNumber}";
 
                                     // Add headers to dynamic headers array to ensure unique headers for each item
                                     if (!array_key_exists($header, $this->dynamicHeaders)) {
                                         $this->dynamicHeaders[$header] = $header;
                                     }
 
-                                    $combinedValue = strip_tags($formName . "|" . $title . "_" .$subNumber. "|" . $item['formItem']) . "|" . $item['score'];
+                                    $combinedValue = strip_tags($item['formItem']) . "|" . $item['score'];
 
                                     // Populate the row with formItem text (without HTML tags) and score
                                     $contributorRow[$header] = ['dataId' => $combinedValue];

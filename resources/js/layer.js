@@ -14,6 +14,8 @@ document.addEventListener("DOMContentLoaded", function () {
         scrollX: true
     });
 
+    $('#customsearch').val(layerTable.search());
+
     $("#customsearch").on("keyup", function () {
         layerTable.search($(this).val()).draw();
     });

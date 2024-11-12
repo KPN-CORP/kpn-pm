@@ -249,7 +249,7 @@ class MyAppraisalController extends Controller
 
         $period = $this->appService->appraisalPeriod();
 
-        $goal = Goal::where('employee_id', $request->id)->where('period', $period)->first();
+        $goal = Goal::where('employee_id', $request->id)->where('form_status', 'Approved')->where('period', $period)->first();
 
         $appraisal = Appraisal::where('employee_id', $request->id)->where('period', $period)->first();
 
