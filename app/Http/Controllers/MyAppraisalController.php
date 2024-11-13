@@ -57,13 +57,15 @@ class MyAppraisalController extends Controller
 
     public function index(Request $request) {
         try {
-            $user = Auth::user()->employee_id;
+            $user = $this->user;
             $period = $this->appService->appraisalPeriod();
             $filterYear = $request->input('filterYear');
 
             // Retrieve approval requests
             $datasQuery = ApprovalRequest::with([
-                'employee', 'appraisal.goal', 'updatedBy', 'adjustedBy', 'initiated', 'manager', 'contributor',
+                'employee', 'appraisal.goal', 'appraisal.approvalSnapshots' => function ($query) {
+                    $query->where('created_by', Auth::user()->id);
+                }, 'updatedBy', 'adjustedBy', 'initiated', 'manager', 'contributor',
                 'approval' => function ($query) {
                     $query->with('approverName');
                 }
@@ -117,7 +119,10 @@ class MyAppraisalController extends Controller
             }
 
             $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->appraisal->goal->form_data, true) : [];
-            $appraisalData = $datas->isNotEmpty() ? json_decode($datas->first()->appraisal->form_data, true) : [];
+            
+            $form_data = $datas->first()->appraisal->approvalSnapshots->form_data;
+
+            $appraisalData = $datas->isNotEmpty() ? json_decode($form_data, true) : [];
 
             $groupedContributors = $datas->first()->contributor->groupBy('contributor_type');
 
