@@ -318,6 +318,18 @@ class AppService
     function suggestedRating($id, $formId)
     {
         try {
+            $checkLayer = ApprovalLayerAppraisal::where('employee_id', $id)
+            ->where('layer_type', '!=', 'calibrator')
+            ->selectRaw('layer_type, COUNT(*) as count')
+            ->groupBy('layer_type')
+            ->get();
+
+            $layerCounts = $checkLayer->pluck('count', 'layer_type')->toArray();
+
+            $managerCount = $layerCounts['manager'] ?? 0;
+            $peersCount = $layerCounts['peers'] ?? 0;
+            $subordinateCount = $layerCounts['subordinate'] ?? 0;
+
             // Retrieve approval requests
             $datasQuery = ApprovalRequest::with([
                 'employee', 'appraisal.goal', 'updatedBy', 'adjustedBy', 'initiated', 'manager', 'contributor',
@@ -398,18 +410,48 @@ class AppService
             $suggestedKpi = ($formDataManager['totalKpiScore'] ?? 0) 
             + ($formDataPeers['totalKpiScore'] ?? 0) 
             + ($formDataSub['totalKpiScore'] ?? 0);
+
+            if ($peersCount == 0 || $subordinateCount == 0) {
+                // Condition matches: use individual scores and calculate averages
             
-            $suggestedCulture = ($formData['cultureAverageScore'] ?? 0) 
-            + ($formDataManager['cultureAverageScore'] ?? 0) 
-            + ($formDataPeers['cultureAverageScore'] ?? 0) 
-            + ($formDataSub['cultureAverageScore'] ?? 0);
-
-            $suggestedLeadership = ($formData['leadershipAverageScore'] ?? 0) 
-            + ($formDataManager['leadershipAverageScore'] ?? 0) 
-            + ($formDataPeers['leadershipAverageScore'] ?? 0) 
-            + ($formDataSub['leadershipAverageScore'] ?? 0);
-
-
+                // Culture Score average calculation
+                $cultureScores = [
+                    $formData['cultureScore'] ?? 0,
+                    $formDataManager['cultureScore'] ?? 0,
+                    $formDataPeers['cultureScore'] ?? 0,
+                    $formDataSub['cultureScore'] ?? 0,
+                ];
+                $totalCultureScore = array_sum($cultureScores);
+                $nonZeroCultureCount = count(array_filter($cultureScores, fn($score) => $score !== 0));
+                $suggestedCulture = $nonZeroCultureCount > 0 ? $totalCultureScore / $nonZeroCultureCount : 0;
+            
+                // Leadership Score average calculation
+                $leadershipScores = [
+                    $formData['leadershipScore'] ?? 0,
+                    $formDataManager['leadershipScore'] ?? 0,
+                    $formDataPeers['leadershipScore'] ?? 0,
+                    $formDataSub['leadershipScore'] ?? 0,
+                ];
+                $totalLeadershipScore = array_sum($leadershipScores);
+                $nonZeroLeadershipCount = count(array_filter($leadershipScores, fn($score) => $score !== 0));
+                $suggestedLeadership = $nonZeroLeadershipCount > 0 ? $totalLeadershipScore / $nonZeroLeadershipCount : 0;
+            
+            } else {
+                // Condition does not match: use average scores for direct summation
+            
+                $suggestedCulture = 
+                    ($formData['cultureAverageScore'] ?? 0) +
+                    ($formDataManager['cultureAverageScore'] ?? 0) +
+                    ($formDataPeers['cultureAverageScore'] ?? 0) +
+                    ($formDataSub['cultureAverageScore'] ?? 0);
+            
+                $suggestedLeadership = 
+                    ($formData['leadershipAverageScore'] ?? 0) +
+                    ($formDataManager['leadershipAverageScore'] ?? 0) +
+                    ($formDataPeers['leadershipAverageScore'] ?? 0) +
+                    ($formDataSub['leadershipAverageScore'] ?? 0);
+            }
+            
             $suggestedRating = $suggestedKpi + $suggestedCulture + $suggestedLeadership;
 
             return $suggestedRating;
