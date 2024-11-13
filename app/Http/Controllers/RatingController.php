@@ -138,7 +138,7 @@ class RatingController extends Controller
                     $previousRating = $calibration->whereNotNull('rating')->where('appraisal_id', $data->approvalRequest->first()->form_id)->first();
                     // Calculate the suggested rating
                     $suggestedRating = $this->appService->suggestedRating($data->employee->employee_id, $data->approvalRequest->first()->form_id);
-                    
+                                        
                     $data->suggested_rating = $calibration->where('employee_id', $data->employee_id)->where('approver_id', $user)->first() ? $this->appService->convertRating($suggestedRating, $calibration->where('employee_id', $data->employee_id)->where('approver_id', $user)->first()->id_calibration_group) : null;
                     
                     $data->previous_rating = $previousRating ? $this->appService->convertRating($previousRating->rating, $calibration->first()->id_calibration_group) : null;

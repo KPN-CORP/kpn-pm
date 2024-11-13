@@ -329,7 +329,7 @@ class AppraisalController extends Controller
                             
                 $weightageContent = json_decode($weightageData->form_data, true);
                 
-                $result = $this->appraisalSummary($weightageContent, $formData);
+                $result = $this->appraisalSummary($weightageContent, $formData, $employeeData->employee_id);
 
                 $formData = $this->appService->combineFormData($result['summary'], $goalData, $result['summary']['contributor_type'], $employeeData, $request->period);
 
@@ -494,8 +494,20 @@ class AppraisalController extends Controller
         return null;
     }
 
-    function appraisalSummary($weightages, $formData) {
+    function appraisalSummary($weightages, $formData, $employeeID) {
         $calculatedFormData = [];
+
+        $checkLayer = ApprovalLayerAppraisal::where('employee_id', $employeeID)
+        ->where('layer_type', '!=', 'calibrator')
+        ->selectRaw('layer_type, COUNT(*) as count')
+        ->groupBy('layer_type')
+        ->get();
+
+        $layerCounts = $checkLayer->pluck('count', 'layer_type')->toArray();
+
+        $managerCount = $layerCounts['manager'] ?? 0;
+        $peersCount = $layerCounts['peers'] ?? 0;
+        $subordinateCount = $layerCounts['subordinate'] ?? 0;
         
         // First part: Calculate weighted scores
         foreach ($weightages as $item) {
@@ -534,23 +546,40 @@ class AppraisalController extends Controller
                                 foreach ($form as $key => $scores) {
                                     if (is_numeric($key)) {
                                         $calculatedForm[$key] = [];
-                                        foreach ($scores as $scoreData) {
-                                            $score = $scoreData['score'];
-                                            $weightedScore = $score * ($weightage360 / 100);
+
+                                        if ($peersCount == 0 || $subordinateCount == 0) {
+                                            // Calculate average score if both counts are zero
+                                            $totalScore = 0;
+                                            $scoreCount = count($scores);
+        
+                                            foreach ($scores as $scoreData) {
+                                                $totalScore += $scoreData['score'];
+                                            }
+        
+                                            $averageScore = $scoreCount > 0 ? $totalScore / $scoreCount : 0;
                                             $calculatedForm[$key][] = [
-                                                "score" => $weightedScore
+                                                "score" => $averageScore
                                             ];
+                                        } else {
+                                            // Apply weighted score if peers or subordinate count is non-zero
+                                            foreach ($scores as $scoreData) {
+                                                $score = $scoreData['score'];
+                                                $weightedScore = $score * ($weightage360 / 100);
+                                                $calculatedForm[$key][] = [
+                                                    "score" => $weightedScore
+                                                ];
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                     }
+
                     
                     $formDataWithCalculatedScores[] = $calculatedForm;
-                }
-
-
+                }                
+                
                 
                 $calculatedFormData[] = [
                     "formGroupName" => $formGroupName,
@@ -583,6 +612,7 @@ class AppraisalController extends Controller
                         }
                     }
                 } else {
+
                     // Process forms like Culture and Leadership
                     foreach ($form as $key => $values) {
                         if (is_numeric($key)) {
@@ -590,16 +620,34 @@ class AppraisalController extends Controller
                             if (!isset($summedScores[$formName][$key])) {
                                 $summedScores[$formName][$key] = [];
                             }
-                            
-                            // Sum scores at each index
-                            foreach ($values as $index => $scoreData) {
-                                // Ensure the array exists for this index
-                                if (!isset($summedScores[$formName][$key][$index])) {
-                                    $summedScores[$formName][$key][$index] = ["score" => 0];
+
+                            if ($peersCount == 0 || $subordinateCount == 0) {
+                                // Sum scores directly without weightage
+                                $totalScore = 0;
+                                $scoreCount = count($values);
+                    
+                                foreach ($values as $index => $scoreData) {
+                                    $totalScore += $scoreData['score'];
                                 }
-                                // Accumulate the score
-                                $summedScores[$formName][$key][$index]['score'] += $scoreData['score'];
+                    
+                                // Calculate the average score
+                                $averageScore = $scoreCount > 0 ? $totalScore / $scoreCount : 0;
+                    
+                                // Store the average score at this index
+                                $summedScores[$formName][$key][] = ["score" => $averageScore];
+                            } else {
+                                // Apply weightage if peers or subordinate count is non-zero
+                                foreach ($values as $index => $scoreData) {
+                                    // Ensure the array exists for this index
+                                    // Ensure the array exists for this index
+                                    if (!isset($summedScores[$formName][$key][$index])) {
+                                        $summedScores[$formName][$key][$index] = ["score" => 0];
+                                    }
+                                    // Accumulate the score
+                                    $summedScores[$formName][$key][$index]['score'] += $scoreData['score'];
+                                }
                             }
+                            
                         }
                     }
                 }
