@@ -5,6 +5,7 @@ namespace App\Exports;
 use App\Models\AppraisalContributor;
 use App\Services\AppService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -26,6 +27,9 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
     public function collection(): Collection
     {
+        $this->dynamicHeaders = []; // Reset dynamic headers for each export
+
+        // Existing code for data collection
         $year = $this->appService->appraisalPeriod();
         $contributorsGroupedByEmployee = AppraisalContributor::with('employee')
             ->where('period', $year)
@@ -71,33 +75,41 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
                             foreach ($itemGroup as $subIndex => $item) {
                                 if (is_array($item) && isset($item['formItem'], $item['score'])) {
                                     $subNumber = $subIndex + 1;
-                                    $header = $formName.'_'.$title.'_'.$subNumber;
-                                    if (!isset($this->dynamicHeaders[$header])) {
-                                        $this->dynamicHeaders[$header] = $header;
-                                    }
+                                    $header = strtolower(trim("{$formName}_{$title}_{$subNumber}"));
+                                    
+                                    $this->captureDynamicHeader($header);  // Capture unique header
                                     $contributorRow[$header] = ['dataId' => strip_tags($item['formItem']) . "|" . $item['score']];
                                 }
                             }
                         } elseif ($formName === 'KPI') {
                             $key = $index + 1;
                             foreach ($itemGroup as $subKey => $value) {
-                                $kpiKey = $formName.'_'.$key.'_'.$subKey;
-                                if (!isset($this->dynamicHeaders[$kpiKey])) {
-                                    $this->dynamicHeaders[$kpiKey] = $kpiKey;
-                                }
-                                $contributorRow[$kpiKey] = ['dataId' => $kpiKey . "|" . $value];
+                                $kpiKey = strtolower(trim("{$formName}_{$subKey}_{$key}"));
+                                
+                                $this->captureDynamicHeader($kpiKey);  // Capture unique header
+                                $contributorRow[$kpiKey] = ['dataId' => $value];
                             }
                         }
                     }
                 }
             }
-
+            
+            // Add static scores to row
             $contributorRow['KPI Score'] = ['dataId' => round($formData['kpiScore'], 2) ?? '-'];
             $contributorRow['Culture Score'] = ['dataId' => round($formData['cultureScore'], 2) ?? '-'];
             $contributorRow['Leadership Score'] = ['dataId' => round($formData['leadershipScore'], 2) ?? '-'];
             $contributorRow['Total Score'] = ['dataId' => round($formData['totalScore'], 2) ?? '-'];
         }
     }
+
+    // Helper function to capture unique dynamic headers
+    private function captureDynamicHeader(string $header): void
+    {
+        if (!isset($this->dynamicHeaders[$header])) {
+            $this->dynamicHeaders[$header] = $header;
+        }
+    }
+
 
 
     private function getFormDataForContributor(AppraisalContributor $contributor): array
@@ -154,7 +166,6 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
                     $form[$index]['title'] = $leadershipItem['title'];
                 }
             }
-            
         }
 
         return $formData;
@@ -173,6 +184,11 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
     public function headings(): array
     {
+        if (empty($this->dynamicHeaders)) {
+            // Populate collection to ensure dynamic headers are captured
+            $this->collection();
+        }
+
         $extendedHeaders = $this->headers;
 
         foreach (['Contributor ID', 'Contributor Type', 'KPI Score', 'Culture Score', 'Leadership Score', 'Total Score'] as $header) {
@@ -181,14 +197,50 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             }
         }
 
+        // Separate headers by category
+        $kpiHeaders = [];
+        $cultureHeaders = [];
+        $leadershipHeaders = [];
+
         foreach ($this->dynamicHeaders as $header) {
+            if (strpos($header, 'kpi_') === 0) {
+                $kpiHeaders[] = $header;
+            } elseif (strpos($header, 'culture_') === 0) {
+                $cultureHeaders[] = $header;
+            } elseif (strpos($header, 'leadership_') === 0) {
+                $leadershipHeaders[] = $header;
+            }
+        }
+
+        // Sort KPI headers by numeric index
+        usort($kpiHeaders, function ($a, $b) {
+            // Extract the numeric part after 'kpi_' and before the next '_'
+            preg_match('/kpi_(\d+)_/', $a, $aMatches);
+            preg_match('/kpi_(\d+)_/', $b, $bMatches);
+            $aIndex = isset($aMatches[1]) ? (int) $aMatches[1] : 0;
+            $bIndex = isset($bMatches[1]) ? (int) $bMatches[1] : 0;
+
+            return $aIndex <=> $bIndex;
+        });
+
+        // Sort Culture and Leadership headers alphabetically
+        sort($cultureHeaders);
+        sort($leadershipHeaders);
+
+        // Merge all sorted headers back in the desired order
+        $sortedDynamicHeaders = array_merge($kpiHeaders, $cultureHeaders, $leadershipHeaders);
+
+        // Add sorted dynamic headers to the extended headers
+        foreach ($sortedDynamicHeaders as $header) {
             if (!in_array($header, $extendedHeaders)) {
                 $extendedHeaders[] = $header;
             }
         }
 
+        // Log::info("Headings returned:", $extendedHeaders);
         return $extendedHeaders;
     }
+
 
     public function map($row): array
     {
