@@ -7,7 +7,7 @@
                     @foreach ($ratings as $rating)
                     <ul>
                         <li>
-                            <p><strong>{{ $rating['parameter'] }}</strong> : {{ $rating['desc_idn'] }}</p>
+                            <p><strong>{{ $rating['parameter'] }}</strong> : {{ session('locale') == 'en' ? $rating['desc_eng'] : $rating['desc_idn'] }}</p>
                         </li>
                     </ul>
                     @endforeach
