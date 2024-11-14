@@ -236,6 +236,7 @@ class ReportController extends Controller
                 $employee->access_menu = json_decode($employee->access_menu, true);
             }
             $route = 'reports-admin.employee';
+        // } elseif ($request->reportType === 'EmployeePA') {
         } elseif ($report_type === 'EmployeePA') {
             $query = EmployeeAppraisal::query()->orderBy('fullname'); // Start with Employee model
 
@@ -263,11 +264,11 @@ class ReportController extends Controller
                 }
             });
 
-            $designations = Designation::select('designation_name','job_code')
+            $designations = Designation::select('designation_name', 'job_code')
             ->orderBy('parent_company_id', 'asc')
             ->orderBy('designation_name', 'asc')
             ->orderBy('job_code', 'asc')
-            ->groupBy('job_code','designation_name')
+            ->groupBy('job_code', 'designation_name', 'parent_company_id')
             ->get();
             $departments = Department::select('department_name')
             ->orderBy('department_name', 'asc')
@@ -275,6 +276,8 @@ class ReportController extends Controller
             ->get();
             $companies = Company::orderBy('contribution_level_code', 'asc')->get();
             $locations = Location::orderBy('area', 'asc')->get();
+
+            $jobLevel = EmployeeAppraisal::select('job_level')->distinct()->orderBy('job_level', 'asc')->get();
 
             $data = $query->get();
             foreach ($data as $employee) {
@@ -284,7 +287,7 @@ class ReportController extends Controller
 
             $link = __('Report');
 
-            return view($route, compact('data', 'link', 'filters', 'designations','departments','companies','locations'));
+            return view($route, compact('data', 'link', 'filters', 'designations','departments','companies','locations', 'jobLevel'));
         }else {
             $data = collect(); // Empty collection for unknown report types
             $route = 'reports-admin.empty';

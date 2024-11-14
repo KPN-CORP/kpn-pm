@@ -50,7 +50,8 @@ class RatingController extends Controller
             }])->where('employee_id', $user)->first();
             
             if (!$kpiUnit) {
-                Session::flash('error', "Your KPI unit data not found");
+                Session::flash('error', "Your KPI Unit not been set");
+                Session::flash('errorTitle', "Cannot Initiate Rating");
             }
             
             $calibration = $kpiUnit->masterCalibration->percentage;
