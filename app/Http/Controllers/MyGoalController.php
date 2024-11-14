@@ -478,10 +478,20 @@ class MyGoalController extends Controller
         $approval->sendback_to = null;
         // Set other attributes as needed
         $approval->save();
-
+        
         $snapshot =  ApprovalSnapshots::where('form_id', $request->id)->where('employee_id', $request->employee_id)->first();
-        $snapshot->form_data = $jsonData;
-        $snapshot->updated_by = Auth::user()->id;
+        
+        if ($snapshot) {
+            $snapshot->form_data = $jsonData;
+            $snapshot->updated_by = Auth::user()->id;
+        } else {
+            $snapshot =  new ApprovalSnapshots;
+            $snapshot->id = Str::uuid();
+            $snapshot->form_id = $request->id;
+            $snapshot->form_data = $jsonData;
+            $snapshot->employee_id = $request->employee_id;
+            $snapshot->created_by = Auth::user()->id;
+        }
         
         $snapshot->save();
 

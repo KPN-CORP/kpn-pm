@@ -90,7 +90,7 @@
                     </ul>
                 </div>
             </li>
-            @if(auth()->user()->isCalibrator())
+            @if(auth()->user()->isCalibrator() && auth()->user()->kpiUnits())
             <li class="side-nav-item">
                 <a href="{{ route('rating') }}" class="side-nav-link">
                     <i class="ri-star-line"></i>

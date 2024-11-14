@@ -257,7 +257,7 @@
             document.addEventListener('DOMContentLoaded', function () {                
                 Swal.fire({
                     icon: "error",
-                    title: "Cannot initiate appraisal!",
+                    title: '{{ Session::get('errorTitle') ? Session::get('errorTitle') : "Cannot initiate appraisal!" }}',
                     text: '{{ Session::get('error') }}',
                     confirmButtonText: "OK",
                 });
