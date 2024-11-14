@@ -262,7 +262,7 @@ class MyAppraisalController extends Controller
         if ($goal) {
             $goalData = json_decode($goal->form_data, true);
         } else {
-            Session::flash('error', "Your Goals for $period are not found.");
+            Session::flash('error', "Your Goals for $period are not found or not fully Approved.");
             return redirect()->back();
         }
 
