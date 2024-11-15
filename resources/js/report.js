@@ -292,3 +292,46 @@ function exportExcel() {
 }
 
 window.exportExcel = exportExcel;
+
+function revokeGoal(button) {
+    const goalId = button.getAttribute('data-id');
+
+    Swal.fire({
+        title: 'Are you sure?',
+        text: "You are about to revoke this goal.",
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: "#3e60d5",
+        cancelButtonColor: "#f15776",
+        confirmButtonText: "Yes, revoke it!",
+        cancelButtonText: "Cancel",
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/admin/goals-revoke', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ id: goalId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Revoked!', 'The goal has been revoked.', 'success');
+                    button.classList.add('d-none'); // Hide button after successful action
+                } else {
+                    Swal.fire('Error!', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error!', 'An error occurred while revoking the goal.', 'error');
+            });
+        }
+    });
+}
+
+window.revokeGoal = revokeGoal;
+

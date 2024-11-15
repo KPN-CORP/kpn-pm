@@ -142,6 +142,8 @@ class AppService
     public function combineFormData($appraisalData, $goalData, $typeWeightage360, $employeeData, $period) {
 
         $totalKpiScore = 0; // Initialize the total score
+        $totalCultureScore = 0; // Initialize the total score
+        $totalLeadershipScore = 0; // Initialize the total score
         $cultureAverageScore = 0; // Initialize Culture average score
         $leadershipAverageScore = 0; // Initialize Culture average score
 
@@ -228,6 +230,8 @@ class AppService
         
         // Add the total scores to the appraisalData
         $appraisalDatas['totalKpiScore'] = $totalKpiScore * $kpiWeightage / 100; // get KPI Final Score
+        $appraisalDatas['totalCultureScore'] = $totalCultureScore * $cultureWeightage / 100; // get KPI Final Score
+        $appraisalDatas['totalLeadershipScore'] = $totalLeadershipScore * $leadershipWeightage / 100; // get KPI Final Score
         $appraisalDatas['cultureAverageScore'] = ($cultureAverageScore * $cultureWeightage / 100) * $appraisalDatas['cultureWeightage360']; // get Culture Average Score
         $appraisalDatas['leadershipAverageScore'] = ($leadershipAverageScore * $leadershipWeightage / 100) * $appraisalDatas['leadershipWeightage360']; // get Leadership Average Score
         

@@ -15,7 +15,7 @@
         <div class="card-body">
             <table class="table table-sm table-hover nowrap align-middle w-100" id="adminReportTable" cellspacing="0">
                 <thead class="thead-light">
-                    <tr class="text-center">
+                    <tr>
                         <th>Employees</th>
                         <th>KPI</th>
                         <th>Goal Status</th>
@@ -23,7 +23,7 @@
                         <th>Initiated On</th>
                         <th>{{ __('Initiated By') }}</th>
                         <th>{{ __('Last Updated On') }}</th>
-                        <th>{{ __('Action') }}</th>
+                        <th class="text-center">{{ __('Revoke') }}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -42,7 +42,9 @@
                         <td>{{ $row->initiated->name }}<br>{{ $row->initiated->employee_id }}</td>
                         <td class="text-center">{{ $row->formatted_updated_at }}</td>
                         <td class="text-center">
-                            <button class="btn btn-sm btn-outline-secondary {{ $row->status != 'Approved' ? 'd-none' : '' }}"><i class="ri-arrow-go-back-line"></i></button>
+                            <button id="revoke-btn{{ $row->goal->id }}" onclick="revokeGoal(this)" data-id="{{ $row->goal->id }}" class="btn btn-sm btn-outline-secondary {{ $row->status != 'Approved' ? 'd-none' : '' }}">
+                                <i class="ri-arrow-go-back-line"></i>
+                            </button>
                         </td>
 
                         <div class="modal fade" id="modalDetail{{ $row->goal->id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
