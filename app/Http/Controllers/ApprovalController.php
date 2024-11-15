@@ -85,7 +85,7 @@ class ApprovalController extends Controller
             // Memastikan ada nilai untuk semua input terkait
             if (isset($targets[$index], $uoms[$index], $weightages[$index], $types[$index])) {
                 // Simpan data KPI ke dalam array dengan nomor indeks sebagai kunci
-                if($custom_uoms[$index]){
+                if($custom_uoms){
                     $customuom = $custom_uoms[$index];
                 }else{
                     $customuom = null;

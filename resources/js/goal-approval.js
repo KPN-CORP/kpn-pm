@@ -148,6 +148,8 @@ function confirmAprroval() {
     return false; // Prevent default form submission
 }
 
+window.confirmAprroval = confirmAprroval;
+
 function confirmAprrovalAdmin() {
     let title1;
     let title2;

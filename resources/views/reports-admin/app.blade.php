@@ -3,6 +3,7 @@
 @section('css')
 @endsection
 @section('content')
+<meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- Begin Page Content -->
     <div class="container-fluid">
       <div class="card">

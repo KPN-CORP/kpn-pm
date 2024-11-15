@@ -11,12 +11,14 @@ use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Employee;
 use App\Models\EmployeeAppraisal;
+use App\Models\Goal;
 use App\Models\Location;
 use App\Models\Report;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -339,6 +341,36 @@ class ReportController extends Controller
         $report->save();
 
         return redirect()->back()->with('success', 'Report berhasil di-generate dan disimpan.');
+    }
+
+    public function goalsRevoke(Request $request)
+    {
+        $goalId = $request->input('id');
+
+        // Find the approval request record
+        $approvalRequest = ApprovalRequest::where('form_id', $goalId)->first();
+        $goals = Goal::where('id', $goalId)->first();
+        $firstApprover = ApprovalLayer::where('employee_id', $approvalRequest->employee_id)->orderBy('layer', 'asc')
+        ->value('approver_id');
+        
+        if (!$approvalRequest || !$goals) {
+            return response()->json(['success' => false, 'message' => 'Goals not found.']);
+        }
+
+        try {
+            // Process the revoke logic here
+            $approvalRequest->sendback_to = $approvalRequest->employee_id;
+            $approvalRequest->current_approval_id = $firstApprover;
+            $approvalRequest->status = 'Sendback';
+            $approvalRequest->save();
+
+            $goals->form_status = 'Submitted';
+            $goals->save();
+
+            return response()->json(['success' => true, 'message' => 'Goal revoked successfully.']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to revoke goal.']);
+        }
     }
 
 }

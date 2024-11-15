@@ -323,6 +323,7 @@ Route::middleware('auth', 'locale')->group(function () {
         Route::post('/admin/get-report-content', [AdminReportController::class, 'getReportContent']);
         Route::get('/admin/changes-group-company', [AdminReportController::class, 'changesGroupCompany']);
         Route::get('/admin/changes-company', [AdminReportController::class, 'changesCompany']);
+        Route::post('/admin/goals-revoke', [AdminReportController::class, 'goalsRevoke'])->name('admin.goals.revoke');
         //Employee
         Route::get('/employees', [EmployeeController::class, 'employee'])->name('employees');
         Route::get('/employee/filter', [EmployeeController::class, 'filterEmployees'])->name('employee.filter');
