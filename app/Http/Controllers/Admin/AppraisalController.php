@@ -333,6 +333,7 @@ class AppraisalController extends Controller
 
                 $formData = $this->appService->combineFormData($result['summary'], $goalData, $result['summary']['contributor_type'], $employeeData, $request->period);
 
+
                 
                 if (isset($formData['totalKpiScore'])) {
                     $formData['kpiScore'] = round($formData['kpiScore'], 2);
@@ -414,7 +415,13 @@ class AppraisalController extends Controller
                 $cultureData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
                 $leadershipData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
     
-                $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $datas->first()->period);
+                $jobLevel = $employeeData->job_level;
+
+                $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $request->period)->first();
+                            
+                $weightageContent = json_decode($weightageData->form_data, true);
+
+                $formData = $this->appService->combineFormData($appraisalData, $goalData, $datas->first()->contributor_type, $employeeData, $datas->first()->period);
     
                 if (isset($formData['totalKpiScore'])) {
                     $appraisalData['kpiScore'] = round($formData['kpiScore'], 2);
@@ -475,6 +482,8 @@ class AppraisalController extends Controller
                     return $req;
                 });
 
+                $appraisalData = $formData;
+
             }
 
             return view('components.appraisal-card', compact('datas', 'formData', 'appraisalData'));
@@ -515,7 +524,7 @@ class AppraisalController extends Controller
                 $contributorType = $data['contributor_type'];
                 $formGroupName = $data['formGroupName'];
                 $formDataWithCalculatedScores = [];
-                
+
                 foreach ($data['formData'] as $form) {
                     $formName = $form['formName'];
                     $calculatedForm = [
@@ -586,6 +595,7 @@ class AppraisalController extends Controller
                     "formData" => $formDataWithCalculatedScores,
                     "contributor_type" => $contributorType
                 ];
+
             }
         }
         
@@ -594,6 +604,7 @@ class AppraisalController extends Controller
         
         // Iterate through each contributor's data
         foreach ($calculatedFormData as $contributorData) {
+
             $contributorType = $contributorData['contributor_type'];
             
             foreach ($contributorData['formData'] as $form) {
