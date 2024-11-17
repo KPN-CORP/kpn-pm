@@ -95,9 +95,9 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             }
             
             // Add static scores to row
-            $contributorRow['KPI Score'] = ['dataId' => round($formData['kpiScore'], 2) ?? '-'];
-            $contributorRow['Culture Score'] = ['dataId' => round($formData['cultureScore'], 2) ?? '-'];
-            $contributorRow['Leadership Score'] = ['dataId' => round($formData['leadershipScore'], 2) ?? '-'];
+            $contributorRow['KPI Score'] = ['dataId' => round($formData['totalKpiScore'], 2) ?? '-'];
+            $contributorRow['Culture Score'] = ['dataId' => round($formData['totalCultureScore'], 2) ?? '-'];
+            $contributorRow['Leadership Score'] = ['dataId' => round($formData['totalLeadershipScore'], 2) ?? '-'];
             $contributorRow['Total Score'] = ['dataId' => round($formData['totalScore'], 2) ?? '-'];
         }
     }
