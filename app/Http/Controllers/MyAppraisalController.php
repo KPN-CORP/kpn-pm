@@ -120,7 +120,7 @@ class MyAppraisalController extends Controller
 
             $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->appraisal->goal->form_data, true) : [];
             
-            $form_data = $datas->first()->appraisal->approvalSnapshots->form_data;
+            $form_data = Auth::user()->id == $datas->first()->appraisal->created_by ? $datas->first()->appraisal->approvalSnapshots->form_data : $datas->first()->appraisal->form_data;
 
             $appraisalData = $datas->isNotEmpty() ? json_decode($form_data, true) : [];
 
