@@ -210,7 +210,7 @@ class OnBehalfController extends Controller
 
         if ($category == 'Goals' || $filterCategory == 'Goals') {
             return view('pages.onbehalfs.goal', compact('data', 'link', 'parentLink', 'locations', 'companies', 'groupCompanies'));
-        } elseif ($category == 'Performance' || $filterCategory == 'Goals') {
+        } elseif ($category == 'Performance' || $filterCategory == 'Performance') {
             return view('pages.onbehalfs.performance', compact('data', 'link', 'parentLink', 'locations', 'companies', 'groupCompanies'));
         } else {
             return view('pages.onbehalfs.empty');
