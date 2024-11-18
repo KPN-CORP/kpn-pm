@@ -49,7 +49,9 @@
             <div class="form-group">
               <label for="roleName">Restrict Location (Keeping blank means no restrictions)</label>
               <select class="form-control select2" name="work_area_code[]" multiple="multiple">
-                <option value="{{ $location->work_area_code }}">{{ $location->office_area.' ('.$location->group_company.')' }}</option>
+                @foreach ($locations as $location)
+                    <option value="{{ $location->work_area_code }}">{{ $location->office_area.' ('.$location->group_company.')' }}</option>
+                @endforeach
               </select>
             </div>
           </div>
