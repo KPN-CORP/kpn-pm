@@ -51,27 +51,45 @@ class OnBehalfController extends Controller
 
         $groupCompanyCodes = $restrictionData['group_company'] ?? [];
 
-        $this->groupCompanies = Location::select('company_name')
+        // $this->groupCompanies = Location::select('company_name')
+        //     ->when(!empty($groupCompanyCodes), function ($query) use ($groupCompanyCodes) {
+        //         return $query->whereIn('company_name', $groupCompanyCodes);
+        //     })
+        //     ->orderBy('company_name')->distinct()->pluck('company_name');
+
+        $this->groupCompanies = Employee::select('group_company')
             ->when(!empty($groupCompanyCodes), function ($query) use ($groupCompanyCodes) {
-                return $query->whereIn('company_name', $groupCompanyCodes);
-            })
-            ->orderBy('company_name')->distinct()->pluck('company_name');
+                return $query->whereIn('group_company', $groupCompanyCodes);
+            })->orderBy('group_company')->distinct()->pluck('group_company');
 
         $workAreaCodes = $restrictionData['work_area_code'] ?? [];
 
-        $this->locations = Location::select('company_name', 'area', 'work_area')
+        // $this->locations = Location::select('company_name', 'area', 'work_area')
+        //     ->when(!empty($workAreaCodes) || !empty($groupCompanyCodes), function ($query) use ($workAreaCodes, $groupCompanyCodes) {
+        //         return $query->where(function ($query) use ($workAreaCodes, $groupCompanyCodes) {
+        //             if (!empty($workAreaCodes)) {
+        //                 $query->whereIn('work_area', $workAreaCodes);
+        //             }
+        //             if (!empty($groupCompanyCodes)) {
+        //                 $query->orWhereIn('company_name', $groupCompanyCodes);
+        //             }
+        //         });
+        //     })
+        //     ->orderBy('area')
+        //     ->get();
+
+        $this->locations = Employee::select('office_area', 'work_area_code', 'group_company')
             ->when(!empty($workAreaCodes) || !empty($groupCompanyCodes), function ($query) use ($workAreaCodes, $groupCompanyCodes) {
                 return $query->where(function ($query) use ($workAreaCodes, $groupCompanyCodes) {
                     if (!empty($workAreaCodes)) {
-                        $query->whereIn('work_area', $workAreaCodes);
+                        $query->whereIn('work_area_code', $workAreaCodes);
                     }
                     if (!empty($groupCompanyCodes)) {
-                        $query->orWhereIn('company_name', $groupCompanyCodes);
+                        $query->orWhereIn('group_company', $groupCompanyCodes);
                     }
                 });
             })
-            ->orderBy('area')
-            ->get();
+            ->orderBy('work_area_code')->distinct()->get();
 
         $companyCodes = $restrictionData['contribution_level_code'] ?? [];
 
@@ -120,7 +138,7 @@ class OnBehalfController extends Controller
             // Mengambil data pengajuan berdasarkan employee_id atau manager_id
             $datas = ApprovalRequest::with(['employee', 'goal', 'updatedBy', 'approval' => function ($query) {
                 $query->with('approverName'); // Load nested relationship
-            }])->where('category', $this->category);
+            }])->where('category', $this->category)->whereHas('employee');
 
             $criteria = [
                 'work_area_code' => $permissionLocations,
