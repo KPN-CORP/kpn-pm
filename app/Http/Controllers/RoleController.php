@@ -48,9 +48,11 @@ class RoleController extends Controller
     function create() {    
         $permissions = Permission::orderBy('group_name')->orderBy('display_name')->get();    
 
-        $locations = Location::select('company_name', 'area', 'work_area')->orderBy('area')->get();
+        // $locations = Location::select('company_name', 'area', 'work_area')->orderBy('area')->get();
+        $locations = Employee::select('office_area', 'work_area_code', 'group_company')->orderBy('work_area_code')->distinct()->get();
 
-        $groupCompanies = Location::select('company_name')->orderBy('company_name')->distinct()->pluck('company_name');
+        // $groupCompanies = Location::select('company_name')->orderBy('company_name')->distinct()->pluck('company_name');
+        $groupCompanies = Employee::select('group_company')->orderBy('group_company')->distinct()->pluck('group_company');
 
         $companies = Company::select('contribution_level', 'contribution_level_code')->orderBy('contribution_level_code')->get();
 
@@ -78,9 +80,13 @@ class RoleController extends Controller
 
         $roleId = $request->input('roleId');
 
-        $locations = Location::select('company_name', 'area', 'work_area')->orderBy('area')->get();
+        // $locations = Location::select('company_name', 'area', 'work_area')->orderBy('area')->get();
 
-        $groupCompanies = Location::select('company_name')->orderBy('company_name')->distinct()->pluck('company_name');
+        // $groupCompanies = Location::select('company_name')->orderBy('company_name')->distinct()->pluck('company_name');
+
+        $locations = Employee::select('office_area', 'work_area_code', 'group_company')->orderBy('work_area_code')->distinct()->get();
+
+        $groupCompanies = Employee::select('group_company')->orderBy('group_company')->distinct()->pluck('group_company');
 
         $companies = Company::select('contribution_level', 'contribution_level_code')->orderBy('contribution_level_code')->get();
 
@@ -102,9 +108,13 @@ class RoleController extends Controller
 
         $roles = Role::with(['permissions'])->where('id', $roleId)->get();
 
-        $locations = Location::select('company_name', 'area', 'work_area')->orderBy('area')->get();
+        // $locations = Location::select('company_name', 'area', 'work_area')->orderBy('area')->get();
 
-        $groupCompanies = Location::select('company_name')->orderBy('company_name')->distinct()->pluck('company_name');
+        // $groupCompanies = Location::select('company_name')->orderBy('company_name')->distinct()->pluck('company_name');
+
+        $locations = Employee::select('office_area', 'work_area_code', 'group_company')->orderBy('work_area_code')->distinct()->get();
+
+        $groupCompanies = Employee::select('group_company')->orderBy('group_company')->distinct()->pluck('group_company');
 
         $companies = Company::select('contribution_level', 'contribution_level_code')->orderBy('contribution_level_code')->get();
 
