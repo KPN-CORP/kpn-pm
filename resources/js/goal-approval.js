@@ -461,3 +461,15 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     });
 });
+
+function autoResize(textarea) {
+    // Reset the height to auto to calculate the new height correctly
+    textarea.style.height = 'auto';
+    // Set the height to the scrollHeight to fit the content
+    textarea.style.height = textarea.scrollHeight + 'px';
+}
+
+// Automatically resize on page load
+document.querySelectorAll('textarea[readonly]').forEach(textarea => {
+    autoResize(textarea);
+});
