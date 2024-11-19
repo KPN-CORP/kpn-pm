@@ -143,7 +143,23 @@ class ReportController extends Controller
 
         // Start building the query
         if ($report_type === 'Goal') {
-            $query = ApprovalRequest::with(['employee', 'manager', 'goal', 'initiated'])->where('category', $this->category);
+            $query = ApprovalRequest::with(['employee', 'manager', 'goal', 'initiated'])->where('category', $this->category)->whereHas('employee');
+
+            $criteria = [
+                'work_area_code' => $permissionLocations,
+                'group_company' => $permissionGroupCompanies,
+                'contribution_level_code' => $permissionCompanies,
+            ];
+
+            $query->where(function ($query) use ($criteria) {
+                foreach ($criteria as $key => $value) {
+                    if ($value !== null && !empty($value)) {
+                        $query->orWhereHas('employee', function ($subquery) use ($key, $value) {
+                            $subquery->whereIn($key, $value);
+                        });
+                    }
+                }
+            });
 
             if (!empty($group_company)) {
                 $query->whereHas('employee', function ($query) use ($group_company) {
@@ -160,22 +176,6 @@ class ReportController extends Controller
                     $query->whereIn('contribution_level_code', $company);
                 });
             }
-
-            $criteria = [
-                'work_area_code' => $permissionLocations,
-                'group_company' => $permissionGroupCompanies,
-                'contribution_level_code' => $permissionCompanies,
-            ];
-    
-            $query->where(function ($query) use ($criteria) {
-                foreach ($criteria as $key => $value) {
-                    if ($value !== null && !empty($value)) {
-                        $query->orWhereHas('employee', function ($subquery) use ($key, $value) {
-                            $subquery->whereIn($key, $value);
-                        });
-                    }
-                }
-            });
 
             // Apply employee filters
             $data = $query->get();

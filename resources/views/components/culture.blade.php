@@ -36,7 +36,7 @@
                                                 @foreach ($ratings as $item)
                                                     <option value="{{ $item['value'] }}" 
                                                         {{ isset($dataItem['score'][$indexItem]) && $dataItem['score'][$indexItem] == $item['value'] && $viewCategory != 'Review' ? 'selected' : '' }}>
-                                                        {{ $item['parameter'] }}
+                                                        {{ $item['value'] }}
                                                     </option>
                                                 @endforeach
                                             </select>
