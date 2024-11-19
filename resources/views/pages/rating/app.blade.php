@@ -51,7 +51,10 @@
                                             return isset($data['status']) && $data['status'] === 'Approved';
                                         })
                                         ->count();
-
+                                        $keys = array_keys($data['combined']);
+                                        $firstKey = $keys[0];
+                                        $secondKey = $keys[1];
+                                        $lastKey = array_key_last($data['combined']);
                                     @endphp
                                     <div class="row">
                                         @if ($rating_status)
@@ -131,8 +134,12 @@
                                                         <i class="ri-information-line h3 fw-light"></i>
                                                     </div>
                                                     <div class="col">
-                                                        <strong class="{{ $employeeCount == 1 }}">If there's only have 1 employee, the Rater can select any rating between B-E.</strong>
-                                                        <strong class="{{ $employeeCount == 2 }}">If there's has 2 employees, the You can select any rating between A-E. However, the selected rating will be available to be allocated only 1 time.</strong>
+                                                        <strong class="{{ $employeeCount == 1 ? '' : 'd-none' }}">
+                                                            {{ __('rating_employee_single', ['secondKey' => $secondKey, 'lastKey' => $lastKey]) }}
+                                                        </strong>
+                                                        <strong class="{{ $employeeCount > 1 ? '' : 'd-none' }}">
+                                                            {{ __('rating_employee_double', ['firstKey' => $firstKey, 'lastKey' => $lastKey]) }}
+                                                        </strong>
                                                     </div>
                                                 </div>
                                             </div>
