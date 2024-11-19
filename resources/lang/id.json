@@ -43,5 +43,7 @@
     "Error Alert Messages": "Harap lengkapi semua kolom yang kosong!",
     "Close": "Tutup",
     "Initiate Appraisal": "Buat Penilaian",
-    "Send Back Messages": "Pesan Send Back"
+    "Send Back Messages": "Pesan Send Back",
+    "rating_employee_single" : "Jika hanya ada 1 karyawan, Penilai dapat memilih peringkat antara ':secondKey' - ':lastKey'.",
+    "rating_employee_double" : "Jika ada 2 karyawan, Anda dapat memilih peringkat antara ':firstKey' - ':lastKey'. Namun, peringkat yang dipilih hanya dapat dialokasikan 1 kali."
 }
