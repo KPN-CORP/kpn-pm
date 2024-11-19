@@ -426,10 +426,10 @@ class AppService
             
                 // Culture Score average calculation
                 $cultureScores = [
-                    $formData['cultureScore'] ?? 0,
-                    $formDataManager['cultureScore'] ?? 0,
-                    $formDataPeers['cultureScore'] ?? 0,
-                    $formDataSub['cultureScore'] ?? 0,
+                    $formData['cultureAverageScore'] ?? 0,
+                    $formDataManager['cultureAverageScore'] ?? 0,
+                    $formDataPeers['cultureAverageScore'] ?? 0,
+                    $formDataSub['cultureAverageScore'] ?? 0,
                 ];
                 $totalCultureScore = array_sum($cultureScores);
                 $nonZeroCultureCount = count(array_filter($cultureScores, fn($score) => $score !== 0));
@@ -437,10 +437,10 @@ class AppService
             
                 // Leadership Score average calculation
                 $leadershipScores = [
-                    $formData['leadershipScore'] ?? 0,
-                    $formDataManager['leadershipScore'] ?? 0,
-                    $formDataPeers['leadershipScore'] ?? 0,
-                    $formDataSub['leadershipScore'] ?? 0,
+                    $formData['leadershipAverageScore'] ?? 0,
+                    $formDataManager['leadershipAverageScore'] ?? 0,
+                    $formDataPeers['leadershipAverageScore'] ?? 0,
+                    $formDataSub['leadershipAverageScore'] ?? 0,
                 ];
                 $totalLeadershipScore = array_sum($leadershipScores);
                 $nonZeroLeadershipCount = count(array_filter($leadershipScores, fn($score) => $score !== 0));
@@ -462,8 +462,10 @@ class AppService
                     ($formDataSub['leadershipAverageScore'] ?? 0);
             }
             
+            
             $suggestedRating = $suggestedKpi + $suggestedCulture + $suggestedLeadership;
 
+            // dd($suggestedLeadership);
             return $suggestedRating;
 
         }catch (\Exception $e) {
