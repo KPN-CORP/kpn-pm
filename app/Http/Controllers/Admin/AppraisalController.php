@@ -8,6 +8,7 @@ use App\Models\Appraisal;
 use App\Models\AppraisalContributor;
 use App\Models\ApprovalLayerAppraisal;
 use App\Models\ApprovalRequest;
+use App\Models\ApprovalSnapshots;
 use App\Models\Calibration;
 use App\Models\EmployeeAppraisal;
 use App\Models\FormGroupAppraisal;
@@ -276,20 +277,69 @@ class AppraisalController extends Controller
                 $datasQuery = AppraisalContributor::with(['employee'])->where('appraisal_id', $formId);
                 $datas = $datasQuery->get();
 
+                $checkSnapshot = ApprovalSnapshots::where('form_id', $formId)->where('created_by', $datas->first()->employee->id)
+                    ->orderBy('created_at', 'desc')->first();
+
+                // Check if `datas->first()->employee->id` exists
+                if ($checkSnapshot) {
+                    $query = $checkSnapshot;
+                }else{
+                    $query = ApprovalSnapshots::where('form_id', $formId)
+                    ->orderBy('created_at', 'asc');
+                }
+                
+                $employeeForm = $query->first();
+                // $employeeForm = $checkSnapshot;
+                
                 $data = [];
                 $appraisalDataCollection = [];
                 $goalDataCollection = [];
 
                 $formGroupContent = $this->appService->formGroupAppraisal($datas->first()->employee_id, 'Appraisal Form');
-            
+                
                 if (!$formGroupContent) {
                     $appraisalForm = ['data' => ['formData' => []]];
                 } else {
                     $appraisalForm = $formGroupContent;
                 }
-
+                
                 $cultureData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
                 $leadershipData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
+
+                
+                if($employeeForm){
+
+                    // Create data item object
+                    $dataItem = new stdClass();
+                    $dataItem->request = $employeeForm;
+                    $dataItem->name = $employeeForm->name;
+                    $dataItem->goal = $employeeForm->goal;
+                    $data[] = $dataItem;
+    
+    
+                    // Get appraisal form data for each record
+                    $appraisalData = [];
+
+                    
+                    if ($employeeForm->form_data) {
+                        $appraisalData = json_decode($employeeForm->form_data, true);
+                        $contributorType = $employeeForm->contributor_type;
+                        $appraisalData['contributor_type'] = 'employee';
+                    }
+    
+                    // Get goal form data for each record
+                    $goalData = [];
+                    if ($employeeForm->goal && $employeeForm->goal->form_data) {
+                        $goalData = json_decode($employeeForm->goal->form_data, true);
+                        $goalDataCollection[] = $goalData;
+                    }
+                    
+                    // Combine the appraisal and goal data for each contributor
+                    $employeeData = $employeeForm->employee; // Get employee data
+            
+                    $formData[] = $appraisalData;
+
+                }
 
                 foreach ($datas as $request) {
 
@@ -299,7 +349,7 @@ class AppraisalController extends Controller
                     $dataItem->name = $request->name;
                     $dataItem->goal = $request->goal;
                     $data[] = $dataItem;
-
+                    
                     // Get appraisal form data for each record
                     $appraisalData = [];
 
@@ -332,8 +382,6 @@ class AppraisalController extends Controller
                 $result = $this->appraisalSummary($weightageContent, $formData, $employeeData->employee_id);
 
                 $formData = $this->appService->combineFormData($result['summary'], $goalData, $result['summary']['contributor_type'], $employeeData, $request->period);
-
-
                 
                 if (isset($formData['totalKpiScore'])) {
                     $formData['kpiScore'] = round($formData['kpiScore'], 2);
@@ -485,6 +533,7 @@ class AppraisalController extends Controller
                 $appraisalData = $formData;
 
             }
+            // dd($formData);
 
             return view('components.appraisal-card', compact('datas', 'formData', 'appraisalData'));
 
@@ -504,6 +553,7 @@ class AppraisalController extends Controller
     }
 
     function appraisalSummary($weightages, $formData, $employeeID) {
+
         $calculatedFormData = [];
 
         $checkLayer = ApprovalLayerAppraisal::where('employee_id', $employeeID)
@@ -517,90 +567,88 @@ class AppraisalController extends Controller
         $managerCount = $layerCounts['manager'] ?? 0;
         $peersCount = $layerCounts['peers'] ?? 0;
         $subordinateCount = $layerCounts['subordinate'] ?? 0;
-        
-        // First part: Calculate weighted scores
-        foreach ($weightages as $item) {
-            foreach ($formData as $data) {
-                $contributorType = $data['contributor_type'];
-                $formGroupName = $data['formGroupName'];
-                $formDataWithCalculatedScores = [];
 
-                foreach ($data['formData'] as $form) {
-                    $formName = $form['formName'];
-                    $calculatedForm = [
-                        "formName" => $formName,
-                    ];
-                    
-                    if ($formName === "KPI") {
-                        foreach ($form as $key => $achievement) {
-                            if (is_numeric($key)) {
-                                $calculatedForm[$key] = $achievement;
-                            }
+        $calculatedFormData = []; // Initialize result array
+
+        // Loop through $formData first to structure results by formGroupName and contributor_type
+        foreach ($formData as $data) {
+            $contributorType = $data['contributor_type'];
+            $formGroupName = $data['formGroupName'];
+            $formDataWithCalculatedScores = []; // Array to store calculated scores for the group
+
+            foreach ($data['formData'] as $form) {
+                $formName = $form['formName'];
+                $calculatedForm = ["formName" => $formName];
+
+                if ($formName === "KPI") {
+                    // Directly copy KPI achievements
+                    foreach ($form as $key => $achievement) {
+                        if (is_numeric($key)) {
+                            $calculatedForm[$key] = $achievement;
                         }
-                    } else {
+                    }
+                } else {
+                    // Process other forms
+                    foreach ($weightages as $item) {
                         foreach ($item['competencies'] as $competency) {
-
                             if ($competency['competency'] == $formName) {
-                                // Fixed weightage360 handling
+                                // Handle weightage360
                                 $weightage360 = 0;
+
                                 if (isset($competency['weightage360'])) {
-                                    foreach ($competency['weightage360'] as $weightageData) {
-                                        if (isset($weightageData[$contributorType])) {
-                                            $weightage360 = $weightageData[$contributorType];
-                                            break;
-                                        }
+                                    // Extract weightages for each type
+                                    $weightageValues = collect($competency['weightage360'])->flatMap(function ($weightage) {
+                                        return $weightage;
+                                    });
+
+                                    $weightage360 = $weightageValues[$contributorType] ?? 0;
+
+                                    $weightage360 += $weightageValues['employee'] ?? 0;
+
+                                    // Adjust weightages
+                                    if ($subordinateCount == 0) {
+                                        $weightage360 += $weightageValues['subordinate'] ?? 0;
+                                    }
+                                    if ($peersCount == 0) {
+                                        $weightage360 += $weightageValues['peers'] ?? 0;
+                                    }
+                                    if ($subordinateCount == 0 && $peersCount == 0) {
+                                        $weightage360 += ($weightageValues['subordinate'] ?? 0) + ($weightageValues['peers'] ?? 0);
                                     }
                                 }
-                                
+
+                                // Calculate weighted scores
                                 foreach ($form as $key => $scores) {
                                     if (is_numeric($key)) {
                                         $calculatedForm[$key] = [];
-
-                                        if ($peersCount == 0 || $subordinateCount == 0) {
-                                            // Calculate average score if both counts are zero
-                                            $totalScore = 0;
-                                            $scoreCount = count($scores);
-        
-                                            foreach ($scores as $scoreData) {
-                                                $totalScore += $scoreData['score'];
-                                            }
-        
-                                            $averageScore = $scoreCount > 0 ? $totalScore / $scoreCount : 0;
-                                            $calculatedForm[$key][] = [
-                                                "score" => $averageScore
-                                            ];
-                                        } else {
-                                            // Apply weighted score if peers or subordinate count is non-zero
-                                            foreach ($scores as $scoreData) {
-                                                $score = $scoreData['score'];
-                                                $weightedScore = $score * ($weightage360 / 100);
-                                                $calculatedForm[$key][] = [
-                                                    "score" => $weightedScore
-                                                ];
-                                            }
+                                        foreach ($scores as $scoreData) {
+                                            $score = $scoreData['score'];
+                                            $weightedScore = $score * ($weightage360 / 100);
+                                            $calculatedForm[$key][] = ["score" => $weightedScore];
                                         }
                                     }
                                 }
                             }
                         }
                     }
+                }
 
-                    
-                    $formDataWithCalculatedScores[] = $calculatedForm;
-                }                
-                
-                
-                $calculatedFormData[] = [
-                    "formGroupName" => $formGroupName,
-                    "formData" => $formDataWithCalculatedScores,
-                    "contributor_type" => $contributorType
-                ];
-
+                $formDataWithCalculatedScores[] = $calculatedForm;
             }
+
+            $calculatedFormData[] = [
+                "formGroupName" => $formGroupName,
+                "formData" => $formDataWithCalculatedScores,
+                "contributor_type" => $contributorType
+            ];
         }
+
+
         
         // Second part: Calculate summary averages
         $averages = [];
+
+        // dd($calculatedFormData);
         
         // Iterate through each contributor's data
         foreach ($calculatedFormData as $contributorData) {
