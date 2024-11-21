@@ -134,12 +134,12 @@ class OnBehalfController extends Controller
 
         $data = [];
         
-        if ($category || $filterCategory) {
+        if ($category == 'Goals' || $filterCategory == 'Goals') {
             // Mengambil data pengajuan berdasarkan employee_id atau manager_id
             $datas = ApprovalRequest::with(['employee', 'goal', 'updatedBy', 'approval' => function ($query) {
                 $query->with('approverName'); // Load nested relationship
-            }])->where('category', $this->category)->whereHas('employee');
-
+            }])->where('category', $this->category)->whereHas('employee')->whereHas('manager');
+            
             $criteria = [
                 'work_area_code' => $permissionLocations,
                 'group_company' => $permissionGroupCompanies,
@@ -177,6 +177,7 @@ class OnBehalfController extends Controller
             $datas = $datas->get();
             
             $datas->map(function($item) {
+
                 // Format created_at
                 $createdDate = Carbon::parse($item->created_at);
 
@@ -221,10 +222,12 @@ class OnBehalfController extends Controller
                 }
             }
         }
-
+        
+        
         $locations = $this->locations;
         $companies = $this->companies;
         $groupCompanies = $this->groupCompanies;
+        
 
         if ($category == 'Goals' || $filterCategory == 'Goals') {
             return view('pages.onbehalfs.goal', compact('data', 'link', 'parentLink', 'locations', 'companies', 'groupCompanies'));

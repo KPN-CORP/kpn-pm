@@ -465,7 +465,6 @@ class AppService
             
             $suggestedRating = $suggestedKpi + $suggestedCulture + $suggestedLeadership;
 
-            // dd($suggestedLeadership);
             return $suggestedRating;
 
         }catch (\Exception $e) {
