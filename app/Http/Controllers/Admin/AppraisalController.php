@@ -278,7 +278,7 @@ class AppraisalController extends Controller
                 $datas = $datasQuery->get();
 
                 $checkSnapshot = ApprovalSnapshots::where('form_id', $formId)->where('created_by', $datas->first()->employee->id)
-                    ->orderBy('created_at', 'desc')->first();
+                    ->orderBy('created_at', 'desc');
 
                 // Check if `datas->first()->employee->id` exists
                 if ($checkSnapshot) {
@@ -289,8 +289,7 @@ class AppraisalController extends Controller
                 }
                 
                 $employeeForm = $query->first();
-                // $employeeForm = $checkSnapshot;
-                
+
                 $data = [];
                 $appraisalDataCollection = [];
                 $goalDataCollection = [];
@@ -305,7 +304,7 @@ class AppraisalController extends Controller
                 
                 $cultureData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
                 $leadershipData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
-
+                
                 
                 if($employeeForm){
 
@@ -572,6 +571,7 @@ class AppraisalController extends Controller
 
         // Loop through $formData first to structure results by formGroupName and contributor_type
         foreach ($formData as $data) {
+
             $contributorType = $data['contributor_type'];
             $formGroupName = $data['formGroupName'];
             $formDataWithCalculatedScores = []; // Array to store calculated scores for the group
@@ -635,14 +635,13 @@ class AppraisalController extends Controller
 
                 $formDataWithCalculatedScores[] = $calculatedForm;
             }
-
+            
             $calculatedFormData[] = [
                 "formGroupName" => $formGroupName,
                 "formData" => $formDataWithCalculatedScores,
                 "contributor_type" => $contributorType
             ];
         }
-
 
         
         // Second part: Calculate summary averages
