@@ -36,6 +36,7 @@ import './quill.min.js';
 
 import './goal-form.js';
 import './goal-approval.js';
+import './team-goal.js';
 
 import './appraisal.js';
 import './appraisal-task.js';
