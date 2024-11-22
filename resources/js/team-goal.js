@@ -11,8 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     filterButtons.forEach(button => {
         button.addEventListener('click', function () {
-            const filter = this.getAttribute('data-id');
-
+            const filter = this.getAttribute('data-id');            
             
             taskContainers.forEach((taskContainer, index) => {
                 const tasks = taskContainer.querySelectorAll('.task-card');
