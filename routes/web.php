@@ -319,7 +319,7 @@ Route::middleware('auth', 'locale')->group(function () {
     Route::middleware(['permission:viewreport'])->group(function () {
         
         Route::get('/reports-admin', [AdminReportController::class, 'index'])->name('admin.reports');
-        Route::get('/admin/get-report-content/{reportType}', [AdminReportController::class, 'getReportContent']);
+        // Route::get('/admin/get-report-content/{reportType}', [AdminReportController::class, 'getReportContent']);
         Route::post('/admin/get-report-content', [AdminReportController::class, 'getReportContent']);
         Route::get('/admin/changes-group-company', [AdminReportController::class, 'changesGroupCompany']);
         Route::get('/admin/changes-company', [AdminReportController::class, 'changesCompany']);
