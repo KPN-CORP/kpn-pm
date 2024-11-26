@@ -50,6 +50,7 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified', 'role:superadmin'])->name('dashboard');
+Route::get('/dashboard-team', [DashboardController::class, 'teamDashboard'])->middleware(['auth', 'verified', 'role:superadmin'])->name('dashboard.team');
 
 Route::get('language/{locale}', [LanguageController::class, 'switchLanguage'])->name('language.switch');
 

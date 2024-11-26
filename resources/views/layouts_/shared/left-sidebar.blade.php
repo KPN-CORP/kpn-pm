@@ -44,11 +44,19 @@
                 <a data-bs-toggle="collapse" href="#sidebarDashboards" aria-expanded="false" aria-controls="sidebarDashboards" class="side-nav-link">
                     <i class="ri-home-4-line"></i>
                     <span> Dashboards </span>
+                    <span class="menu-arrow"></span>
                 </a>
                 <div class="collapse" id="sidebarDashboards">
                     <ul class="side-nav-second-level">
                         <li>
                             <a href="{{ route('dashboard') }}">Analytics</a>
+                        </li>
+                    </ul>
+                </div>
+                <div class="collapse" id="sidebarDashboards">
+                    <ul class="side-nav-second-level">
+                        <li>
+                            <a href="{{ route('dashboard.team') }}">My Team</a>
                         </li>
                     </ul>
                 </div>

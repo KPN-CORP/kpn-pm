@@ -251,6 +251,140 @@ class AppService
     
         return $appraisalDatas;
     }
+    
+    public function combineSummaryFormData($appraisalData, $goalData, $employeeData, $period) {
+
+        $totalKpiScore = 0; // Initialize the total score
+        $totalCultureScore = 0; // Initialize the total score
+        $totalLeadershipScore = 0; // Initialize the total score
+        $cultureAverageScore = 0; // Initialize Culture average score
+        $leadershipAverageScore = 0; // Initialize Culture average score
+
+        $jobLevel = $employeeData->job_level;
+        
+
+        foreach ($appraisalData['calculated_data'] as $appraisalDatas) {
+            if (!empty($appraisalDatas['formData']) && is_array($appraisalDatas['formData'])) {
+                // Initialize the culture and leadership scores for this contributor type
+                $cultureAverageScore = 0;
+                $leadershipAverageScore = 0;
+        
+                foreach ($appraisalDatas['formData'] as &$form) {
+                    if ($form['formName'] === "Culture") {
+                        // Calculate average score for Culture form
+                        $cultureAverageScore = $this->averageScore($form);
+                    } elseif ($form['formName'] === "Leadership") {
+                        // Calculate average score for Leadership form
+                        $leadershipAverageScore = $this->averageScore($form);
+                    }
+                }
+        
+                // Sum the culture and leadership scores across all contributor types
+                $totalCultureScore += $cultureAverageScore;
+                $totalLeadershipScore += $leadershipAverageScore;
+            } else {
+                // Handle the case where formData is null or not an array
+                $appraisalDatas['formData'] = []; // Optionally, set to an empty array
+            }
+            
+            $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')
+                        ->where('period', $period)
+                        ->first();
+            
+                    $weightageContent = json_decode($weightageData->form_data, true);
+            
+                    $kpiWeightage = 0;
+                    $cultureWeightage = 0;
+                    $leadershipWeightage = 0;
+            
+                    foreach ($weightageContent as $item) {
+                        if (in_array($jobLevel, $item['jobLevel'])) {
+                            foreach ($item['competencies'] as $competency) {
+                                $employeeWeightage = 0;
+            
+                                if (isset($competency['weightage360'])) {
+                                    foreach ($competency['weightage360'] as $weightage360) {
+                                        if (isset($weightage360[$appraisalDatas['contributor_type']])) {
+                                            $employeeWeightage += $weightage360[$appraisalDatas['contributor_type']];
+                                        }
+                                    }
+                                }
+            
+                                switch ($competency['competency']) {
+                                    case 'KPI':
+                                        $kpiWeightage = $competency['weightage'];
+                                        $kpiWeightage360 = $employeeWeightage;
+                                        break;
+                                    case 'Culture':
+                                        $cultureWeightage = $competency['weightage'];
+                                        $cultureWeightage360 = $employeeWeightage;
+                                        break;
+                                    case 'Leadership':
+                                        $leadershipWeightage = $competency['weightage'];
+                                        $leadershipWeightage360 = $employeeWeightage;
+                                        break;
+                                }
+                            }
+                            break; // Exit after processing the relevant job level
+                        }
+                    }
+        }
+        
+        $appraisalDatas = $appraisalData['summary'];
+        if (!empty($appraisalDatas['formData']) && is_array($appraisalDatas['formData'])) {
+            foreach ($appraisalDatas['formData'] as &$form) {
+                if ($form['formName'] === "KPI") {
+                    foreach ($form as $key => &$entry) {
+                        if (is_array($entry) && isset($goalData[$key])) {
+                            $entry = array_merge($entry, $goalData[$key]);
+        
+                            // Adding "percentage" key
+                            if (isset($entry['achievement'], $entry['target'], $entry['type'])) {
+                                $entry['percentage'] = $this->evaluate($entry['achievement'], $entry['target'], $entry['type']);
+                                $entry['conversion'] = $this->conversion($entry['percentage']);
+                                $entry['final_score'] = $entry['conversion'] * $entry['weightage'] / 100;
+        
+                                // Add the final_score to the total score
+                                $totalKpiScore += $entry['final_score'];
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            // Handle the case where formData is null or not an array
+            $appraisalDatas['formData'] = []; // Optionally, set to an empty array
+        }
+        
+        $appraisalDatas['kpiWeightage360'] = $kpiWeightage360; // get KPI 360 weightage
+        $appraisalDatas['cultureWeightage360'] = $cultureWeightage360 / 100; // get Culture 360 weightage
+        $appraisalDatas['leadershipWeightage360'] = $leadershipWeightage360 / 100; // get Leadership 360 weightage
+        
+        // Add the total scores to the appraisalData
+        $appraisalDatas['totalKpiScore'] = round($totalKpiScore * $kpiWeightage / 100 , 2); // get KPI Final Score
+        $appraisalDatas['totalCultureScore'] = round($totalCultureScore * $cultureWeightage / 100 , 2); // get KPI Final Score
+        // $appraisalDatas['totalCultureScore'] = round($cultureAverageScore * $cultureWeightage / 100 , 2); // get KPI Final Score
+        $appraisalDatas['totalLeadershipScore'] = round($totalLeadershipScore * $leadershipWeightage / 100 , 2); // get KPI Final Score
+        // $appraisalDatas['totalLeadershipScore'] = round($leadershipAverageScore * $leadershipWeightage / 100 , 2); // get KPI Final Score
+        $appraisalDatas['cultureScore360'] = $cultureAverageScore * $cultureWeightage360 / 100; // get KPI Final Score
+        $appraisalDatas['leadershipScore360'] = $leadershipAverageScore * $leadershipWeightage360 / 100; // get KPI Final Score
+        $appraisalDatas['cultureAverageScore'] = ($cultureAverageScore * $cultureWeightage / 100) * $appraisalDatas['cultureWeightage360']; // get Culture Average Score
+        $appraisalDatas['leadershipAverageScore'] = ($leadershipAverageScore * $leadershipWeightage / 100) * $appraisalDatas['leadershipWeightage360']; // get Leadership Average Score
+        
+        $appraisalDatas['kpiScore'] = $totalKpiScore; // get KPI Final Score
+        $appraisalDatas['cultureScore'] = $cultureAverageScore; // get KPI Final Score
+        $appraisalDatas['leadershipScore'] = $leadershipAverageScore; // get KPI Final Score
+
+        $scores = [$totalKpiScore,$cultureAverageScore,$leadershipAverageScore];
+        // get KPI Final Score
+        // $appraisalDatas['totalScore'] =  round(array_sum($scores) / count($scores) ,2); // Old
+        $appraisalDatas['totalScore'] =  $appraisalDatas['totalKpiScore'] + $appraisalDatas['totalCultureScore'] + $appraisalDatas['totalLeadershipScore']; // Update
+
+        $appraisalDatas['contributorRating'] = $appraisalDatas['totalKpiScore'] + $appraisalDatas['cultureAverageScore'] + $appraisalDatas['leadershipAverageScore']; // old
+        $appraisalDatas['contributorRating'] = $appraisalDatas['totalKpiScore'] + $appraisalDatas['totalCultureScore'] + $appraisalDatas['totalLeadershipScore']; // update
+    
+        return $appraisalDatas;
+    }
 
     // Function to merge scores
     function mergeScores($formData, $filteredFormData) {
