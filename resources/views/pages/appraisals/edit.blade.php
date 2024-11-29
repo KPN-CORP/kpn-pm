@@ -34,7 +34,7 @@
                         <input type="hidden" class="form-control" name="id" value="{{ $appraisal->id }}">
                         <input type="hidden" name="employee_id" value="{{ $appraisal->employee_id }}">
                         <input type="hidden" class="form-control" name="approver_id" value="{{ $approval->approver_id }}">
-                        <input type="hidden" name="formGroupName" value="{{ $formGroupData['name'] }}">
+                        <input type="hidden" name="formGroupName" value="{{ $formGroupData['data']['name'] }}">
                         @foreach ($filteredFormData as $index => $row)
                         <div class="step" data-step="{{ $step }}"></div>
                             <div class="form-step {{ $step == $index + 1 ? 'active' : '' }}" data-step="{{ $index + 1 }}">
@@ -44,6 +44,7 @@
                                 'formIndex' => $index,
                                 'name' => $row['name'],
                                 'data' => $row['data'],
+                                'viewCategory' => $viewCategory
                                 ])
                             </div>
                             @endforeach

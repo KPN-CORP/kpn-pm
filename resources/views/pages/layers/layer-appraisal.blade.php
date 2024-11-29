@@ -61,7 +61,11 @@
                             <td>{{ $row->office_area }}</td>
                             <td>{{ $row->group_company }}</td>
                             <td class="sorting_1 text-center">
-                                <a href="{{ route('layer-appraisal.edit', $row->employee_id) }}" class="btn btn-sm rounded btn-outline-warning me-1"><i class="ri-edit-box-line fs-16"></i></a>
+                                @if (!$row->calibration->count())
+                                    <a href="{{ route('layer-appraisal.edit', $row->employee_id) }}" class="btn btn-sm rounded btn-outline-warning me-1"><i class="ri-edit-box-line fs-16"></i></a>
+                                @else
+                                    <button onclick="alert('Cannot changes layer, This employee already on calibration proccess.')" class="btn btn-sm rounded btn-light me-1"><i class="ri-edit-box-line fs-16"></i></button>
+                                @endif
                                 <button class="btn btn-sm rounded btn-outline-info me-1" data-bs-toggle="modal" data-bs-target="#detailModal" data-bs-id="{{ $row->employee_id }}"><i class="ri-eye-line fs-16"></i></button>
                             </td>
                         </tr>

@@ -9,6 +9,7 @@ use App\Models\Calibration;
 use App\Models\Employee;
 use App\Models\EmployeeAppraisal;
 use App\Models\FormGroupAppraisal;
+use App\Models\MasterCalibration;
 use App\Models\MasterRating;
 use App\Models\MasterWeightage;
 use App\Models\Schedule;
@@ -26,8 +27,6 @@ class AppService
         $employee = EmployeeAppraisal::select('employee_id', 'group_company', 'job_level', 'company_name', 'work_area_code')->where('employee_id', $employee_id)->first();
         
         $datas = FormGroupAppraisal::with(['formAppraisals', 'rating'])->where('name', $form_name)->get();
-
-        // dd($datas);
 
         $data = json_decode($datas, true);
 
@@ -50,11 +49,14 @@ class AppService
             $restrict = $item['restrict'];
     
             // Check each criterion
-            $jobLevelMatch = in_array($criteria['job_level'], $restrict['job_level']);
-            $workAreaMatch = in_array($criteria['work_area'], $restrict['work_area']);
+            $jobLevelMatch = empty($restrict['job_level']) || 
+            (isset($criteria['job_level']) && in_array($criteria['job_level'], $restrict['job_level']));
+            $workAreaMatch = empty($restrict['work_area']) || 
+            (isset($criteria['work_area']) && in_array($criteria['work_area'], $restrict['work_area']));
             $companyMatch = empty($restrict['company_name']) || 
                             (isset($criteria['company_name']) && in_array($criteria['company_name'], $restrict['company_name']));
-            $groupCompanyMatch = in_array($criteria['group_company'], $restrict['group_company']);
+            $groupCompanyMatch = empty($restrict['group_company']) || 
+            (isset($criteria['group_company']) && in_array($criteria['group_company'], $restrict['group_company']));
     
             // Return true if all criteria match
             return $jobLevelMatch && $workAreaMatch && $companyMatch && $groupCompanyMatch;
@@ -176,9 +178,8 @@ class AppService
             // Handle the case where formData is null or not an array
             $appraisalDatas['formData'] = []; // Optionally, set to an empty array
         }
-
+        
         $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $period)->first();
-
         
         $weightageContent = json_decode($weightageData->form_data, true);
         
@@ -187,6 +188,7 @@ class AppService
         $leadershipWeightage = 0;
 
         foreach ($weightageContent as $item) {
+
             if (in_array($jobLevel, $item['jobLevel'])) {
                 foreach ($item['competencies'] as $competency) {
 
@@ -376,22 +378,22 @@ class AppService
 
             // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
             if (!empty($contributorManagerContent)) {
-                $formDataManager = $this->combineFormData($contributorManagerContent, $goalData, 'manager', $employeeData);
+                $formDataManager = $this->combineFormData($contributorManagerContent, $goalData, 'manager', $employeeData, $datas->first()->period);
             } else {
                 $formDataManager = [];  // or null, depending on your needs
             }
             if (!empty($combinedPeersData)) {
-                $formDataPeers = $this->combineFormData($combinedPeersData, $goalData, 'peers', $employeeData);
+                $formDataPeers = $this->combineFormData($combinedPeersData, $goalData, 'peers', $employeeData, $datas->first()->period);
             } else {
                 $formDataPeers = [];  // or null, depending on your needs
             }
             if (!empty($combinedSubData)) {
-                $formDataSub = $this->combineFormData($combinedSubData, $goalData, 'subordinate', $employeeData);
+                $formDataSub = $this->combineFormData($combinedSubData, $goalData, 'subordinate', $employeeData, $datas->first()->period);
             } else {
                 $formDataSub = [];  // or null, depending on your needs
             }
             
-            $formData = $this->combineFormData($appraisalData, $goalData, 'employee', $employeeData);
+            $formData = $this->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $datas->first()->period);
             
             $suggestedKpi = ($formDataManager['totalKpiScore'] ?? 0) 
             + ($formDataPeers['totalKpiScore'] ?? 0) 
@@ -420,14 +422,34 @@ class AppService
 
     }
 
-    public function convertRating(float $value): ?string
+    public function convertRating(float $value, $formID): ?string
     {
-        $condition = MasterRating::where('rating_group_name', 'ratings')
-        ->where('min_range', '<=', $value)
-        ->where('max_range', '>=', $value)
-        ->orderBy('min_range', 'desc')
-        ->first();
+        $formGroup = MasterCalibration::where('id_calibration_group', $formID)->first();
         
+        $condition = null;
+        
+        $roundedValue = (int) round($value);
+
+        if ($value == 0) {
+            // If value is 0, get the record with the smallest value
+            $condition = MasterRating::orderBy('value', 'asc')->first();
+        } else {
+            // Otherwise, proceed with the original query logic
+            $condition = MasterRating::where(function ($query) use ($formGroup, $value) {
+                $query->where('id_rating_group', $formGroup->id_rating_group)
+                      ->where('min_range', '<=', $value)
+                      ->where('max_range', '>=', $value);
+            })
+            ->orWhere(function ($query) use ($formGroup, $roundedValue) {
+                        $query->where('id_rating_group', $formGroup->id_rating_group)
+                              ->where('min_range', 0)
+                              ->where('max_range', 0)
+                              ->where('value', $roundedValue); // Use rounded value here
+                    })
+                    ->orderBy('min_range', 'desc')
+                    ->first();
+        }
+
         return $condition ? $condition->parameter : null;
     }
 
@@ -522,7 +544,6 @@ class AppService
     {
         // Cari data pada ApprovalLayerAppraisal berdasarkan employee_id
         $approvalLayerAppraisals = ApprovalLayerAppraisal::with(['approver', 'employee'])->where('employee_id', $employeeId)->where('layer_type', '!=', 'calibrator')->get();
-
         
         // Simpan data yang tidak ada di AppraisalContributor
         $notFoundData = [];

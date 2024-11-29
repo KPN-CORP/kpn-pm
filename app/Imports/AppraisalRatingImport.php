@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Exports\InvalidAppraisalRatingImport;
+use App\Models\Appraisal;
 use App\Models\AppraisalContributor;
 use App\Models\ApprovalLayerAppraisal;
 use App\Models\Calibration;
@@ -27,11 +28,13 @@ class AppraisalRatingImport implements ToCollection, WithHeadingRow
     protected $employeeIds = [];
     protected $appService;
     protected $period;
+    protected $allowedRating = [];
 
 
-    public function __construct($userId)
+    public function __construct($userId, $allowedRating)
     {
         $this->userId = $userId;
+        $this->allowedRating = $allowedRating;
         $this->appService = new AppService();
         $this->period = 2024;
 
@@ -59,10 +62,7 @@ class AppraisalRatingImport implements ToCollection, WithHeadingRow
 
         foreach ($collection as $row) {
 
-            // Debug each row of data
-            $allowedRating = ['A','B','C'];
-
-            if (!in_array($row['your_rating'], $allowedRating)) {
+            if (!in_array($row['your_rating'], $this->allowedRating)) {
                 $this->invalidEmployees[] = [
                     'employee_id' => $row['employee_id'],
                     'approver_id' => $row['approver_id'],
@@ -87,7 +87,7 @@ class AppraisalRatingImport implements ToCollection, WithHeadingRow
                             ->where('approver_id', $row['approver_rating_id'])
                             ->where('status', 'Pending')
                             ->first();
-
+                            
             $id_rating = $calibration->masterCalibration->first()->id_rating_group;
 
             $ratings = MasterRating::select('parameter', 'value')
@@ -95,6 +95,7 @@ class AppraisalRatingImport implements ToCollection, WithHeadingRow
             ->get();
 
             $ratingMap = $ratings->pluck('value', 'parameter')->toArray();
+
             
             $convertedValue = $ratingMap[$row['your_rating']] ?? null;
             
@@ -106,14 +107,14 @@ class AppraisalRatingImport implements ToCollection, WithHeadingRow
                     'rating' => $convertedValue,
                     'status' => 'Approved',
                     'updated_by' => Auth()->user()->id
-                ]);
+            ]);
 
                 // Update Nilai Rating
                 if ($updated) {
 
                     $nextApprover = $this->appService->processApproval($row['employee_id'], $row['approver_rating_id']);
 
-                    if ($nextApprover['next_approver_id']) {
+                    if ($nextApprover) {
                         # code...
                         $createCalibration = new Calibration();
                         $createCalibration->id_calibration_group = $calibration->id_calibration_group;
@@ -123,7 +124,14 @@ class AppraisalRatingImport implements ToCollection, WithHeadingRow
                         $createCalibration->period = $this->period;
                         $createCalibration->created_by = Auth()->user()->id;
                         $createCalibration->save();
+                    }else{
+                        Appraisal::where('id', $calibration->appraisal_id)
+                            ->update([
+                                'rating' => $convertedValue,
+                                'updated_by' => Auth()->user()->id
+                        ]);
                     }
+
                 }
             
             }

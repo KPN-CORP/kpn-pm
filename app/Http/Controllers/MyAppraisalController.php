@@ -273,6 +273,15 @@ class MyAppraisalController extends Controller
             Session::flash('error', "No Reviewer assigned, please contact admin to assign reviewer");
             return redirect()->back();
         }
+        
+        $calibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $request->id)->value('approver_id');
+
+        if (!$calibrator) {
+            Session::flash('error', "No Layer assigned, please contact admin to assign layer");
+            return redirect()->back();
+        }
+        
+        
         // Get form group appraisal
         $formGroupData = $this->appService->formGroupAppraisal($request->id, 'Appraisal Form');
                 
@@ -427,20 +436,24 @@ class MyAppraisalController extends Controller
             $approvalRequest = ApprovalRequest::where('form_id', $appraisal->id)->first();
 
             // Read the content of the JSON files
-            $formGroupContent = storage_path('../resources/testFormGroup.json');
-
-            // Decode the JSON content
-            $formGroupData = json_decode(File::get($formGroupContent), true);
+            $formGroupContent = $this->appService->formGroupAppraisal($appraisal->employee_id, 'Appraisal Form');
+            
+            if (!$formGroupContent) {
+                $formGroupData = ['data' => ['formData' => []]];
+            } else {
+                $formGroupData = $formGroupContent;
+            }
 
             
-            
-            $formTypes = $formGroupData['data']['formName'] ?? [];
-            $formDatas = $formGroupData['data']['formData'] ?? [];
+            $formTypes = $formGroupData['data']['form_names'] ?? [];
+            $formDatas = $formGroupData['data']['form_appraisals'] ?? [];
             
             
             $filteredFormData = array_filter($formDatas, function($form) use ($formTypes) {
                 return in_array($form['name'], $formTypes);
             });
+            
+            $ratings = $formGroupData['data']['rating'];
             
             $approval = ApprovalLayerAppraisal::select('approver_id')->where('employee_id', $appraisal->employee_id)->where('layer', 1)->first();
             // Read the contents of the JSON file
@@ -523,9 +536,9 @@ class MyAppraisalController extends Controller
             // Merge the scores
             $filteredFormData = mergeScores($formData, $filteredFormData);
 
-            // return response()->json($filteredFormData);
+            $viewCategory = 'Edit';
 
-            return view('pages.appraisals.edit', compact('step', 'goal', 'appraisal', 'goalData', 'formCount', 'filteredFormData', 'link', 'data', 'approvalRequest', 'parentLink', 'approval', 'formGroupData'));
+            return view('pages.appraisals.edit', compact('step', 'goal', 'appraisal', 'goalData', 'formCount', 'filteredFormData', 'link', 'data', 'approvalRequest', 'parentLink', 'approval', 'formGroupData', 'ratings', 'viewCategory'));
         }
 
     }

@@ -146,6 +146,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 const jobLevels = {!! json_encode($job_level) !!};
 const formAppraisals = {!! json_encode($formAppraisal) !!};
+const data360s = {!! json_encode($data360s) !!};
 const defaultCompetencies = {!! json_encode($competency) !!};
 
 </script>
