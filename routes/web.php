@@ -7,6 +7,7 @@ use App\Http\Controllers\Admin\SendbackController as AdminSendbackController;
 use App\Http\Controllers\Appraisal360;
 use App\Http\Controllers\AppraisalTaskController;
 use App\Http\Controllers\ApprovalController;
+use App\Http\Controllers\ImportGoalsController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
@@ -295,6 +296,12 @@ Route::middleware('auth', 'locale')->group(function () {
         Route::get('/admin/roles/get-assignment', [RoleController::class, 'getAssignment'])->name('getAssignment');
         Route::get('/admin/roles/get-permission', [RoleController::class, 'getPermission'])->name('getPermission');
         Route::post('/admin/assign-user', [RoleController::class, 'assignUser'])->name('assign.user');
+    });
+
+    Route::middleware(['permission:importgoals'])->group(function () {
+        Route::get('/import-goals', [ImportGoalsController::class, 'showImportForm'])->name('importg');
+        Route::post('/import-goals', [ImportGoalsController::class, 'import'])->name('importgoals');
+        Route::get('/download-excel/{file}', [ImportGoalsController::class, 'downloadExcel'])->name('downloadExcel');
     });
 
     Route::middleware(['permission:reportpa'])->group(function () {

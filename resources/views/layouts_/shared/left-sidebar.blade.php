@@ -178,6 +178,11 @@
                                 <a href="{{ route('schedules') }}">Schedule</a>
                             </li>
                             @endcan
+                            @can('importgoals')
+                            <li>
+                                <a href="{{ route('importg') }}">Import Goals</a>
+                            </li>
+                            @endcan
                         </ul>
                     </div>
                 </li>
