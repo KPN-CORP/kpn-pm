@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exports\GoalExport;
 use App\Http\Controllers\Controller;
+use App\Models\Approval;
 use App\Models\ApprovalLayer;
 use App\Models\ApprovalRequest;
 use App\Models\Company;
@@ -366,6 +367,10 @@ class ReportController extends Controller
 
             $goals->form_status = 'Submitted';
             $goals->save();
+
+            if ($goals) {
+                Approval::where('request_id', $approvalRequest->id)->delete();
+            }
 
             return response()->json(['success' => true, 'message' => 'Goal revoked successfully.']);
         } catch (\Exception $e) {

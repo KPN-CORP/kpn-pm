@@ -140,7 +140,7 @@ class MyGoalController extends Controller
             $formData = json_decode($datas->first()->goal->form_data, true);
         }
     
-        $path = storage_path('../resources/goal.json');
+        $path = base_path('resources/goal.json');
     
         // Check if the JSON file exists
         if (!File::exists($path)) {
@@ -192,7 +192,7 @@ class MyGoalController extends Controller
             return redirect()->back();
         }
 
-        $path = storage_path('../resources/goal.json');
+        $path = base_path('resources/goal.json');
 
         // Check if the JSON file exists
         if (!File::exists($path)) {
@@ -222,7 +222,7 @@ class MyGoalController extends Controller
         $parentLink = __('Goal');
         $link = __('Edit');
 
-        $path = storage_path('../resources/goal.json');
+        $path = base_path('resources/goal.json');
 
         // Check if the JSON file exists
         if (!File::exists($path)) {

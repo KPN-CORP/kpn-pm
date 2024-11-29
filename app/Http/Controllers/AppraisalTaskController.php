@@ -563,7 +563,7 @@ class AppraisalTaskController extends Controller
                 }
             }
 
-            $path = storage_path('../resources/goal.json');
+            $path = base_path('resources/goal.json');
             if (!File::exists($path)) {
                 $options = ['UoM' => [], 'Type' => []];
             } else {

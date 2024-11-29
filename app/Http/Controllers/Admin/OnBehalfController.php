@@ -276,7 +276,7 @@ class OnBehalfController extends Controller
             $formData = json_decode($datas->first()->goal->form_data, true);
         }
 
-        $path = storage_path('../resources/goal.json');
+        $path = base_path('resources/goal.json');
 
         // Check if the JSON file exists
         if (!File::exists($path)) {
@@ -442,7 +442,7 @@ class OnBehalfController extends Controller
 
     public function unitOfMeasurement()
     {
-        $uom = file_get_contents(storage_path('../resources/goal.json'));
+        $uom = file_get_contents(base_path('resources/goal.json'));
 
         return response()->json(json_decode($uom, true));
     }
@@ -517,7 +517,7 @@ class OnBehalfController extends Controller
             });
         }
 
-        $path = storage_path('../resources/goal.json');
+        $path = base_path('resources/goal.json');
 
         // Check if the JSON file exists
         if (!File::exists($path)) {

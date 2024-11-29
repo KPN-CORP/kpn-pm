@@ -173,7 +173,7 @@ class RoleController extends Controller
         app()->make(PermissionRegistrar::class)->forgetCachedPermissions();
 
         // Optionally, you can redirect back to the form or another page after saving
-        return redirect()->back()->with('success', 'Users saved successfully!');
+        return redirect()->route('roles.assign')->with('success', 'Users saved successfully!');
     }
 
     public function store(Request $request): RedirectResponse
