@@ -81,23 +81,25 @@
                     </ul>
                 </div>
             </li>
-            <li class="side-nav-item">
-                <a data-bs-toggle="collapse" href="#sidebarAppraisal" aria-expanded="false" aria-controls="sidebarAppraisal" class="side-nav-link">
-                    <i class="ri-list-check-3"></i>
-                    <span>{{ __('Appraisal') }}</span>
-                    <span class="menu-arrow"></span>
-                </a>
-                <div class="collapse" id="sidebarAppraisal">
-                    <ul class="side-nav-second-level">
-                        <li>
-                            <a href="{{ route('appraisals') }}">{{ __('My Appraisal') }}</a>
-                        </li>
-                        <li>
-                            <a href="{{ route('appraisals-task') }}">{{ __('Task Box') }}</a>
-                        </li>
-                    </ul>
-                </div>
-            </li>
+            {{-- @if ($appraisalPeriod); --}}
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarAppraisal" aria-expanded="false" aria-controls="sidebarAppraisal" class="side-nav-link">
+                        <i class="ri-list-check-3"></i>
+                        <span>{{ __('Appraisal') }}</span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarAppraisal">
+                        <ul class="side-nav-second-level">
+                            <li>
+                                <a href="{{ route('appraisals') }}">{{ __('My Appraisal') }}</a>
+                            </li>
+                            <li>
+                                <a href="{{ route('appraisals-task') }}">{{ __('Task Box') }}</a>
+                            </li>
+                        </ul>
+                    </div>
+                </li>
+            {{-- @endif --}}
             @if(auth()->user()->isCalibrator() && auth()->user()->kpiUnits())
             <li class="side-nav-item">
                 <a href="{{ route('rating') }}" class="side-nav-link">
