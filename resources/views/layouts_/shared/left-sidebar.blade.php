@@ -81,7 +81,7 @@
                     </ul>
                 </div>
             </li>
-            {{-- @if ($appraisalPeriod); --}}
+            @if ($appraisalPeriod)
                 <li class="side-nav-item">
                     <a data-bs-toggle="collapse" href="#sidebarAppraisal" aria-expanded="false" aria-controls="sidebarAppraisal" class="side-nav-link">
                         <i class="ri-list-check-3"></i>
@@ -99,14 +99,14 @@
                         </ul>
                     </div>
                 </li>
-            {{-- @endif --}}
-            @if(auth()->user()->isCalibrator() && auth()->user()->kpiUnits())
-            <li class="side-nav-item">
-                <a href="{{ route('rating') }}" class="side-nav-link">
-                    <i class="ri-star-line"></i>
-                    <span> Rating </span>
-                </a>
-            </li>
+                @if(auth()->user()->isCalibrator() && auth()->user()->kpiUnits())
+                <li class="side-nav-item">
+                    <a href="{{ route('rating') }}" class="side-nav-link">
+                        <i class="ri-star-line"></i>
+                        <span> Rating </span>
+                    </a>
+                </li>
+                @endif
             @endif
             @if (auth()->user()->isApprover())
             <li class="side-nav-item">
