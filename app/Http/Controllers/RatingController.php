@@ -59,6 +59,10 @@ class RatingController extends Controller
             $emptyAppraisal = ApprovalLayerAppraisal::with(['employee', 'approvalRequest' => function ($query) {
                 $query->with('manager');
             }])
+            ->whereHas('employee', function ($query) {
+                // Ensure employee's access_menu has accesspa = 1
+                $query->whereJsonContains('access_menu', ['accesspa' => 1]);
+            })
             ->where('approver_id', $user)
             ->where('layer_type', 'calibrator')
             ->where(function ($query) use ($user) {
@@ -79,19 +83,22 @@ class RatingController extends Controller
 
             $allData = ApprovalLayerAppraisal::with(['employee'])
                 ->where('approver_id', $user)
+                ->whereHas('employee', function ($query) {
+                    // Ensure the employee's access_menu has accesspa = 1
+                    $query->whereJsonContains('access_menu', ['accesspa' => 1]);
+                })
                 ->where('layer_type', 'calibrator')
                 ->get();
 
             // Query for ApprovalLayerAppraisal data with approval requests
             $dataWithRequests = ApprovalLayerAppraisal::join('approval_requests', 'approval_requests.employee_id', '=', 'approval_layer_appraisals.employee_id')
-                ->where('approval_layer_appraisals.approver_id', $user)
-                ->where('approval_layer_appraisals.layer_type', 'calibrator')
-                ->where('approval_requests.category', $this->category)
-                ->whereNull('approval_requests.deleted_at')
-                ->select('approval_layer_appraisals.*')
-                ->get()
-                ->keyBy('id');
-        
+            ->where('approval_layer_appraisals.approver_id', $user)
+            ->where('approval_layer_appraisals.layer_type', 'calibrator')
+            ->where('approval_requests.category', $this->category)
+            ->whereNull('approval_requests.deleted_at')
+            ->select('approval_layer_appraisals.*')
+            ->get()
+            ->keyBy('id');  // This will create a collection indexed by the 'id' of the approval layer appraisals
 
             // Group the data
             $datas = $allData->groupBy(function ($data) {
@@ -107,6 +114,7 @@ class RatingController extends Controller
                 }
                 return 'Other Levels';
             })->map(function ($group) use ($dataWithRequests, $user) {
+                // Fetch `withRequests` based on the user's criteria
                 $withRequests = ApprovalLayerAppraisal::join('approval_requests', 'approval_requests.employee_id', '=', 'approval_layer_appraisals.employee_id')
                     ->where('approval_layer_appraisals.approver_id', $user)
                     ->where('approval_layer_appraisals.layer_type', 'calibrator')
@@ -121,15 +129,15 @@ class RatingController extends Controller
                         $appraisal->approval_requests = $subgroup->first();
                         return $appraisal;
                     });
-
+            
                 return [
                     'with_requests' =>  $withRequests->values(),
                     'without_requests' => $group->filter(function ($item) use ($dataWithRequests) {
                         return !$dataWithRequests->has($item->id);
                     })
                 ];
-            })->sortKeys();  
-                
+            })->sortKeys();
+                                        
             $ratingDatas = $datas->map(function ($group) use ($user, $period) {
                 // Process `with_requests`
                 $calibration = Calibration::where('period', $period)->orderBy('id', 'asc')->get();
@@ -404,6 +412,10 @@ class RatingController extends Controller
             
             $allData = ApprovalLayerAppraisal::with(['employee'])
             ->where('approver_id', $user)
+            ->whereHas('employee', function ($query) {
+                // Ensure the employee's access_menu has accesspa = 1
+                $query->whereJsonContains('access_menu', ['accesspa' => 1]);
+            })
             ->where('layer_type', 'calibrator')
             ->get();
             

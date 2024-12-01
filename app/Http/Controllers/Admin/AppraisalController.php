@@ -157,9 +157,12 @@ class AppraisalController extends Controller
                 $appraisal = '-';
             }
 
+            $accessMenu = json_decode($employee->access_menu, true);
+
             return [
                 'id' => $employee->employee_id,
                 'name' => $employee->fullname,
+                'accessPA' => isset($accessMenu['accesspa']) ? $accessMenu['accesspa'] : 0,
                 'appraisalStatus' => $employee->appraisal->first(),
                 'approvalStatus' => $approvalStatus,
                 'finalScore' => $appraisal,

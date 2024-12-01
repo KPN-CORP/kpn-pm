@@ -67,7 +67,7 @@
                         <tr data-bs-toggle="popover" data-bs-trigger="hover" data-bs-html="true" data-bs-content="{!! $employee['popoverContent'] !!}">
                             <td>{{ $index + 1 }}</td>
                             <td>{{ $employee['id'] }}</td>
-                            <td>{{ $employee['name'] }}</td>
+                            <td>{{ $employee['name'] }} {{ $employee['accessPA'] ? '' : '(Not Eligible)' }}</td>
     
                             {{-- Peers Layers --}}
                             @foreach (range(1, 3) as $layer)
