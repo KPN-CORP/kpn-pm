@@ -54,6 +54,10 @@ class AppraisalTaskController extends Controller
             }])
             ->where('approver_id', $user)
             ->where('layer_type', 'manager')
+            ->whereHas('employee', function ($query) {
+                // Ensure employee's access_menu has createpa = 1
+                $query->whereJsonContains('access_menu', ['createpa' => 1]);
+            })
             ->get();
 
             $filteredDataTeams = $dataTeams->filter(function($item) {
@@ -114,7 +118,9 @@ class AppraisalTaskController extends Controller
         $period = $this->appService->appraisalPeriod();
         $filterYear = $request->input('filterYear');
 
-        $datas = ApprovalLayerAppraisal::with(['employee', 'approver', 'contributors' => function($query) use ($user, $period) {
+        $datas = ApprovalLayerAppraisal::with(['employee' => function($query) {
+            $query->whereJsonContains('access_menu', ['createpa' => 1]);
+        }, 'approver', 'contributors' => function($query) use ($user, $period) {
             $query->where('contributor_id', $user)->where('period', $period);
         }, 'goal' => function($query) use ($period) {
             $query->where('period', $period);
@@ -158,25 +164,35 @@ class AppraisalTaskController extends Controller
         // Prepare data for DataTables
         $data = [];
 
-
         foreach ($datas as $index => $team) {
+            // Ensure 'employee' exists before proceeding
+            if (!$team->employee) {
+                continue; // Skip this iteration if 'employee' is not set
+            }
+
+            // Access relationships and check if they are set
+            $employee = $team->employee;
+            $contributors = $team->contributors;
+            $approvalRequest = $team->approvalRequest->first(); // Get the first approval request
+
+            // Add data to the array only if employee exists
             $data[] = [
                 'index' => $index + 1,
                 'employee' => [
-                    'fullname' => $team->employee->fullname,
-                    'employee_id' => $team->employee->employee_id,
-                    'designation' => $team->employee->designation_name,
-                    'office_area' => $team->employee->office_area,
-                    'group_company' => $team->employee->group_company,
+                    'fullname' => $employee->fullname ?? '-', // Default to '-' if employee data is missing
+                    'employee_id' => $employee->employee_id ?? '-',
+                    'designation' => $employee->designation_name ?? '-',
+                    'office_area' => $employee->office_area ?? '-',
+                    'group_company' => $employee->group_company ?? '-',
                 ],
                 'kpi' => [
-                    'kpi_status' => $team->contributors->isNotEmpty(),
-                    'total_score' => $team->total_score, // KPI Score
-                    'kpi_score' => $team->kpi_score, // KPI Score
-                    'culture_score' => $team->culture_score, // culture Score
-                    'leadership_score' => $team->leadership_score, // leadership Score
+                    'kpi_status' => $contributors->isNotEmpty(),
+                    'total_score' => $team->total_score ?? '-', // Default to '-' if score is missing
+                    'kpi_score' => $team->kpi_score ?? '-',
+                    'culture_score' => $team->culture_score ?? '-',
+                    'leadership_score' => $team->leadership_score ?? '-',
                 ],
-                'approval_date' => $team->approvalRequest->first() ? $this->appService->formatDate($team->approvalRequest->first()->created_at) : '-',
+                'approval_date' => $approvalRequest ? $this->appService->formatDate($approvalRequest->created_at) : '-', // Check if approvalRequest exists
                 'action' => view('components.action-buttons', ['team' => $team])->render(), // Render action buttons
             ];
         }
@@ -264,10 +280,17 @@ class AppraisalTaskController extends Controller
     public function initiate(Request $request)
     {
         $user = $this->user;
+        $period = $this->appService->appraisalPeriod();
+
+        $createPA = $this->accessMenu($request->id)['createpa'];
+
+        if (!$createPA) {
+            Session::flash('error', "Employee not eligible to create Appraisal $period.");
+            return redirect()->route('appraisals-task');
+        }
 
         $step = $request->input('step', 1);
 
-        $period = $this->appService->appraisalPeriod();
 
         $approval = ApprovalLayerAppraisal::select('approver_id')->where('employee_id', $request->id)->where('layer', 1)->first();
 
@@ -834,6 +857,18 @@ class AppraisalTaskController extends Controller
 
         // Return a response, such as a redirect or a JSON response
         return redirect('appraisals-task')->with('success', 'Appraisal submitted successfully.');
+    }
+
+    private function accessMenu($id)
+    {
+        $accessMenu = [];
+
+        $employee = EmployeeAppraisal::where('employee_id', $id)->first();
+        if ($employee) {
+            $accessMenu = json_decode($employee->access_menu, true);
+        }
+
+        return $accessMenu;
     }
 
 }
