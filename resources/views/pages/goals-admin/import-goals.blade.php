@@ -61,6 +61,10 @@
                                     <td>{{ \Carbon\Carbon::parse($import->created_at)->format('d-m-Y H:i') }}</td>
                                     <td>
                                         Success : {{$import->success}}, Error : {{$import->error}} 
+                                        @if ($import->error > 0)
+                                            <!-- Icon Information if errors are present -->
+                                            <i class="ri-information-line" title="{{ $import->detail_error }}"></i>
+                                        @endif
                                     </td>
                                     <td>
                                         <!-- Display the uploaded file (assuming there's a column 'file_uploads' for file path) -->
@@ -84,9 +88,20 @@
                         <h5 class="modal-title" id="importModalLabel">Import Goals</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                     </div>
+                    
                     <form action="{{ route('importgoals') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <div class="modal-body">
+                            <div class="row">
+                                <div class="col">
+                                    <div class="alert alert-info">
+                                        <strong>Notes:</strong>
+                                        <ul class="mb-0">
+                                            <li>Template Import Goals can use from the File Export at menu Reports : <strong>Reports -> Detailed Goals -> Download</strong></li>
+                                        </ul>
+                                    </div>
+                                </div>
+                            </div>
                             <div class="form-group">
                                 <label for="file">Upload File</label>
                                 <input type="file" name="file" id="file" class="form-control" required>
