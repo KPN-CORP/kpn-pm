@@ -176,14 +176,20 @@ class AppraisalController extends Controller
                 : 0;
         })->max(), 10);
         
-        $layerHeaders = array_map(function($num) {
-            return 'C' . ($num + 1);
-        }, range(0, $maxCalibrator - 1));
-
-        $layerBody = array_map(function($num) {
-            return ($num + 1);
-        }, range(0, $maxCalibrator - 1));
-
+        if ($maxCalibrator > 0) {
+            $layerHeaders = array_map(function($num) {
+                return 'C' . ($num + 1);
+            }, range(0, $maxCalibrator - 1));
+        
+            $layerBody = array_map(function($num) {
+                return ($num + 1);
+            }, range(0, $maxCalibrator - 1));
+        } else {
+            // Handle the case when maxCalibrator is 0
+            $layerHeaders = [];  // Or set to a default message like ['No calibrators available']
+            $layerBody = [];     // Or set to a default message if needed
+        }
+        
         $parentLink = __('Reports');
         $link = __('Appraisal');
 
