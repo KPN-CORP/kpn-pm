@@ -152,7 +152,7 @@ class AppraisalController extends Controller
                 }
                 $appraisal =  $employee->appraisal->first()->rating
                                 ? $convertRating[$employee->appraisal->first()->rating] 
-                                : null;
+                                : '-';
             }else{
                 $appraisal = '-';
             }

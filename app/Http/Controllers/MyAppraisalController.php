@@ -56,10 +56,18 @@ class MyAppraisalController extends Controller
     }
 
     public function index(Request $request) {
+        
+        $user = $this->user;
+        $period = $this->appService->appraisalPeriod();
+        $filterYear = $request->input('filterYear');
+        $accessMenu = [];
+
+        $employee = EmployeeAppraisal::where('employee_id', $user)->first();
+        if ($employee) {
+            $accessMenu = json_decode($employee->access_menu, true);
+        }
+
         try {
-            $user = $this->user;
-            $period = $this->appService->appraisalPeriod();
-            $filterYear = $request->input('filterYear');
 
             // Retrieve approval requests
             $datasQuery = ApprovalRequest::with([
@@ -217,13 +225,6 @@ class MyAppraisalController extends Controller
             $parentLink = __('Appraisal');
             $link = __('My Appraisal');
 
-            $accessMenu = [];
-
-            $employee = EmployeeAppraisal::where('employee_id', $user)->first();
-            if ($employee) {
-                $accessMenu = json_decode($employee->access_menu, true);
-            }
-
             $selectYear = ApprovalRequest::where('id', $datas->first()->id)->select('period')->get();
 
             return view('pages.appraisals.my-appraisal', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'accessMenu', 'selectYear', 'adjustByManager', 'appraisalData'));
@@ -242,7 +243,8 @@ class MyAppraisalController extends Controller
                 'goals' => null,
                 'selectYear' => [],
                 'adjustByManager' => null,
-                'appraisalData' => []
+                'appraisalData' => [],
+                'accessMenu' => $accessMenu
             ]);
         }
     }
