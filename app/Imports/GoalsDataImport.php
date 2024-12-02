@@ -119,14 +119,14 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
                 ]);
 
                 // Insert approvals
-                DB::table('approvals')->insert([
-                    'request_id' => $requestId,
-                    'approver_id' => $data['current_approval_id'],
-                    'status' => 'Approved',
-                    'messages' => 'import by admin',
-                    'created_by' => $empId,  // ID admin yang melakukan import
-                    'created_at' => now(),
-                ]);
+                // DB::table('approvals')->insert([
+                //     'request_id' => $requestId,
+                //     'approver_id' => $data['current_approval_id'],
+                //     'status' => 'Approved',
+                //     'messages' => 'import by admin',
+                //     'created_by' => $empId,  // ID admin yang melakukan import
+                //     'created_at' => now(),
+                // ]);
 
                 // Jika semua sukses, commit transaksi
                 DB::commit();
