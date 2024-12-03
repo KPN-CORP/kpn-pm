@@ -4,10 +4,12 @@ namespace App\Imports;
 
 use App\Exports\InvalidApprovalAppraisalImport;
 use App\Models\AppraisalContributor;
+use App\Models\ApprovalLayer;
 use App\Models\ApprovalLayerAppraisal;
 use App\Models\ApprovalLayerAppraisalBackup;
 use App\Models\Employee;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\ToModel;
@@ -62,11 +64,32 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
 
         foreach ($collection as $row) {
             // Debug each row of data
+            $rowArray = $row->toArray();
+
+            $validate = Validator::make($rowArray, [
+                'employee_id' => 'digits:11', // Ensure employee_id is exactly 11 digits
+                'approver_id' => 'digits:11', // Ensure approver_id is exactly 11 digits
+                // 'layer_type' => 'required|string|in:manager,peers,subordinate,calibrator', // Validate layer_type
+                // 'layer' => 'required|integer|min:1|max:3', // Validate layer
+            ]);
 
             $contributor = AppraisalContributor::where('employee_id', $row['employee_id'])
                             ->where('status', 'Approved')
                             ->where('period', $this->period)
                             ->get();
+
+            if ($validate->fails()) {
+                // Collect the invalid rows and the error messages
+                $this->invalidEmployees[] = [
+                    'employee_id' => $row['employee_id'],
+                    'approver_id' => $row['approver_id'],
+                    'layer_type' => $row['layer_type'],
+                    'layer' => $row['layer'],
+                    'message' => 'employee_id or approver_id have invalid format ID.', // Get the first error message
+                    // 'message' => $validator->errors()->first(), // Get the first error message
+                ];
+                $this->invalidEmployeeIds[] = $row['employee_id']; // Store invalid employee_ids for reporting
+            }
 
             if ($contributor->count() > 0) {
                 $this->invalidEmployees[] = [
@@ -207,6 +230,7 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
 
             // Second pass to process and import data
             foreach ($collection as $row) {
+
 
             // Skip rows with invalid employee_id
                 // Hapus data lama
