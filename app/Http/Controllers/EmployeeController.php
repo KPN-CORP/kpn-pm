@@ -159,6 +159,8 @@ class EmployeeController extends Controller
                         'email' => $employee['company_email_id'],
                         'group_company' => $employee['group_company'],
                         'designation' => $employee['designation'],
+                        'designation_code' => $employee['designation_code'],
+                        'designation_name' => $employee['designation_name'],
                         'job_level' => $employee['job_level'],
                         'company_name' => $employee['contribution_level'],
                         'contribution_level_code' => $employee['contribution_level_code'],
