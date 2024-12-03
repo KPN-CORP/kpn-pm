@@ -24,6 +24,7 @@ use App\Models\Calibration;
 use App\Models\EmployeeAppraisal;
 use App\Models\Goal;
 use App\Services\AppService;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Auth;
@@ -669,8 +670,10 @@ class LayerController extends Controller
 
             // Cache the employee data to reduce database queries
             $employee = Cache::remember("employee_{$employeeId}", 60, function () use ($employeeId) {
-                return Employee::where('employee_id', $employeeId)->firstOrFail();
+                return EmployeeAppraisal::where('employee_id', $employeeId)->firstOrFail();
             });
+
+            $doj = Carbon::parse($employee->date_of_joining);
 
             // Fetch history (you can also cache this if necessary)
             $history = ApprovalLayerAppraisal::with(['approver', 'createBy', 'updateBy'])->where('employee_id', $employeeId)->get();
@@ -679,7 +682,7 @@ class LayerController extends Controller
             $data = [
                 'fullname' => $employee->fullname,
                 'employee_id' => $employee->employee_id,
-                'formattedDoj' => $employee->formatted_doj,
+                'formattedDoj' => $doj->format('d M Y'),
                 'group_company' => $employee->group_company,
                 'company_name' => $employee->company_name,
                 'unit' => $employee->unit,
@@ -692,7 +695,7 @@ class LayerController extends Controller
                         'fullname' => $entry->approver->fullname,
                         'employee_id' => $entry->approver->employee_id,
                         'updated_by' => $entry->createBy ? $entry->createBy->fullname.' ('. $entry->createBy->employee_id .')' : ($entry->updateBy ? $entry->updateBy->fullname.' ('. $entry->updateBy->employee_id .')' : 'System') ,
-                        'updated_at' => $entry->updated_at->format('Y-m-d H:i:s'),
+                        'updated_at' => $entry->updated_at ? $entry->updated_at->format('Y-m-d H:i:s') : null,
                     ];
                 }),
             ];
