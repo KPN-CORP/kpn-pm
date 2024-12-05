@@ -11,7 +11,7 @@ class Approval extends Model
     use HasFactory;
     use SoftDeletes;
 
-    protected $fillable = ['request_id', 'approver_id', 'status', 'messages'];
+    protected $fillable = ['request_id', 'approver_id', 'status', 'messages','created_by','created_at'];
 
     public function approver()
     {
