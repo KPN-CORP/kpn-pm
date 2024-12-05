@@ -53,6 +53,8 @@ Route::get('/', function () {
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified', 'role:superadmin'])->name('dashboard');
 Route::get('/dashboard-team', [DashboardController::class, 'teamDashboard'])->middleware(['auth', 'verified', 'role:superadmin'])->name('dashboard.team');
 
+Route::get('/dashboard-team-data', [DashboardController::class, 'getTeamData']);
+
 Route::get('language/{locale}', [LanguageController::class, 'switchLanguage'])->name('language.switch');
 
 Route::get('dbauth', [SsoController::class, 'dbauth']);
@@ -250,7 +252,7 @@ Route::middleware('auth', 'locale')->group(function () {
 
     Route::middleware(['permission:employeepa'])->group(function () {
         Route::get('/admemployees', [EmployeePAController::class, 'index'])->name('admemployee');
-        Route::delete('/admemployeedestroy/{id}', [EmployeePAController::class, 'destroy'])->name('admemployeeDestroy');
+        Route::delete('/admemployeedestroy', [EmployeePAController::class, 'destroy'])->name('admemployeeDestroy');
         Route::put('/employeepa/update', [EmployeePAController::class, 'update'])->name('employeepa.update');
         Route::get('/export-employeepa', [EmployeePAController::class, 'exportEmployeepa'])->name('employeepa.export');
     });
