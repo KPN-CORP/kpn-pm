@@ -337,12 +337,10 @@ window.revokeGoal = revokeGoal;
 
 function handleDeleteEmployeePA(element) {
     var id = element.getAttribute('data-id');
-    var deleteUrl = "{{ route('admemployeeDestroy', ':id') }}";
-    deleteUrl = deleteUrl.replace(':id', id);
-    
+
     Swal.fire({
         title: 'Are you sure?',
-        text: "This Employee will terminated!",
+        text: "This Employee will be terminated!",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: "#3e60d5",
@@ -351,21 +349,43 @@ function handleDeleteEmployeePA(element) {
         reverseButtons: true,
     }).then((result) => {
         if (result.isConfirmed) {
-            // Jika dikonfirmasi, buat form dan submit ke server
-            var form = document.createElement('form');
-            form.action = deleteUrl;
-            form.method = 'POST';
-            form.innerHTML = `
-                @csrf
-                @method('DELETE')
-            `;
-            document.body.appendChild(form);
-            form.submit();
+            // If confirmed, make AJAX DELETE request using Fetch
+            fetch('/admemployeedestroy', {
+                method: 'DELETE',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ id: id })
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Success: Show success message
+                if (data.success) {
+                    Swal.fire(
+                        'Deleted!',
+                        'The employee has been terminated.',
+                        'success'
+                    );
+                    // Optionally, remove the deleted employee from the DOM (e.g., remove the row from a table)
+                    element.closest('tr').remove();
+                }
+            })
+            .catch(error => {
+                // Error: Show error message
+                Swal.fire(
+                    'Error!',
+                    'There was a problem deleting the employee.',
+                    'error'
+                );
+            });
         }
     });
 }
 
+// Make the function accessible globally
 window.handleDeleteEmployeePA = handleDeleteEmployeePA;
+
 
 function showEditModal(employee) {
     // Isi data dari karyawan yang akan diedit ke dalam modal
