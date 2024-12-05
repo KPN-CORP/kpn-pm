@@ -17,7 +17,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         </div>
-        @if (isset($calibrations))            
+        @if (isset($calibrations) && empty($calibrations))            
         <div class="row">
             <div class="col-md p-0 p-md-2">
                 <div class="card">
@@ -243,6 +243,16 @@
                         </div>
                     </div> <!-- end card-body -->
                 </div> <!-- end card-->
+            </div>
+        </div>
+        @else
+        <div class="row">
+            <div class="col-md p-0 p-md-2">
+                <div class="card">
+                    <div class="card-body p-2">
+                        <div>Data not available.</div>
+                    </div>
+                </div>
             </div>
         </div>
         @endif

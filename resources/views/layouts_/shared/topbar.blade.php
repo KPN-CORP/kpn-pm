@@ -72,11 +72,13 @@
                     <span class="align-middle d-none d-lg-inline-block">{{ session('locale') == 'id' ? 'Bahasa' : 'English' }}</span> <i class="ri-arrow-down-s-line d-none d-sm-inline-block align-middle"></i>
                 </a>
                 <div class="dropdown-menu dropdown-menu-end dropdown-menu-animated" style="">
-                    <a href="{{ route('language.switch', ['locale' => 'en']) }}" class="dropdown-item"><img src="{{ asset('storage/img/flags/en.jpg') }}" alt="user-image" class="me-0 me-sm-1" height="12">
-                        <span class="align-middle d-none d-lg-inline-block">English</span>
+                    <a href="{{ route('language.switch', ['locale' => 'en']) }}" class="dropdown-item {{ session('locale') == 'id' ? '' : 'd-none' }}">
+                        <img src="{{ asset('storage/img/flags/en.jpg') }}" alt="user-image" class="me-1" height="12">
+                        <span class="align-middle">English</span>
                     </a>
-                    <a href="{{ route('language.switch', ['locale' => 'id']) }}" class="dropdown-item">
-                        <img src="{{ asset('storage/img/flags/id.jpg') }}" alt="user-image" class="me-1" height="12"> <span class="align-middle">Bahasa</span>
+                    <a href="{{ route('language.switch', ['locale' => 'id']) }}" class="dropdown-item {{ !session('locale') || session('locale') == 'en' ? '' : 'd-none' }}">
+                        <img src="{{ asset('storage/img/flags/id.jpg') }}" alt="user-image" class="me-1" height="12">
+                        <span class="align-middle">Bahasa</span>
                     </a>
                 </div>
             </li>

@@ -51,10 +51,6 @@
                         <li>
                             <a href="{{ route('dashboard') }}">Analytics</a>
                         </li>
-                    </ul>
-                </div>
-                <div class="collapse" id="sidebarDashboards">
-                    <ul class="side-nav-second-level">
                         <li>
                             <a href="{{ route('dashboard.team') }}">My Team</a>
                         </li>
