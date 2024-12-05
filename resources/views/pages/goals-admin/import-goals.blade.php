@@ -63,7 +63,7 @@
                                         Success : {{$import->success}}, Error : {{$import->error}} 
                                         @if ($import->error > 0)
                                             <!-- Icon Information if errors are present -->
-                                            <i class="ri-information-line" title="{{ $import->detail_error }}"></i>
+                                            <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#modalInfo{{$index}}"><i class="ri-information-line text-danger"></i></a>
                                         @endif
                                     </td>
                                     <td>
@@ -71,6 +71,23 @@
                                         <a href="{{ asset('storage/' . $import->file_uploads) }}" class="btn btn-primary btn-sm" target="_blank">Download</a>
                                     </td>
                                 </tr>
+                                <!--Modal Info-->
+                                <div class="modal fade" id="modalInfo{{$index}}" tabindex="-1" aria-labelledby="modalInfoLabel" aria-hidden="true">
+                                  <div class="modal-dialog modal-dialog-centered">
+                                    <div class="modal-content">
+                                      <div class="modal-header">
+                                        <h5 class="modal-title" id="modalInfoLabel">Goals Import Error Employee ID's</h5>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                      </div>
+                                      <div class="modal-body">
+                                        {{ is_string($import->detail_error) && json_decode($import->detail_error) ? implode(', ', json_decode($import->detail_error)) : $import->detail_error }}
+                                      </div>
+                                      <div class="modal-footer">
+                                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
                             @endforeach
                         </tbody>
                       </table>
