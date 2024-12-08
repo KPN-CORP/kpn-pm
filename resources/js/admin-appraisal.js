@@ -26,8 +26,8 @@ $(document).ready(function() {
                 }
             },
             {
-                text: '<i class="ri-download-cloud-2-line fs-16 me-1"></i>Download Report Details',
-                className: 'btn btn-sm btn-outline-success mb-1',
+                text: '<i class="ri-download-cloud-2-line fs-16 me-1 download-detail-icon"></i><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Download Report Details',
+                className: 'btn btn-sm btn-outline-success mb-1 report-detail-btn',
                 available: function() {
                     return $('#permission-reportpadetail').data('report-pa-detail') === true;
                 },
@@ -39,6 +39,9 @@ $(document).ready(function() {
                     let rowNodes = dt.rows({ filter: 'applied' }).nodes().toArray(); // Access row nodes for DOM manipulation
                     let rowData = dt.rows({ filter: 'applied' }).data().toArray(); // Get data content for each row
             
+                     // To hold the interval ID so we can stop it
+                    let fileName = `appraisal_details_${userID}.xlsx`;
+                    
                     // Combine headers with data and data-id for each row
                     let combinedData = rowData.map((row, rowIndex) => {
                         let rowObject = {};
@@ -60,9 +63,20 @@ $(document).ready(function() {
                         
                         return rowObject; // Each row is an object with header keys
                     });
+
+                    let reportDetailButton = document.querySelector('.report-detail-btn');
+                    const spinner = reportDetailButton.querySelector(".spinner-border");
+                    const icon = reportDetailButton.querySelector(".download-detail-icon");
+
+                    let checkInterval;
             
                     if (combinedData.length > 0) {
-                        // Send a POST request with the headers and combined data
+                        document.querySelectorAll('.report-detail-btn').forEach(function(button) {
+                            button.disabled = true;
+                        });
+                        spinner.classList.remove("d-none");
+                        icon.classList.add("d-none");
+                        // Start the export process
                         fetch('/export-appraisal-detail', {
                             method: 'POST',
                             headers: {
@@ -71,28 +85,70 @@ $(document).ready(function() {
                             },
                             body: JSON.stringify({ headers: headers, data: combinedData })
                         })
-                        .then(response => {
-                            if (!response.ok) {
-                                throw new Error('Network response was not ok');
+                        .then(response => response.json())
+                        .then(data => {
+                            // If export is being processed
+                            if (data.message === 'Export is being processed in the background.') {
+                                alert('The export is being processed. Please wait a moment.');
+
+                                checkInterval = setInterval(function() {
+                                    checkFileAvailability(fileName);
+                                }, 10000); // 120000 milliseconds = 2 minutes
+                                // Check status after a delay
+                            } else {
+                                console.error('Unexpected response:', data);
+                                alert('Failed to start export.');
                             }
-                            return response.blob(); // Treat the response as a Blob for file download
-                        })
-                        .then(blob => {
-                            // Create a download link for the Excel file
-                            const url = window.URL.createObjectURL(blob);
-                            const link = document.createElement('a');
-                            link.href = url;
-                            link.download = 'appraisal_report.xlsx';
-                            document.body.appendChild(link);
-                            link.click();
-                            document.body.removeChild(link);
                         })
                         .catch(error => {
                             console.error('Error:', error);
-                            alert('Failed to download the report.');
-                        });
+                            alert('Failed to start the export process.');
+                        });                 
                     } else {
                         alert('No employees found in the current table view.');
+                    }
+
+                    function checkFileAvailability(file) {
+                        fetch('/check-file', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            },
+                            body: JSON.stringify({ file: file })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.exists) {
+                                // If the file exists, trigger the download and stop checking
+                                window.location.href = `/appraisal-details/download/${file}`;
+                                clearInterval(checkInterval); // Stop the interval once the file is downloaded
+                                document.querySelectorAll('.report-detail-btn').forEach(function(button) {
+                                    button.disabled = false;
+                                });
+                                spinner.classList.add("d-none");
+                                icon.classList.remove("d-none");
+                                // Now, send a request to delete the file from the server
+                                fetch(`/appraisal-details/delete/${file}`, {
+                                    method: 'GET',  // Assuming you use the DELETE method for deletion
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    }
+                                })
+                                .then(response => response.json()) // Assuming the server responds with JSON
+                                .catch(error => {
+                                    console.error("Error:", error);
+                                });
+                            } else {
+                                // File does not exist yet, continue checking
+                                console.log(`${file} is not available yet.`);
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error:', error);
+                            alert('There was an error checking the file.');
+                            clearInterval(checkInterval); // Stop the interval on error
+                        });
                     }
                 }
             }
@@ -118,8 +174,6 @@ document.addEventListener('DOMContentLoaded', function() {
         button.addEventListener('click', function() {
             const contributorId = this.dataset.id
             const id = contributorId + '_' + appraisalId;
-
-            console.log(id);
 
             // Check if id is null or undefined
             if (!contributorId) {

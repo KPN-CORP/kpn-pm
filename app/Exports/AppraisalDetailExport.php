@@ -5,13 +5,14 @@ namespace App\Exports;
 use App\Models\AppraisalContributor;
 use App\Services\AppService;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
+use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Facades\Excel;
 
-class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize
+class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize, WithChunkReading
 {
     protected Collection $data;
     protected array $headers;
@@ -31,6 +32,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
         // Existing code for data collection
         $year = $this->appService->appraisalPeriod();
+
         $contributorsGroupedByEmployee = AppraisalContributor::with('employee')
             ->where('period', $year)
             ->get()
@@ -67,38 +69,52 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         if (isset($formData['formData'])) {
             foreach ($formData['formData'] as $formGroup) {
                 $formName = $formGroup['formName'] ?? 'Unknown';
-
                 foreach ($formGroup as $index => $itemGroup) {
                     if (is_array($itemGroup)) {
-                        if ($formName === 'Culture' || $formName === 'Leadership') {
-                            $title = $itemGroup['title'] ?? 'Unknown Title';
-                            foreach ($itemGroup as $subIndex => $item) {
-                                if (is_array($item) && isset($item['formItem'], $item['score'])) {
-                                    $subNumber = $subIndex + 1;
-                                    $header = strtolower(trim("{$formName}_{$title}_{$subNumber}"));
-                                    
-                                    $this->captureDynamicHeader($header);  // Capture unique header
-                                    $contributorRow[$header] = ['dataId' => strip_tags($item['formItem']) . "|" . $item['score']];
-                                }
-                            }
-                        } elseif ($formName === 'KPI') {
-                            $key = $index + 1;
-                            foreach ($itemGroup as $subKey => $value) {
-                                $kpiKey = strtolower(trim("{$formName}_{$subKey}_{$key}"));
-                                
-                                $this->captureDynamicHeader($kpiKey);  // Capture unique header
-                                $contributorRow[$kpiKey] = ['dataId' => $value];
-                            }
-                        }
+                        $this->processFormGroup($formName, $itemGroup, $contributorRow);
                     }
                 }
             }
             
-            // Add static scores to row
             $contributorRow['KPI Score'] = ['dataId' => round($formData['totalKpiScore'], 2) ?? '-'];
             $contributorRow['Culture Score'] = ['dataId' => round($formData['totalCultureScore'], 2) ?? '-'];
             $contributorRow['Leadership Score'] = ['dataId' => round($formData['totalLeadershipScore'], 2) ?? '-'];
             $contributorRow['Total Score'] = ['dataId' => round($formData['totalScore'], 2) ?? '-'];
+        }
+    }
+
+    /**
+     * Process the individual form group items and populate headers.
+     */
+    private function processFormGroup(string $formName, array $itemGroup, array &$contributorRow): void
+    {
+        if ($formName === 'Culture' || $formName === 'Leadership') {
+            $this->processCultureOrLeadership($formName, $itemGroup, $contributorRow);
+        } elseif ($formName === 'KPI') {
+            $this->processKPI($formName, $itemGroup, $contributorRow);
+        }
+    }
+
+    private function processCultureOrLeadership(string $formName, array $itemGroup, array &$contributorRow): void
+    {
+        $title = $itemGroup['title'] ?? 'Unknown Title';
+        foreach ($itemGroup as $subIndex => $item) {
+            if (is_array($item) && isset($item['formItem'], $item['score'])) {
+                $subNumber = $subIndex + 1;
+                $header = strtolower(trim("{$formName}_{$title}_{$subNumber}"));
+                $this->captureDynamicHeader($header);
+                $contributorRow[$header] = ['dataId' => strip_tags($item['formItem']) . "|" . $item['score']];
+            }
+        }
+    }
+
+    private function processKPI(string $formName, array $itemGroup, array &$contributorRow): void
+    {
+        $key = 1; // In your code, you may need to dynamically calculate the key
+        foreach ($itemGroup as $subKey => $value) {
+            $kpiKey = strtolower(trim("{$formName}_{$subKey}_{$key}"));
+            $this->captureDynamicHeader($kpiKey);
+            $contributorRow[$kpiKey] = ['dataId' => $value];
         }
     }
 
@@ -249,5 +265,10 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             $data[] = $row[$header]['dataId'] ?? '';
         }
         return $data;
+    }
+
+    public function chunkSize(): int
+    {
+        return 1000; // Adjust based on your data size
     }
 }

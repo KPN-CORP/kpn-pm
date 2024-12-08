@@ -13,6 +13,11 @@
 @section('content')
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- Begin Page Content -->
+    <!-- Spinner -->
+<div id="loading-spinner" style="display: none;">
+    <p>Export is in progress...</p>
+    <!-- You can add a spinner icon here -->
+</div>
     <div class="container-fluid"> 
         @if (session('success'))
             <div class="alert alert-success mt-3">
@@ -160,5 +165,6 @@
 @push('scripts')
 <script>
     var employeesData = {!! json_encode($datas) !!};
+    var userID = {!! json_encode(auth()->user()->id) !!};
 </script>
 @endpush
