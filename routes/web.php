@@ -309,8 +309,14 @@ Route::middleware('auth', 'locale')->group(function () {
     Route::middleware(['permission:reportpa'])->group(function () {
         Route::get('/admin-appraisal', [AdminAppraisalController::class, 'index'])->name('admin.appraisal');
         Route::get('/admin-appraisal/details/{id}', [AdminAppraisalController::class, 'detail'])->name('admin.appraisal.details');
+        
+        Route::post('/check-file', [AdminAppraisalController::class, 'checkFileAvailability']); // Check file existence
+        Route::get('/appraisal-details/download/{fileName}', [AdminAppraisalController::class, 'downloadFile']);
+        Route::get('/appraisal-details/delete/{fileName}', [AdminAppraisalController::class, 'deleteFile']);
+
         Route::get('/admin-appraisal/get-detail-data/{id}', [AdminAppraisalController::class, 'getDetailData'])->name('get.detail.data');
         Route::post('/export-appraisal-detail', [AdminAppraisalController::class, 'exportAppraisalDetail']);
+        Route::get('/export-appraisal-detail', [AdminAppraisalController::class, 'exportAppraisalDetail']);
 
     });
     

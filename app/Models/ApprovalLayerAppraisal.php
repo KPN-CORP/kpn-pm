@@ -24,7 +24,7 @@ class ApprovalLayerAppraisal extends Model
     }
     public function approver()
     {
-        return $this->belongsTo(EmployeeAppraisal::class, 'approver_id', 'employee_id');
+        return $this->belongsTo(EmployeeAppraisal::class, 'approver_id', 'employee_id')->withTrashed();
     }
     public function approvalRequest()
     {

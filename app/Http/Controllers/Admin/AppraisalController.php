@@ -2,8 +2,10 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Events\FileReadyNotification;
 use App\Exports\AppraisalDetailExport;
 use App\Http\Controllers\Controller;
+use App\Jobs\ExportAppraisalDetails;
 use App\Models\Appraisal;
 use App\Models\AppraisalContributor;
 use App\Models\ApprovalLayerAppraisal;
@@ -21,6 +23,7 @@ use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use stdClass;
@@ -768,8 +771,69 @@ class AppraisalController extends Controller
     {
         $data = $request->input('data'); // Retrieve the data sent by DataTable
         $headers = $request->input('headers'); // Dynamic headers from the request
+        $userID = Auth()->user()->id;
 
-        return Excel::download(new AppraisalDetailExport($this->appService, $data, $headers), 'appraisal_details.xlsx');
+        $job = ExportAppraisalDetails::dispatch($this->appService, $data, $headers, $userID);
+
+        // Log::info('Dispatched job:', ['job' => $job]);
+
+        return response()->json([
+            'message' => 'Export is being processed in the background.',
+            // 'message' => 'Your file is being processed, you will be notified when it is ready for download.',
+        ]);
+
+        // $job = dispatch(new ExportAppraisalDetails($this->appService, $data, $headers));
+
+        // // Return a response indicating the export is processing, and include a task ID if needed
+        // return response()->json([
+        //     'message' => 'Export is being processed in the background.',
+        //     'job_id' => $job->getJobId() // Pass job ID to check the status later
+        // ]);
+
+    }
+
+    public function checkFileAvailability(Request $request)
+    {
+        $fileName = $request->input('file'); // Get the file name from the request
+        
+        // Define the path where files are stored
+        $filePath = 'exports/' . $fileName;
+        
+        // Check if the file exists
+        if (Storage::exists($filePath)) {
+            return response()->json(['exists' => true, 'filePath' => $filePath]);
+        } else {
+            return response()->json(['exists' => false, 'message' => 'File not found.']);
+        }
+    }
+
+    /**
+     * Download a file from the 'exports' directory.
+     *
+     * @param  string  $fileName
+     * @return \Illuminate\Http\Response
+     */
+    public function downloadFile($fileName)
+    {
+        $filePath = 'exports/' . $fileName;
+
+        // Check if file exists and download
+        if (Storage::exists($filePath)) {
+            return Storage::download($filePath);
+        } else {
+            return response()->json(['message' => 'File not found.'], 404);
+        }
+    }
+    public function deleteFile($fileName)
+    {
+        $filePath = 'exports/' . $fileName;
+
+        // Check if file exists and download
+        if (Storage::exists($filePath)) {
+            return Storage::delete($filePath);
+        } else {
+            return response()->json(['message' => 'File not found.'], 404);
+        }
     }
 
 }

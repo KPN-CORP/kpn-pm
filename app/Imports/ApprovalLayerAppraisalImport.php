@@ -8,6 +8,7 @@ use App\Models\ApprovalLayer;
 use App\Models\ApprovalLayerAppraisal;
 use App\Models\ApprovalLayerAppraisalBackup;
 use App\Models\Employee;
+use App\Models\EmployeeAppraisal;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
@@ -173,7 +174,19 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
                 $this->invalidEmployeeIds[] = $row['employee_id']; // Track invalid employee_id
             }
         
-            $approver = Employee::where('employee_id', $row['approver_id'])->first();
+            $employee = EmployeeAppraisal::where('employee_id', $row['employee_id'])->first();
+            if (!$employee) {
+                $this->invalidEmployees[] = [
+                    'employee_id' => $row['employee_id'],
+                    'approver_id' => $row['approver_id'],
+                    'layer_type' => $row['layer_type'],
+                    'layer' => $row['layer'],
+                    'message' => 'Employee ID does not exist.'
+                ];
+                $this->invalidEmployeeIds[] = $row['employee_id']; // Track invalid employee_id
+            }
+            
+            $approver = EmployeeAppraisal::where('employee_id', $row['approver_id'])->first();
             if (!$approver) {
                 $this->invalidEmployees[] = [
                     'employee_id' => $row['employee_id'],
