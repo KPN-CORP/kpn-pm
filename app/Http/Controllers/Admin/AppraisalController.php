@@ -66,8 +66,8 @@ class AppraisalController extends Controller
 
         $query = EmployeeAppraisal::with(['appraisal' => function($query) use ($period) {
                 $query->where('period', $period);
-            // }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal']);
-            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal'])->where('employee_id', '01119060003');
+            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal']);
+            // }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal'])->where('employee_id', '01119060003');
 
         $query->where(function ($query) use ($criteria) {
             foreach ($criteria as $key => $value) {
@@ -804,7 +804,7 @@ class AppraisalController extends Controller
         $filePath = 'exports/' . $fileName;
         
         // Check if the file exists
-        if (Storage::exists($filePath)) {
+        if (Storage::disk('public')->exists($filePath)) {
             return response()->json(['exists' => true, 'filePath' => $filePath]);
         } else {
             return response()->json(['exists' => false, 'message' => 'File not found.']);
@@ -822,8 +822,8 @@ class AppraisalController extends Controller
         $filePath = 'exports/' . $fileName;
 
         // Check if file exists and download
-        if (Storage::exists($filePath)) {
-            return Storage::download($filePath);
+        if (Storage::disk('public')->exists($filePath)) {
+            return Storage::disk('public')->download($filePath);
         } else {
             return response()->json(['message' => 'File not found.'], 404);
         }
@@ -833,8 +833,8 @@ class AppraisalController extends Controller
         $filePath = 'exports/' . $fileName;
 
         // Check if file exists and download
-        if (Storage::exists($filePath)) {
-            return Storage::delete($filePath);
+        if (Storage::disk('public')->exists($filePath)) {
+            return Storage::disk('public')->delete($filePath);
         } else {
             return response()->json(['message' => 'File not found.'], 404);
         }
