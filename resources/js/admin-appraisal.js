@@ -115,7 +115,7 @@ $(document).ready(function() {
                         timeout = setTimeout(() => {
                             clearInterval(checkInterval); // Stop checking after 2 minutes
                             alert('The file was not ready in time. Please try again later.');
-                        }, 120000); // 120000 milliseconds = 2 minutes
+                        }, 300000); // 300000 milliseconds = 5 minutes
                     
                         // Start checking for file availability every 10 seconds
                         checkInterval = setInterval(() => {
