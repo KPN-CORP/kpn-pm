@@ -83,7 +83,7 @@ class AppraisalController extends Controller
             $approvalStatus = [];
 
             foreach ($employee->appraisalLayer as $layer) {
-                if ($layer->layer_type !== 'manager') {
+                // if ($layer->layer_type !== 'manager') {
                     if (!isset($approvalStatus[$layer->layer_type])) {
                         $approvalStatus[$layer->layer_type] = [];
                     }
@@ -98,7 +98,7 @@ class AppraisalController extends Controller
                     } else {
                         // Check using AppraisalContributor model for peers and subordinates
                         $isAvailable = AppraisalContributor::where('contributor_id', $layer->approver_id)
-                            ->where('contributor_type', '!=', 'manager')
+                            // ->where('contributor_type', '!=', 'manager')
                             ->where('employee_id', $employee->employee_id)
                             ->exists();
                     }
@@ -111,7 +111,7 @@ class AppraisalController extends Controller
                         'approver_name' => $layer->approver->fullname,
                         'approver_id' => $layer->approver->employee_id,
                     ];
-                }
+                // }
             }
 
             // Sort each layer_type's array by 'layer'
@@ -138,6 +138,10 @@ class AppraisalController extends Controller
             // Add subordinate layers
             foreach ($approvalStatus['subordinate'] ?? [] as $layerIndex => $layer) {
                 $popoverContent[] = "S" . ($layerIndex + 1) . ": " . ($layer['approver_name'] .' ('.$layer['approver_id'].')' ?? 'N/A');
+            }
+
+            foreach ($approvalStatus['manager'] ?? [] as $layerIndex => $layer) {
+                $popoverContent[] = "M: " . ($layer['approver_name'] .' ('.$layer['approver_id'].')' ?? 'N/A');
             }
 
             // Join content with line breaks

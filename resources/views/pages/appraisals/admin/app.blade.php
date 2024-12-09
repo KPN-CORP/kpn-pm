@@ -33,6 +33,7 @@
         <div class="row">
             <div class="col-auto">
                 <div class="mb-3 p-1 bg-info-subtle rounded shadow">
+                    <span class="mx-2">M = Manager</span>|
                     <span class="mx-2">C = Calibrator</span>|
                     <span class="mx-2">P = Peers</span>|
                     <span class="mx-2">S = Subordinate</span>|
@@ -52,6 +53,7 @@
                             <th>No</th>
                             <th>Employee ID</th>
                             <th>Employee Name</th>
+                            <th>M</th>
                             @foreach(['P1', 'P2', 'P3'] as $peers)
                             <th>{{ $peers }}</th>
                             @endforeach
@@ -74,6 +76,27 @@
                             <td>{{ $employee['id'] }}</td>
                             <td>{{ $employee['name'] }} {{ $employee['accessPA'] ? '' : '(Not Eligible)' }}</td>
     
+                            {{-- Manager Layers --}}
+                            @php
+                                $managerLayer = $employee['approvalStatus']['manager'][0] ?? null;
+                            @endphp
+                            <td class="text-center
+                                @if ($managerLayer) 
+                                    {{ $managerLayer['status'] ? 'table-success' : 'table-warning' }} 
+                                @else
+                                    table-light
+                                @endif
+                            "
+                            data-id="{{ $managerLayer ? ($managerLayer['status'] ? 'Approved - '.$managerLayer['approver_name'].' ('.$managerLayer['approver_id'].')' : 'Pending - '.$managerLayer['approver_name'].' ('.$managerLayer['approver_id'].')') : '-' }}">
+                                @if ($managerLayer)
+                                    @if($managerLayer['status'])
+                                        <i class="ri-check-line text-success fs-20 fw-medium"></i>
+                                    @else
+                                        <i class="ri-error-warning-line text-warning fs-20 fw-medium"></i>
+                                    @endif
+                                @endif
+                            </td>
+
                             {{-- Peers Layers --}}
                             @foreach (range(1, 3) as $layer)
                                 @php
