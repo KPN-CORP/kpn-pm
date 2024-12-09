@@ -169,6 +169,7 @@ class AppraisalController extends Controller
             return [
                 'id' => $employee->employee_id,
                 'name' => $employee->fullname,
+                'groupCompany' => $employee->group_company,
                 'accessPA' => isset($accessMenu['accesspa']) ? $accessMenu['accesspa'] : 0,
                 'appraisalStatus' => $employee->appraisal->first(),
                 'approvalStatus' => $approvalStatus,
