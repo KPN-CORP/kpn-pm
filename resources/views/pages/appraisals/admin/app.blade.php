@@ -53,6 +53,7 @@
                             <th>No</th>
                             <th>Employee ID</th>
                             <th>Employee Name</th>
+                            <th class="d-none">Business Unit</th>
                             <th>M</th>
                             @foreach(['P1', 'P2', 'P3'] as $peers)
                             <th>{{ $peers }}</th>
@@ -75,6 +76,7 @@
                             <td>{{ $index + 1 }}</td>
                             <td>{{ $employee['id'] }}</td>
                             <td>{{ $employee['name'] }} {{ $employee['accessPA'] ? ( $employee['appraisalStatus'] ? '' : '(Not Initiated)' ) : '(Not Eligible)' }}</td>
+                            <td class="d-none">{{ $employee['groupCompany'] }}</td>
     
                             {{-- Manager Layers --}}
                             @php
