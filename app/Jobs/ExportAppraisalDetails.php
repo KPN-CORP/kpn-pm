@@ -57,7 +57,7 @@ class ExportAppraisalDetails implements ShouldQueue
         
         // Use Excel facade to generate and store the export (e.g., in a file or storage)
         // Excel::store($export, 'exports/appraisal_details.xlsx');
-        Excel::store($export, $fileName);
+        Excel::store($export, $fileName, 'public');
 
         return response()->json([
             'message' => 'Export completed',
