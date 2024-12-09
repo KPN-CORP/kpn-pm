@@ -137,7 +137,41 @@ $(document).ready(function() {
                         .then(data => {
                             if (data.exists) {
                                 // If the file exists, trigger the download and stop checking
-                                window.location.href = `/appraisal-details/download/${file}`;
+                                // window.location.href = `/appraisal-details/download/${file}`;
+                                fetch(`/appraisal-details/download/${file}`, {
+                                    method: 'GET',
+                                    headers: {
+                                        'Content-Type': 'application/json',
+                                    }
+                                })
+                                .then(response => response.blob())  // Assuming the response contains the file blob
+                                .then(blob => {
+                                    // Create a temporary URL to download the file
+                                    const link = document.createElement('a');
+                                    const url = URL.createObjectURL(blob);
+                                    link.href = url;
+                                    link.download = file; // You can set a specific filename here
+                                    link.click();
+                                    URL.revokeObjectURL(url); // Clean up the URL
+                    
+                                    // Now send a request to delete the file from the server
+                                    fetch(`/appraisal-details/delete/${file}`, {
+                                        method: 'GET',  // Assuming DELETE for cleanup
+                                        headers: {
+                                            'Content-Type': 'application/json',
+                                        }
+                                    })
+                                    .then(response => response.json()) // Assuming the server responds with JSON
+                                    .then(data => {
+                                        console.log("File deleted successfully:", data);
+                                    })
+                                    .catch(error => {
+                                        console.error("Error deleting file:", error);
+                                    });
+                                })
+                                .catch(error => {
+                                    console.error('Error downloading file:', error);
+                                });
                                 clearInterval(checkInterval); // Stop the interval once the file is downloaded
                                 clearTimeout(timeout); // Clear the timeout if the file is found
                     
@@ -148,17 +182,6 @@ $(document).ready(function() {
                                 spinner.classList.add("d-none");
                                 icon.classList.remove("d-none");
                     
-                                // Optionally send a request to delete the file from the server
-                                fetch(`/appraisal-details/delete/${file}`, {
-                                    method: 'GET', // Assuming DELETE for cleanup
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                    }
-                                })
-                                .then(response => response.json()) // Assuming the server responds with JSON
-                                .catch(error => {
-                                    console.error("Error deleting file:", error);
-                                });
                             } else {
                                 // File does not exist yet, log and continue checking
                                 console.log(`${file} is not available yet. Re-checking...`);
