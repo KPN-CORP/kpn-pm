@@ -76,6 +76,7 @@ $(document).ready(function() {
                         });
                         spinner.classList.remove("d-none");
                         icon.classList.add("d-none");
+                    
                         // Start the export process
                         fetch('/export-appraisal-detail', {
                             method: 'POST',
@@ -87,14 +88,11 @@ $(document).ready(function() {
                         })
                         .then(response => response.json())
                         .then(data => {
-                            // If export is being processed
                             if (data.message === 'Export is being processed in the background.') {
                                 alert('The export is being processed. Please wait a moment.');
-
-                                checkInterval = setInterval(function() {
-                                    checkFileAvailability(fileName);
-                                }, 10000); // 120000 milliseconds = 2 minutes
-                                // Check status after a delay
+                    
+                                // Start checking the file availability
+                                startFileCheck(fileName); // Start checking for the file immediately
                             } else {
                                 console.error('Unexpected response:', data);
                                 alert('Failed to start export.');
@@ -103,12 +101,30 @@ $(document).ready(function() {
                         .catch(error => {
                             console.error('Error:', error);
                             alert('Failed to start the export process.');
-                        });                 
+                        });
                     } else {
                         alert('No employees found in the current table view.');
                     }
-
-                    function checkFileAvailability(file) {
+                    
+                    // Function to start checking for the file availability
+                    function startFileCheck(file) {
+                        let checkInterval;
+                        let timeout;
+                    
+                        // Set a timeout to stop checking after 2 minutes (120 seconds)
+                        timeout = setTimeout(() => {
+                            clearInterval(checkInterval); // Stop checking after 2 minutes
+                            alert('The file was not ready in time. Please try again later.');
+                        }, 120000); // 120000 milliseconds = 2 minutes
+                    
+                        // Start checking for file availability every 10 seconds
+                        checkInterval = setInterval(() => {
+                            checkFileAvailability(file, checkInterval, timeout); // Pass the interval and timeout for cleanup
+                        }, 10000); // 10 seconds interval
+                    }
+                    
+                    // Function to check if the file is available
+                    function checkFileAvailability(file, checkInterval, timeout) {
                         fetch('/check-file', {
                             method: 'POST',
                             headers: {
@@ -123,33 +139,38 @@ $(document).ready(function() {
                                 // If the file exists, trigger the download and stop checking
                                 window.location.href = `/appraisal-details/download/${file}`;
                                 clearInterval(checkInterval); // Stop the interval once the file is downloaded
+                                clearTimeout(timeout); // Clear the timeout if the file is found
+                    
+                                // Re-enable buttons and reset the UI
                                 document.querySelectorAll('.report-detail-btn').forEach(function(button) {
                                     button.disabled = false;
                                 });
                                 spinner.classList.add("d-none");
                                 icon.classList.remove("d-none");
-                                // Now, send a request to delete the file from the server
+                    
+                                // Optionally send a request to delete the file from the server
                                 fetch(`/appraisal-details/delete/${file}`, {
-                                    method: 'GET',  // Assuming you use the DELETE method for deletion
+                                    method: 'GET', // Assuming DELETE for cleanup
                                     headers: {
                                         'Content-Type': 'application/json',
                                     }
                                 })
                                 .then(response => response.json()) // Assuming the server responds with JSON
                                 .catch(error => {
-                                    console.error("Error:", error);
+                                    console.error("Error deleting file:", error);
                                 });
                             } else {
-                                // File does not exist yet, continue checking
-                                console.log(`${file} is not available yet.`);
+                                // File does not exist yet, log and continue checking
+                                console.log(`${file} is not available yet. Re-checking...`);
                             }
                         })
                         .catch(error => {
-                            console.error('Error:', error);
+                            console.error('Error checking file:', error);
                             alert('There was an error checking the file.');
-                            clearInterval(checkInterval); // Stop the interval on error
+                            clearInterval(checkInterval); // Stop checking on error
+                            clearTimeout(timeout); // Stop the timeout if there's an error
                         });
-                    }
+                    }                    
                 }
             }
             
