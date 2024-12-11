@@ -62,7 +62,11 @@
                 <a data-bs-toggle="collapse" href="#sidebarGoals" aria-expanded="false" aria-controls="sidebarGoals" class="side-nav-link">
                     <i class="ri-focus-2-line"></i>
                     <span>{{ __('Goal') }}</span>
-                    <span class="menu-arrow"></span>
+                    @if ($notificationGoal)
+                        <span class="badge bg-danger float-end">{{ $notificationGoal }}</span>    
+                    @else
+                        <span class="menu-arrow"></span>  
+                    @endif
                 </a>
                 <div class="collapse" id="sidebarGoals">
                     <ul class="side-nav-second-level">
@@ -71,7 +75,7 @@
                         </li>
                         @if(auth()->user()->isApprover())
                         <li>
-                            <a href="{{ route('team-goals') }}">{{ __('Task Box') }}</a>
+                            <a href="{{ route('team-goals') }}">{{ __('Task Box') }}<span class="badge bg-danger float-end {{ $notificationGoal ? '' : 'd-none' }}">{{ $notificationGoal }}</span></a>
                         </li>
                         @endif
                     </ul>
@@ -82,7 +86,11 @@
                     <a data-bs-toggle="collapse" href="#sidebarAppraisal" aria-expanded="false" aria-controls="sidebarAppraisal" class="side-nav-link">
                         <i class="ri-list-check-3"></i>
                         <span>{{ __('Appraisal') }}</span>
-                        <span class="menu-arrow"></span>
+                        @if ($notificationAppraisal)
+                            <span class="badge bg-danger float-end">{{ $notificationAppraisal }}</span>    
+                        @else
+                            <span class="menu-arrow"></span>  
+                        @endif
                     </a>
                     <div class="collapse" id="sidebarAppraisal">
                         <ul class="side-nav-second-level">
@@ -90,7 +98,7 @@
                                 <a href="{{ route('appraisals') }}">{{ __('My Appraisal') }}</a>
                             </li>
                             <li>
-                                <a href="{{ route('appraisals-task') }}">{{ __('Task Box') }}</a>
+                                <a href="{{ route('appraisals-task') }}">{{ __('Task Box') }}<span class="badge bg-danger float-end {{ $notificationAppraisal ? '' : 'd-none' }}">{{ $notificationAppraisal }}</span></a>
                             </li>
                         </ul>
                     </div>
