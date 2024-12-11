@@ -45,10 +45,8 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\WeightageController;
 use App\Imports\ApprovalLayerAppraisalImport;
 use Illuminate\Support\Facades\Route;
+use App\Http\Middleware\NotificationMiddleware;
 
-Route::get('/', function () {
-    return redirect('goals');
-});
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified', 'role:superadmin'])->name('dashboard');
 Route::get('/dashboard-team', [DashboardController::class, 'teamDashboard'])->middleware(['auth', 'verified', 'role:superadmin'])->name('dashboard.team');
@@ -99,7 +97,11 @@ Route::middleware('guest')->group(function () {
 });
 
 
-Route::middleware('auth', 'locale')->group(function () {
+Route::middleware('auth', 'locale', 'notification')->group(function () {
+
+    Route::get('/', function () {
+        return redirect('goals');
+    });
 
     Route::get('/search-employee', [SearchController::class, 'searchEmployee']);
 
