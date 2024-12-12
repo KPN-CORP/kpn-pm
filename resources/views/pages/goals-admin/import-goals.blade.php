@@ -79,9 +79,34 @@
                                         <h5 class="modal-title" id="modalInfoLabel">Goals Import Error Employee ID's</h5>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                       </div>
-                                      <div class="modal-body">
-                                        {{ is_string($import->detail_error) && json_decode($import->detail_error) ? implode(', ', json_decode($import->detail_error)) : $import->detail_error }}
-                                      </div>
+                                        <div class="modal-body">
+                                            @if (is_string($import->detail_error) && json_decode($import->detail_error))
+                                                @php
+                                                    $detailErrors = json_decode($import->detail_error, true);
+                                                @endphp
+                                        
+                                                @if (is_array($detailErrors))
+                                                    <ul>
+                                                        @foreach ($detailErrors as $error)
+                                                            @if (is_array($error)) {{-- Format Baru --}}
+                                                                <li>
+                                                                    <strong>Employee ID:</strong> {{ $error['employee_id'] ?? 'N/A' }} - 
+                                                                    <strong>Message:</strong> {{ $error['message'] ?? 'No details provided.' }}
+                                                                </li>
+                                                            @else {{-- Format Lama --}}
+                                                                <li>
+                                                                    <strong>Employee ID:</strong> {{ $error }}
+                                                                </li>
+                                                            @endif
+                                                        @endforeach
+                                                    </ul>
+                                                @else
+                                                    {{ $import->detail_error }}
+                                                @endif
+                                            @else
+                                                {{ $import->detail_error }}
+                                            @endif
+                                        </div>
                                       <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                       </div>
