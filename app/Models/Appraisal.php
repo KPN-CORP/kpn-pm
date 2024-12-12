@@ -31,5 +31,9 @@ class Appraisal extends Model
     {
         return $this->belongsTo(FormGroupAppraisal::class, 'form_group_id', 'id');
     }
+    public function approvalSnapshots()
+    {
+        return $this->belongsTo(ApprovalSnapshots::class, 'id', 'form_id');
+    }
     
 }

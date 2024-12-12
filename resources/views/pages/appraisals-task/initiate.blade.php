@@ -19,7 +19,7 @@
                                             <span class="text-muted">Employee ID</span>
                                         </div>
                                         <div class="col">
-                                            : {{ $goal->employee->employee_id }}
+                                            : {{ $employee->employee_id }}
                                         </div>
                                     </div>
                                     <div class="row mb-1">
@@ -27,7 +27,7 @@
                                             <span class="text-muted">Employee Name</span>
                                         </div>
                                         <div class="col">
-                                            : {{ $goal->employee->fullname }}
+                                            : {{ $employee->fullname }}
                                         </div>
                                     </div>
                                     <div class="row mb-1">
@@ -35,7 +35,7 @@
                                             <span class="text-muted">Job Level</span>
                                         </div>
                                         <div class="col">
-                                            : {{ $goal->employee->job_level }}
+                                            : {{ $employee->job_level }}
                                         </div>
                                     </div>
                                 </div>
@@ -45,7 +45,7 @@
                                             <span class="text-muted">Business Unit</span>
                                         </div>
                                         <div class="col">
-                                            : {{ $goal->employee->group_company }}
+                                            : {{ $employee->group_company }}
                                         </div>
                                     </div>
                                     <div class="row mb-1">
@@ -53,7 +53,7 @@
                                             <span class="text-muted">Division</span>
                                         </div>
                                         <div class="col">
-                                            : {{ $goal->employee->unit }}
+                                            : {{ $employee->unit }}
                                         </div>
                                     </div>
                                     <div class="row mb-1">
@@ -61,7 +61,7 @@
                                             <span class="text-muted">Designation</span>
                                         </div>
                                         <div class="col">
-                                            : {{ $goal->employee->designation_name }}
+                                            : {{ $employee->designation_name }}
                                         </div>
                                     </div>
                                 </div>

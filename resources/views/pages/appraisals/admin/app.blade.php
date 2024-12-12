@@ -13,6 +13,11 @@
 @section('content')
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- Begin Page Content -->
+    <!-- Spinner -->
+<div id="loading-spinner" style="display: none;">
+    <p>Export is in progress...</p>
+    <!-- You can add a spinner icon here -->
+</div>
     <div class="container-fluid"> 
         @if (session('success'))
             <div class="alert alert-success mt-3">
@@ -24,18 +29,11 @@
                 {!! session('error') !!}
             </div>
         @endif
-        @can('reportpadetail')                                
-            <div class="row">
-                <div class="col-lg">
-                    <div class="mb-3 text-end">
-                        <button type="button" class="btn btn-sm btn-outline-success" title="Download Detail Report"><i class="ri-download-cloud-2-line me-1 fs-16"></i>Download Detail Report</button>
-                    </div>
-                </div>
-            </div>
-        @endcan
+        <input id="permission-reportpadetail" data-report-pa-detail="{{ Auth::user()->can('reportpadetail') ? 'true' : 'false' }}" type="hidden">
         <div class="row">
             <div class="col-auto">
                 <div class="mb-3 p-1 bg-info-subtle rounded shadow">
+                    <span class="mx-2">M = Manager</span>|
                     <span class="mx-2">C = Calibrator</span>|
                     <span class="mx-2">P = Peers</span>|
                     <span class="mx-2">S = Subordinate</span>|
@@ -55,6 +53,8 @@
                             <th>No</th>
                             <th>Employee ID</th>
                             <th>Employee Name</th>
+                            <th class="d-none">Business Unit</th>
+                            <th>M</th>
                             @foreach(['P1', 'P2', 'P3'] as $peers)
                             <th>{{ $peers }}</th>
                             @endforeach
@@ -75,8 +75,30 @@
                         <tr data-bs-toggle="popover" data-bs-trigger="hover" data-bs-html="true" data-bs-content="{!! $employee['popoverContent'] !!}">
                             <td>{{ $index + 1 }}</td>
                             <td>{{ $employee['id'] }}</td>
-                            <td>{{ $employee['name'] }}</td>
+                            <td>{{ $employee['name'] }} {{ $employee['accessPA'] ? ( $employee['appraisalStatus'] ? '' : '(Not Initiated)' ) : '(Not Eligible)' }}</td>
+                            <td class="d-none">{{ $employee['groupCompany'] }}</td>
     
+                            {{-- Manager Layers --}}
+                            @php
+                                $managerLayer = $employee['approvalStatus']['manager'][0] ?? null;
+                            @endphp
+                            <td class="text-center
+                                @if ($managerLayer) 
+                                    {{ $managerLayer['status'] ? 'table-success' : 'table-warning' }} 
+                                @else
+                                    table-light
+                                @endif
+                            "
+                            data-id="{{ $managerLayer ? ($managerLayer['status'] ? 'Approved - '.$managerLayer['approver_name'].' ('.$managerLayer['approver_id'].')' : 'Pending - '.$managerLayer['approver_name'].' ('.$managerLayer['approver_id'].')') : '-' }}">
+                                @if ($managerLayer)
+                                    @if($managerLayer['status'])
+                                        <i class="ri-check-line text-success fs-20 fw-medium"></i>
+                                    @else
+                                        <i class="ri-error-warning-line text-warning fs-20 fw-medium"></i>
+                                    @endif
+                                @endif
+                            </td>
+
                             {{-- Peers Layers --}}
                             @foreach (range(1, 3) as $layer)
                                 @php
@@ -168,5 +190,6 @@
 @push('scripts')
 <script>
     var employeesData = {!! json_encode($datas) !!};
+    var userID = {!! json_encode(auth()->user()->id) !!};
 </script>
 @endpush

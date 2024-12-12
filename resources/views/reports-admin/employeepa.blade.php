@@ -44,10 +44,10 @@
                             <td>{{ $row->office_area }}</td>
                             <td>{{ $row->group_company }}</td>
                             <td class="text-center">
-                                <button class="btn btn-sm btn-outline-warning" title="Update" onclick="showEditModal({{ json_encode($row) }})">
+                                <button class="btn btn-sm btn-outline-warning mb-1" title="Update" onclick="showEditModal({{ json_encode($row) }})">
                                     <i class="ri-edit-box-line"></i>
                                 </button>
-                                <a class="btn btn-sm btn-danger" title="Terminated" onclick="handleDeleteEmployeePA(this)" data-id="{{ $row->employee_id }}"><i class="ri-delete-bin-line"></i></a>
+                                <a class="btn btn-sm btn-danger mb-1" title="Terminated" onclick="handleDeleteEmployeePA(this)" data-id="{{ $row->employee_id }}"><i class="ri-delete-bin-line"></i></a>
                             </td>
                         </tr>
                         @endforeach
@@ -126,26 +126,9 @@
                             <label for="editJobLevel" class="form-label">Job Level</label>
                             {{-- <input type="text" class="form-control" id="editJobLevel" name="job_level" required> --}}
                             <select class="form-control" id="editJobLevel" name="job_level" required>
-                                <option value="2A">2A</option>
-                                <option value="2B">2B</option>
-                                <option value="2C">2C</option>
-                                <option value="2D">2D</option>
-                                <option value="3A">3A</option>
-                                <option value="3B">3B</option>
-                                <option value="4A">4A</option>
-                                <option value="4B">4B</option>
-                                <option value="5A">5A</option>
-                                <option value="5B">5B</option>
-                                <option value="6A">6A</option>
-                                <option value="6B">6B</option>
-                                <option value="7A">7A</option>
-                                <option value="7B">7B</option>
-                                <option value="8A">8A</option>
-                                <option value="8B">8B</option>
-                                <option value="9A">9A</option>
-                                <option value="9B">9B</option>
-                                <option value="10A">10A</option>
-                                <option value="10B">10B</option>
+                                @foreach ($jobLevel as $level)
+                                    <option value="{{ $level->job_level }}">{{ $level->job_level }}</option>  
+                                @endforeach
                             </select>
                         </div>
                         <div class="col-md-6 mb-3">

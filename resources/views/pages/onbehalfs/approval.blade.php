@@ -1,6 +1,12 @@
 @extends('layouts_.vertical', ['page_title' => 'On Behalf'])
 
 @section('css')
+<style>
+    textarea.form-control {
+    overflow: hidden; /* Prevent scrollbars from appearing */
+    resize: none; /* Disable manual resizing by the user */
+}
+</style>
 @endsection
 
 @section('content')
@@ -42,7 +48,7 @@
                                 <div class="col-md-4">
                                     <div class="mb-3">
                                         <label class="form-label" for="kpi">KPI</label>
-                                        <textarea name="kpi[]" class="form-control" readonly>{{ $data['kpi'] }}</textarea>
+                                        <textarea name="kpi[]" oninput="autoResize(this)" class="form-control" readonly>{{ $data['kpi'] }}</textarea>
                                     </div>
                                 </div>
                                 <div class="col-md-2">

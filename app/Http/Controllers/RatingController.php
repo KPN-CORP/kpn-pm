@@ -45,10 +45,13 @@ class RatingController extends Controller
             $filterYear = $request->input('filterYear');
 
             // Get the KPI unit and calibration percentage
-            $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $user)->first();
+            $kpiUnit = KpiUnits::with(['masterCalibration' => function($query) use ($period) {
+                $query->where('period', $period);
+            }])->where('employee_id', $user)->first();
             
             if (!$kpiUnit) {
-                Session::flash('error', "Your KPI unit data not found");
+                Session::flash('error', "Your KPI Unit not been set");
+                Session::flash('errorTitle', "Cannot Initiate Rating");
             }
             
             $calibration = $kpiUnit->masterCalibration->percentage;
@@ -56,6 +59,10 @@ class RatingController extends Controller
             $emptyAppraisal = ApprovalLayerAppraisal::with(['employee', 'approvalRequest' => function ($query) {
                 $query->with('manager');
             }])
+            ->whereHas('employee', function ($query) {
+                // Ensure employee's access_menu has accesspa = 1
+                $query->whereJsonContains('access_menu', ['accesspa' => 1]);
+            })
             ->where('approver_id', $user)
             ->where('layer_type', 'calibrator')
             ->where(function ($query) use ($user) {
@@ -76,19 +83,22 @@ class RatingController extends Controller
 
             $allData = ApprovalLayerAppraisal::with(['employee'])
                 ->where('approver_id', $user)
+                ->whereHas('employee', function ($query) {
+                    // Ensure the employee's access_menu has accesspa = 1
+                    $query->whereJsonContains('access_menu', ['accesspa' => 1]);
+                })
                 ->where('layer_type', 'calibrator')
                 ->get();
 
             // Query for ApprovalLayerAppraisal data with approval requests
             $dataWithRequests = ApprovalLayerAppraisal::join('approval_requests', 'approval_requests.employee_id', '=', 'approval_layer_appraisals.employee_id')
-                ->where('approval_layer_appraisals.approver_id', $user)
-                ->where('approval_layer_appraisals.layer_type', 'calibrator')
-                ->where('approval_requests.category', $this->category)
-                ->whereNull('approval_requests.deleted_at')
-                ->select('approval_layer_appraisals.*')
-                ->get()
-                ->keyBy('id');
-        
+            ->where('approval_layer_appraisals.approver_id', $user)
+            ->where('approval_layer_appraisals.layer_type', 'calibrator')
+            ->where('approval_requests.category', $this->category)
+            ->whereNull('approval_requests.deleted_at')
+            ->select('approval_layer_appraisals.*')
+            ->get()
+            ->keyBy('id');  // This will create a collection indexed by the 'id' of the approval layer appraisals
 
             // Group the data
             $datas = $allData->groupBy(function ($data) {
@@ -104,6 +114,7 @@ class RatingController extends Controller
                 }
                 return 'Other Levels';
             })->map(function ($group) use ($dataWithRequests, $user) {
+                // Fetch `withRequests` based on the user's criteria
                 $withRequests = ApprovalLayerAppraisal::join('approval_requests', 'approval_requests.employee_id', '=', 'approval_layer_appraisals.employee_id')
                     ->where('approval_layer_appraisals.approver_id', $user)
                     ->where('approval_layer_appraisals.layer_type', 'calibrator')
@@ -118,15 +129,15 @@ class RatingController extends Controller
                         $appraisal->approval_requests = $subgroup->first();
                         return $appraisal;
                     });
-
+            
                 return [
                     'with_requests' =>  $withRequests->values(),
                     'without_requests' => $group->filter(function ($item) use ($dataWithRequests) {
                         return !$dataWithRequests->has($item->id);
                     })
                 ];
-            })->sortKeys();  
-                
+            })->sortKeys();
+                                        
             $ratingDatas = $datas->map(function ($group) use ($user, $period) {
                 // Process `with_requests`
                 $calibration = Calibration::where('period', $period)->orderBy('id', 'asc')->get();
@@ -136,7 +147,7 @@ class RatingController extends Controller
                     $previousRating = $calibration->whereNotNull('rating')->where('appraisal_id', $data->approvalRequest->first()->form_id)->first();
                     // Calculate the suggested rating
                     $suggestedRating = $this->appService->suggestedRating($data->employee->employee_id, $data->approvalRequest->first()->form_id);
-                    
+                                        
                     $data->suggested_rating = $calibration->where('employee_id', $data->employee_id)->where('approver_id', $user)->first() ? $this->appService->convertRating($suggestedRating, $calibration->where('employee_id', $data->employee_id)->where('approver_id', $user)->first()->id_calibration_group) : null;
                     
                     $data->previous_rating = $previousRating ? $this->appService->convertRating($previousRating->rating, $calibration->first()->id_calibration_group) : null;
@@ -234,6 +245,7 @@ class RatingController extends Controller
                     $ratingResults[$key] = round($count * $weight);
                     $percentageResults[$key] = round(100 * $weight);
                 }
+
     
                 // Process suggested ratings
                 $suggestedRatingCounts = $group['with_requests']->pluck('suggested_rating')->countBy();
@@ -274,7 +286,7 @@ class RatingController extends Controller
                     break;
                 }
             }
-    
+                
             $parentLink = 'Calibration';
             $link = 'Rating';
             $id_calibration_group = $kpiUnit->masterCalibration->id_calibration_group;
@@ -349,6 +361,7 @@ class RatingController extends Controller
                     Appraisal::where('id', $rating['appraisal_id'])
                         ->update([
                             'rating' => $rating['rating'],
+                            'form_status' => 'Approved',
                             'updated_by' => Auth()->user()->id
                     ]);
                 }
@@ -399,6 +412,10 @@ class RatingController extends Controller
             
             $allData = ApprovalLayerAppraisal::with(['employee'])
             ->where('approver_id', $user)
+            ->whereHas('employee', function ($query) {
+                // Ensure the employee's access_menu has accesspa = 1
+                $query->whereJsonContains('access_menu', ['accesspa' => 1]);
+            })
             ->where('layer_type', 'calibrator')
             ->get();
             
@@ -589,7 +606,6 @@ class RatingController extends Controller
                 ->get();
 
             $allowedRating = $masterRating->pluck('parameter')->toArray();
-
             
             // Get the ID of the currently authenticated user
             $userId = Auth::id();
@@ -611,11 +627,16 @@ class RatingController extends Controller
                 // Append error information to the success message
                 session()->put('invalid_employees', $invalidEmployees);
 
-                $message .= ' With some errors. <a href="' . route('export.invalid.layer.appraisal') . '">Click here to download the list of errors.</a>';
+                // $message .= ' <u><a href="' . route('export.invalid.rating') . '">Click here to download the list of errors.</a></u>';
+                $errorMessage = ' <u><a href="' . route('export.invalid.rating') . '">Click here to download the list of errors.</a></u>';
             }
 
             // If successful, redirect back with a success message
-            return redirect()->route('rating')->with('success', $message);
+            if (!empty($invalidEmployees)) {
+                return redirect()->route('rating')->with('error', 'An error occurred during the import process.')->with('errorMessage', $errorMessage);
+            }else{ 
+                return redirect()->route('rating')->with('success', $message);
+            }
         } catch (ValidationException $e) {
 
             // Catch the validation exception and redirect back with the error message

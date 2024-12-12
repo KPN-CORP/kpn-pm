@@ -56,14 +56,24 @@ class MyAppraisalController extends Controller
     }
 
     public function index(Request $request) {
+        
+        $user = $this->user;
+        $period = $this->appService->appraisalPeriod();
+        $filterYear = $request->input('filterYear');
+        $accessMenu = [];
+
+        $employee = EmployeeAppraisal::where('employee_id', $user)->first();
+        if ($employee) {
+            $accessMenu = json_decode($employee->access_menu, true);
+        }
+
         try {
-            $user = Auth::user()->employee_id;
-            $period = $this->appService->appraisalPeriod();
-            $filterYear = $request->input('filterYear');
 
             // Retrieve approval requests
             $datasQuery = ApprovalRequest::with([
-                'employee', 'appraisal.goal', 'updatedBy', 'adjustedBy', 'initiated', 'manager', 'contributor',
+                'employee', 'appraisal.goal', 'appraisal.approvalSnapshots' => function ($query) {
+                    $query->where('created_by', Auth::user()->id);
+                }, 'updatedBy', 'adjustedBy', 'initiated', 'manager', 'contributor',
                 'approval' => function ($query) {
                     $query->with('approverName');
                 }
@@ -117,7 +127,10 @@ class MyAppraisalController extends Controller
             }
 
             $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->appraisal->goal->form_data, true) : [];
-            $appraisalData = $datas->isNotEmpty() ? json_decode($datas->first()->appraisal->form_data, true) : [];
+            
+            $form_data = Auth::user()->id == $datas->first()->appraisal->created_by ? $datas->first()->appraisal->approvalSnapshots->form_data : $datas->first()->appraisal->form_data;
+
+            $appraisalData = $datas->isNotEmpty() ? json_decode($form_data, true) : [];
 
             $groupedContributors = $datas->first()->contributor->groupBy('contributor_type');
 
@@ -199,7 +212,7 @@ class MyAppraisalController extends Controller
                 }
             }
 
-            $path = storage_path('../resources/goal.json');
+            $path = base_path('resources/goal.json');
             if (!File::exists($path)) {
                 $options = ['UoM' => [], 'Type' => []];
             } else {
@@ -212,17 +225,9 @@ class MyAppraisalController extends Controller
             $parentLink = __('Appraisal');
             $link = __('My Appraisal');
 
-            $employee = EmployeeAppraisal::where('employee_id', $user)->first();
-            if (!$employee) {
-                $access_menu = ['goals' => null];
-            } else {
-                $access_menu = json_decode($employee->access_menu, true);
-            }
-            $goals = $access_menu['goals'] ?? null;
-
             $selectYear = ApprovalRequest::where('id', $datas->first()->id)->select('period')->get();
 
-            return view('pages.appraisals.my-appraisal', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'goals', 'selectYear', 'adjustByManager', 'appraisalData'));
+            return view('pages.appraisals.my-appraisal', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'accessMenu', 'selectYear', 'adjustByManager', 'appraisalData'));
 
         } catch (Exception $e) {
             Log::error('Error in index method: ' . $e->getMessage());
@@ -238,7 +243,8 @@ class MyAppraisalController extends Controller
                 'goals' => null,
                 'selectYear' => [],
                 'adjustByManager' => null,
-                'appraisalData' => []
+                'appraisalData' => [],
+                'accessMenu' => $accessMenu
             ]);
         }
     }
@@ -249,22 +255,34 @@ class MyAppraisalController extends Controller
 
         $period = $this->appService->appraisalPeriod();
 
-        $goal = Goal::where('employee_id', $request->id)->where('period', $period)->first();
+        $goal = Goal::where('employee_id', $request->id)->where('form_status', 'Approved')->where('period', $period)->first();
 
         $appraisal = Appraisal::where('employee_id', $request->id)->where('period', $period)->first();
+
+        $accessMenu = [];
+
+        $employee = EmployeeAppraisal::where('employee_id', $request->id)->first();
+        if ($employee) {
+            $accessMenu = json_decode($employee->access_menu, true);
+        }
 
         // check goals
         if ($goal) {
             $goalData = json_decode($goal->form_data, true);
         } else {
-            Session::flash('error', "Your Goals for $period are not found.");
-            return redirect()->back();
+            Session::flash('error', "Your Goals for $period are not found or not fully Approved.");
+            return redirect()->route('appraisals');
+        }
+
+        if (!$accessMenu['createpa']) {
+            Session::flash('error', "You are not eligible to create Appraisal $period.");
+            return redirect()->route('appraisals');
         }
 
         // check appraisals
         if ($appraisal) {
             Session::flash('error', "Appraisal $period already initiated.");
-            return redirect()->back();
+            return redirect()->route('appraisals');
         }
         
         $approval = ApprovalLayerAppraisal::select('approver_id')->where('employee_id', $request->id)->where('layer_type', 'manager')->where('layer', 1)->first();

@@ -8,16 +8,16 @@
     <div class="container-fluid">
         @if(session('success'))
             <div class="alert alert-success mt-3">
-                {{ session('success') }}
+                {!! session('success') !!}
             </div>
         @endif
         <div class="mandatory-field">
             <div id="alertField" class="alert alert-danger alert-dismissible {{ Session::has('error') ? '':'fade' }}" role="alert" {{ Session::has('error') ? '':'hidden' }}>
-                <strong>{{ Session::get('error') }}</strong>
+                <strong>{!! Session::get('error') !!}{!! Session::get('errorMessage') !!}</strong>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         </div>
-        @if (isset($calibrations))            
+        @if (isset($calibrations) && !empty($calibrations))            
         <div class="row">
             <div class="col-md p-0 p-md-2">
                 <div class="card">
@@ -51,7 +51,10 @@
                                             return isset($data['status']) && $data['status'] === 'Approved';
                                         })
                                         ->count();
-
+                                        $keys = array_keys($data['combined']);
+                                        $firstKey = $keys[0];
+                                        $secondKey = $keys[1];
+                                        $lastKey = array_key_last($data['combined']);
                                     @endphp
                                     <div class="row">
                                         @if ($rating_status)
@@ -90,7 +93,7 @@
                                                         @endphp
                                                         <tr>
                                                             <td class="key-{{ $level }}">{{ $key }}</td>
-                                                            <td class="rating">{{ $values['rating_count'] }}</td>
+                                                            <td class="rating">{{ $data['count'] <= 2 ? 0 : $values['rating_count'] }}</td>
                                                             <td>{{ $values['percentage'] }}</td>
                                                             <td class="suggested-rating-count-{{ $formattedKey.'-'.$level }}">{{ $values['suggested_rating_count'] }}</td>
                                                             <td class="suggested-rating-percentage-{{ $formattedKey.'-'.$level }}">{{ $values['suggested_rating_percentage'] }}</td>
@@ -98,7 +101,7 @@
                                                         @endforeach
                                                         <tr>
                                                             <td>Total</td>
-                                                            <td>{{ $data['count'] }}</td>
+                                                            <td>{{ $data['count'] <= 2 ? 0 : $data['count'] }}</td>
                                                             <td>100%</td>
                                                             <td class="rating-total-count-{{ $level }}">{{ count($ratingDatas[$level]) }}</td>
                                                             <td class="rating-total-percentage-{{ $level }}">100%</td>
@@ -108,7 +111,7 @@
                                         </div>
                                         @endif
                                         <div class="col-md text-end order-1 order-md-2 mb-2">
-                                            <a class="btn btn-outline-info m-1 {{ $ratingNotAllowed || $calibratorCount ? 'd-none' : '' }}" data-bs-toggle="modal" data-bs-target="#importModal" title="Import Rating"><i class="ri-upload-cloud-2-line d-md-none"></i><span class="d-none d-md-block">Upload Rating</span></a>
+                                            <a class="btn btn-outline-info m-1 {{ $ratingNotAllowed || $calibratorCount ? 'd-none' : '' }}" data-bs-toggle="modal" data-bs-id="{{ $level }}" data-bs-target="#importModal" title="Import Rating"><i class="ri-upload-cloud-2-line d-md-none"></i><span class="d-none d-md-block">Upload Rating</span></a>
                                             <a href="{{ route('rating.export', $level) }}" class="btn btn-outline-success m-1 {{ $ratingNotAllowed ? 'disabled' : '' }}"><i class="ri-download-cloud-2-line d-md-none "></i><span class="d-none d-md-block">Download Rating</span></a>
                                             <button class="btn btn-primary m-1 {{ $ratingDone ? '' : 'd-none' }}" data-id="{{ $level }}">Submit Rating</button>
                                         </div>
@@ -131,8 +134,12 @@
                                                         <i class="ri-information-line h3 fw-light"></i>
                                                     </div>
                                                     <div class="col">
-                                                        <strong class="{{ $employeeCount == 1 }}">If there's only have 1 employee, the Rater can select any rating between B-E.</strong>
-                                                        <strong class="{{ $employeeCount == 2 }}">If there's has 2 employees, the You can select any rating between A-E. However, the selected rating will be available to be allocated only 1 time.</strong>
+                                                        <strong class="{{ $employeeCount == 1 ? '' : 'd-none' }}">
+                                                            {{ __('rating_employee_single', ['secondKey' => $secondKey, 'lastKey' => $lastKey]) }}
+                                                        </strong>
+                                                        <strong class="{{ $employeeCount > 1 ? '' : 'd-none' }}">
+                                                            {{ __('rating_employee_double', ['firstKey' => $firstKey, 'lastKey' => $lastKey]) }}
+                                                        </strong>
                                                     </div>
                                                 </div>
                                             </div>
@@ -175,7 +182,7 @@
                                                                         <div class="col-md col-sm-12 text-md-center">
                                                                             <span class="text-muted">Review Status</span>
                                                                             <div class="mb-2">
-                                                                                @if ($item->rating_allowed['status'])
+                                                                                @if ($item->rating_allowed['status'] && $item->form_id)
                                                                                     @if ($item->rating_incomplete || !$requestApproved)
                                                                                         @if ($item->rating_allowed['status'] && $item->form_id && $item->current_calibrator)
                                                                                             <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $item->current_calibrator }}" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending Calibration</a>
@@ -238,16 +245,25 @@
                 </div> <!-- end card-->
             </div>
         </div>
+        @else
+        <div class="row">
+            <div class="col-md p-0 p-md-2">
+                <div class="card">
+                    <div class="card-body p-2">
+                        <div>Data not available.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
         @endif
     </div>
 
-    <!-- importModal -->
+<!-- Modal -->
 <div class="modal fade" id="importModal" role="dialog" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" id="importModalLabel">Upload Rating</h4>
-                {{-- <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button> --}}
+                <h4 class="modal-title" id="importModalLabel">Upload Rating - Level: <span id="modalLevel"></span></h4>
             </div>
             <div class="modal-body">
                 <form id="importRating" action="{{ route('rating.import') }}" method="POST" enctype="multipart/form-data">
@@ -264,24 +280,43 @@
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" id="importRatingButton" class="btn btn-primary"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Submit</button>
+                <button type="submit" id="importRatingButton" class="btn btn-primary">
+                    <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
+                    Submit
+                </button>
             </div>
         </div>
     </div>
 </div>
 @endsection
 @push('scripts')
-    @if(Session::has('error') || !$calibrations)
+    @if(!$calibrations)
     <script>
         document.addEventListener('DOMContentLoaded', function () {                
             Swal.fire({
                 icon: "error",
                 title: "Cannot initiate rating!",
-                text: '{{ Session::get('error') }}',
+                text: '{{ Session::pull('error') }}',
                 confirmButtonText: "OK",
             }).then((result) => {
                 if (result.isConfirmed) {
                     history.back(); // Go back to the previous page
+                }
+            });
+        });
+    </script>
+    @endif
+    @if(Session::has('error'))
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {                
+            Swal.fire({
+                icon: "error",
+                title: "Error!",
+                text: '{{ Session::pull('error') }}',
+                confirmButtonText: "OK",
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    return; // Go back to the previous page
                 }
             });
         });

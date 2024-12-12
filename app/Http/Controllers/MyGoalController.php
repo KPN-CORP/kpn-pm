@@ -140,7 +140,7 @@ class MyGoalController extends Controller
             $formData = json_decode($datas->first()->goal->form_data, true);
         }
     
-        $path = storage_path('../resources/goal.json');
+        $path = base_path('resources/goal.json');
     
         // Check if the JSON file exists
         if (!File::exists($path)) {
@@ -192,7 +192,7 @@ class MyGoalController extends Controller
             return redirect()->back();
         }
 
-        $path = storage_path('../resources/goal.json');
+        $path = base_path('resources/goal.json');
 
         // Check if the JSON file exists
         if (!File::exists($path)) {
@@ -222,7 +222,7 @@ class MyGoalController extends Controller
         $parentLink = __('Goal');
         $link = __('Edit');
 
-        $path = storage_path('../resources/goal.json');
+        $path = base_path('resources/goal.json');
 
         // Check if the JSON file exists
         if (!File::exists($path)) {
@@ -478,10 +478,20 @@ class MyGoalController extends Controller
         $approval->sendback_to = null;
         // Set other attributes as needed
         $approval->save();
-
+        
         $snapshot =  ApprovalSnapshots::where('form_id', $request->id)->where('employee_id', $request->employee_id)->first();
-        $snapshot->form_data = $jsonData;
-        $snapshot->updated_by = Auth::user()->id;
+        
+        if ($snapshot) {
+            $snapshot->form_data = $jsonData;
+            $snapshot->updated_by = Auth::user()->id;
+        } else {
+            $snapshot =  new ApprovalSnapshots;
+            $snapshot->id = Str::uuid();
+            $snapshot->form_id = $request->id;
+            $snapshot->form_data = $jsonData;
+            $snapshot->employee_id = $request->employee_id;
+            $snapshot->created_by = Auth::user()->id;
+        }
         
         $snapshot->save();
 

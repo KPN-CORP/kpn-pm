@@ -10,7 +10,7 @@
     <button class="btn rounded mb-2 py-2 bg-secondary-subtle bg-opacity-10 text-primary align-items-center d-flex justify-content-between" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ $indexItem }}" aria-expanded="false" aria-controls="collapse-{{ $indexItem }}">
         <span class="fs-16 ms-1">
             {{ $item['formName'] }} 
-            | Score : {{ $item['formName'] === 'KPI' ? $appraisalData['kpiScore'] : ($item['formName'] === 'Culture' ? $appraisalData['cultureScore'] : $appraisalData['leadershipScore']) }}
+            | Score : {{ $item['formName'] === 'KPI' ? $appraisalData['totalKpiScore'] : ($item['formName'] === 'Culture' ? $appraisalData['totalCultureScore'] : $appraisalData['totalLeadershipScore']) }}
         </span>  
         <span>
             <p class="d-none d-md-inline me-1">Details</p><i class="ri-arrow-down-s-line"></i>
@@ -25,7 +25,7 @@
                         @if(is_numeric($key))
                         <div class="{{ $loop->last ? '':'border-bottom' }} mb-3">
                             @if(isset($item['title']))
-                                <h5 class="mb-3"><u>{{ $item['title'] }}</u></h5>
+                                <h5 class="mb-3"><u>{!! $item['title'] !!}</u></h5>
                             @endif
                             @foreach($item as $subKey => $subItem)
                                 @if(is_array($subItem))
@@ -33,7 +33,7 @@
                                     <li>
                                         <div>
                                             @if(isset($subItem['formItem']))
-                                                <p class="mb-1">{{ $subItem['formItem'] }}</p>
+                                                <p class="mb-1">{!! $subItem['formItem'] !!}</p>
                                             @endif
                                             @if(isset($subItem['score']))
                                                 <p><strong>Score:</strong> {{ $subItem['score'] }}</p>
@@ -61,7 +61,7 @@
                         @if(is_numeric($key))
                         <div class="{{ $loop->last ? '':'border-bottom' }} mb-3">
                             @if(isset($item['title']))
-                                <h5 class="mb-3"><u>{{ $item['title'] }}</u></h5>
+                                <h5 class="mb-3"><u>{!! $item['title'] !!}</u></h5>
                             @endif
                             @foreach($item as $subKey => $subItem)
                                 @if(is_array($subItem))
@@ -69,7 +69,7 @@
                                     <li>
                                         <div>
                                             @if(isset($subItem['formItem']))
-                                                <p class="mb-1">{{ $subItem['formItem'] }}</p>
+                                                <p class="mb-1">{!! $subItem['formItem'] !!}</p>
                                             @endif
                                             @if(isset($subItem['score']))
                                                 <p><strong>Score:</strong> {{ $subItem['score'] }}</p>

@@ -148,6 +148,8 @@ function confirmAprroval() {
     return false; // Prevent default form submission
 }
 
+window.confirmAprroval = confirmAprroval;
+
 function confirmAprrovalAdmin() {
     let title1;
     let title2;
@@ -347,7 +349,6 @@ function changeCategory(val) {
                     leftColumns: 0,
                     rightColumns: 1
                 },
-                paging: false,
                 scrollCollapse: true,
                 scrollX: true,
                 pageLength: 25,
@@ -377,8 +378,10 @@ function changeCategory(val) {
         },
         error: function (xhr, status, error) {
             console.error("Error fetching report content:", error);
-            // Optionally display an error message to the user
-            contentOnBehalf.html("");
+                // Optionally display an error message to the user
+            contentOnBehalf.html(
+                "Error fetching report content. Please try again."
+            );
         },
     });
     return; // Prevent default form submission
@@ -419,7 +422,6 @@ document.addEventListener("DOMContentLoaded", function () {
                         leftColumns: 0,
                         rightColumns: 1
                     },
-                    paging: false,
                     scrollCollapse: true,
                     scrollX: true,
                     pageLength: 25,
@@ -458,4 +460,16 @@ document.addEventListener("DOMContentLoaded", function () {
             },
         });
     });
+});
+
+function autoResize(textarea) {
+    // Reset the height to auto to calculate the new height correctly
+    textarea.style.height = 'auto';
+    // Set the height to the scrollHeight to fit the content
+    textarea.style.height = textarea.scrollHeight + 'px';
+}
+
+// Automatically resize on page load
+document.querySelectorAll('textarea[readonly]').forEach(textarea => {
+    autoResize(textarea);
 });
