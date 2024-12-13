@@ -71,7 +71,7 @@
                 <div class="collapse" id="sidebarGoals">
                     <ul class="side-nav-second-level">
                         <li>
-                            <a href="{{ route('goals') }}">{{ __('My Goal') }}<br>{{ auth()->user() }}</a>
+                            <a href="{{ route('goals') }}">{{ __('My Goal') }}</a>
                         </li>
                         @if(auth()->user()->isApprover())
                         <li>
