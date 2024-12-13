@@ -33,7 +33,7 @@
                             <li class="nav-item">
                               <button class="btn btn-outline-primary position-relative active me-2" id="team-tab" data-bs-toggle="tab" data-bs-target="#team" type="button" role="tab" aria-controls="team" aria-selected="true">
                                 {{ __('My Team') }}
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger {{ $notifDataTeams ? $notifDataTeams : 'd-none' }}">
+                                <span class="position-absolute top-0 start-100 translate-middle badge bg-danger {{ $notifDataTeams ? $notifDataTeams : 'd-none' }}">
                                   {{ $notifDataTeams }}
                                 </span>
                               </button>
@@ -41,7 +41,7 @@
                             <li class="nav-item">
                               <button class="btn btn-outline-secondary position-relative" id="360-review-tab" data-bs-toggle="tab" data-bs-target="#360-review" type="button" role="tab" aria-controls="360-review" aria-selected="false">
                                 {{ __('Appraisal 360') }}
-                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger {{ $notifData360 ? $notifData360 : 'd-none' }}">
+                                <span class="position-absolute top-0 start-100 translate-middle badge bg-danger {{ $notifData360 ? $notifData360 : 'd-none' }}">
                                   {{ $notifData360 }}
                                 </span>
                               </button>

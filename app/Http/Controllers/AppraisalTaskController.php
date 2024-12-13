@@ -56,7 +56,10 @@ class AppraisalTaskController extends Controller
             ->where('approver_id', $user)
             ->where('layer_type', 'manager')
             ->whereHas('employee', function ($query) {
-                $query->whereJsonContains('access_menu', ['createpa' => 1]);
+                $query->where(function($q) {
+                    $q->whereRaw('json_valid(access_menu)')
+                      ->whereJsonContains('access_menu', ['createpa' => 1]);
+                });
             })
             ->get();
     
@@ -89,15 +92,11 @@ class AppraisalTaskController extends Controller
             // Return empty data to be consumed in the Blade template
             return view('pages.appraisals-task.app', [
                 'data' => [],
-                'link' => 'My Appraisal',
+                'link' => 'Task Box',
                 'parentLink' => 'Appraisal',
-                'formData' => ['formData' => []],
-                'uomOption' => [],
-                'typeOption' => [],
-                'goals' => null,
-                'selectYear' => [],
-                'adjustByManager' => null,
-                'appraisalData' => []
+                'contributors' => [],
+                'notifDataTeams' => null,
+                'notifData360' => null
             ]);
         }
     }
@@ -108,9 +107,12 @@ class AppraisalTaskController extends Controller
         $user = $this->user;
         $period = $this->appService->appraisalPeriod();
         $filterYear = $request->input('filterYear');
-
+        
         $datas = ApprovalLayerAppraisal::with(['employee' => function($query) {
-            $query->whereJsonContains('access_menu', ['createpa' => 1]);
+            $query->where(function($q) {
+                $q->whereRaw('json_valid(access_menu)')
+                  ->whereJsonContains('access_menu', ['createpa' => 1]);
+            });
         }, 'approver', 'contributors' => function($query) use ($user, $period) {
             $query->where('contributor_id', $user)->where('period', $period);
         }, 'goal' => function($query) use ($period) {
@@ -282,8 +284,7 @@ class AppraisalTaskController extends Controller
 
         $step = $request->input('step', 1);
 
-
-        $approval = ApprovalLayerAppraisal::select('approver_id')->where('employee_id', $request->id)->where('layer', 1)->first();
+        $approval = ApprovalLayerAppraisal::select('approver_id')->where('employee_id', $request->id)->where('layer_type', 'manager')->where('layer', 1)->first();
 
         $employee = EmployeeAppraisal::where('employee_id', $request->id)->first();
 
@@ -389,6 +390,15 @@ class AppraisalTaskController extends Controller
             $query->where('category', 'Appraisal')->where('period', $period);
         }])->where('employee_id', $request->id)->where('period', $period)->first();
 
+        $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $appraisal->employee_id)->value('approver_id');
+
+        $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $firstCalibrator)->first();
+
+        $manager = ApprovalLayerAppraisal::where('employee_id', $appraisal->employee_id)->where('approver_id', Auth::user()->employee_id )->where('layer_type', 'manager')->first();
+        
+        if ($kpiUnit && $kpiUnit->masterCalibration) {
+
+
         $approval = ApprovalLayerAppraisal::where('employee_id', $appraisal->employee_id)->where('approver_id', Auth::user()->employee_id )->first();
 
         $appraisalId = $appraisal->id;
@@ -405,12 +415,6 @@ class AppraisalTaskController extends Controller
             Session::flash('error', "Goals for not found.");
             return redirect()->back();
         }
-
-        $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $appraisal->employee_id)->value('approver_id');
-
-        $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $firstCalibrator)->first();
-
-        if ($kpiUnit && $kpiUnit->masterCalibration) {
             
         foreach ($achievement[0] as $key => $formItem) {
             if (isset($goalData[$key])) {
@@ -420,7 +424,7 @@ class AppraisalTaskController extends Controller
             }
         }
 
-        $form_name = $approval->layer_type == 'manager' ? 'Appraisal Form Review' : 'Appraisal Form 360' ;
+        $form_name = $manager ? 'Appraisal Form Review' : 'Appraisal Form 360' ;
 
         $formGroupData = $this->appService->formGroupAppraisal($request->id, $form_name);   
             
@@ -447,7 +451,6 @@ class AppraisalTaskController extends Controller
                 break;
             }
         }
-
         
         // Add the achievements to the goalData
         foreach ($goalData as $index => &$goal) {
@@ -457,7 +460,6 @@ class AppraisalTaskController extends Controller
                 $goal['actual'] = [];
             }
         }
-
         
         foreach ($formData['formData'] as &$form) {                
             if ($form['formName'] === 'Culture') {

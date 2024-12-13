@@ -86,11 +86,8 @@
                     <a data-bs-toggle="collapse" href="#sidebarAppraisal" aria-expanded="false" aria-controls="sidebarAppraisal" class="side-nav-link">
                         <i class="ri-list-check-3"></i>
                         <span>{{ __('Appraisal') }}</span>
-                        @if ($notificationAppraisal)
-                            <span class="badge bg-danger float-end">{{ $notificationAppraisal }}</span>    
-                        @else
-                            <span class="menu-arrow"></span>  
-                        @endif
+                        <span class="badge bg-danger float-end {{ $notificationAppraisal ? '' : 'd-none' }}">{{ $notificationAppraisal }}</span>    
+                        <span class="menu-arrow {{ $notificationAppraisal ? 'd-none' : '' }}"></span>  
                     </a>
                     <div class="collapse" id="sidebarAppraisal">
                         <ul class="side-nav-second-level">
@@ -103,7 +100,7 @@
                         </ul>
                     </div>
                 </li>
-                @if(auth()->user()->isCalibrator() && auth()->user()->kpiUnits())
+                @if(auth()->user()->isCalibrator() && auth()->user()->kpiUnits() && !auth()->user()->isCement())
                 <li class="side-nav-item">
                     <a href="{{ route('rating') }}" class="side-nav-link">
                         <i class="ri-star-line"></i>

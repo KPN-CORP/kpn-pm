@@ -836,61 +836,17 @@ class AppService
         
         $category = 'Goals';
 
-        $tasks = ApprovalLayer::with(['employee', 'subordinates' => function ($query) use ($user, $period) {
-            $query->with(['goal', 'updatedBy', 'approval' => function ($query) {
-                $query->with('approverName');
-            }])->whereHas('approvalLayer', function ($query) use ($user) {
-                $query->where('employee_id', $user)->orWhere('approver_id', $user);
-            })->where('status', 'Pending')->whereYear('created_at', $period);
-        }])->where('category', $category)
-            ->leftJoin('approval_requests', 'approval_layers.employee_id', '=', 'approval_requests.employee_id')
-            ->select('approval_layers.employee_id', 'approval_layers.approver_id', 'approval_layers.layer', 'approval_requests.created_at')
-            ->whereYear('approval_requests.created_at', $period)
-            ->whereHas('subordinates')
-            ->where('approver_id', $user)
-            ->get();
-        
-        // Process the tasks and set the `isApprover` value
-        $tasks->each(function ($item) {
-            $item->isApprover = $item->subordinates->count();
-        
-            $item->subordinates->map(function ($subordinate) {
-                // Format created_at
-                $createdDate = Carbon::parse($subordinate->created_at);
-                if ($createdDate->isToday()) {
-                    $subordinate->formatted_created_at = 'Today ' . $createdDate->format('g:i A');
-                } else {
-                    $subordinate->formatted_created_at = $createdDate->format('d M Y');
-                }
-        
-                // Format updated_at
-                $updatedDate = Carbon::parse($subordinate->updated_at);
-                if ($updatedDate->isToday()) {
-                    $subordinate->formatted_updated_at = 'Today ' . $updatedDate->format('g:i A');
-                } else {
-                    $subordinate->formatted_updated_at = $updatedDate->format('d M Y');
-                }
-        
-                // Determine name and approval layer
-                if ($subordinate->sendback_to == $subordinate->employee->employee_id) {
-                    $subordinate->name = $subordinate->employee->fullname . ' (' . $subordinate->employee->employee_id . ')';
-                    $subordinate->approvalLayer = '';
-                } else {
-                    $subordinate->name = $subordinate->manager->fullname . ' (' . $subordinate->manager->employee_id . ')';
-                    $subordinate->approvalLayer = ApprovalLayer::where('employee_id', $subordinate->employee_id)
-                        ->where('approver_id', $subordinate->current_approval_id)
-                        ->value('layer');
-                }
-        
-                return $subordinate;
-            });
-        });
-        
-        // Count the total `isApprover` values
-        $totalIsApprover = $tasks->sum('isApprover');
+        $tasks = ApprovalRequest::where('current_approval_id', $user)
+        ->where('period', $period)
+        ->where('category', $category)->where('status', 'Pending')
+        ->whereHas('goal', function ($query) {
+            $query->where('form_status', 'Submitted');
+        })->get();
+
+        $isApprover = $tasks->count();
         
         // Output the result
-        return $totalIsApprover;
+        return $isApprover;
     }
 
     public function getNotificationCountsAppraisal($user)
@@ -904,14 +860,17 @@ class AppService
         ->where('approver_id', $user)
         ->where('layer_type', 'manager')
         ->whereHas('employee', function ($query) {
-            $query->whereJsonContains('access_menu', ['createpa' => 1]);
+            $query->where(function($q) {
+                $q->whereRaw('json_valid(access_menu)')
+                  ->whereJsonContains('access_menu', ['createpa' => 1]);
+            });
         })
         ->get();
 
-        $notifDataTeams = $dataTeams->filter(function ($item) {
+        $notifTeams = $dataTeams->filter(function ($item) {
             return $item->contributors->isEmpty();
         })->count();
-
+        
         // Count for 360 appraisal notifications
         $data360 = ApprovalLayerAppraisal::with(['approver', 'contributors', 'appraisal'])
             ->where('approver_id', $user)
@@ -921,9 +880,9 @@ class AppService
                 return $item->appraisal !== null && $item->contributors->isEmpty();
             });
 
-        $notifData360 = $data360->count();
+        $notif360 = $data360->count();
 
-        $notifData = $notifDataTeams + $notifData360;
+        $notifData = $notifTeams + $notif360;
 
         return $notifData;
     }
