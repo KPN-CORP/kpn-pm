@@ -298,24 +298,6 @@ for (var i = 0; i < weightageInputs.length; i++) {
     weightageInputs[i].addEventListener("keyup", updateWeightageSummary);
 }
 
-function validateDigits(input, index) {
-    // Remove non-digit characters to get the plain number string
-    let numericValue = input.value.replace(/[^0-9]/g, '');
-
-    // If the input length exceeds 20 digits, truncate it
-    if (numericValue.length > 20) {
-        numericValue = numericValue.slice(0, 20);
-    }
-
-    // Store the plain numeric value in the hidden input field
-    document.getElementById('target'+index).value = numericValue;
-
-    // Format the numeric value with Numeral.js for display
-    input.value = numeral(numericValue).format('0,0'); // Format with commas
-}
-
-window.validateDigits = validateDigits;
-
 function changeCategory(val) {
     $("#filter_category").val(val);
 

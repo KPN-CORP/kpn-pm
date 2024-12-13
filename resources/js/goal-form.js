@@ -441,7 +441,7 @@ for (var i = 0; i < weightageInputs.length; i++) {
 
 function validateDigits(input, index) {
     // Remove non-digit characters to get the plain number string
-    let numericValue = input.value.replace(/[^0-9]/g, '');
+    let numericValue = input.value.replace(/[^0-9.]/g, '');
 
     // If the input length exceeds 20 digits, truncate it
     if (numericValue.length > 20) {
@@ -449,10 +449,12 @@ function validateDigits(input, index) {
     }
 
     // Store the plain numeric value in the hidden input field
-    document.getElementById('target'+index).value = numericValue;
+    document.getElementById('target'+index).value = numericValue;    
 
+    if (numericValue.indexOf('.') == -1) {
+        input.value = numeral(numericValue).format('0,0'); // Format with commas
+    }
     // Format the numeric value with Numeral.js for display
-    input.value = numeral(numericValue).format('0,0'); // Format with commas
 }
 
 window.validateDigits = validateDigits;
