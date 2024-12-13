@@ -8,6 +8,7 @@ use App\Notifications\ResetPasswordNotification;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Illuminate\Support\Facades\Log;
 use Spatie\Permission\Traits\HasRoles;
 
 class User extends Authenticatable
@@ -97,5 +98,15 @@ class User extends Authenticatable
     public function check_kpi_units()
     {
         return $this->belongsTo(KpiUnits::class, 'employee_id', 'employee_id')->orderBy('periode', 'desc');
+    }
+
+    public function cekBUCement()
+    {
+        return $this->belongsTo(EmployeeAppraisal::class, 'employee_id', 'employee_id')->where('group_company', 'Cement');
+    }
+
+    public function isCement()
+    {
+        return $this->cekBUCement()->exists();
     }
 }

@@ -282,8 +282,7 @@ class AppraisalTaskController extends Controller
 
         $step = $request->input('step', 1);
 
-
-        $approval = ApprovalLayerAppraisal::select('approver_id')->where('employee_id', $request->id)->where('layer', 1)->first();
+        $approval = ApprovalLayerAppraisal::select('approver_id')->where('employee_id', $request->id)->where('layer_type', 'manager')->where('layer', 1)->first();
 
         $employee = EmployeeAppraisal::where('employee_id', $request->id)->first();
 
@@ -389,6 +388,15 @@ class AppraisalTaskController extends Controller
             $query->where('category', 'Appraisal')->where('period', $period);
         }])->where('employee_id', $request->id)->where('period', $period)->first();
 
+        $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $appraisal->employee_id)->value('approver_id');
+
+        $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $firstCalibrator)->first();
+
+        $manager = ApprovalLayerAppraisal::where('employee_id', $appraisal->employee_id)->where('approver_id', Auth::user()->employee_id )->where('layer_type', 'manager')->first();
+        
+        if ($kpiUnit && $kpiUnit->masterCalibration) {
+
+
         $approval = ApprovalLayerAppraisal::where('employee_id', $appraisal->employee_id)->where('approver_id', Auth::user()->employee_id )->first();
 
         $appraisalId = $appraisal->id;
@@ -405,12 +413,6 @@ class AppraisalTaskController extends Controller
             Session::flash('error', "Goals for not found.");
             return redirect()->back();
         }
-
-        $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $appraisal->employee_id)->value('approver_id');
-
-        $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $firstCalibrator)->first();
-
-        if ($kpiUnit && $kpiUnit->masterCalibration) {
             
         foreach ($achievement[0] as $key => $formItem) {
             if (isset($goalData[$key])) {
@@ -420,7 +422,7 @@ class AppraisalTaskController extends Controller
             }
         }
 
-        $form_name = $approval->layer_type == 'manager' ? 'Appraisal Form Review' : 'Appraisal Form 360' ;
+        $form_name = $manager ? 'Appraisal Form Review' : 'Appraisal Form 360' ;
 
         $formGroupData = $this->appService->formGroupAppraisal($request->id, $form_name);   
             
@@ -447,7 +449,6 @@ class AppraisalTaskController extends Controller
                 break;
             }
         }
-
         
         // Add the achievements to the goalData
         foreach ($goalData as $index => &$goal) {
@@ -457,7 +458,6 @@ class AppraisalTaskController extends Controller
                 $goal['actual'] = [];
             }
         }
-
         
         foreach ($formData['formData'] as &$form) {                
             if ($form['formName'] === 'Culture') {
