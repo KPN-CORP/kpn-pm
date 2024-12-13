@@ -867,11 +867,10 @@ class AppService
         })
         ->get();
 
-        $notifDataTeams = $dataTeams->filter(function ($item) {
+        $notifTeams = $dataTeams->filter(function ($item) {
             return $item->contributors->isEmpty();
         })->count();
         
-        // dd($notifDataTeams);
         // Count for 360 appraisal notifications
         $data360 = ApprovalLayerAppraisal::with(['approver', 'contributors', 'appraisal'])
             ->where('approver_id', $user)
@@ -881,9 +880,9 @@ class AppService
                 return $item->appraisal !== null && $item->contributors->isEmpty();
             });
 
-        $notifData360 = $data360->count();
+        $notif360 = $data360->count();
 
-        $notifData = $notifDataTeams + $notifData360;
+        $notifData = $notifTeams + $notif360;
 
         return $notifData;
     }

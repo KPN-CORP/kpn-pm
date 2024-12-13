@@ -56,7 +56,10 @@ class AppraisalTaskController extends Controller
             ->where('approver_id', $user)
             ->where('layer_type', 'manager')
             ->whereHas('employee', function ($query) {
-                $query->whereJsonContains('access_menu', ['createpa' => 1]);
+                $query->where(function($q) {
+                    $q->whereRaw('json_valid(access_menu)')
+                      ->whereJsonContains('access_menu', ['createpa' => 1]);
+                });
             })
             ->get();
     
@@ -89,15 +92,11 @@ class AppraisalTaskController extends Controller
             // Return empty data to be consumed in the Blade template
             return view('pages.appraisals-task.app', [
                 'data' => [],
-                'link' => 'My Appraisal',
+                'link' => 'Task Box',
                 'parentLink' => 'Appraisal',
-                'formData' => ['formData' => []],
-                'uomOption' => [],
-                'typeOption' => [],
-                'goals' => null,
-                'selectYear' => [],
-                'adjustByManager' => null,
-                'appraisalData' => []
+                'contributors' => [],
+                'notifDataTeams' => null,
+                'notifData360' => null
             ]);
         }
     }
@@ -108,9 +107,12 @@ class AppraisalTaskController extends Controller
         $user = $this->user;
         $period = $this->appService->appraisalPeriod();
         $filterYear = $request->input('filterYear');
-
+        
         $datas = ApprovalLayerAppraisal::with(['employee' => function($query) {
-            $query->whereJsonContains('access_menu', ['createpa' => 1]);
+            $query->where(function($q) {
+                $q->whereRaw('json_valid(access_menu)')
+                  ->whereJsonContains('access_menu', ['createpa' => 1]);
+            });
         }, 'approver', 'contributors' => function($query) use ($user, $period) {
             $query->where('contributor_id', $user)->where('period', $period);
         }, 'goal' => function($query) use ($period) {
