@@ -109,6 +109,7 @@
                                 'formIndex' => $index,
                                 'name' => $row['name'],
                                 'data' => $row['data'],
+                                'isManager' => $approval->layer_type == 'manager',
                                 'viewCategory' => $filteredFormDatas['viewCategory']
                                 ])
                             </div>

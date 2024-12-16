@@ -33,7 +33,7 @@
                                         <div class="col-md-auto justify-content-end">
                                             <select class="form-select" name="formData[{{ $formIndex }}][{{ $index }}][{{ $indexItem }}][score]" id="score" required>
                                                 <option value="">select</option>
-                                                @foreach ($ratings as $item)
+                                                @foreach ($ratings as $item) {{-- $isManager --}}
                                                     <option value="{{ $item['value'] }}" 
                                                         {{ isset($dataItem['score'][$indexItem]) && $dataItem['score'][$indexItem] == $item['value'] && $viewCategory != 'Review' ? 'selected' : '' }}>
                                                         {{ $item['value'] }}
