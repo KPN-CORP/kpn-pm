@@ -73,6 +73,12 @@ class AppraisalTaskController extends Controller
             }, 'appraisal'])
             ->where('approver_id', $user)
             ->whereNotIn('layer_type', ['manager', 'calibrator'])
+            ->whereHas('employee', function ($query) {
+                $query->where(function($q) {
+                    $q->whereRaw('json_valid(access_menu)')
+                      ->whereJsonContains('access_menu', ['createpa' => 1]);
+                });
+            })
             ->get()
             ->filter(fn($item) => $item->appraisal !== null && $item->contributors->isEmpty());
     
@@ -111,7 +117,7 @@ class AppraisalTaskController extends Controller
         $datas = ApprovalLayerAppraisal::with(['employee' => function($query) {
             $query->where(function($q) {
                 $q->whereRaw('json_valid(access_menu)')
-                  ->whereJsonContains('access_menu', ['createpa' => 1]);
+                  ->whereJsonContains('access_menu', ['accesspa' => 1]);
             });
         }, 'approver', 'contributors' => function($query) use ($user, $period) {
             $query->where('contributor_id', $user)->where('period', $period);
@@ -200,7 +206,12 @@ class AppraisalTaskController extends Controller
         $period = $this->appService->appraisalPeriod();
         $filterYear = $request->input('filterYear');
 
-        $datas = ApprovalLayerAppraisal::with(['employee', 'approver', 'contributors' => function($query) use ($user, $period) {
+        $datas = ApprovalLayerAppraisal::with(['employee' => function($query) {
+            $query->where(function($q) {
+                $q->whereRaw('json_valid(access_menu)')
+                  ->whereJsonContains('access_menu', ['accesspa' => 1]);
+            });
+        }, 'approver', 'contributors' => function($query) use ($user, $period) {
             $query->where('contributor_id', $user)->where('period', $period);
         }, 'goal' => function($query) use ($period) {
             $query->where('period', $period);
@@ -399,7 +410,7 @@ class AppraisalTaskController extends Controller
         if ($kpiUnit && $kpiUnit->masterCalibration) {
 
 
-        $approval = ApprovalLayerAppraisal::where('employee_id', $appraisal->employee_id)->where('approver_id', Auth::user()->employee_id )->first();
+        $approval = ApprovalLayerAppraisal::where('employee_id', $appraisal->employee_id)->where('approver_id', Auth::user()->employee_id )->where('layer_type', '!=', 'calibrator')->first();
 
         $appraisalId = $appraisal->id;
         
@@ -667,97 +678,102 @@ class AppraisalTaskController extends Controller
             'formData' => 'required|array',
         ]);
 
-        $contributorData = ApprovalLayerAppraisal::select('approver_id', 'layer_type')->where('employee_id', $validatedData['employee_id'])->get();
+        try {
 
-        // Extract formGroupName
-        $formGroupName = $validatedData['formGroupName'];
-        $formData = $validatedData['formData'];
+            $contributorData = ApprovalLayerAppraisal::select('approver_id', 'layer_type')->where('approver_id', Auth::user()->employee_id)->where('layer_type', 'manager')->where('employee_id', $validatedData['employee_id'])->first();
 
-        // Create the array structure
-        $datas = [
-            'formGroupName' => $formGroupName,
-            'formData' => $formData,
-        ];
+            // Extract formGroupName
+            $formGroupName = $validatedData['formGroupName'];
+            $formData = $validatedData['formData'];
 
-        $goals = Goal::with(['employee'])->where('employee_id', $validatedData['employee_id'])->where('period', $period)->first();
+            // Create the array structure
+            $datas = [
+                'formGroupName' => $formGroupName,
+                'formData' => $formData,
+            ];
 
-        $goalData = json_decode($goals->form_data, true);
+            $goals = Goal::with(['employee'])->where('employee_id', $validatedData['employee_id'])->where('period', $period)->first();
 
-        $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $validatedData['employee_id'])->value('approver_id');
+            $goalData = json_decode($goals->form_data, true);
 
-        $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $firstCalibrator)->first();
+            $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $validatedData['employee_id'])->value('approver_id');
 
-        if ($kpiUnit && $kpiUnit->masterCalibration) {
-            // Create a new Appraisal instance and save the data
-            $appraisal = new Appraisal;
-            $appraisal->id = Str::uuid();
-            $appraisal->goals_id = $goals->id;
-            $appraisal->employee_id = $validatedData['employee_id'];
-            $appraisal->form_group_id = $validatedData['form_group_id'];
-            $appraisal->category = $this->category;
-            $appraisal->form_data = json_encode($datas); // Store the form data as JSON
-            $appraisal->form_status = $submit_status;
-            $appraisal->period = $period;
-            $appraisal->created_by = Auth::user()->id;
-            
-            $appraisal->save();
+            $kpiUnit = KpiUnits::with(['masterCalibration' => function($query) use ($period) {
+                $query->where('period', $period);
+            }])->where('employee_id', $firstCalibrator)->first();
 
-            $contributorData = ApprovalLayerAppraisal::select('approver_id', 'layer_type')->where('approver_id', Auth::user()->employee_id)->where('employee_id', $validatedData['employee_id'])->first();
-            
-            $calibrationGroupID = $kpiUnit->masterCalibration->id_calibration_group;
+            if ($kpiUnit && $kpiUnit->masterCalibration) {
+                // Create a new Appraisal instance and save the data
+                $appraisal = new Appraisal;
+                $appraisal->id = Str::uuid();
+                $appraisal->goals_id = $goals->id;
+                $appraisal->employee_id = $validatedData['employee_id'];
+                $appraisal->form_group_id = $validatedData['form_group_id'];
+                $appraisal->category = $this->category;
+                $appraisal->form_data = json_encode($datas); // Store the form data as JSON
+                $appraisal->form_status = $submit_status;
+                $appraisal->period = $period;
+                $appraisal->created_by = Auth::user()->id;
+                
+                $appraisal->save();
+                
+                $calibrationGroupID = $kpiUnit->masterCalibration->id_calibration_group;
 
-            $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee, $period);
+                $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee, $period);
 
-            AppraisalContributor::create([
-                'appraisal_id' => $appraisal->id,
-                'employee_id' => $validatedData['employee_id'],
-                'contributor_id' => $contributorData->approver_id,
-                'contributor_type' => $contributorData->layer_type,
-                // Add additional data here
-                'form_data' => json_encode($datas),
-                'rating' => $formDatas['contributorRating'],
-                'status' => 'Approved',
-                'period' => $period,
-                'created_by' => Auth::user()->id
-            ]);
-            
-            $snapshot =  new ApprovalSnapshots;
-            $snapshot->id = Str::uuid();
-            $snapshot->form_id = $appraisal->id;
-            $snapshot->form_data = json_encode($datas);
-            $snapshot->employee_id = $validatedData['employee_id'];
-            $snapshot->created_by = Auth::user()->id;
-            
-            $snapshot->save();
+                AppraisalContributor::create([
+                    'appraisal_id' => $appraisal->id,
+                    'employee_id' => $validatedData['employee_id'],
+                    'contributor_id' => $contributorData->approver_id,
+                    'contributor_type' => $contributorData->layer_type,
+                    // Add additional data here
+                    'form_data' => json_encode($datas),
+                    'rating' => $formDatas['contributorRating'],
+                    'status' => 'Approved',
+                    'period' => $period,
+                    'created_by' => Auth::user()->id
+                ]);
+                
+                $snapshot =  new ApprovalSnapshots;
+                $snapshot->id = Str::uuid();
+                $snapshot->form_id = $appraisal->id;
+                $snapshot->form_data = json_encode($datas);
+                $snapshot->employee_id = $validatedData['employee_id'];
+                $snapshot->created_by = Auth::user()->id;
+                
+                $snapshot->save();
 
-            $approval = new ApprovalRequest();
-            $approval->form_id = $appraisal->id;
-            $approval->category = $this->category;
-            $approval->period = $period;
-            $approval->employee_id = $validatedData['employee_id'];
-            $approval->current_approval_id = $validatedData['approver_id'];
-            $approval->created_by = Auth::user()->id;
-            $approval->status = 'Approved';
-            // Set other attributes as needed
-            $approval->save();
+                $approval = new ApprovalRequest();
+                $approval->form_id = $appraisal->id;
+                $approval->category = $this->category;
+                $approval->period = $period;
+                $approval->employee_id = $validatedData['employee_id'];
+                $approval->current_approval_id = $validatedData['approver_id'];
+                $approval->created_by = Auth::user()->id;
+                $approval->status = 'Approved';
+                // Set other attributes as needed
+                $approval->save();
 
-            $calibration = new Calibration();
-            $calibration->id_calibration_group = $calibrationGroupID;
-            $calibration->appraisal_id = $appraisal->id;
-            $calibration->employee_id = $validatedData['employee_id'];
-            $calibration->approver_id = $firstCalibrator;
-            $calibration->period = $period;
-            $calibration->created_by = Auth::user()->id;
+                $calibration = new Calibration();
+                $calibration->id_calibration_group = $calibrationGroupID;
+                $calibration->appraisal_id = $appraisal->id;
+                $calibration->employee_id = $validatedData['employee_id'];
+                $calibration->approver_id = $firstCalibrator;
+                $calibration->period = $period;
+                $calibration->created_by = Auth::user()->id;
 
-            $calibration->save();
+                $calibration->save();
 
 
-            // Return a response, such as a redirect or a JSON response
-            return redirect('appraisals-task')->with('success', 'Appraisal submitted successfully.');
-        } else {
-            // Handle the case where $kpiUnit is null or does not have masterCalibration
-            // Log::error("KpiUnit or masterCalibration not found for employee ID: " . $firstCalibrator);
-            return redirect('appraisals-task')->with('error', 'Calibration KPI information not found.');
+                // Return a response, such as a redirect or a JSON response
+                return redirect('appraisals-task')->with('success', 'Appraisal submitted successfully.');
+            } else {
+                // Handle the case where $kpiUnit is null or does not have masterCalibration
+                // Log::error("KpiUnit or masterCalibration not found for employee ID: " . $firstCalibrator);
+                return redirect('appraisals-task')->with('error', 'Calibration KPI information not found.');
+            }
+        } catch (Exception $e) {
+            return redirect('appraisals-task')->with('error', $e->getMessage());
         }
     }
 
@@ -774,7 +790,7 @@ class AppraisalTaskController extends Controller
             'formData' => 'required|array',
         ]);
 
-        $contributorData = ApprovalLayerAppraisal::select('approver_id', 'layer_type')->where('approver_id', Auth::user()->employee_id)->where('employee_id', $validatedData['employee_id'])->first();
+        $contributorData = ApprovalLayerAppraisal::select('approver_id', 'layer_type')->where('approver_id', Auth::user()->employee_id)->where('layer_type', '!=', 'calibrator')->where('employee_id', $validatedData['employee_id'])->first();
 
         $goals = Goal::with(['employee'])->where('employee_id', $validatedData['employee_id'])->where('period', $period)->first();
 
