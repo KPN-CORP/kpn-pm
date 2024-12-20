@@ -149,10 +149,11 @@
                                 </a>
                                 <div class="collapse" id="sidebarLayer">
                                     <ul class="side-nav-third-level">
-                                        @can('viewschedule')
+                                        
                                         <li>
                                             <a href="{{ route('layer') }}">Goals</a>
                                         </li>
+                                        @can('layerpa')
                                         <li>
                                             <a href="{{ route('layer-appraisal') }}">{{ __('Appraisal') }}</a>
                                         </li>
