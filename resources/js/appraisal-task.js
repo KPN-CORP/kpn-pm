@@ -19,18 +19,18 @@ $(document).ready(function() {
                     // Split CSV into rows
                     let csvRows = csv.split('\n');
                     
-                    // Get data from the DataTable
+                    // Get filtered data from the DataTable
                     let dt = $('#tableAppraisalTeam').DataTable();
-                    let data = dt.rows({ order: 'applied' }).data().toArray(); // Use rows with current order
+                    let filteredData = dt.rows({ search: 'applied' }).data().toArray(); // Use rows based on search
                     
                     // Add new headers
                     csvRows[0] = csvRows[0].replace(/\r?\n|\r/g, '') + ',KPI Score,Culture Score,Leadership Score,Total Score';
                 
-                    // Process each data row
+                    // Process each filtered data row
                     for (let i = 1; i < csvRows.length; i++) {
-                        if (csvRows[i] && data[i - 1]) { // Ensure alignment with data array
+                        if (csvRows[i] && filteredData[i - 1]) { // Align with filtered data
                             // Fetch row data and calculate scores
-                            let rowData = data[i - 1];
+                            let rowData = filteredData[i - 1];
                             let scores = getScores(rowData);
                     
                             // Split the current row into an array of values, considering quoted values
@@ -67,7 +67,6 @@ $(document).ready(function() {
                     
                     // Join rows back into a single CSV string
                     return csvRows.join('\n');
-                    
                 }
             }
         ],
@@ -103,6 +102,7 @@ $(document).ready(function() {
     // Add event listener for both tables
     addChildRowToggle(tableTeam, '#tableAppraisalTeam');
 });
+
 
 $(document).ready(function() {
     
