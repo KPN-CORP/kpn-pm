@@ -126,6 +126,12 @@ class AppraisalTaskController extends Controller
         }, 'approvalRequest' => function($query) use ($period, $user) {
             $query->where('category', 'Appraisal')->where('period', $period)->where('current_approval_id', $user);
         }])
+        ->whereHas('employee', function ($query) {
+            $query->where(function ($q) {
+                $q->whereRaw('json_valid(access_menu)')
+                  ->whereJsonContains('access_menu', ['accesspa' => 1]);
+            });
+        })
         ->where('approver_id', $user)
         ->where('layer_type', 'manager')
         ->get();
@@ -146,10 +152,10 @@ class AppraisalTaskController extends Controller
             }
         
             // Get employee data
-            $employeeData = $item->first()->employee ?? null;
+            $employeeData = $item->employee ?? null;
         
             // Combine form data
-            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'manager', $employeeData, $period);
+            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $period);
         
             // Assign form scores to the item
             $item->total_score = round($formData['totalScore'], 2) ?? [];
@@ -218,6 +224,12 @@ class AppraisalTaskController extends Controller
         }, 'approvalRequest' => function($query) use ($period) {
             $query->where('category', 'Appraisal')->where('period', $period);
         }])
+        ->whereHas('employee', function ($query) {
+            $query->where(function ($q) {
+                $q->whereRaw('json_valid(access_menu)')
+                  ->whereJsonContains('access_menu', ['accesspa' => 1]);
+            });
+        })
         ->where('approver_id', $user)
         ->whereIn('layer_type', ['peers', 'subordinate']);
         
@@ -238,10 +250,10 @@ class AppraisalTaskController extends Controller
             }
         
             // Get employee data
-            $employeeData = $item->first()->employee ?? null;
+            $employeeData = $item->employee ?? null;
         
             // Combine form data
-            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'manager', $employeeData, $period);
+            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $period);
         
             // Assign form scores to the item
             $item->kpi_score = round($formData['kpiScore'], 2) ?? [];
