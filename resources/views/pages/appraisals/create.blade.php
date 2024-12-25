@@ -11,7 +11,7 @@
             <div class="col">
                 <div class="card">
                     <div class="card-header d-flex justify-content-center">
-                        <div class="col-md-10 text-center">
+                        <div class="col col-md-10 text-center">
                             <div class="stepper mt-3 d-flex justify-content-between justify-content-md-around">
                                 @foreach ($filteredFormData as $index => $tabs)
                                 <div class="step" data-step="{{ $step }}"></div>
