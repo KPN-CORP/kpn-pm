@@ -22,7 +22,7 @@
                                         <div class="label">{{ $tabs['name'] }}</div>
                                     </div>
                                     @if ($index < count($filteredFormData) - 1)
-                                        <div class="connector {{ $step > $index + 1 ? 'completed' : '' }} col mx-4"></div>
+                                        <div class="connector {{ $step > $index + 1 ? 'completed' : '' }} col mx-md-4 d-none d-md-block"></div>
                                     @endif
                                 @endforeach
                             </div>

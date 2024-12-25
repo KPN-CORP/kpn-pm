@@ -74,8 +74,8 @@
         <div class="row justify-content-center">
             <div class="col">
                 <div class="card">
-                    <div class="card-header d-flex justify-content-md-center">
-                        <div class="col-md-10 text-center">
+                    <div class="card-header d-flex justify-content-center">
+                        <div class="col col-10 text-center">
                             <div class="stepper mt-3 d-flex justify-content-between justify-content-md-around">
                                 @foreach ($filteredFormDatas['filteredFormData'] as $index => $tabs)
                                 <div class="step" data-step="{{ $step }}"></div>
@@ -86,7 +86,7 @@
                                         <div class="label">{{ $tabs['name'] }}</div>
                                     </div>
                                     @if ($index < count($filteredFormDatas['filteredFormData']) - 1)
-                                        <div class="connector {{ $step > $index + 1 ? 'completed' : '' }} col mx-4"></div>
+                                        <div class="connector {{ $step > $index + 1 ? 'completed' : '' }} col mx-md-4 d-none d-md-block"></div>
                                     @endif
                                 @endforeach
                             </div>
