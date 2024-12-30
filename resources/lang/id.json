@@ -44,6 +44,14 @@
     "Close": "Tutup",
     "Initiate Appraisal": "Buat Penilaian",
     "Send Back Messages": "Pesan Send Back",
+    "rating_alert" : "Anda tidak dapat memberikan penilaian saat ini karena beberapa review 360 karyawan masih belum lengkap. Harap koordinasikan dengan pihak terkait untuk menindaklanjuti review tersebut.",
     "rating_employee_single" : "Jika hanya ada 1 karyawan, Penilai dapat memilih peringkat antara ':secondKey' - ':lastKey'.",
-    "rating_employee_double" : "Jika ada 2 karyawan, Anda dapat memilih peringkat antara ':firstKey' - ':lastKey'. Namun, peringkat yang dipilih hanya dapat dialokasikan 1 kali."
+    "rating_employee_double" : "Jika ada 2 karyawan, Anda dapat memilih peringkat antara ':firstKey' - ':lastKey'. Namun, peringkat yang dipilih hanya dapat dialokasikan 1 kali.",
+    "Rating Mismatch": "Ketidaksesuaian Rating!",
+    "Submit Not Allowed": "Pengiriman Tidak Diizinkan",
+    "Text Not Allowed": "Beberapa karyawan masih belum lengkap. Harap koordinasikan dengan karyawan yang masih pending.",
+    "Text Mismatch_1": "Peringkat berikut tidak sesuai dengan nilai yang diharapkan.",
+    "Text Mismatch_2": "Harap sesuaikan peringkat Anda agar sesuai dengan distribusi yang diharapkan. Sel yang tidak sesuai telah disorot di tabel.",
+    "Ratings are Empty": "Rating masih kosong",
+    "Text Ratings are Empty": "Harap pilih Rating untuk semua karyawan."
 }
