@@ -259,11 +259,11 @@
     </div>
 
 <!-- Floating Button -->
-<div class="position-fixed bottom-0 end-0 m-2">
+{{-- <div class="position-fixed bottom-0 end-0 m-2">
     <button id="start-tour-button" class="btn btn-outline-primary bg-light-subtle text-primary rounded-pill shadow-sm">
         <i class="ri-play-fill me-1"></i><span>take tour</span>
     </button>
-</div>
+</div> --}}
 
 <!-- Modal -->
 <div class="modal fade" id="importModal" role="dialog" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
