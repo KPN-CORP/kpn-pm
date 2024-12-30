@@ -44,6 +44,14 @@
     "Close": "Close",
     "Initiate Appraisal": "Initiate Appraisal",
     "Send Back Messages": "Send Back Messages",
+    "rating_alert" : "You can't provide a rating at this moment, because some employees 360 reviews are still incomplete. Please reach out to the relevant parties to follow up on these reviews.",
     "rating_employee_single" : "If there is only 1 employee, the Rater can select any rating between ':secondKey' - ':lastKey'.",
-    "rating_employee_double" : "If there are 2 employees, you can select any rating between ':firstKey' - ':lastKey'. However, the selected rating will be available to be allocated only 1 time."
+    "rating_employee_double" : "If there are 2 employees, you can select any rating between ':firstKey' - ':lastKey'. However, the selected rating will be available to be allocated only 1 time.",
+    "Rating Mismatch": "Rating Mismatch!",
+    "Submit Not Allowed": "Submit Not Allowed",
+    "Text Not Allowed": "Some employees are still incomplete. Please reach out to the pending employees.",
+    "Text Mismatch_1": "The following ratings do not match the expected values",
+    "Text Mismatch_2": "Please adjust your ratings to match the expected distribution. Mismatched cells are highlighted in the table.",
+    "Ratings are Empty": "Ratings are Empty",
+    "Text Ratings are Empty": "Please select a rating for all employees."
 }

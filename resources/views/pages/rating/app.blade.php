@@ -116,7 +116,7 @@
                                             <button class="btn btn-primary m-1 {{ $ratingDone ? '' : 'd-none' }}" data-id="{{ $level }}">Submit Rating</button>
                                         </div>
                                     </div>
-                                    <div class="mb-3">
+                                    <div class="mb-3 rating-info">
                                         @if (!$rating_status)
                                             <div id="alertField" class="alert alert-danger alert-dismissible {{ ($calibratorCount && $ratingDone ) || $ratingNotAllowed || !$requestApproved ? '' : 'fade' }}" role="alert" {{ ($calibratorCount && $ratingDone) || $ratingNotAllowed || !$requestApproved? '' : 'hidden' }}>
                                                 <div class="row text-primary fs-5">
@@ -124,7 +124,7 @@
                                                         <i class="ri-error-warning-line h3 fw-light"></i>
                                                     </div>
                                                     <div class="col">
-                                                        <strong>You can't provide a rating at this moment, because some employees 360 reviews are still incomplete. Please reach out to the relevant parties to follow up on these reviews.</strong>
+                                                        <strong>{{ __('rating_alert') }}</strong>
                                                     </div>
                                                 </div>
                                             </div>
@@ -209,7 +209,7 @@
                                                                             <span class="text-muted">Previous Rating</span>
                                                                             <p class="mt-1 fw-medium">{{ $item->rating_allowed['status'] && $item->form_id && $item->current_calibrator && $item->previous_rating || !$item->rating_incomplete ? $item->previous_rating : '-' }}</p>
                                                                         </div>
-                                                                        <div class="col">
+                                                                        <div class="col rating-field">
                                                                             <span class="text-muted">Your Rating</span>
                                                                             <select name="rating[]" id="rating{{ $level }}-{{ $index }}" data-id="{{ $level }}" class="form-select form-select-sm rating-select" {{ $item->is_calibrator && $item->rating_allowed['status'] && $item->status == 'Approved' ? '' : 'disabled' }} @required(true)>
                                                                                 <option value="">-</option>
@@ -258,6 +258,13 @@
         @endif
     </div>
 
+<!-- Floating Button -->
+<div class="position-fixed bottom-0 end-0 m-2">
+    <button id="start-tour-button" class="btn btn-outline-primary bg-light-subtle text-primary rounded-pill shadow-sm">
+        <i class="ri-play-fill me-1"></i><span>take tour</span>
+    </button>
+</div>
+
 <!-- Modal -->
 <div class="modal fade" id="importModal" role="dialog" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
     <div class="modal-dialog" role="document">
@@ -288,8 +295,18 @@
         </div>
     </div>
 </div>
+
 @endsection
 @push('scripts')
+    <script>
+        const titleEmpty = '{{ __('Ratings are Empty') }}';
+        const textEmpty = '{{ __('Text Ratings are Empty') }}';
+        const titleMismatch = '{{ __('Rating Mismatch') }}';
+        const textMismatch_1 = '{{ __('Text Mismatch_1') }}';
+        const textMismatch_2 = '{{ __('Text Mismatch_2') }}';
+        const titleNotAllowed = '{{ __('Submit Not Allowed') }}';
+        const textNotAllowed = '{{ __('Text Not Allowed') }}';
+    </script>
     @if(!$calibrations)
     <script>
         document.addEventListener('DOMContentLoaded', function () {                
