@@ -1,6 +1,13 @@
 @extends('layouts_.vertical', ['page_title' => 'Appraisal'])
 
 @section('css')
+<style>
+
+    .card p {
+        margin: 5px 0;
+    }
+    
+    </style>
 @endsection
 
 @section('content')
@@ -15,53 +22,35 @@
                             <div class="row">
                                 <div class="col-md">
                                     <div class="row">
-                                        <div class="col-lg-4 col-md-5">
-                                            <span class="text-muted">Employee ID</span>
-                                        </div>
                                         <div class="col">
-                                            : {{ $appraisal->employee->employee_id }}
+                                            <p><span class="text-muted">Employee Name:</span> {{ $employee->fullname }}</p>
                                         </div>
                                     </div>
                                     <div class="row">
-                                        <div class="col-lg-4 col-md-5">
-                                            <span class="text-muted">Employee Name</span>
-                                        </div>
                                         <div class="col">
-                                            : {{ $appraisal->employee->fullname }}
+                                            <p><span class="text-muted">Employee ID:</span> {{ $employee->employee_id }}</p>
                                         </div>
                                     </div>
                                     <div class="row">
-                                        <div class="col-lg-4 col-md-5">
-                                            <span class="text-muted">Job Level</span>
-                                        </div>
                                         <div class="col">
-                                            : {{ $appraisal->employee->job_level }}
+                                            <p><span class="text-muted">Job Level:</span> {{ $employee->job_level }}</p>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md">
                                     <div class="row">
-                                        <div class="col-lg-4 col-md-5">
-                                            <span class="text-muted">Business Unit</span>
-                                        </div>
                                         <div class="col">
-                                            : {{ $appraisal->employee->group_company }}
+                                            <p><span class="text-muted">Business Unit:</span> {{ $employee->group_company }}</p>
                                         </div>
                                     </div>
                                     <div class="row">
-                                        <div class="col-lg-4 col-md-5">
-                                            <span class="text-muted">Division</span>
-                                        </div>
                                         <div class="col">
-                                            : {{ $appraisal->employee->unit }}
+                                            <p><span class="text-muted">Division:</span> {{ $employee->unit }}</p>
                                         </div>
                                     </div>
                                     <div class="row">
-                                        <div class="col-lg-4 col-md-5">
-                                            <span class="text-muted">Designation</span>
-                                        </div>
                                         <div class="col">
-                                            : {{ $appraisal->employee->designation_name }}
+                                            <p><span class="text-muted">Designation:</span> {{ $employee->designation_name }}</p>
                                         </div>
                                     </div>
                                 </div>
