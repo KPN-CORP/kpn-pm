@@ -23,34 +23,34 @@
                                 <div class="col-md">
                                     <div class="row">
                                         <div class="col">
-                                            <p><span class="text-muted">Employee Name:</span> {{ $employee->fullname }}</p>
+                                            <p><span class="text-muted">Employee Name:</span> {{ $appraisal->employee->fullname }}</p>
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col">
-                                            <p><span class="text-muted">Employee ID:</span> {{ $employee->employee_id }}</p>
+                                            <p><span class="text-muted">Employee ID:</span> {{ $appraisal->employee->employee_id }}</p>
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col">
-                                            <p><span class="text-muted">Job Level:</span> {{ $employee->job_level }}</p>
+                                            <p><span class="text-muted">Job Level:</span> {{ $appraisal->employee->job_level }}</p>
                                         </div>
                                     </div>
                                 </div>
                                 <div class="col-md">
                                     <div class="row">
                                         <div class="col">
-                                            <p><span class="text-muted">Business Unit:</span> {{ $employee->group_company }}</p>
+                                            <p><span class="text-muted">Business Unit:</span> {{ $appraisal->employee->group_company }}</p>
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col">
-                                            <p><span class="text-muted">Division:</span> {{ $employee->unit }}</p>
+                                            <p><span class="text-muted">Division:</span> {{ $appraisal->employee->unit }}</p>
                                         </div>
                                     </div>
                                     <div class="row">
                                         <div class="col">
-                                            <p><span class="text-muted">Designation:</span> {{ $employee->designation_name }}</p>
+                                            <p><span class="text-muted">Designation:</span> {{ $appraisal->employee->designation_name }}</p>
                                         </div>
                                     </div>
                                 </div>
