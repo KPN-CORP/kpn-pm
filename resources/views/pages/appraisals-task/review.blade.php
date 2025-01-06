@@ -60,14 +60,14 @@
                 </div>
             </div>
         </div>
+        <div class="step" data-step="{{ $step }}"></div>
         <div class="row justify-content-center">
             <div class="col">
                 <div class="card">
                     <div class="card-header d-flex justify-content-center">
                         <div class="col col-md-10 text-center">
-                            <div class="stepper mt-3 d-flex justify-content-between justify-content-md-around">
+                            <div class="stepper mt-3 d-flex justify-content-around">
                                 @foreach ($filteredFormDatas['filteredFormData'] as $index => $tabs)
-                                <div class="step" data-step="{{ $step }}"></div>
                                     <div class="step d-flex flex-column align-items-center" data-step="{{ $index + 1 }}">
                                         <div class="circle {{ $step == $index + 1 ? 'active' : ($step > $index + 1 ? 'completed' : '') }}">
                                             <i class="{{ $tabs['icon'] }}"></i>
