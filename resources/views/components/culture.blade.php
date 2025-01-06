@@ -4,10 +4,13 @@
         <div class="row fs-14">
             <div class="col-lg">
                 <div class="mb-4">
+                    <?php 
+                        $lang = session('locale') ? session('locale') : env('APP_LOCALE', env('APP_FALLBACK_LOCALE'));
+                    ?>
                     @foreach ($ratings as $rating)
                     <ul>
                         <li>
-                            <p><strong>{{ $rating['value'] }}</strong> : {{ session('locale') == 'id' ? $rating['desc_idn'] : $rating['desc_eng'] }}</p>
+                            <p><strong>{{ $rating['value'] }}</strong> : {{ $lang == 'id' ? $rating['desc_idn'] : $rating['desc_eng'] }}</p>
                         </li>
                     </ul>
                     @endforeach
