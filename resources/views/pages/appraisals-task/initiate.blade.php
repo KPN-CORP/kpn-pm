@@ -10,11 +10,11 @@
         <div class="detail-employee">
             <div class="row">
                 <div class="col-12">
-                    <div class="card">
-                        <div class="card-body">
+                    <div class="card shadow-sm">
+                        <div class="card-body py-2">
                             <div class="row">
                                 <div class="col-md">
-                                    <div class="row mb-1">
+                                    <div class="row">
                                         <div class="col-lg-4 col-md-5">
                                             <span class="text-muted">Employee ID</span>
                                         </div>
@@ -22,7 +22,7 @@
                                             : {{ $employee->employee_id }}
                                         </div>
                                     </div>
-                                    <div class="row mb-1">
+                                    <div class="row">
                                         <div class="col-lg-4 col-md-5">
                                             <span class="text-muted">Employee Name</span>
                                         </div>
@@ -30,7 +30,7 @@
                                             : {{ $employee->fullname }}
                                         </div>
                                     </div>
-                                    <div class="row mb-1">
+                                    <div class="row">
                                         <div class="col-lg-4 col-md-5">
                                             <span class="text-muted">Job Level</span>
                                         </div>
@@ -40,7 +40,7 @@
                                     </div>
                                 </div>
                                 <div class="col-md">
-                                    <div class="row mb-1">
+                                    <div class="row">
                                         <div class="col-lg-4 col-md-5">
                                             <span class="text-muted">Business Unit</span>
                                         </div>
@@ -48,7 +48,7 @@
                                             : {{ $employee->group_company }}
                                         </div>
                                     </div>
-                                    <div class="row mb-1">
+                                    <div class="row">
                                         <div class="col-lg-4 col-md-5">
                                             <span class="text-muted">Division</span>
                                         </div>
@@ -56,7 +56,7 @@
                                             : {{ $employee->unit }}
                                         </div>
                                     </div>
-                                    <div class="row mb-1">
+                                    <div class="row">
                                         <div class="col-lg-4 col-md-5">
                                             <span class="text-muted">Designation</span>
                                         </div>
