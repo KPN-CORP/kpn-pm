@@ -57,7 +57,7 @@
                                         $lastKey = array_key_last($data['combined']);
                                     @endphp
                                     <div class="row">
-                                        @if ($rating_status)
+                                        @if ($rating_status == $employeeCount)
                                         <div class="mb-3">
                                             <div id="alertField" class="alert alert-success alert-dismissible" role="alert">
                                                 <div class="row fs-5">
@@ -183,7 +183,7 @@
                                                                             <span class="text-muted">Review Status</span>
                                                                             <div class="mb-2">
                                                                                 @if ($item->rating_allowed['status'] && $item->form_id)
-                                                                                    @if ($item->rating_incomplete || !$requestApproved)
+                                                                                    @if ($item->rating_incomplete || !$requestApproved || $item->status == 'Pending')
                                                                                         @if ($item->rating_allowed['status'] && $item->form_id && $item->current_calibrator)
                                                                                             <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $item->current_calibrator }}" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending Calibration</a>
                                                                                         @else
@@ -259,11 +259,11 @@
     </div>
 
 <!-- Floating Button -->
-{{-- <div class="position-fixed bottom-0 end-0 m-2">
+<div class="position-fixed bottom-0 end-0 m-2">
     <button id="start-tour-button" class="btn btn-outline-primary bg-light-subtle text-primary rounded-pill shadow-sm">
         <i class="ri-play-fill me-1"></i><span>take tour</span>
     </button>
-</div> --}}
+</div>
 
 <!-- Modal -->
 <div class="modal fade" id="importModal" role="dialog" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
@@ -296,6 +296,187 @@
     </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/shepherd.js/dist/js/shepherd.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/shepherd.js/dist/css/shepherd.css" />
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+
+    // Check if session variable 'tourDashboard' exists (passed from Laravel)
+    const skipTour = @json($skipTour);
+
+    // If 'tourDashboard' is not true, show the confirmation alert
+    if (!skipTour) {
+
+        Swal.fire({
+            title: 'Welcome to Rating!',
+            text: 'Would you like to take a quick tour of this page?',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Start Tour',
+            cancelButtonText: 'No, Thanks',
+            confirmButtonColor: "#3e60d5",
+            reverseButtons: true,
+            input: 'checkbox',
+            inputValue: 0, // Default unchecked
+            inputPlaceholder: 'Do not show this again',
+        }).then((result) => {
+
+            const doNotShowAgain = document.getElementById('swal2-checkbox').checked; // Checkbox value
+
+            if (result.isConfirmed) {
+                startTour(doNotShowAgain); // Function to start the Shepherd.js tour
+            } else {
+                // Send an AJAX request to update the session
+                skipTourTrigger(doNotShowAgain);
+            }
+        });
+    }
+
+    function skipTourTrigger(val) {
+        fetch('/set-tour-session', {
+            method: 'POST',
+            headers: {
+                'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ skipTour: val })
+        }).then(response => {
+        }).catch(error => console.error('Error:', error));
+    }
+
+    function startTour(val) {
+
+        skipTourTrigger(val);
+
+        const tour = new Shepherd.Tour({
+            useModalOverlay: true,
+            defaultStepOptions: {
+            classes: 'shadow-md bg-purple-dark',
+            scrollTo: true,
+            // scrollToBehavior: 'smooth',
+            scrollToHandler: (element) => {
+                // Custom scroll logic
+                element.scrollIntoView({
+                    behavior: 'smooth', // Smooth scrolling
+                    block: 'center', // Center the element in the viewport
+                });
+            },
+            // cancelIcon: { enabled: true }
+            }
+        });
+    
+        tour.addStep({
+            title: 'Tab Job Level',
+            text: 'You can select the group level you want to calibrate and provide ratings based on the predefined groupings, making it easier to rate your employees.',
+            attachTo: {
+            element: '.nav-item',
+            on: 'bottom'
+            },
+            buttons: [
+            { text: 'Next', action: tour.next }
+            ]
+        });
+
+        tour.addStep({
+            title: 'Calibration Table',
+            text: 'This table are reference for you to calibrate rating for your team and also for validation for your rating.',
+            attachTo: {
+            element: 'table',
+            on: 'top'
+            },
+            buttons: [
+                { text: 'Back', action: tour.back },
+                { text: 'Next', action: tour.next }
+            ]
+        });
+        
+        tour.addStep({
+            title: 'Message Section',
+            text: 'This section give you information about your rating porccess.',
+            attachTo: {
+            element: '.rating-info',
+            on: 'top'
+            },
+            buttons: [
+                { text: 'Back', action: tour.back },
+                { text: 'Next', action: tour.next }
+            ]
+        });
+
+        tour.addStep({
+            title: 'Team Members',
+            text: 'Here, you can see the list of your team members that grouped by the Job Level and you can fill your rating for your team by change the Your Rating field.',
+            attachTo: {
+            element: '.employee-row', // Replace this with the correct class/ID for the "Team Members" box
+            on: 'top',
+            },
+            buttons: [
+            { text: 'Back', action: tour.back },
+            { text: 'Next', action: tour.next }
+            ]
+        });
+
+        tour.addStep({
+            title: 'Search Field',
+            text: 'You can search your team by fill this field.',
+            attachTo: {
+            element: '.search-input', // Replace this with the actual class/ID for the chart container
+            on: 'bottom'
+            },
+            buttons: [
+            { text: 'Back', action: tour.back },
+            { text: 'Next', action: tour.next }
+            ]
+        });
+
+        tour.addStep({
+            title: 'Set Your Rating',
+            text: 'You just need to fill in all the "Your Rating" fields, to provide a rating for your team.',
+            attachTo: {
+            element: '.rating-field', // Replace this with the correct class/ID for the "Team Members" box
+            on: 'top',
+            },
+            buttons: [
+            { text: 'Back', action: tour.back },
+            { text: 'Next', action: tour.next }
+            ]
+        });
+
+        tour.addStep({
+            title: 'Submit Rating',
+            text: 'Submit your team rating after providing a rating for your team. Before submitting, ensure that the ratings you provide are final and that no changes will be made in the future, as they are irreversible.',
+            attachTo: {
+            element: '.btn-primary', // Replace this with the correct class/ID for the sidebar
+            on: 'bottom'
+            },
+            buttons: [
+            { text: 'Back', action: tour.back },
+            { text: 'Next', action: tour.next }
+            ]
+        });
+
+        tour.addStep({
+            title: 'Download Rating',
+            text: 'With this button you can download list of your team rating on this Job Level.',
+            attachTo: {
+            element: '.btn-outline-success', // Replace this with the actual class/ID for the chart container
+            on: 'bottom'
+            },
+            buttons: [
+            { text: 'Back', action: tour.back },
+            { text: 'Finish', action: tour.complete }
+            ]
+        });
+
+        // Start the tour
+        tour.start();
+    }
+
+    document.getElementById('start-tour-button').addEventListener('click', () => {
+        startTour(skipTour); // Replace 'someValue' with the desired argument for skipTourTrigger
+    });
+});
+</script>
 @endsection
 @push('scripts')
     <script>
@@ -306,6 +487,7 @@
         const textMismatch_2 = '{{ __('Text Mismatch_2') }}';
         const titleNotAllowed = '{{ __('Submit Not Allowed') }}';
         const textNotAllowed = '{{ __('Text Not Allowed') }}';
+        const mismatchedRatingsMessages = '{{ __('Mismatch Error Message') }}';
     </script>
     @if(!$calibrations)
     <script>

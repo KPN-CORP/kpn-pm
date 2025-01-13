@@ -7,6 +7,7 @@
     "Uom": "UoM",
     "Type": "Type",
     "Add": "Add",
+    "Delete": "Delete",
     "Report": "Reports",
     "Goal": "Goals",
     "My Goal": "My Goals",
@@ -50,8 +51,12 @@
     "Rating Mismatch": "Rating Mismatch!",
     "Submit Not Allowed": "Submit Not Allowed",
     "Text Not Allowed": "Some employees are still incomplete. Please reach out to the pending employees.",
-    "Text Mismatch_1": "The following ratings do not match the expected values",
-    "Text Mismatch_2": "Please adjust your ratings to match the expected distribution. Mismatched cells are highlighted in the table.",
+    "Text Mismatch_1": "The following rating does not meet the expected target",
+    "Text Mismatch_2": "Please adjust the given ratings to meet the specified rules and targets. Rows that do not comply are highlighted in red in the table.",
     "Ratings are Empty": "Ratings are Empty",
-    "Text Ratings are Empty": "Please select a rating for all employees."
+    "Text Ratings are Empty": "Please select a rating for all employees.",
+    "Work Objectives": "Work Objectives",
+    "Guide": "Guides",
+    "User Guide": "User Guide",
+    "Mismatch Error Message": "Rating not match."
 }
