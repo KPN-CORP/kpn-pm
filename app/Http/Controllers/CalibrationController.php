@@ -19,11 +19,28 @@ class CalibrationController extends Controller
         $parentLink = 'Settings';
         $link = 'Calibration';
         // $ratings = Rating::orderBy('created_at', 'desc')->get();
-        $calibrations = MasterCalibration::with('createdBy')->orderBy('created_at', 'desc')->get();
-        $calibrations = MasterCalibration::select('id_calibration_group','master_calibrations.name as name','users.name as created_by_name','users.id as created_by','period', DB::raw("GROUP_CONCAT(CONCAT('<b>',grade, '</b> - ', percentage) SEPARATOR ' <br> ') as detail"), DB::raw("GROUP_CONCAT(CONCAT(percentage) SEPARATOR '||') as percentage"), DB::raw("GROUP_CONCAT(CONCAT(grade) SEPARATOR '||') as grade"))
+        // $calibrations = MasterCalibration::with('createdBy')->orderBy('created_at', 'desc')->get();
+        $calibrations = MasterCalibration::select(
+            'id_calibration_group',
+            'master_calibrations.name as name',
+            'users.name as created_by_name',
+            'users.id as created_by',
+            'period',
+            DB::raw("GROUP_CONCAT(CONCAT('<b>', grade, '</b> - ', percentage) SEPARATOR ' <br> ') as detail"),
+            DB::raw("GROUP_CONCAT(CONCAT(percentage) SEPARATOR '||') as percentage"),
+            DB::raw("GROUP_CONCAT(CONCAT(grade) SEPARATOR '||') as grade")
+        )
         ->leftJoin('users', 'master_calibrations.created_by', '=', 'users.id')
-        ->groupBy('id_calibration_group', 'master_calibrations.name', 'users.name', 'users.id','period')
-        ->orderBy('master_calibrations.created_at', 'desc')->get();
+        ->groupBy(
+            'id_calibration_group',
+            'master_calibrations.name',
+            'users.name',
+            'users.id',
+            'period',
+            'master_calibrations.created_at'
+        )
+        ->orderBy('master_calibrations.created_at', 'desc')
+        ->get();
         
         return view('pages.master-calibration.app', [
             'link' => $link,

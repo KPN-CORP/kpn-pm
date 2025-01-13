@@ -117,7 +117,7 @@ class AppraisalTaskController extends Controller
         $datas = ApprovalLayerAppraisal::with(['employee' => function($query) {
             $query->where(function($q) {
                 $q->whereRaw('json_valid(access_menu)')
-                  ->whereJsonContains('access_menu', ['accesspa' => 1]);
+                  ->whereJsonContains('access_menu', ['createpa' => 1]);
             });
         }, 'approver', 'contributors' => function($query) use ($user, $period) {
             $query->where('contributor_id', $user)->where('period', $period);
@@ -129,7 +129,7 @@ class AppraisalTaskController extends Controller
         ->whereHas('employee', function ($query) {
             $query->where(function ($q) {
                 $q->whereRaw('json_valid(access_menu)')
-                  ->whereJsonContains('access_menu', ['accesspa' => 1]);
+                  ->whereJsonContains('access_menu', ['createpa' => 1]);
             });
         })
         ->where('approver_id', $user)

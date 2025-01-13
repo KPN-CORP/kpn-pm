@@ -66,8 +66,8 @@ class AppraisalController extends Controller
 
         $query = EmployeeAppraisal::with(['appraisal' => function($query) use ($period) {
                 $query->where('period', $period);
-            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal']);
-            // }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal'])->where('employee_id', '01119060003');
+            // }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal']);
+            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal'])->where('employee_id', '01119060003');
 
         $query->where(function ($query) use ($criteria) {
             foreach ($criteria as $key => $value) {
@@ -89,12 +89,21 @@ class AppraisalController extends Controller
                     }
 
                     // Check availability depending on the layer_type (AppraisalContributor for peers/subordinates, Calibration for calibrators)
+                    $ratingCalibrator = null;
+
                     if ($layer->layer_type === 'calibrator') {
                         // Check using Calibration model for calibrators
                         $isAvailable = Calibration::where('approver_id', $layer->approver_id)
                             ->where('employee_id', $employee->employee_id)
                             ->where('status', 'Approved')
                             ->exists();
+                            
+                        if($isAvailable){
+                            $ratingCalibrator = Calibration::where('approver_id', $layer->approver_id)
+                                ->where('employee_id', $employee->employee_id)
+                                ->where('status', 'Approved')
+                                ->first();
+                        }
                     } else {
                         // Check using AppraisalContributor model for peers and subordinates
                         $isAvailable = AppraisalContributor::where('contributor_id', $layer->approver_id)
@@ -103,11 +112,30 @@ class AppraisalController extends Controller
                             ->exists();
                     }
 
+                    if ($employee->appraisal->first()) {
+                        # code...
+                        $masterRating = MasterRating::select('id_rating_group', 'parameter', 'value', 'min_range', 'max_range')
+                            ->where('id_rating_group', $employee->appraisal->first()->formGroupAppraisal->id_rating_group)
+                            ->get();
+                        $convertRating = [];
+            
+                        foreach ($masterRating as $rating) {
+                            $convertRating[$rating->value] = $rating->parameter;
+                        }
+                        // dd($employee->appraisal->first());
+                        $rated =  $ratingCalibrator
+                                        ? '|' . $convertRating[$ratingCalibrator->rating] 
+                                        : '-';
+                    }else{
+                        $rated = '-';
+                    }
+
                     // Append approver_id, layer, and status data to the corresponding array
                     $approvalStatus[$layer->layer_type][] = [
                         'approver_id' => $layer->approver_id,
                         'layer' => $layer->layer,
-                        'status' => $isAvailable ? true : false,
+                        'status' => $isAvailable,
+                        'rating' => $ratingCalibrator ? $rated : null,
                         'approver_name' => $layer->approver->fullname,
                         'approver_id' => $layer->approver->employee_id,
                     ];
@@ -332,10 +360,8 @@ class AppraisalController extends Controller
                     $dataItem->goal = $employeeForm->goal;
                     $data[] = $dataItem;
     
-    
                     // Get appraisal form data for each record
                     $appraisalData = [];
-
                     
                     if ($employeeForm->form_data) {
                         $appraisalData = json_decode($employeeForm->form_data, true);
@@ -666,7 +692,6 @@ class AppraisalController extends Controller
             ];
 
         }
-
         
         // Second part: Calculate summary averages
         $averages = [];
