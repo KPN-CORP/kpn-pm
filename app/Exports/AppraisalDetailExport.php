@@ -54,16 +54,60 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
     private function expandRowForContributors(Collection $expandedData, array $row, Collection $contributors): void
     {
+        $summaryRow = $row; // Base row for summary
+        $summaryRow['Contributor Type'] = ['dataId' => 'summary'];
+        $summaryRow['Contributor ID'] = ['dataId' => '-'];
+
+        // Initialize summary scores to zero
+        $summaryRow['KPI Score']['dataId'] = 0;
+        $summaryRow['Culture Score']['dataId'] = 0;
+        $summaryRow['Leadership Score']['dataId'] = 0;
+        $summaryRow['Total Score']['dataId'] = 0;
+
+        $hasValidData = false; // Flag to check if there's any non-"-" data
+        $contributorCount = 0; // Counter for valid contributors
+
         foreach ($contributors as $contributor) {
-            $contributorRow = $row;
+            $contributorRow = $row; // Clone the base row for each contributor
             $formData = $this->getFormDataForContributor($contributor);
-            $contributorRow['Contributor ID'] = ['dataId' => $contributor->contributor_id];
-            $contributorRow['Contributor Type'] = ['dataId' => $contributor->contributor_type];
-            $this->addFormDataToRow($contributorRow, $formData);
-            $expandedData->push($contributorRow);
+
+            // Check if the contributor has any valid scores
+            $hasValidScores =
+                ($formData['totalKpiScore'] ?? 0) != 0 ||
+                ($formData['totalCultureScore'] ?? 0) != 0 ||
+                ($formData['totalLeadershipScore'] ?? 0) != 0 ||
+                ($formData['totalScore'] ?? 0) != 0;
+
+            if ($hasValidScores) {
+                $hasValidData = true;
+                $contributorCount++;
+
+                $contributorRow['Contributor ID'] = ['dataId' => $contributor->contributor_id];
+                $contributorRow['Contributor Type'] = ['dataId' => $contributor->contributor_type];
+                $this->addFormDataToRow($contributorRow, $formData);
+
+                // Add individual contributor row to expandedData
+                $expandedData->push($contributorRow);
+
+                // Accumulate scores for summary
+                $summaryRow['KPI Score']['dataId'] += $formData['totalKpiScore'] ?? 0;
+                $summaryRow['Culture Score']['dataId'] += $formData['totalCultureScore'] ?? 0;
+                $summaryRow['Leadership Score']['dataId'] += $formData['totalLeadershipScore'] ?? 0;
+                $summaryRow['Total Score']['dataId'] += $formData['totalScore'] ?? 0;
+            }
+        }
+
+        // Add summary row only if there is valid data
+        if ($hasValidData && $contributorCount > 0) {
+            // Just round the sums without dividing by contributor count
+            $summaryRow['KPI Score']['dataId'] = round($summaryRow['KPI Score']['dataId'], 2);
+            $summaryRow['Culture Score']['dataId'] = round($summaryRow['Culture Score']['dataId'], 2);
+            $summaryRow['Leadership Score']['dataId'] = round($summaryRow['Leadership Score']['dataId'], 2);
+            $summaryRow['Total Score']['dataId'] = round($summaryRow['Total Score']['dataId'], 2);
+
+            $expandedData->push($summaryRow);
         }
     }
-
     private function addFormDataToRow(array &$contributorRow, array $formData): void
     {
         if (isset($formData['formData'])) {
@@ -75,7 +119,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
                     }
                 }
             }
-            
+
             $contributorRow['KPI Score'] = ['dataId' => round($formData['totalKpiScore'], 2) ?? '-'];
             $contributorRow['Culture Score'] = ['dataId' => round($formData['totalCultureScore'], 2) ?? '-'];
             $contributorRow['Leadership Score'] = ['dataId' => round($formData['totalLeadershipScore'], 2) ?? '-'];
@@ -154,7 +198,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             $employeeData,
             $contributor->period
         );
-        
+
         foreach ($formData['formData'] as &$form) {
             if ($form['formName'] === 'Culture') {
                 foreach ($cultureData as $index => $cultureItem) {

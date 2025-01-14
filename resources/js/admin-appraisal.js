@@ -28,39 +28,39 @@ $(document).ready(function() {
             {
                 text: '<i class="ri-download-cloud-2-line fs-16 me-1 download-detail-icon"></i><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>Download Report Details',
                 className: 'btn btn-sm btn-outline-success mb-1 report-detail-btn',
-                available: function() {
-                    return $('#permission-reportpadetail').data('report-pa-detail') === true;
-                },
+                // available: function() {
+                //     return $('#permission-reportpadetail').data('report-pa-detail') === true;
+                // },
                 action: function (e, dt, node, config) {
                     // Get headers from DataTable (excluding the last column if needed)
                     let headers = dt.columns(':not(:last-child)').header().toArray().map(header => $(header).text().trim());
-            
+
                     // Get all row nodes for DOM access and data content
                     let rowNodes = dt.rows({ filter: 'applied' }).nodes().toArray(); // Access row nodes for DOM manipulation
                     let rowData = dt.rows({ filter: 'applied' }).data().toArray(); // Get data content for each row
-            
+
                      // To hold the interval ID so we can stop it
                     let fileName = `appraisal_details_${userID}.xlsx`;
-                    
+
                     // Combine headers with data and data-id for each row
                     let combinedData = rowData.map((row, rowIndex) => {
                         let rowObject = {};
-                        
+
                         // Loop through each cell in the row, excluding the last column
                         row.slice(0, -1).forEach((cellContent, colIndex) => {
                             // Get the corresponding header for this column
                             let header = headers[colIndex];
-                            
+
                             // Get the cell node to access its data-id attribute
                             let cellNode = $(rowNodes[rowIndex]).find('td').eq(colIndex);
                             let dataId = cellNode.attr('data-id'); // Get data-id attribute if present
-                            
+
                             // Set each cell as a key-value pair with header as the key
                             rowObject[header] = {
                                 dataId: dataId ? dataId : cellContent // Include dataId if present, otherwise set to null
                             };
                         });
-                        
+
                         return rowObject; // Each row is an object with header keys
                     });
 
@@ -69,14 +69,14 @@ $(document).ready(function() {
                     const icon = reportDetailButton.querySelector(".download-detail-icon");
 
                     let checkInterval;
-            
+
                     if (combinedData.length > 0) {
                         document.querySelectorAll('.report-detail-btn').forEach(function(button) {
                             button.disabled = true;
                         });
                         spinner.classList.remove("d-none");
                         icon.classList.add("d-none");
-                    
+
                         // Start the export process
                         fetch('/export-appraisal-detail', {
                             method: 'POST',
@@ -90,7 +90,7 @@ $(document).ready(function() {
                         .then(data => {
                             if (data.message === 'Export is being processed in the background.') {
                                 alert('The export is being processed. Please wait a moment.');
-                    
+
                                 // Start checking the file availability
                                 startFileCheck(fileName); // Start checking for the file immediately
                             } else {
@@ -105,24 +105,24 @@ $(document).ready(function() {
                     } else {
                         alert('No employees found in the current table view.');
                     }
-                    
+
                     // Function to start checking for the file availability
                     function startFileCheck(file) {
                         let checkInterval;
                         let timeout;
-                    
+
                         // Set a timeout to stop checking after 2 minutes (120 seconds)
                         timeout = setTimeout(() => {
                             clearInterval(checkInterval); // Stop checking after 2 minutes
                             alert('The file was not ready in time. Please try again later.');
                         }, 300000); // 300000 milliseconds = 5 minutes
-                    
+
                         // Start checking for file availability every 10 seconds
                         checkInterval = setInterval(() => {
                             checkFileAvailability(file, checkInterval, timeout); // Pass the interval and timeout for cleanup
-                        }, 30000); // 10 seconds interval
+                        }, 3000); // 10 seconds interval
                     }
-                    
+
                     // Function to check if the file is available
                     function checkFileAvailability(file, checkInterval, timeout) {
                         fetch('/check-file', {
@@ -153,7 +153,7 @@ $(document).ready(function() {
                                     link.download = file; // You can set a specific filename here
                                     link.click();
                                     URL.revokeObjectURL(url); // Clean up the URL
-                    
+
                                     // Now send a request to delete the file from the server
                                     fetch(`/appraisal-details/delete/${file}`, {
                                         method: 'GET',  // Assuming DELETE for cleanup
@@ -174,14 +174,14 @@ $(document).ready(function() {
                                 });
                                 clearInterval(checkInterval); // Stop the interval once the file is downloaded
                                 clearTimeout(timeout); // Clear the timeout if the file is found
-                    
+
                                 // Re-enable buttons and reset the UI
                                 document.querySelectorAll('.report-detail-btn').forEach(function(button) {
                                     button.disabled = false;
                                 });
                                 spinner.classList.add("d-none");
                                 icon.classList.remove("d-none");
-                    
+
                             } else {
                                 // File does not exist yet, log and continue checking
                                 console.log(`${file} is not available yet. Re-checking...`);
@@ -193,10 +193,10 @@ $(document).ready(function() {
                             clearInterval(checkInterval); // Stop checking on error
                             clearTimeout(timeout); // Stop the timeout if there's an error
                         });
-                    }                    
+                    }
                 }
             }
-            
+
         ],
         fixedColumns: {
             leftColumns: 0,
@@ -205,7 +205,7 @@ $(document).ready(function() {
         scrollCollapse: true,
         scrollX: true
     });
-    
+
 });
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -238,7 +238,7 @@ document.addEventListener('DOMContentLoaded', function() {
             .then(response => {
                 // Hide the loading spinner
                 loadingSpinner.classList.add('d-none');
-                
+
                 // Check if the response is successful (status code 200-299)
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
