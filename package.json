@@ -2,6 +2,8 @@
     "private": true,
     "type": "module",
     "scripts": {
+        "artisan": "php artisan serve --host=127.0.0.1 --port=8080",
+        "queue": "php artisan queue:work",
         "dev": "vite",
         "build": "vite build",
         "preview": "vite preview --port 8080"

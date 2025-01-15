@@ -120,7 +120,7 @@ $(document).ready(function() {
                         // Start checking for file availability every 10 seconds
                         checkInterval = setInterval(() => {
                             checkFileAvailability(file, checkInterval, timeout); // Pass the interval and timeout for cleanup
-                        }, 30000); // 10 seconds interval
+                        }, 300); // 10 seconds interval
                     }
                     
                     // Function to check if the file is available

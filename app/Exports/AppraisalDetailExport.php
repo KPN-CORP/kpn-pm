@@ -5,14 +5,17 @@ namespace App\Exports;
 use App\Models\AppraisalContributor;
 use App\Services\AppService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Maatwebsite\Excel\Concerns\WithStyles;
 use Maatwebsite\Excel\Facades\Excel;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize, WithChunkReading
+class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize, WithChunkReading, WithStyles
 {
     protected Collection $data;
     protected array $headers;
@@ -30,9 +33,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
     {
         $this->dynamicHeaders = []; // Reset dynamic headers for each export
 
-        // Existing code for data collection
         $year = $this->appService->appraisalPeriod();
-
         $contributorsGroupedByEmployee = AppraisalContributor::with('employee')
             ->where('period', $year)
             ->get()
@@ -49,7 +50,47 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             }
         }
 
-        return $expandedData;
+        // Group data by Employee ID and add summary rows
+        $groupedData = $expandedData->groupBy(fn ($row) => $row['Employee ID']['dataId'] ?? null);
+
+        $finalData = collect();
+
+        foreach ($groupedData as $employeeId => $rows) {
+            $finalData = $finalData->merge($rows);
+
+            // Skip summary if no contributors
+            if ($rows->count() === 1 && $rows->first()['Contributor ID']['dataId'] === '-') {
+                continue;
+            }
+
+            // Calculate summary row
+            $summaryRow = $this->createSummaryRow($rows);
+            $finalData->push($summaryRow);
+        }
+
+        return $finalData;
+    }
+
+    private function createSummaryRow(Collection $rows): array
+    {
+        // Gunakan baris pertama sebagai template dasar
+        $summaryRow = array_fill_keys(array_keys($rows->first()), ['dataId' => '']);
+
+        // Tetapkan nilai untuk kolom KPI, Culture, Leadership, dan Total Score
+        $summaryRow['KPI Score'] = ['dataId' => $rows->sum(fn ($row) => $row['KPI Score']['dataId'] ?? 0)];
+        $summaryRow['Culture Score'] = ['dataId' => $rows->sum(fn ($row) => $row['Culture Score']['dataId'] ?? 0)];
+        $summaryRow['Leadership Score'] = ['dataId' => $rows->sum(fn ($row) => $row['Leadership Score']['dataId'] ?? 0)];
+
+        // Hitung Total Score
+        $totalScores = $rows->pluck('Total Score.dataId')->filter()->map(fn ($score) => (float) $score);
+        $summaryRow['Total Score'] = ['dataId' => round($totalScores->sum(), 2)];
+
+        // Tetapkan identifier untuk summary
+        $summaryRow['Contributor ID'] = ['dataId' => '-'];
+        $summaryRow['Contributor Type'] = ['dataId' => 'summary'];
+
+        Log::info("Summary Row:", $summaryRow);
+        return $summaryRow;
     }
 
     private function expandRowForContributors(Collection $expandedData, array $row, Collection $contributors): void
@@ -257,6 +298,30 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         return $extendedHeaders;
     }
 
+    public function styles(Worksheet $sheet)
+    {
+        $summaryRows = $this->getSummaryRowsIndexes();
+
+        foreach ($summaryRows as $rowIndex) {
+            $sheet->getStyle("A{$rowIndex}:Z{$rowIndex}")->getFont()->setBold(true);
+        }
+    }
+
+    /**
+     * Get indexes of summary rows.
+     */
+    private function getSummaryRowsIndexes(): array
+    {
+        $indexes = [];
+        $currentRow = 2; // Start after the header row
+        foreach ($this->collection() as $row) {
+            if (($row['Contributor Type']['dataId'] ?? '') === 'summary') {
+                $indexes[] = $currentRow;
+            }
+            $currentRow++;
+        }
+        return $indexes;
+    }
 
     public function map($row): array
     {
