@@ -98,79 +98,13 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
     private function expandRowForContributors(Collection $expandedData, array $row, Collection $contributors): void
     {
-        $summaryRow = $row; // Base row for summary
-        $summaryRow['Contributor Type'] = ['dataId' => 'summary'];
-        $summaryRow['Contributor ID'] = ['dataId' => '-'];
-
-        // Initialize summary scores
-        $summaryRow['KPI Score']['dataId'] = 0;
-        $summaryRow['Culture Score']['dataId'] = 0;
-        $summaryRow['Leadership Score']['dataId'] = 0;
-        $summaryRow['Total Score']['dataId'] = 0;
-
-        $hasValidData = false;
-        $contributorCount = 0;
-        $validCultureScores = [];
-        $validLeadershipScores = [];
-
         foreach ($contributors as $contributor) {
             $contributorRow = $row;
             $formData = $this->getFormDataForContributor($contributor);
-
-            // Check if the contributor has any valid scores
-            $hasValidScores =
-                ($formData['totalKpiScore'] ?? 0) != 0 ||
-                ($formData['totalCultureScore'] ?? 0) != 0 ||
-                ($formData['totalLeadershipScore'] ?? 0) != 0 ||
-                ($formData['totalScore'] ?? 0) != 0;
-
-            if ($hasValidScores) {
-                $hasValidData = true;
-                $contributorCount++;
-
-                $contributorRow['Contributor ID'] = ['dataId' => $contributor->contributor_id];
-                $contributorRow['Contributor Type'] = ['dataId' => $contributor->contributor_type];
-                $this->addFormDataToRow($contributorRow, $formData);
-
-                // Add individual contributor row to expandedData
-                $expandedData->push($contributorRow);
-
-                // Only take KPI Score from manager
-                if ($contributor->contributor_type === 'manager') {
-                    $summaryRow['KPI Score']['dataId'] = $formData['totalKpiScore'] ?? 0;
-                }
-
-                // Collect valid Culture and Leadership scores for averaging
-                if (isset($formData['totalCultureScore']) && $formData['totalCultureScore'] != 0) {
-                    $validCultureScores[] = $formData['totalCultureScore'];
-                }
-                if (isset($formData['totalLeadershipScore']) && $formData['totalLeadershipScore'] != 0) {
-                    $validLeadershipScores[] = $formData['totalLeadershipScore'];
-                }
-            }
-        }
-
-        // Add summary row only if there is valid data
-        if ($hasValidData && $contributorCount > 0) {
-            // Calculate average for Culture Score if there are valid scores
-            if (!empty($validCultureScores)) {
-                $summaryRow['Culture Score']['dataId'] = round(array_sum($validCultureScores) / count($validCultureScores), 2);
-            }
-
-            // Calculate average for Leadership Score if there are valid scores
-            if (!empty($validLeadershipScores)) {
-                $summaryRow['Leadership Score']['dataId'] = round(array_sum($validLeadershipScores) / count($validLeadershipScores), 2);
-            }
-
-            // Calculate total score as sum of individual scores in summary row
-            $summaryRow['Total Score']['dataId'] = round(
-                $summaryRow['KPI Score']['dataId'] +
-                $summaryRow['Culture Score']['dataId'] +
-                $summaryRow['Leadership Score']['dataId'],
-                2
-            );
-
-            $expandedData->push($summaryRow);
+            $contributorRow['Contributor ID'] = ['dataId' => $contributor->contributor_id];
+            $contributorRow['Contributor Type'] = ['dataId' => $contributor->contributor_type];
+            $this->addFormDataToRow($contributorRow, $formData);
+            $expandedData->push($contributorRow);
         }
     }
     private function addFormDataToRow(array &$contributorRow, array $formData): void
@@ -204,7 +138,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
      */
     private function processFormGroup(string $formName, array $itemGroup, array &$contributorRow): void
     {
-            $this->processCultureOrLeadership($formName, $itemGroup, $contributorRow);
+        $this->processCultureOrLeadership($formName, $itemGroup, $contributorRow);
     }
 
     private function processCultureOrLeadership(string $formName, array $itemGroup, array &$contributorRow): void
@@ -411,9 +345,9 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         // Check if `datas->first()->employee->id` exists
         if ($checkSnapshot) {
             $query = $checkSnapshot;
-        }else{
+        } else {
             $query = ApprovalSnapshots::where('form_id', $contributor->appraisal_id)
-            ->orderBy('created_at', 'asc');
+                ->orderBy('created_at', 'asc');
         }
 
         $employeeForm = $query->first();
@@ -434,7 +368,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         $leadershipData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
 
 
-        if($employeeForm){
+        if ($employeeForm) {
 
             // Create data item object
             $dataItem = new stdClass();
