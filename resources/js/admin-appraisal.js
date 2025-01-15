@@ -4,8 +4,24 @@ import $ from "jquery";
 import Swal from "sweetalert2";
 window.Swal = Swal;
 
-$(document).ready(function () {
-    $("#adminAppraisalTable").DataTable({
+$(document).ready(function() {
+
+    function getCurrentDateTime() {
+        const now = new Date();
+        const weekday = now.toLocaleString('en-US', { weekday: 'long' });
+        const day = String(now.getDate()).padStart(2, '0'); // Add leading zero if single digit
+        const month = String(now.getMonth() + 1).padStart(2, '0'); // Get month (0-11), so add 1
+        const year = now.getFullYear();
+
+        // Get hours and minutes for the time (in 12-hour format)
+        const hours = now.getHours() % 12 || 12;  // 12-hour format, 0 becomes 12
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const ampm = now.getHours() >= 12 ? 'PM' : 'AM';  // AM/PM
+
+        return `${weekday}, ${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
+    }
+
+    $('#adminAppraisalTable').DataTable({
         stateSave: true,
         dom: "Bfrtip",
         buttons: [
@@ -133,47 +149,25 @@ $(document).ready(function () {
                         const userId = window.userID; // Make sure this is defined globally
 
                         timeout = setTimeout(() => {
-                            clearInterval(checkInterval);
-                            alert(
-                                "The export timed out. Please try again later."
-                            );
-                            resetUI();
-                        }, 300000); // 5 minutes timeout
+                            clearInterval(checkInterval); // Stop checking after 2 minutes
+                            alert('Hi there! It seems the Reports Details file is too large to download. Please try grouping it by Business Unit and then download again. Thank you!');
+                            document.querySelectorAll('.report-detail-btn').forEach(function(button) {
+                                button.disabled = false;
+                            });
+                            spinner.classList.add("d-none");
+                            icon.classList.remove("d-none");
+                        }, 1800000); // 300000 milliseconds = 5 minutes
 
+                        // Start checking for file availability every 10 seconds
                         checkInterval = setInterval(() => {
-                            // For batch processing, check for ZIP file
-                            if (totalBatches > 1) {
-                                checkFileAvailability(
-                                    `appraisal_details_${userId}.zip`,
-                                    1,
-                                    () => {
-                                        clearInterval(checkInterval);
-                                        clearTimeout(timeout);
-                                        resetUI();
-                                    }
-                                );
-                            } else {
-                                // For single file, check for XLSX
-                                checkFileAvailability(
-                                    `appraisal_details_${userId}.xlsx`,
-                                    1,
-                                    () => {
-                                        clearInterval(checkInterval);
-                                        clearTimeout(timeout);
-                                        resetUI();
-                                    }
-                                );
-                            }
-                        }, 3000);
+                            checkFileAvailability(file, checkInterval, timeout); // Pass the interval and timeout for cleanup
+                        }, 30000); // 10 seconds interval
                     }
 
-                    function checkFileAvailability(
-                        file,
-                        batchNumber,
-                        onComplete
-                    ) {
-                        fetch("/check-file", {
-                            method: "POST",
+                    // Function to check if the file is available
+                    function checkFileAvailability(file, checkInterval, timeout) {
+                        fetch('/check-file', {
+                            method: 'POST',
                             headers: {
                                 "Content-Type": "application/json",
                                 "X-CSRF-TOKEN": document
@@ -252,6 +246,16 @@ $(document).ready(function () {
         },
         scrollCollapse: true,
         scrollX: true,
+        initComplete: function(settings, json) {
+            // Get the current date and time
+            const dateTime = getCurrentDateTime();
+
+            // Insert the current date/time below the buttons
+            const dateTimeHTML = `<div class="text-right mt-2" id="currentDateTime">${dateTime}</div>`;
+
+            // Append the date and time below the button container
+            $(this).closest('.dataTables_wrapper').find('.dt-buttons').after(dateTimeHTML);
+        }
     });
 });
 

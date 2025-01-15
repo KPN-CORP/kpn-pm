@@ -155,7 +155,14 @@
                                     @else
                                         table-light
                                     @endif"
-                                data-id="{{ $calibratorLayer ? ($calibratorLayer['status'] ? 'Approved - '.$calibratorLayer['approver_name'].' ('.$calibratorLayer['approver_id'].')' : 'Pending - '.$calibratorLayer['approver_name'].' ('.$calibratorLayer['approver_id'].')') : '-' }}">
+                                    data-id="{{ 
+                                        $calibratorLayer 
+                                            ? ($calibratorLayer['status'] 
+                                                ? 'Approved - ' . $calibratorLayer['approver_name'] . ' (' . $calibratorLayer['approver_id'] . ') ' . ($calibratorLayer['rating'] ?? '') 
+                                                : 'Pending - ' . $calibratorLayer['approver_name'] . ' (' . $calibratorLayer['approver_id'] . ') ' . ($calibratorLayer['rating'] ?? '')) 
+                                            : '-' 
+                                    }}"
+                                    >
                                     @if ($calibratorLayer)
                                         @if($calibratorLayer['status'])
                                             <i class="ri-check-line text-success fs-20 fw-medium"></i>

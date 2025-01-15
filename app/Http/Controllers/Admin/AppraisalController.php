@@ -94,29 +94,57 @@ class AppraisalController extends Controller
                     $approvalStatus[$layer->layer_type] = [];
                 }
 
-                // Check availability depending on the layer_type (AppraisalContributor for peers/subordinates, Calibration for calibrators)
-                if ($layer->layer_type === 'calibrator') {
-                    // Check using Calibration model for calibrators
-                    $isAvailable = Calibration::where('approver_id', $layer->approver_id)
-                        ->where('employee_id', $employee->employee_id)
-                        ->where('status', 'Approved')
-                        ->exists();
-                } else {
-                    // Check using AppraisalContributor model for peers and subordinates
-                    $isAvailable = AppraisalContributor::where('contributor_id', $layer->approver_id)
-                        // ->where('contributor_type', '!=', 'manager')
-                        ->where('employee_id', $employee->employee_id)
-                        ->exists();
-                }
+                    // Check availability depending on the layer_type (AppraisalContributor for peers/subordinates, Calibration for calibrators)
+                    $ratingCalibrator = null;
 
-                // Append approver_id, layer, and status data to the corresponding array
-                $approvalStatus[$layer->layer_type][] = [
-                    'approver_id' => $layer->approver_id,
-                    'layer' => $layer->layer,
-                    'status' => $isAvailable ? true : false,
-                    'approver_name' => $layer->approver->fullname,
-                    'approver_id' => $layer->approver->employee_id,
-                ];
+                    if ($layer->layer_type === 'calibrator') {
+                        // Check using Calibration model for calibrators
+                        $isAvailable = Calibration::where('approver_id', $layer->approver_id)
+                            ->where('employee_id', $employee->employee_id)
+                            ->where('status', 'Approved')
+                            ->exists();
+
+                        if($isAvailable){
+                            $ratingCalibrator = Calibration::where('approver_id', $layer->approver_id)
+                                ->where('employee_id', $employee->employee_id)
+                                ->where('status', 'Approved')
+                                ->first();
+                        }
+                    } else {
+                        // Check using AppraisalContributor model for peers and subordinates
+                        $isAvailable = AppraisalContributor::where('contributor_id', $layer->approver_id)
+                            // ->where('contributor_type', '!=', 'manager')
+                            ->where('employee_id', $employee->employee_id)
+                            ->exists();
+                    }
+
+                    if ($employee->appraisal->first()) {
+                        # code...
+                        $masterRating = MasterRating::select('id_rating_group', 'parameter', 'value', 'min_range', 'max_range')
+                            ->where('id_rating_group', $employee->appraisal->first()->formGroupAppraisal->id_rating_group)
+                            ->get();
+                        $convertRating = [];
+
+                        foreach ($masterRating as $rating) {
+                            $convertRating[$rating->value] = $rating->parameter;
+                        }
+
+                        $rated =  $ratingCalibrator
+                                        ? '|' . $convertRating[$ratingCalibrator->rating]
+                                        : '-';
+                    }else{
+                        $rated = '-';
+                    }
+
+                    // Append approver_id, layer, and status data to the corresponding array
+                    $approvalStatus[$layer->layer_type][] = [
+                        'approver_id' => $layer->approver_id,
+                        'layer' => $layer->layer,
+                        'status' => $isAvailable,
+                        'rating' => $ratingCalibrator ? $rated : null,
+                        'approver_name' => $layer->approver->fullname,
+                        'approver_id' => $layer->approver->employee_id,
+                    ];
                 // }
             }
 
@@ -233,6 +261,7 @@ class AppraisalController extends Controller
                     $contributor = AppraisalContributor::select('id', 'appraisal_id', 'contributor_type', 'contributor_id')->where('contributor_type', $subItem->layer_type)->where('contributor_id', $subItem->approver_id)->where('appraisal_id', $appraisal_id)->first();
 
                     $subItem->contributor = $contributor;
+
                     return $subItem;
                 });
 
@@ -246,7 +275,17 @@ class AppraisalController extends Controller
             $form_id = $datas->appraisal->first()->id;
 
             // Convert array to collection and group by layer_type
-            $groupedData = collect($datas->appraisalLayer)->groupBy('layer_type')->map(function ($items, $layerType) {
+            $groupedData = collect($datas->appraisalLayer)
+            ->concat(
+                // Tambahkan data untuk layer_type 'self' dari $datas->appraisal
+                collect($datas->appraisal)->map(function ($selfItem) {
+                    $selfItem->layer_type = 'self'; // Tambahkan layer_type 'self' ke data appraisal
+                    $selfItem->layer = null; // Atur layer jika diperlukan
+                    return $selfItem;
+                })
+            )
+            ->groupBy('layer_type')
+            ->map(function ($items, $layerType) {
                 // Further group each layer_type by 'layer'
                 return $items->groupBy('layer')->mapWithKeys(function ($layerGroup, $layer) use ($layerType) {
                     // Handle layer type name and layer-based key
@@ -256,6 +295,8 @@ class AppraisalController extends Controller
                         return ['P' . $layer => $layerGroup];
                     } elseif ($layerType === 'subordinate') {
                         return ['S' . $layer => $layerGroup];
+                    } elseif ($layerType === 'self') {
+                        return ['Self' => $layerGroup];
                     }
                 });
             });
@@ -328,11 +369,11 @@ class AppraisalController extends Controller
                     $appraisalForm = $formGroupContent;
                 }
 
-                $cultureData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
-                $leadershipData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
+                $cultureData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
+                $leadershipData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
 
 
-                if ($employeeForm) {
+                if($employeeForm){
 
                     // Create data item object
                     $dataItem = new stdClass();
@@ -341,10 +382,8 @@ class AppraisalController extends Controller
                     $dataItem->goal = $employeeForm->goal;
                     $data[] = $dataItem;
 
-
                     // Get appraisal form data for each record
                     $appraisalData = [];
-
 
                     if ($employeeForm->form_data) {
                         $appraisalData = json_decode($employeeForm->form_data, true);
@@ -404,7 +443,7 @@ class AppraisalController extends Controller
 
                 $weightageContent = json_decode($weightageData->form_data, true);
 
-                $result = $this->appraisalSummary($weightageContent, $formData, $employeeData->employee_id);
+                $result = $this->appService->appraisalSummary($weightageContent, $formData, $employeeData->employee_id, $jobLevel);
 
                 // $formData = $this->appService->combineFormData($result['summary'], $goalData, $result['summary']['contributor_type'], $employeeData, $request->period);
 
@@ -450,13 +489,132 @@ class AppraisalController extends Controller
 
                 $appraisalData = $formData;
 
-            } else {
+            }elseif($id == 'employee'){
+
+                $datas = Appraisal::with([
+                    'employee',
+                    'approvalSnapshots' => function ($query) {
+                        $query->orderBy('created_at', 'desc');
+                    }
+                ])->where('id', $formId)->get();
+
+                $formattedData = $datas->map(function($item) {
+                    $item->formatted_created_at = $this->appService->formatDate($item->created_at);
+
+                    $item->formatted_updated_at = $this->appService->formatDate($item->updated_at);
+
+                    return $item;
+                });
+
+                $data = [];
+                foreach ($formattedData as $request) {
+                    $dataItem = new stdClass();
+                    $dataItem->request = $request;
+                    $dataItem->name = $request->name;
+                    $dataItem->goal = $request->goal;
+                    $data[] = $dataItem;
+                }
+
+                $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->goal->form_data, true) : [];
+                $appraisalData = $datas->isNotEmpty() ? json_decode($datas->first()->approvalSnapshots->form_data, true) : [];
+
+                $appraisalData['contributor_type'] = "employee";
+
+                $appraisalData = array($appraisalData);
+
+                $employeeData = $datas->first()->employee;
+
+                // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
+
+                $formGroupContent = $this->appService->formGroupAppraisal($datas->first()->employee_id, 'Appraisal Form');
+
+                if (!$formGroupContent) {
+                    $appraisalForm = ['data' => ['formData' => []]];
+                } else {
+                    $appraisalForm = $formGroupContent;
+                }
+
+                $cultureData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
+                $leadershipData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
+
+                $jobLevel = $employeeData->job_level;
+
+                $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $request->period)->first();
+
+                $weightageContent = json_decode($weightageData->form_data, true);
+
+                $result = $this->appService->appraisalSummary($weightageContent, $appraisalData, $employeeData->employee_id, $jobLevel);
+
+                $formData = $this->appService->combineFormData($result['calculated_data'][0], $goalData, 'employee', $employeeData, $datas->first()->period);
+
+                if (isset($formData['totalKpiScore'])) {
+                    $appraisalData['kpiScore'] = round($formData['kpiScore'], 2);
+                    $appraisalData['cultureScore'] = round($formData['cultureScore'], 2);
+                    $appraisalData['leadershipScore'] = round($formData['leadershipScore'], 2);
+                }
+
+                foreach ($formData['formData'] as &$form) {
+                    if ($form['formName'] === 'Leadership') {
+                        foreach ($leadershipData as $index => $leadershipItem) {
+                            foreach ($leadershipItem['items'] as $itemIndex => $item) {
+                                if (isset($form[$index][$itemIndex])) {
+                                    $form[$index][$itemIndex] = [
+                                        'formItem' => $item,
+                                        'score' => $form[$index][$itemIndex]['score']
+                                    ];
+                                }
+                            }
+                            $form[$index]['title'] = $leadershipItem['title'];
+                        }
+                    }
+                    if ($form['formName'] === 'Culture') {
+                        foreach ($cultureData as $index => $cultureItem) {
+                            foreach ($cultureItem['items'] as $itemIndex => $item) {
+                                if (isset($form[$index][$itemIndex])) {
+                                    $form[$index][$itemIndex] = [
+                                        'formItem' => $item,
+                                        'score' => $form[$index][$itemIndex]['score']
+                                    ];
+                                }
+                            }
+                            $form[$index]['title'] = $cultureItem['title'];
+                        }
+                    }
+                }
+
+                $path = base_path('resources/goal.json');
+                if (!File::exists($path)) {
+                    $options = ['UoM' => [], 'Type' => []];
+                } else {
+                    $options = json_decode(File::get($path), true);
+                }
+
+                $uomOption = $options['UoM'] ?? [];
+                $typeOption = $options['Type'] ?? [];
+
+                $employee = EmployeeAppraisal::where('employee_id', $user)->first();
+                if (!$employee) {
+                    $access_menu = ['goals' => null];
+                } else {
+                    $access_menu = json_decode($employee->access_menu, true);
+                }
+                $goals = $access_menu['goals'] ?? null;
+
+                $selectYear = ApprovalRequest::where('employee_id', $user)->where('category', $this->category)->select('created_at')->get();
+                $selectYear->transform(function ($req) {
+                    $req->year = Carbon::parse($req->created_at)->format('Y');
+                    return $req;
+                });
+
+                $appraisalData = $formData;
+
+            }else{
 
                 $datasQuery = AppraisalContributor::with(['employee'])->where('id', $id);
 
                 $datas = $datasQuery->get();
 
-                $formattedData = $datas->map(function ($item) {
+                $formattedData = $datas->map(function($item) {
                     $item->formatted_created_at = $this->appService->formatDate($item->created_at);
 
                     $item->formatted_updated_at = $this->appService->formatDate($item->updated_at);
@@ -476,6 +634,10 @@ class AppraisalController extends Controller
                 $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->goal->form_data, true) : [];
                 $appraisalData = $datas->isNotEmpty() ? json_decode($datas->first()->form_data, true) : [];
 
+                $appraisalData['contributor_type'] = $datas->first()->contributor_type;
+
+                $appraisalData = array($appraisalData);
+
                 $employeeData = $datas->first()->employee;
 
                 // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
@@ -488,8 +650,8 @@ class AppraisalController extends Controller
                     $appraisalForm = $formGroupContent;
                 }
 
-                $cultureData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
-                $leadershipData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
+                $cultureData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
+                $leadershipData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
 
                 $jobLevel = $employeeData->job_level;
 
@@ -497,10 +659,12 @@ class AppraisalController extends Controller
 
                 $weightageContent = json_decode($weightageData->form_data, true);
 
-                $formData = $this->appService->combineFormData($appraisalData, $goalData, $datas->first()->contributor_type, $employeeData, $datas->first()->period);
+                $result = $this->appService->appraisalSummary($weightageContent, $appraisalData, $employeeData->employee_id, $jobLevel);
+
+                $formData = $this->appService->combineFormData($result['calculated_data'][0], $goalData, $datas->first()->contributor_type, $employeeData, $datas->first()->period);
 
                 if (isset($formData['totalKpiScore'])) {
-                    $appraisalData['kpiScore'] = round($formData['kpiScore'], 2);
+                    $appraisalData['kpiScore'] = round($formData['totalKpiScore'], 2);
                     $appraisalData['cultureScore'] = round($formData['cultureScore'], 2);
                     $appraisalData['leadershipScore'] = round($formData['leadershipScore'], 2);
                 }
@@ -568,219 +732,6 @@ class AppraisalController extends Controller
             return response()->json(['error' => $e->getMessage()], 404);
         }
 
-    }
-
-    private function getDataByName($data, $name)
-    {
-        foreach ($data as $item) {
-            if ($item['name'] === $name) {
-                return $item['data'];
-            }
-        }
-        return null;
-    }
-
-    function appraisalSummary($weightages, $formData, $employeeID)
-    {
-
-        $calculatedFormData = [];
-
-        $checkLayer = ApprovalLayerAppraisal::where('employee_id', $employeeID)
-            ->where('layer_type', '!=', 'calibrator')
-            ->selectRaw('layer_type, COUNT(*) as count')
-            ->groupBy('layer_type')
-            ->get();
-
-        $layerCounts = $checkLayer->pluck('count', 'layer_type')->toArray();
-
-        $managerCount = $layerCounts['manager'] ?? 0;
-        $peersCount = $layerCounts['peers'] ?? 0;
-        $subordinateCount = $layerCounts['subordinate'] ?? 0;
-
-        $calculatedFormData = []; // Initialize result array
-
-        // Loop through $formData first to structure results by formGroupName and contributor_type
-        foreach ($formData as $data) {
-
-            $contributorType = $data['contributor_type'];
-            $formGroupName = $data['formGroupName'];
-            $formDataWithCalculatedScores = []; // Array to store calculated scores for the group
-
-            foreach ($data['formData'] as $form) {
-                $formName = $form['formName'];
-                $calculatedForm = ["formName" => $formName];
-
-                if ($formName === "KPI") {
-                    // Directly copy KPI achievements
-                    foreach ($form as $key => $achievement) {
-                        if (is_numeric($key)) {
-                            $calculatedForm[$key] = $achievement;
-                        }
-                    }
-                } else {
-                    // Process other forms
-                    foreach ($weightages as $item) {
-                        foreach ($item['competencies'] as $competency) {
-                            if ($competency['competency'] == $formName) {
-                                // Handle weightage360
-                                $weightage360 = 0;
-
-                                if (isset($competency['weightage360'])) {
-                                    // Extract weightages for each type
-                                    $weightageValues = collect($competency['weightage360'])->flatMap(function ($weightage) {
-                                        return $weightage;
-                                    });
-
-                                    $weightage360 = $weightageValues[$contributorType] ?? 0;
-
-                                    if ($contributorType == 'manager') {
-                                        if ($subordinateCount > 0) {
-                                            $weightage360 += $weightageValues['employee'] ?? 0;
-                                        }
-
-                                        // Adjust weightages
-                                        if ($subordinateCount == 0) {
-                                            $weightage360 += $weightageValues['subordinate'] ?? 0;
-                                        }
-                                        if ($peersCount == 0) {
-                                            $weightage360 += $weightageValues['peers'] ?? 0;
-                                        }
-                                        if ($subordinateCount == 0 && $peersCount == 0) {
-                                            $weightage360 += ($weightageValues['subordinate'] ?? 0) + ($weightageValues['peers'] ?? 0);
-                                        }
-                                    }
-                                }
-
-                                // Calculate weighted scores
-                                foreach ($form as $key => $scores) {
-                                    if (is_numeric($key)) {
-                                        $calculatedForm[$key] = [];
-                                        foreach ($scores as $scoreData) {
-                                            $score = $scoreData['score'];
-                                            $weightedScore = $score * ($weightage360 / 100);
-                                            $calculatedForm[$key][] = ["score" => $weightedScore];
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                $formDataWithCalculatedScores[] = $calculatedForm;
-            }
-
-            $calculatedFormData[] = [
-                "formGroupName" => $formGroupName,
-                "formData" => $formDataWithCalculatedScores,
-                "contributor_type" => $contributorType
-            ];
-
-        }
-
-
-        // Second part: Calculate summary averages
-        $averages = [];
-
-        // Iterate through each contributor's data
-        foreach ($calculatedFormData as $contributorData) {
-
-            $contributorType = $contributorData['contributor_type'];
-
-            foreach ($contributorData['formData'] as $form) {
-                $formName = $form['formName'];
-
-                if ($formName === 'KPI') {
-                    // Store KPI values (only from manager)
-                    if ($contributorType === 'manager') {
-                        foreach ($form as $key => $value) {
-                            if (is_numeric($key)) {
-                                // Initialize if not already set
-                                if (!isset($summedScores[$formName][$key])) {
-                                    $summedScores[$formName][$key] = ["achievement" => $value['achievement']];
-                                }
-                            }
-                        }
-                    }
-                } else {
-
-                    // Process forms like Culture and Leadership
-                    foreach ($form as $key => $values) {
-
-                        if (is_numeric($key)) {
-                            // Initialize if not already set
-                            if (!isset($summedScores[$formName][$key])) {
-                                $summedScores[$formName][$key] = [];
-                            }
-
-                            // if ($peersCount == 0 || $subordinateCount == 0) {
-                            //     // Sum scores directly without weightage
-                            //     $totalScore = 0;
-                            //     $scoreCount = count($values);
-
-                            //     foreach ($values as $index => $scoreData) {
-                            //         $totalScore += $scoreData['score'];
-                            //     }
-
-                            //     // Calculate the average score
-                            //     $averageScore = $scoreCount > 0 ? $totalScore / $scoreCount : 0;
-
-                            //     // Store the average score at this index
-                            //     $summedScores[$formName][$key][] = ["score" => $averageScore];
-                            // } else {
-                            // Apply weightage if peers or subordinate count is non-zero
-                            foreach ($values as $index => $scoreData) {
-                                // Ensure the array exists for this index
-                                if (!isset($summedScores[$formName][$key][$index])) {
-                                    $summedScores[$formName][$key][$index] = ["score" => 0];
-                                }
-                                // Accumulate the score
-                                $summedScores[$formName][$key][$index]['score'] += $scoreData['score'];
-                            }
-                            // }
-
-                        }
-                    }
-                }
-            }
-        }
-
-        // Format the summary response
-        $summary = [
-            "formGroupName" => "Appraisal Form",
-            "formData" => [],
-            "contributor_type" => "summary"
-        ];
-
-        // Add KPI first if exists
-        if (isset($summedScores['KPI'])) {
-            $kpiForm = [
-                "formName" => "KPI"
-            ];
-            foreach ($summedScores['KPI'] as $key => $value) {
-                $kpiForm[$key] = $value; // Include KPI data in the summary
-            }
-            $summary['formData'][] = $kpiForm; // Add KPI to the summary
-        }
-
-        // Add Culture and Leadership
-        foreach (['Culture', 'Leadership'] as $formName) {
-            if (isset($summedScores[$formName])) {
-                $form = [
-                    "formName" => $formName
-                ];
-                foreach ($summedScores[$formName] as $key => $scores) {
-                    $form[$key] = $scores; // Include Culture or Leadership data in the summary
-                }
-                $summary['formData'][] = $form; // Add Culture or Leadership to the summary
-            }
-        }
-
-        // Return both calculated data and summary
-        return [
-            'calculated_data' => $calculatedFormData,
-            'summary' => $summary
-        ];
     }
 
     public function exportAppraisalDetail(Request $request)

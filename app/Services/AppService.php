@@ -148,7 +148,7 @@ class AppService
         $totalLeadershipScore = 0; // Initialize the total score
         $cultureAverageScore = 0; // Initialize Culture average score
         $leadershipAverageScore = 0; // Initialize Culture average score
-
+        
         $jobLevel = $employeeData->job_level;
         
         $appraisalDatas = $appraisalData;
@@ -836,13 +836,20 @@ class AppService
         
         $category = 'Goals';
 
-        $tasks = ApprovalRequest::where('current_approval_id', $user)
-        ->where('period', $period)
-        ->where('category', $category)->where('status', 'Pending')
+        $tasks = ApprovalRequest::where([
+            ['current_approval_id', $user],
+            ['period', $period],
+            ['category', $category],
+            ['status', 'Pending'],
+        ])
         ->whereHas('goal', function ($query) {
             $query->where('form_status', 'Submitted');
-        })->get();
-
+        })
+        ->whereHas('employee', function ($query) {
+            $query->whereNull('deleted_at');
+        })
+        ->get();
+    
         $isApprover = $tasks->count();
         
         // Output the result
@@ -872,19 +879,28 @@ class AppService
         })->count();
         
         // Count for 360 appraisal notifications
-        $data360 = ApprovalLayerAppraisal::with(['approver', 'contributors', 'appraisal'])
+        $data360 = ApprovalLayerAppraisal::with(['approver', 'contributors' => function($query) use ($user, $period) {
+            $query->where('contributor_id', $user)->where('period', $period);
+        }, 'appraisal'])
             ->where('approver_id', $user)
             ->whereNotIn('layer_type', ['manager', 'calibrator'])
             ->get()
             ->filter(function ($item) {
-                return $item->appraisal !== null && $item->contributors->isEmpty();
+                return $item->appraisal != null && $item->contributors->isEmpty();
             });
 
         $notif360 = $data360->count();
 
         $notifData = $notifTeams + $notif360;
-
+        
         return $notifData;
+    }
+
+    public function skipTour()
+    {
+        $skipTour = session('tourSession', false);   
+
+        return $skipTour;
     }
     
 }

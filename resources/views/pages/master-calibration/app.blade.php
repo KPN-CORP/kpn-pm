@@ -43,7 +43,7 @@
                     <h3 class="card-title"></h3>
                 </div>
                   <div class="table-responsive">
-                      <table class="table table-hover dt-responsive nowrap" id="scheduleTable" width="100%" cellspacing="0">
+                      <table class="table table-hover dt-responsive nowrap activate-select" id="scheduleTable" width="100%" cellspacing="0">
                           <thead class="thead-light">
                               <tr class="text-center">
                                   <th>No</th>
@@ -51,7 +51,7 @@
                                   <th>Detail</th>
                                   <th>Period</th>
                                   <th>Created By</th>
-                                  <th>Action</th>
+                                  <th class="sorting_1 text-center">Action</th>
                               </tr>
                           </thead>
                           <tbody>
@@ -86,7 +86,7 @@
                                     </td>
                                     <td>{{ $calibration->period }}</td>
                                     <td>{{ $calibration->created_by_name }}</td>
-                                    <td class="text-center">
+                                    <td class="sorting_1 text-center">
                                         @if($userId == $calibration->created_by)
                                         <a href="{{ route('update.Calibrations', Crypt::encryptString($calibration->id_calibration_group)) }}" class="btn btn-sm btn-outline-warning" title="Edit" ><i class="ri-edit-box-line"></i></a>
                                         <a class="btn btn-sm btn-danger" title="Delete" onclick="handleDeleteMastercalibration(this)" data-id="{{ $calibration->id_calibration_group }}"><i class="ri-delete-bin-line"></i></a>
