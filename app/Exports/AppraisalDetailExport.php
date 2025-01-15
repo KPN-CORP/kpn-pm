@@ -58,17 +58,19 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         $summaryRow['Contributor Type'] = ['dataId' => 'summary'];
         $summaryRow['Contributor ID'] = ['dataId' => '-'];
 
-        // Initialize summary scores to zero
+        // Initialize summary scores
         $summaryRow['KPI Score']['dataId'] = 0;
         $summaryRow['Culture Score']['dataId'] = 0;
         $summaryRow['Leadership Score']['dataId'] = 0;
         $summaryRow['Total Score']['dataId'] = 0;
 
-        $hasValidData = false; // Flag to check if there's any non-"-" data
-        $contributorCount = 0; // Counter for valid contributors
+        $hasValidData = false;
+        $contributorCount = 0;
+        $validCultureScores = [];
+        $validLeadershipScores = [];
 
         foreach ($contributors as $contributor) {
-            $contributorRow = $row; // Clone the base row for each contributor
+            $contributorRow = $row;
             $formData = $this->getFormDataForContributor($contributor);
 
             // Check if the contributor has any valid scores
@@ -89,21 +91,40 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
                 // Add individual contributor row to expandedData
                 $expandedData->push($contributorRow);
 
-                // Accumulate scores for summary
-                $summaryRow['KPI Score']['dataId'] += $formData['totalKpiScore'] ?? 0;
-                $summaryRow['Culture Score']['dataId'] += $formData['totalCultureScore'] ?? 0;
-                $summaryRow['Leadership Score']['dataId'] += $formData['totalLeadershipScore'] ?? 0;
-                $summaryRow['Total Score']['dataId'] += $formData['totalScore'] ?? 0;
+                // Only take KPI Score from manager
+                if ($contributor->contributor_type === 'manager') {
+                    $summaryRow['KPI Score']['dataId'] = $formData['totalKpiScore'] ?? 0;
+                }
+
+                // Collect valid Culture and Leadership scores for averaging
+                if (isset($formData['totalCultureScore']) && $formData['totalCultureScore'] != 0) {
+                    $validCultureScores[] = $formData['totalCultureScore'];
+                }
+                if (isset($formData['totalLeadershipScore']) && $formData['totalLeadershipScore'] != 0) {
+                    $validLeadershipScores[] = $formData['totalLeadershipScore'];
+                }
             }
         }
 
         // Add summary row only if there is valid data
         if ($hasValidData && $contributorCount > 0) {
-            // Just round the sums without dividing by contributor count
-            $summaryRow['KPI Score']['dataId'] = round($summaryRow['KPI Score']['dataId'], 2);
-            $summaryRow['Culture Score']['dataId'] = round($summaryRow['Culture Score']['dataId'], 2);
-            $summaryRow['Leadership Score']['dataId'] = round($summaryRow['Leadership Score']['dataId'], 2);
-            $summaryRow['Total Score']['dataId'] = round($summaryRow['Total Score']['dataId'], 2);
+            // Calculate average for Culture Score if there are valid scores
+            if (!empty($validCultureScores)) {
+                $summaryRow['Culture Score']['dataId'] = round(array_sum($validCultureScores) / count($validCultureScores), 2);
+            }
+
+            // Calculate average for Leadership Score if there are valid scores
+            if (!empty($validLeadershipScores)) {
+                $summaryRow['Leadership Score']['dataId'] = round(array_sum($validLeadershipScores) / count($validLeadershipScores), 2);
+            }
+
+            // Calculate total score as sum of individual scores in summary row
+            $summaryRow['Total Score']['dataId'] = round(
+                $summaryRow['KPI Score']['dataId'] +
+                $summaryRow['Culture Score']['dataId'] +
+                $summaryRow['Leadership Score']['dataId'],
+                2
+            );
 
             $expandedData->push($summaryRow);
         }
