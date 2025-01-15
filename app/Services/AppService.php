@@ -68,6 +68,7 @@ class AppService
 
     // Function to calculate the average score
     public function averageScore($formData) {
+
         $totalScore = 0;
         $totalCount = 0;
     
@@ -229,23 +230,27 @@ class AppService
         $appraisalDatas['kpiWeightage360'] = $kpiWeightage360; // get KPI 360 weightage
         $appraisalDatas['cultureWeightage360'] = $cultureWeightage360 / 100; // get Culture 360 weightage
         $appraisalDatas['leadershipWeightage360'] = $leadershipWeightage360 / 100; // get Leadership 360 weightage
+
+        $appraisalDatas['cultureWeightage'] = $cultureWeightage; // get KPI Final Score
+        $appraisalDatas['leadershipWeightage'] = $leadershipWeightage; // get KPI Final Score
         
         // Add the total scores to the appraisalData
         $appraisalDatas['totalKpiScore'] = round($totalKpiScore * $kpiWeightage / 100 , 2); // get KPI Final Score
-        $appraisalDatas['totalCultureScore'] = round($cultureAverageScore * $cultureWeightage / 100 , 2); // get KPI Final Score
-        $appraisalDatas['totalLeadershipScore'] = round($leadershipAverageScore * $leadershipWeightage / 100 , 2); // get KPI Final Score
+        $appraisalDatas['totalCultureScore'] = round($cultureAverageScore, 2); // get KPI Final Score
+        $appraisalDatas['totalLeadershipScore'] = round($leadershipAverageScore, 2); // get KPI Final Score
         $appraisalDatas['cultureScore360'] = $cultureAverageScore * $cultureWeightage360 / 100; // get KPI Final Score
         $appraisalDatas['leadershipScore360'] = $leadershipAverageScore * $leadershipWeightage360 / 100; // get KPI Final Score
         $appraisalDatas['cultureAverageScore'] = ($cultureAverageScore * $cultureWeightage / 100) * $appraisalDatas['cultureWeightage360']; // get Culture Average Score
         $appraisalDatas['leadershipAverageScore'] = ($leadershipAverageScore * $leadershipWeightage / 100) * $appraisalDatas['leadershipWeightage360']; // get Leadership Average Score
         
         $appraisalDatas['kpiScore'] = $totalKpiScore; // get KPI Final Score
-        $appraisalDatas['cultureScore'] = $cultureAverageScore; // get KPI Final Score
-        $appraisalDatas['leadershipScore'] = $leadershipAverageScore; // get KPI Final Score
+        $appraisalDatas['cultureScore'] = $cultureAverageScore * $cultureWeightage / 100; // get KPI Final Score
+        $appraisalDatas['leadershipScore'] = $leadershipAverageScore  * $leadershipWeightage / 100; // get KPI Final Score
 
         $scores = [$totalKpiScore,$cultureAverageScore,$leadershipAverageScore];
         // get KPI Final Score
         // $appraisalDatas['totalScore'] =  round(array_sum($scores) / count($scores) ,2); // Old
+        $appraisalDatas['selfTotalScore'] =  $appraisalDatas['totalKpiScore'] + $appraisalDatas['cultureScore'] + $appraisalDatas['leadershipScore']; // Update
         $appraisalDatas['totalScore'] =  $appraisalDatas['totalKpiScore'] + $appraisalDatas['totalCultureScore'] + $appraisalDatas['totalLeadershipScore']; // Update
 
         $appraisalDatas['contributorRating'] = $appraisalDatas['totalKpiScore'] + $appraisalDatas['cultureAverageScore'] + $appraisalDatas['leadershipAverageScore']; // old
@@ -263,9 +268,13 @@ class AppService
         $leadershipAverageScore = 0; // Initialize Culture average score
 
         $jobLevel = $employeeData->job_level;
-        
 
-        foreach ($appraisalData['calculated_data'] as $appraisalDatas) {
+        $result = $this->averageScores($appraisalData['calculated_data']);
+
+        foreach ($result as $appraisalDatas) {
+
+            
+
             if (!empty($appraisalDatas['formData']) && is_array($appraisalDatas['formData'])) {
                 // Initialize the culture and leadership scores for this contributor type
                 $cultureAverageScore = 0;
@@ -293,46 +302,112 @@ class AppService
                         ->where('period', $period)
                         ->first();
             
-                    $weightageContent = json_decode($weightageData->form_data, true);
-            
-                    $kpiWeightage = 0;
-                    $cultureWeightage = 0;
-                    $leadershipWeightage = 0;
-            
-                    foreach ($weightageContent as $item) {
-                        if (in_array($jobLevel, $item['jobLevel'])) {
-                            foreach ($item['competencies'] as $competency) {
-                                $employeeWeightage = 0;
-            
-                                if (isset($competency['weightage360'])) {
-                                    foreach ($competency['weightage360'] as $weightage360) {
-                                        if (isset($weightage360[$appraisalDatas['contributor_type']])) {
-                                            $employeeWeightage += $weightage360[$appraisalDatas['contributor_type']];
-                                        }
-                                    }
-                                }
-            
-                                switch ($competency['competency']) {
-                                    case 'KPI':
-                                        $kpiWeightage = $competency['weightage'];
-                                        $kpiWeightage360 = $employeeWeightage;
-                                        break;
-                                    case 'Culture':
-                                        $cultureWeightage = $competency['weightage'];
-                                        $cultureWeightage360 = $employeeWeightage;
-                                        break;
-                                    case 'Leadership':
-                                        $leadershipWeightage = $competency['weightage'];
-                                        $leadershipWeightage360 = $employeeWeightage;
-                                        break;
+            $weightageContent = json_decode($weightageData->form_data, true);
+    
+            $kpiWeightage = 0;
+            $cultureWeightage = 0;
+            $leadershipWeightage = 0;
+    
+            foreach ($weightageContent as $item) {
+                if (in_array($jobLevel, $item['jobLevel'])) {
+                    foreach ($item['competencies'] as $competency) {
+                        $employeeWeightage = 0;
+    
+                        if (isset($competency['weightage360'])) {
+                            foreach ($competency['weightage360'] as $weightage360) {
+                                if (isset($weightage360[$appraisalDatas['contributor_type']])) {
+                                    $employeeWeightage += $weightage360[$appraisalDatas['contributor_type']];
                                 }
                             }
-                            break; // Exit after processing the relevant job level
+                        }
+    
+                        switch ($competency['competency']) {
+                            case 'KPI':
+                                $kpiWeightage = $competency['weightage'];
+                                $kpiWeightage360 = $employeeWeightage;
+                                break;
+                            case 'Culture':
+                                $cultureWeightage = $competency['weightage'];
+                                $cultureWeightage360 = $employeeWeightage;
+                                break;
+                            case 'Leadership':
+                                $leadershipWeightage = $competency['weightage'];
+                                $leadershipWeightage360 = $employeeWeightage;
+                                break;
                         }
                     }
+                    break; // Exit after processing the relevant job level
+                }
+            }
         }
-        
+
         $appraisalDatas = $appraisalData['summary'];
+
+        // if (!empty($appraisalDatas['formData']) && is_array($appraisalDatas['formData'])) {
+        //     // Initialize the culture and leadership scores for this contributor type
+        //     $cultureAverageScore = 0;
+        //     $leadershipAverageScore = 0;
+    
+        //     foreach ($appraisalDatas['formData'] as &$form) {
+        //         if ($form['formName'] === "Culture") {
+        //             // Calculate average score for Culture form
+        //             $cultureAverageScore = $this->averageScore($form);
+        //         } elseif ($form['formName'] === "Leadership") {
+        //             // Calculate average score for Leadership form
+        //             $leadershipAverageScore = $this->averageScore($form);
+        //         }
+        //     }
+    
+        //     // Sum the culture and leadership scores across all contributor types
+        //     $totalCultureScore = $cultureAverageScore;
+        //     $totalLeadershipScore = $leadershipAverageScore;
+        // } else {
+        //     // Handle the case where formData is null or not an array
+        //     $appraisalDatas['formData'] = []; // Optionally, set to an empty array
+        // }
+        
+        // $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')
+        //             ->where('period', $period)
+        //             ->first();
+        
+        // $weightageContent = json_decode($weightageData->form_data, true);
+
+        // $kpiWeightage = 0;
+        // $cultureWeightage = 0;
+        // $leadershipWeightage = 0;
+
+        // foreach ($weightageContent as $item) {
+        //     if (in_array($jobLevel, $item['jobLevel'])) {
+        //         foreach ($item['competencies'] as $competency) {
+        //             $employeeWeightage = 0;
+
+        //             if (isset($competency['weightage360'])) {
+        //                 foreach ($competency['weightage360'] as $weightage360) {
+        //                     if (isset($weightage360[$appraisalDatas['contributor_type']])) {
+        //                         $employeeWeightage += $weightage360[$appraisalDatas['contributor_type']];
+        //                     }
+        //                 }
+        //             }
+
+        //             switch ($competency['competency']) {
+        //                 case 'KPI':
+        //                     $kpiWeightage = $competency['weightage'];
+        //                     $kpiWeightage360 = $employeeWeightage;
+        //                     break;
+        //                 case 'Culture':
+        //                     $cultureWeightage = $competency['weightage'];
+        //                     $cultureWeightage360 = $employeeWeightage;
+        //                     break;
+        //                 case 'Leadership':
+        //                     $leadershipWeightage = $competency['weightage'];
+        //                     $leadershipWeightage360 = $employeeWeightage;
+        //                     break;
+        //             }
+        //         }
+        //         break; // Exit after processing the relevant job level
+        //     }
+        // }
+        
         if (!empty($appraisalDatas['formData']) && is_array($appraisalDatas['formData'])) {
             foreach ($appraisalDatas['formData'] as &$form) {
                 if ($form['formName'] === "KPI") {
@@ -364,9 +439,9 @@ class AppService
         
         // Add the total scores to the appraisalData
         $appraisalDatas['totalKpiScore'] = round($totalKpiScore * $kpiWeightage / 100 , 2); // get KPI Final Score
-        $appraisalDatas['totalCultureScore'] = round($totalCultureScore * $cultureWeightage / 100 , 2); // get KPI Final Score
+        $appraisalDatas['totalCultureScore'] = round($totalCultureScore, 2); // get KPI Final Score
         // $appraisalDatas['totalCultureScore'] = round($cultureAverageScore * $cultureWeightage / 100 , 2); // get KPI Final Score
-        $appraisalDatas['totalLeadershipScore'] = round($totalLeadershipScore * $leadershipWeightage / 100 , 2); // get KPI Final Score
+        $appraisalDatas['totalLeadershipScore'] = round($totalLeadershipScore, 2); // get KPI Final Score
         // $appraisalDatas['totalLeadershipScore'] = round($leadershipAverageScore * $leadershipWeightage / 100 , 2); // get KPI Final Score
         $appraisalDatas['cultureScore360'] = $cultureAverageScore * $cultureWeightage360 / 100; // get KPI Final Score
         $appraisalDatas['leadershipScore360'] = $leadershipAverageScore * $leadershipWeightage360 / 100; // get KPI Final Score
@@ -386,6 +461,67 @@ class AppService
         $appraisalDatas['contributorRating'] = $appraisalDatas['totalKpiScore'] + $appraisalDatas['totalCultureScore'] + $appraisalDatas['totalLeadershipScore']; // update
     
         return $appraisalDatas;
+    }
+
+    function averageScores(array $data): array
+    {
+        // Group data by contributor_type
+        $groupedData = [];
+        foreach ($data as $entry) {
+            $contributorType = $entry['contributor_type'];
+            $groupedData[$contributorType][] = $entry;
+        }
+
+        $result = [];
+        foreach ($groupedData as $contributorType => $entries) {
+            // Clone the structure from the first entry
+            $mergedEntry = $entries[0];
+            $mergedEntry['formData'] = [];
+
+            foreach ($entries[0]['formData'] as $index => $formData) {
+                $mergedFormData = $formData;
+                $mergedFormData[0] = [];
+
+                // Ensure the current formData is properly structured
+                if (!isset($formData[0]) || !is_array($formData[0])) {
+                    continue;
+                }
+
+                // Calculate averages for all scores in the same index
+                foreach ($formData[0] as $scoreIndex => $scoreData) {
+                    // Ensure the scoreData has the expected structure
+                    if (!isset($scoreData['score']) || !is_numeric($scoreData['score'])) {
+                        continue;
+                    }
+
+                    $totalScore = 0;
+                    $count = 0;
+
+                    foreach ($entries as $entry) {
+                        // Validate structure before accessing
+                        if (isset($entry['formData'][$index][0][$scoreIndex]['score']) &&
+                            is_numeric($entry['formData'][$index][0][$scoreIndex]['score'])) {
+                            $totalScore += $entry['formData'][$index][0][$scoreIndex]['score'];
+                            $count++;
+                        }
+                    }
+
+                    // Avoid division by zero
+                    if ($count > 0) {
+                        $mergedFormData[0][$scoreIndex] = [
+                            'score' => $totalScore / $count,
+                        ];
+                    }
+                }
+
+                // Push merged form data
+                $mergedEntry['formData'][] = $mergedFormData;
+            }
+
+            $result[] = $mergedEntry;
+        }
+
+        return $result;
     }
 
     // Function to merge scores
@@ -642,30 +778,6 @@ class AppService
         return $condition ? $condition->parameter : null;
     }
 
-    // Function to handle approval process
-    // public function checkCalibrator($employee, $approver)
-    // {
-    //     $calibrator = Calibration::where('employee_id', $employee)->where('approver_id', $approver)->first();
-
-    //     $layer = ApprovalLayerAppraisal::where('employee_id', $employee)->where('layer_type', 'calibrator')->orderBy('layer', 'asc')->first();
-
-    //     if ($calibrator) {
-    //         $current_approver = ApprovalLayerAppraisal::select('approver_id')->where('approver_id', $approver)
-    //                         ->where('layer_type', 'calibrator')
-    //                         ->orderBy('layer', 'asc')
-    //                         ->first();
-    //     }else{
-    //         $current_approver = Employee::select('employee_id', 'fullname')->where('employee_id', $employee);
-    //     }
-
-    //     return $current_approver ? [
-    //         'current_approver_id' => $currentLayer->approver_id,
-    //         'next_approver_id' => $nextLayer->approver_id,
-    //         'layer' => $nextLayer->layer,
-    //     ] : null; // null means finish the calibrator layer.
-
-    // }
-
     public function processApproval($employee, $approver)
     {
         $currentLayer = ApprovalLayerAppraisal::where('employee_id', $employee)
@@ -894,6 +1006,224 @@ class AppService
         $notifData = $notifTeams + $notif360;
         
         return $notifData;
+    }
+
+    function appraisalSummary($weightages, $formData, $employeeID, $jobLevel) {
+
+        $calculatedFormData = [];
+
+        $checkLayer = ApprovalLayerAppraisal::where('employee_id', $employeeID)
+        ->where('layer_type', '!=', 'calibrator')
+        ->selectRaw('layer_type, COUNT(*) as count')
+        ->groupBy('layer_type')
+        ->get();
+
+        $layerCounts = $checkLayer->pluck('count', 'layer_type')->toArray();
+
+        $managerCount = $layerCounts['manager'] ?? 0;
+        $peersCount = $layerCounts['peers'] ?? 0;
+        $subordinateCount = $layerCounts['subordinate'] ?? 0;
+
+        $calculatedFormData = []; // Initialize result array
+
+        // Loop through $formData first to structure results by formGroupName and contributor_type
+        foreach ($formData as $data) {
+            $contributorType = $data['contributor_type'];
+            $formGroupName = $data['formGroupName'];
+            $formDataWithCalculatedScores = []; // Array to store calculated scores for the group
+
+            foreach ($data['formData'] as $form) {
+                $formName = $form['formName'];
+                $calculatedForm = ["formName" => $formName];
+                if ($formName === "KPI") {
+                    // Directly copy KPI achievements
+                    foreach ($form as $key => $achievement) {
+                        if (is_numeric($key)) {
+                            $calculatedForm[$key] = $achievement;
+                        }
+                    }
+                } else {
+                    // Process other forms
+                    foreach ($weightages as $item) {
+                        if(in_array($jobLevel, $item['jobLevel'])){
+                            foreach ($item['competencies'] as $competency) {
+                                if ($competency['competency'] == $formName) {
+                                    // Handle weightage360
+                                    $weightage360 = 0;
+    
+                                    if (isset($competency['weightage360'])) {
+                                        // Extract weightages for each type
+                                        $weightageValues = collect($competency['weightage360'])->flatMap(function ($weightage) {
+                                            return $weightage;
+                                        });
+    
+                                        $weightage360 = $weightageValues[$contributorType] ?? 0;
+    
+                                        if($contributorType == 'manager'){
+                                            if ($subordinateCount > 0) {
+                                                $weightage360 ?? 0;
+                                            }
+                                            // Adjust weightages
+                                            if ($subordinateCount == 0) {
+                                                $weightage360 += $weightageValues['subordinate'] ?? 0;
+                                            }
+                                            if ($peersCount == 0) {
+                                                $weightage360 += $weightageValues['peers'] ?? 0;
+                                            }
+                                            // if ($subordinateCount == 0 && $peersCount == 0) {
+                                            //     $weightage360 += ($weightageValues['subordinate'] ?? 0) + ($weightageValues['peers'] ?? 0);
+                                            // }
+                                        }
+
+                                    }
+    
+                                    // Calculate weighted scores
+                                    foreach ($form as $key => $scores) {
+                                        if (is_numeric($key)) {
+                                            $calculatedForm[$key] = [];
+                                            foreach ($scores as $scoreData) {
+                                                $score = $scoreData['score'];
+                                                $weightedScore = ($score * ($weightage360 / 100) * ($competency['weightage'] / 100));
+                                                $calculatedForm[$key][] = ["score" => $weightedScore];
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                $formDataWithCalculatedScores[] = $calculatedForm;
+            }
+            
+            $calculatedFormData[] = [
+                "formGroupName" => $formGroupName,
+                "formData" => $formDataWithCalculatedScores,
+                "contributor_type" => $contributorType
+            ];
+
+        }
+        
+        // Second part: Calculate summary averages
+        $averages = [];
+
+        // Iterate through each contributor's data
+        foreach ($calculatedFormData as $contributorData) {
+
+            $contributorType = $contributorData['contributor_type'];
+            
+            foreach ($contributorData['formData'] as $form) {
+                $formName = $form['formName'];
+                
+                if ($formName === 'KPI') {
+                    // Store KPI values (only from manager)
+                    if ($contributorType === 'manager') {
+                        foreach ($form as $key => $value) {
+                            if (is_numeric($key)) {
+                                // Initialize if not already set
+                                if (!isset($summedScores[$formName][$key])) {
+                                    $summedScores[$formName][$key] = ["achievement" => $value['achievement']];
+                                }
+                            }
+                        }
+                    }
+                } else {
+
+                    // Process forms like Culture and Leadership
+                    foreach ($form as $key => $values) {
+
+                        if (is_numeric($key)) {
+                            // Initialize if not already set
+                            if (!isset($summedScores[$formName][$key])) {
+                                $summedScores[$formName][$key] = [];
+                            }
+
+                            // Apply weightage if peers or subordinate count is non-zero
+                            foreach ($values as $index => $scoreData) {
+                                // Ensure the array exists for this index
+                                if (!isset($summedScores[$formName][$key][$index])) {
+                                    $summedScores[$formName][$key][$index] = ["score" => 0];
+                                }
+                                // Accumulate the score
+                                $summedScores[$formName][$key][$index]['score'] += $scoreData['score'];
+                            }
+                            
+                        }
+                        // if (is_numeric($key)) {
+                        //     // Initialize if not already set
+                        //     if (!isset($summedScores[$formName][$key])) {
+                        //         $summedScores[$formName][$key] = [];
+                        //     }
+
+                        //     // if ($peersCount == 0 || $subordinateCount == 0) {
+                        //     //     // Sum scores directly without weightage
+                        //     //     $totalScore = 0;
+                        //     //     $scoreCount = count($values);
+                    
+                        //     //     foreach ($values as $index => $scoreData) {
+                        //     //         $totalScore += $scoreData['score'];
+                        //     //     }
+                    
+                        //     //     // Calculate the average score
+                        //     //     $averageScore = $scoreCount > 0 ? $totalScore / $scoreCount : 0;
+                    
+                        //     //     // Store the average score at this index
+                        //     //     $summedScores[$formName][$key][] = ["score" => $averageScore];
+                        //     // } else {
+                        //         // Apply weightage if peers or subordinate count is non-zero
+                        //         foreach ($values as $index => $scoreData) {
+                        //             // Ensure the array exists for this index
+                        //             if (!isset($summedScores[$formName][$key][$index])) {
+                        //                 $summedScores[$formName][$key][$index] = ["score" => 0];
+                        //             }
+                        //             // Accumulate the score
+                        //             $summedScores[$formName][$key][$index]['score'] += $scoreData['score'];
+                        //         }
+                        //     // }
+                            
+                        // }
+                    }
+                }
+            }
+        }
+
+        // Format the summary response
+        $summary = [
+            "formGroupName" => "Appraisal Form",
+            "formData" => [],
+            "contributor_type" => "summary"
+        ];
+
+        // Add KPI first if exists
+        if (isset($summedScores['KPI'])) {
+            $kpiForm = [
+                "formName" => "KPI"
+            ];
+            foreach ($summedScores['KPI'] as $key => $value) {
+                $kpiForm[$key] = $value; // Include KPI data in the summary
+            }
+            $summary['formData'][] = $kpiForm; // Add KPI to the summary
+        }
+
+        // Add Culture and Leadership
+        foreach (['Culture', 'Leadership'] as $formName) {
+            if (isset($summedScores[$formName])) {
+                $form = [
+                    "formName" => $formName
+                ];
+                foreach ($summedScores[$formName] as $key => $scores) {
+                    $form[$key] = $scores; // Include Culture or Leadership data in the summary
+                }
+                $summary['formData'][] = $form; // Add Culture or Leadership to the summary
+            }
+        }
+        
+        // Return both calculated data and summary
+        return [
+            'calculated_data' => $calculatedFormData,
+            'summary' => $summary
+        ];
     }
 
     public function skipTour()
