@@ -5,6 +5,22 @@ import Swal from "sweetalert2";
 window.Swal = Swal;
 
 $(document).ready(function() {
+
+    function getCurrentDateTime() {
+        const now = new Date();
+        const weekday = now.toLocaleString('en-US', { weekday: 'long' });
+        const day = String(now.getDate()).padStart(2, '0'); // Add leading zero if single digit
+        const month = String(now.getMonth() + 1).padStart(2, '0'); // Get month (0-11), so add 1
+        const year = now.getFullYear();
+
+        // Get hours and minutes for the time (in 12-hour format)
+        const hours = now.getHours() % 12 || 12;  // 12-hour format, 0 becomes 12
+        const minutes = String(now.getMinutes()).padStart(2, '0');
+        const ampm = now.getHours() >= 12 ? 'PM' : 'AM';  // AM/PM
+
+        return `${weekday}, ${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
+    }
+
     $('#adminAppraisalTable').DataTable({
         stateSave: true,
         dom: 'Bfrtip',
@@ -114,13 +130,18 @@ $(document).ready(function() {
                         // Set a timeout to stop checking after 2 minutes (120 seconds)
                         timeout = setTimeout(() => {
                             clearInterval(checkInterval); // Stop checking after 2 minutes
-                            alert('The file was not ready in time. Please try again later.');
-                        }, 300000); // 300000 milliseconds = 5 minutes
+                            alert('Hi there! It seems the Reports Details file is too large to download. Please try grouping it by Business Unit and then download again. Thank you!');
+                            document.querySelectorAll('.report-detail-btn').forEach(function(button) {
+                                button.disabled = false;
+                            });
+                            spinner.classList.add("d-none");
+                            icon.classList.remove("d-none");
+                        }, 1800000); // 30 min, 60000  milliseconds = 1 minutes
                     
                         // Start checking for file availability every 10 seconds
                         checkInterval = setInterval(() => {
                             checkFileAvailability(file, checkInterval, timeout); // Pass the interval and timeout for cleanup
-                        }, 30000); // 10 seconds interval
+                        }, 3000); // 30 seconds interval
                     }
                     
                     // Function to check if the file is available
@@ -203,7 +224,17 @@ $(document).ready(function() {
             rightColumns: 1
         },
         scrollCollapse: true,
-        scrollX: true
+        scrollX: true,
+        initComplete: function(settings, json) {
+            // Get the current date and time
+            const dateTime = getCurrentDateTime();
+
+            // Insert the current date/time below the buttons
+            const dateTimeHTML = `<div class="text-right mt-2" id="currentDateTime">${dateTime}</div>`;
+
+            // Append the date and time below the button container
+            $(this).closest('.dataTables_wrapper').find('.dt-buttons').after(dateTimeHTML);
+        }
     });
     
 });
