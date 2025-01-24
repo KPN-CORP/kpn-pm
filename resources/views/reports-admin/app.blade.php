@@ -3,6 +3,7 @@
 @section('css')
 @endsection
 @section('content')
+<meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- Begin Page Content -->
     <div class="container-fluid">
       <div class="card">
@@ -162,49 +163,4 @@
         });
     </script>
 @endif
-<script>
-    function handleDeleteEmployeePA(element) {
-        var id = element.getAttribute('data-id');
-        var deleteUrl = "{{ route('admemployeeDestroy', ':id') }}";
-        deleteUrl = deleteUrl.replace(':id', id);
-        
-        Swal.fire({
-            title: 'Are you sure?',
-            text: "This Employee will terminated!",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, delete it!'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Jika dikonfirmasi, buat form dan submit ke server
-                var form = document.createElement('form');
-                form.action = deleteUrl;
-                form.method = 'POST';
-                form.innerHTML = `
-                    @csrf
-                    @method('DELETE')
-                `;
-                document.body.appendChild(form);
-                form.submit();
-            }
-        });
-    }
-    function showEditModal(employee) {
-        // Isi data dari karyawan yang akan diedit ke dalam modal
-        document.getElementById('editEmployeeId').value = employee.employee_id;
-        document.getElementById('editFullname').value = employee.fullname;
-        document.getElementById('editDateOfJoining').value = employee.date_of_joining;
-        document.getElementById('editContributionLevelCode').value = employee.contribution_level_code;
-        document.getElementById('editUnit').value = employee.unit;
-        document.getElementById('editDesignationName').value = employee.designation_code;
-        document.getElementById('editJobLevel').value = employee.job_level;
-        document.getElementById('editOfficeArea').value = employee.work_area_code;
-
-        // Tampilkan modal
-        var editModal = new bootstrap.Modal(document.getElementById('editEmployeeModal'));
-        editModal.show();
-    }    
-</script>
 @endpush

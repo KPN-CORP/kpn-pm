@@ -51,27 +51,45 @@ class OnBehalfController extends Controller
 
         $groupCompanyCodes = $restrictionData['group_company'] ?? [];
 
-        $this->groupCompanies = Location::select('company_name')
+        // $this->groupCompanies = Location::select('company_name')
+        //     ->when(!empty($groupCompanyCodes), function ($query) use ($groupCompanyCodes) {
+        //         return $query->whereIn('company_name', $groupCompanyCodes);
+        //     })
+        //     ->orderBy('company_name')->distinct()->pluck('company_name');
+
+        $this->groupCompanies = Employee::select('group_company')
             ->when(!empty($groupCompanyCodes), function ($query) use ($groupCompanyCodes) {
-                return $query->whereIn('company_name', $groupCompanyCodes);
-            })
-            ->orderBy('company_name')->distinct()->pluck('company_name');
+                return $query->whereIn('group_company', $groupCompanyCodes);
+            })->orderBy('group_company')->distinct()->pluck('group_company');
 
         $workAreaCodes = $restrictionData['work_area_code'] ?? [];
 
-        $this->locations = Location::select('company_name', 'area', 'work_area')
+        // $this->locations = Location::select('company_name', 'area', 'work_area')
+        //     ->when(!empty($workAreaCodes) || !empty($groupCompanyCodes), function ($query) use ($workAreaCodes, $groupCompanyCodes) {
+        //         return $query->where(function ($query) use ($workAreaCodes, $groupCompanyCodes) {
+        //             if (!empty($workAreaCodes)) {
+        //                 $query->whereIn('work_area', $workAreaCodes);
+        //             }
+        //             if (!empty($groupCompanyCodes)) {
+        //                 $query->orWhereIn('company_name', $groupCompanyCodes);
+        //             }
+        //         });
+        //     })
+        //     ->orderBy('area')
+        //     ->get();
+
+        $this->locations = Employee::select('office_area', 'work_area_code', 'group_company')
             ->when(!empty($workAreaCodes) || !empty($groupCompanyCodes), function ($query) use ($workAreaCodes, $groupCompanyCodes) {
                 return $query->where(function ($query) use ($workAreaCodes, $groupCompanyCodes) {
                     if (!empty($workAreaCodes)) {
-                        $query->whereIn('work_area', $workAreaCodes);
+                        $query->whereIn('work_area_code', $workAreaCodes);
                     }
                     if (!empty($groupCompanyCodes)) {
-                        $query->orWhereIn('company_name', $groupCompanyCodes);
+                        $query->orWhereIn('group_company', $groupCompanyCodes);
                     }
                 });
             })
-            ->orderBy('area')
-            ->get();
+            ->orderBy('work_area_code')->distinct()->get();
 
         $companyCodes = $restrictionData['contribution_level_code'] ?? [];
 
@@ -116,12 +134,12 @@ class OnBehalfController extends Controller
 
         $data = [];
         
-        if ($category || $filterCategory) {
+        if ($category == 'Goals' || $filterCategory == 'Goals') {
             // Mengambil data pengajuan berdasarkan employee_id atau manager_id
             $datas = ApprovalRequest::with(['employee', 'goal', 'updatedBy', 'approval' => function ($query) {
                 $query->with('approverName'); // Load nested relationship
-            }])->where('category', $this->category);
-
+            }])->where('category', $this->category)->whereHas('employee')->whereHas('manager');
+            
             $criteria = [
                 'work_area_code' => $permissionLocations,
                 'group_company' => $permissionGroupCompanies,
@@ -159,6 +177,7 @@ class OnBehalfController extends Controller
             $datas = $datas->get();
             
             $datas->map(function($item) {
+
                 // Format created_at
                 $createdDate = Carbon::parse($item->created_at);
 
@@ -203,14 +222,16 @@ class OnBehalfController extends Controller
                 }
             }
         }
-
+        
+        
         $locations = $this->locations;
         $companies = $this->companies;
         $groupCompanies = $this->groupCompanies;
+        
 
         if ($category == 'Goals' || $filterCategory == 'Goals') {
             return view('pages.onbehalfs.goal', compact('data', 'link', 'parentLink', 'locations', 'companies', 'groupCompanies'));
-        } elseif ($category == 'Performance' || $filterCategory == 'Goals') {
+        } elseif ($category == 'Performance' || $filterCategory == 'Performance') {
             return view('pages.onbehalfs.performance', compact('data', 'link', 'parentLink', 'locations', 'companies', 'groupCompanies'));
         } else {
             return view('pages.onbehalfs.empty');
@@ -255,7 +276,7 @@ class OnBehalfController extends Controller
             $formData = json_decode($datas->first()->goal->form_data, true);
         }
 
-        $path = storage_path('../resources/goal.json');
+        $path = base_path('resources/goal.json');
 
         // Check if the JSON file exists
         if (!File::exists($path)) {
@@ -421,7 +442,7 @@ class OnBehalfController extends Controller
 
     public function unitOfMeasurement()
     {
-        $uom = file_get_contents(storage_path('../resources/goal.json'));
+        $uom = file_get_contents(base_path('resources/goal.json'));
 
         return response()->json(json_decode($uom, true));
     }
@@ -496,7 +517,7 @@ class OnBehalfController extends Controller
             });
         }
 
-        $path = storage_path('../resources/goal.json');
+        $path = base_path('resources/goal.json');
 
         // Check if the JSON file exists
         if (!File::exists($path)) {

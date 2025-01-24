@@ -15,6 +15,7 @@
         <th>Current Approver ID</th>
         <th>{{ __('Initiated By') }}</th>
         <th>{{ __('Initiated By') }} ID</th>
+        <th>{{ __('Period') }}</th>
     </tr>
     </thead>
     <tbody>
@@ -39,6 +40,7 @@
                     <td>{{ $row->manager->employee_id }}</td>
                     <td>{{ $row->initiated->name }}</td>
                     <td>{{ $row->initiated->employee_id }}</td>
+                    <td>{{ $row->goal->period }}</td>
                 </tr>
             @endforeach
         @endif

@@ -45,12 +45,13 @@ use App\Http\Controllers\SearchController;
 use App\Http\Controllers\WeightageController;
 use App\Imports\ApprovalLayerAppraisalImport;
 use Illuminate\Support\Facades\Route;
+use App\Http\Middleware\NotificationMiddleware;
 
-Route::get('/', function () {
-    return redirect('goals');
-});
 
 Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified', 'role:superadmin'])->name('dashboard');
+Route::get('/dashboard-team', [DashboardController::class, 'teamDashboard'])->middleware(['auth', 'verified', 'role:superadmin'])->name('dashboard.team');
+
+Route::get('/dashboard-team-data', [DashboardController::class, 'getTeamData']);
 
 Route::get('language/{locale}', [LanguageController::class, 'switchLanguage'])->name('language.switch');
 
@@ -96,7 +97,11 @@ Route::middleware('guest')->group(function () {
 });
 
 
-Route::middleware('auth', 'locale')->group(function () {
+Route::middleware('auth', 'locale', 'notification')->group(function () {
+
+    Route::get('/', function () {
+        return redirect('goals');
+    });
 
     Route::get('/search-employee', [SearchController::class, 'searchEmployee']);
 
@@ -158,6 +163,7 @@ Route::middleware('auth', 'locale')->group(function () {
 
     Route::get('/export-ratings/{level}', [RatingController::class, 'exportToExcel'])->name('rating.export');
     Route::post('/rating/import', [RatingController::class, 'importFromExcel'])->name('rating.import');
+    Route::get('/export-invalid-rating', [RatingController::class, 'exportInvalidRating'])->name('export.invalid.rating');
 
     
     // Approval
@@ -248,7 +254,7 @@ Route::middleware('auth', 'locale')->group(function () {
 
     Route::middleware(['permission:employeepa'])->group(function () {
         Route::get('/admemployees', [EmployeePAController::class, 'index'])->name('admemployee');
-        Route::delete('/admemployeedestroy/{id}', [EmployeePAController::class, 'destroy'])->name('admemployeeDestroy');
+        Route::delete('/admemployeedestroy', [EmployeePAController::class, 'destroy'])->name('admemployeeDestroy');
         Route::put('/employeepa/update', [EmployeePAController::class, 'update'])->name('employeepa.update');
         Route::get('/export-employeepa', [EmployeePAController::class, 'exportEmployeepa'])->name('employeepa.export');
     });
@@ -305,8 +311,14 @@ Route::middleware('auth', 'locale')->group(function () {
     Route::middleware(['permission:reportpa'])->group(function () {
         Route::get('/admin-appraisal', [AdminAppraisalController::class, 'index'])->name('admin.appraisal');
         Route::get('/admin-appraisal/details/{id}', [AdminAppraisalController::class, 'detail'])->name('admin.appraisal.details');
-        Route::get('/admin-appraisal/get-peers/{peerId}', [AdminAppraisalController::class, 'getPeerData'])->name('get.peer.data');
+        
+        Route::post('/check-file', [AdminAppraisalController::class, 'checkFileAvailability']); // Check file existence
+        Route::get('/appraisal-details/download/{fileName}', [AdminAppraisalController::class, 'downloadFile']);
+        Route::get('/appraisal-details/delete/{fileName}', [AdminAppraisalController::class, 'deleteFile']);
+
         Route::get('/admin-appraisal/get-detail-data/{id}', [AdminAppraisalController::class, 'getDetailData'])->name('get.detail.data');
+        Route::post('/export-appraisal-detail', [AdminAppraisalController::class, 'exportAppraisalDetail']);
+
     });
     
     Route::middleware(['permission:viewonbehalf'])->group(function () {
@@ -324,10 +336,11 @@ Route::middleware('auth', 'locale')->group(function () {
     Route::middleware(['permission:viewreport'])->group(function () {
         
         Route::get('/reports-admin', [AdminReportController::class, 'index'])->name('admin.reports');
-        Route::get('/admin/get-report-content/{reportType}', [AdminReportController::class, 'getReportContent']);
+        // Route::get('/admin/get-report-content/{reportType}', [AdminReportController::class, 'getReportContent']);
         Route::post('/admin/get-report-content', [AdminReportController::class, 'getReportContent']);
         Route::get('/admin/changes-group-company', [AdminReportController::class, 'changesGroupCompany']);
         Route::get('/admin/changes-company', [AdminReportController::class, 'changesCompany']);
+        Route::post('/admin/goals-revoke', [AdminReportController::class, 'goalsRevoke'])->name('admin.goals.revoke');
         //Employee
         Route::get('/employees', [EmployeeController::class, 'employee'])->name('employees');
         Route::get('/employee/filter', [EmployeeController::class, 'filterEmployees'])->name('employee.filter');

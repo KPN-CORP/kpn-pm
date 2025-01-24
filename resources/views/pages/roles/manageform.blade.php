@@ -52,7 +52,7 @@
             <label for="roleName">Restrict Location (Keeping blank means no restrictions)</label>
               <select class="form-control select2" name="work_area_code[]" multiple="multiple">
                 @foreach ($locations as $location)
-                    <option value="{{ $location->work_area }}" {{ isset($restriction['work_area_code']) && in_array($location->work_area, $restriction['work_area_code']) ? 'selected' : '' }}>{{ $location->area.' ('.$location->company_name.')' }}</option>
+                    <option value="{{ $location->work_area_code }}" {{ isset($restriction['work_area_code']) && in_array($location->work_area_code, $restriction['work_area_code']) ? 'selected' : '' }}>{{ $location->office_area.' ('.$location->group_company.')' }}</option>
                 @endforeach
               </select>
           </div>

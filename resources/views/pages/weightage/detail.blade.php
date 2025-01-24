@@ -103,13 +103,13 @@
                                     <select id="form-name-{{ $key }}{{ $index }}" class="form-select select2" {{ $competencies['competency']=='KPI'?'':'required' }} disabled>
                                         <option value="">please select</option>
                                         @foreach ($formAppraisal as $form)
-                                            <option value="{{ $form->name }}" {{ $form->name == $competencies['formName'] ? 'selected' : '' }}>{{ $form->name }}</option>
+                                            <option value="{{ $form->name.'_'.$form->desc }}" {{ $form->name.'_'.$form->desc == $competencies['formName'] ? 'selected' : '' }}>{{ $form->name.'_'.$form->desc }}</option>
                                         @endforeach
                                     </select>
                                 </div>
                             </div>
                             <div class="col-md">
-                                <div class="mb-3 {{ $competencies['formName']=='KPI'?'d-none':'' }}">
+                                <div class="mb-3 {{ $competencies['competency']=='KPI'?'d-none':'' }}">
                                     <h5>{{ $competencies['competency'] }} Weightage 360 in %</h5>
                                     <select name="weightage-360-{{ $key }}-{{ $index }}" id="weightage-360-{{ $key }}{{ $index }}" class="form-select select2" {{ $competencies['competency']=='KPI'?'':'required' }} {{ $competencies['formName']=='KPI'?'disabled':'' }} disabled>
                                         <option value="">please select</option>

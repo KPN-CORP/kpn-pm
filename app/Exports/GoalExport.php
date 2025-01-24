@@ -39,6 +39,8 @@ class GoalExport implements FromView, WithStyles
     {
         $query = ApprovalRequest::query();
 
+        $query->where('category', 'Goals');
+
         if (!$this->admin) {
             $query->whereHas('approvalLayer', function ($query) {
                 $query->where('approver_id', Auth()->user()->employee_id)

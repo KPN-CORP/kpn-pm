@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Exports\GoalExport;
 use App\Http\Controllers\Controller;
+use App\Models\Approval;
 use App\Models\ApprovalLayer;
 use App\Models\ApprovalRequest;
 use App\Models\Company;
@@ -11,12 +12,14 @@ use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Employee;
 use App\Models\EmployeeAppraisal;
+use App\Models\Goal;
 use App\Models\Location;
 use App\Models\Report;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -141,7 +144,23 @@ class ReportController extends Controller
 
         // Start building the query
         if ($report_type === 'Goal') {
-            $query = ApprovalRequest::with(['employee', 'manager', 'goal', 'initiated'])->where('category', $this->category);
+            $query = ApprovalRequest::with(['employee', 'manager', 'goal', 'initiated'])->where('category', $this->category)->whereHas('employee')->whereHas('manager')->whereHas('initiated');
+
+            $criteria = [
+                'work_area_code' => $permissionLocations,
+                'group_company' => $permissionGroupCompanies,
+                'contribution_level_code' => $permissionCompanies,
+            ];
+
+            $query->where(function ($query) use ($criteria) {
+                foreach ($criteria as $key => $value) {
+                    if ($value !== null && !empty($value)) {
+                        $query->orWhereHas('employee', function ($subquery) use ($key, $value) {
+                            $subquery->whereIn($key, $value);
+                        });
+                    }
+                }
+            });
 
             if (!empty($group_company)) {
                 $query->whereHas('employee', function ($query) use ($group_company) {
@@ -158,22 +177,6 @@ class ReportController extends Controller
                     $query->whereIn('contribution_level_code', $company);
                 });
             }
-
-            $criteria = [
-                'work_area_code' => $permissionLocations,
-                'group_company' => $permissionGroupCompanies,
-                'contribution_level_code' => $permissionCompanies,
-            ];
-    
-            $query->where(function ($query) use ($criteria) {
-                foreach ($criteria as $key => $value) {
-                    if ($value !== null && !empty($value)) {
-                        $query->orWhereHas('employee', function ($subquery) use ($key, $value) {
-                            $subquery->whereIn($key, $value);
-                        });
-                    }
-                }
-            });
 
             // Apply employee filters
             $data = $query->get();
@@ -236,6 +239,7 @@ class ReportController extends Controller
                 $employee->access_menu = json_decode($employee->access_menu, true);
             }
             $route = 'reports-admin.employee';
+        // } elseif ($request->reportType === 'EmployeePA') {
         } elseif ($report_type === 'EmployeePA') {
             $query = EmployeeAppraisal::query()->orderBy('fullname'); // Start with Employee model
 
@@ -263,11 +267,11 @@ class ReportController extends Controller
                 }
             });
 
-            $designations = Designation::select('designation_name','job_code')
+            $designations = Designation::select('designation_name', 'job_code')
             ->orderBy('parent_company_id', 'asc')
             ->orderBy('designation_name', 'asc')
             ->orderBy('job_code', 'asc')
-            ->groupBy('job_code','designation_name')
+            ->groupBy('job_code', 'designation_name', 'parent_company_id')
             ->get();
             $departments = Department::select('department_name')
             ->orderBy('department_name', 'asc')
@@ -275,6 +279,8 @@ class ReportController extends Controller
             ->get();
             $companies = Company::orderBy('contribution_level_code', 'asc')->get();
             $locations = Location::orderBy('area', 'asc')->get();
+
+            $jobLevel = EmployeeAppraisal::select('job_level')->distinct()->orderBy('job_level', 'asc')->get();
 
             $data = $query->get();
             foreach ($data as $employee) {
@@ -284,7 +290,7 @@ class ReportController extends Controller
 
             $link = __('Report');
 
-            return view($route, compact('data', 'link', 'filters', 'designations','departments','companies','locations'));
+            return view($route, compact('data', 'link', 'filters', 'designations','departments','companies','locations', 'jobLevel'));
         }else {
             $data = collect(); // Empty collection for unknown report types
             $route = 'reports-admin.empty';
@@ -336,6 +342,40 @@ class ReportController extends Controller
         $report->save();
 
         return redirect()->back()->with('success', 'Report berhasil di-generate dan disimpan.');
+    }
+
+    public function goalsRevoke(Request $request)
+    {
+        $goalId = $request->input('id');
+
+        // Find the approval request record
+        $approvalRequest = ApprovalRequest::where('form_id', $goalId)->first();
+        $goals = Goal::where('id', $goalId)->first();
+        $firstApprover = ApprovalLayer::where('employee_id', $approvalRequest->employee_id)->orderBy('layer', 'asc')
+        ->value('approver_id');
+        
+        if (!$approvalRequest || !$goals) {
+            return response()->json(['success' => false, 'message' => 'Goals not found.']);
+        }
+
+        try {
+            // Process the revoke logic here
+            $approvalRequest->sendback_to = $approvalRequest->employee_id;
+            $approvalRequest->current_approval_id = $firstApprover;
+            $approvalRequest->status = 'Sendback';
+            $approvalRequest->save();
+
+            $goals->form_status = 'Submitted';
+            $goals->save();
+
+            if ($goals) {
+                Approval::where('request_id', $approvalRequest->id)->delete();
+            }
+
+            return response()->json(['success' => true, 'message' => 'Goal revoked successfully.']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to revoke goal.']);
+        }
     }
 
 }

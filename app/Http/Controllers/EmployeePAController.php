@@ -127,19 +127,22 @@ class EmployeePAController extends Controller
             'designations' => $designations,
         ]);
     }
-    public function destroy($id)
+    public function destroy(Request $request)
     {
+        $id = $request->input('id');
         $userId = Auth::id();
         $employees = EmployeeAppraisal::where('employee_id', $id);
         // dd($calibrations);
+        try{
+
         if ($employees->exists()) {
             $employees->update(['deleted_by' => $userId]);
             $employees->delete();
         }
-
-        // return redirect()->route('admemployee')->with('success', 'Employee deleted successfully.');
-        // return back()->with('success', 'Employee deleted successfully.');
-        return redirect()->back()->with('success', 'Employee deleted successfully.')->with('triggerFunction', 'EmployeePA');
+            return response()->json(['success' => true, 'message' => 'Employee terminated successfully.']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to terminate Employee.']);
+        }
 
     }
     public function update(Request $request)

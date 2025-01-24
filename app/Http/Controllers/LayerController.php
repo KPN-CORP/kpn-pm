@@ -24,6 +24,7 @@ use App\Models\Calibration;
 use App\Models\EmployeeAppraisal;
 use App\Models\Goal;
 use App\Services\AppService;
+use Carbon\Carbon;
 use Exception;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Support\Facades\Auth;
@@ -294,17 +295,20 @@ class LayerController extends Controller
         $parentLink = 'Settings';
         $link = 'Layers';
 
-        foreach ($criteria as $key => $value) {
-            if (!is_array($value)) {
-                $criteria[$key] = (array) $value;
-            }
-        }
-        
-        $datas = EmployeeAppraisal::with(['calibration' => function($query) {
+        $query = EmployeeAppraisal::with(['calibration' => function($query) {
             $query->where('status', 'Approved'); // Filter only 'Approved' calibrations
         }])
-        ->select('fullname', 'employee_id', 'group_company', 'designation', 'company_name', 'contribution_level_code', 'work_area_code', 'office_area', 'unit')
-        ->get();
+        ->select('fullname', 'employee_id', 'group_company', 'designation', 'company_name', 'contribution_level_code', 'work_area_code', 'office_area', 'unit');
+
+        $query->where(function ($query) use ($criteria) {
+            foreach ($criteria as $key => $value) {
+                if ($value !== null && !empty($value)) {
+                    $query->whereIn($key, $value);
+                }
+            }
+        });
+
+        $datas = $query->get();
         
         return view('pages.layers.layer-appraisal', [
             'parentLink' => $parentLink,
@@ -341,7 +345,7 @@ class LayerController extends Controller
             }
         }
 
-        $datas = Employee::select('fullname', 'employee_id', 'date_of_joining', 'group_company', 'company_name', 'unit', 'designation', 'office_area')->with(['appraisalLayer' => function($query) {
+        $datas = EmployeeAppraisal::select('fullname', 'employee_id', 'date_of_joining', 'group_company', 'company_name', 'unit', 'designation', 'office_area')->with(['appraisalLayer' => function($query) {
             $query->with(['approver' => function($subquery) {
                 $subquery->select('fullname', 'employee_id', 'designation');
             }])->select('employee_id', 'approver_id', 'layer_type', 'layer');
@@ -359,7 +363,7 @@ class LayerController extends Controller
 
         $calibratorCount = isset($groupLayers['calibrator']) ? $groupLayers['calibrator']->count() : 1;
 
-        $employee = Employee::select('fullname', 'employee_id', 'designation')->get();
+        $employee = EmployeeAppraisal::select('fullname', 'employee_id', 'designation')->get();
 
         return view('pages.layers.layer-appraisal-edit', [
             'parentLink' => $parentLink,
@@ -602,75 +606,43 @@ class LayerController extends Controller
 
     public function layerAppraisalImport(Request $request)
     {
-        $request->validate([
-            'excelFile' => 'required|mimes:xlsx,xls,csv'
-        ]);
-        
-        // Muat file Excel ke dalam array
-        $rows = Excel::toArray([], $request->file('excelFile'));
+        $period = $this->appService->appraisalPeriod();
 
-        $data = $rows[0]; // Ambil sheet pertama
-        $employeeIds = [];
-
-        // Mulai dari indeks 1 untuk mengabaikan header
-        for ($i = 1; $i < count($data); $i++) {
-            $employeeIds[] = $data[$i][0];
+        try {
+            $request->validate([
+                'excelFile' => 'required|mimes:xlsx,xls,csv'
+            ]);
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
         }
 
-        
-        $employeeIds = array_unique($employeeIds);
-
-        // Ambil employee_ids dari data
-        // $employeeIds = array_unique(array_column($data, 'employee_id'));
         try {
-            
-            if (!empty($employeeIds)) {
-                // Backup data sebelum menghapus
-                $appraisalLayersToDelete = ApprovalLayerAppraisal::whereIn('employee_id', $employeeIds)->get();
-
-                foreach ($appraisalLayersToDelete as $layer) {
-                    ApprovalLayerAppraisalBackup::create([
-                        'employee_id' => $layer->employee_id,
-                        'approver_id' => $layer->approver_id,
-                        'layer_type' => $layer->layer_type,
-                        'layer' => $layer->layer,
-                        'created_by' => $layer->created_by ? $layer->created_by : 0,
-                        'created_at' => $layer->created_at,
-                    ]);
-                }
-                
-            }
             // Get the ID of the currently authenticated user
             $userId = Auth::id();
-
-            // Initialize the import process with the user ID
-            $import = new ApprovalLayerAppraisalImport($userId);
-
-            // Retrieve invalid employees after import
-            
-            // Prepare the success message
-            $message = 'Data imported successfully.';
+    
+            // Initialize the import process with the user ID and period
+            $import = new ApprovalLayerAppraisalImport($userId, $period);
+    
+            // Perform the import
             Excel::import($import, $request->file('excelFile'));
-            
+    
+            // Check for any invalid employees
             $invalidEmployees = $import->getInvalidEmployees();
-
-            // Check if there are any invalid employees
+            $message = 'Data imported successfully.';
+    
             if (!empty($invalidEmployees)) {
-                // Append error information to the success message
                 session()->put('invalid_employees', $invalidEmployees);
-
                 $message .= ' With some errors. <a href="' . route('export.invalid.layer.appraisal') . '">Click here to download the list of errors.</a>';
             }
-
-            // If successful, redirect back with a success message
+    
             return redirect()->back()->with('success', $message);
+    
         } catch (ValidationException $e) {
-
-            // Catch the validation exception and redirect back with the error message
+            // Catch the validation exception and redirect back with a custom error message
             return redirect()->back()->with('error', $e->errors()['error'][0]);
         } catch (\Exception $e) {
             // Handle any other exceptions
-            return redirect()->back()->with('error', 'An error occurred during the import process.');
+            return redirect()->back()->with('error', 'An unexpected error occurred during the import process. Please try again.');
         }
 
     }
@@ -698,8 +670,10 @@ class LayerController extends Controller
 
             // Cache the employee data to reduce database queries
             $employee = Cache::remember("employee_{$employeeId}", 60, function () use ($employeeId) {
-                return Employee::where('employee_id', $employeeId)->firstOrFail();
+                return EmployeeAppraisal::where('employee_id', $employeeId)->firstOrFail();
             });
+
+            $doj = Carbon::parse($employee->date_of_joining);
 
             // Fetch history (you can also cache this if necessary)
             $history = ApprovalLayerAppraisal::with(['approver', 'createBy', 'updateBy'])->where('employee_id', $employeeId)->get();
@@ -708,7 +682,7 @@ class LayerController extends Controller
             $data = [
                 'fullname' => $employee->fullname,
                 'employee_id' => $employee->employee_id,
-                'formattedDoj' => $employee->formatted_doj,
+                'formattedDoj' => $doj->format('d M Y'),
                 'group_company' => $employee->group_company,
                 'company_name' => $employee->company_name,
                 'unit' => $employee->unit,
@@ -721,7 +695,7 @@ class LayerController extends Controller
                         'fullname' => $entry->approver->fullname,
                         'employee_id' => $entry->approver->employee_id,
                         'updated_by' => $entry->createBy ? $entry->createBy->fullname.' ('. $entry->createBy->employee_id .')' : ($entry->updateBy ? $entry->updateBy->fullname.' ('. $entry->updateBy->employee_id .')' : 'System') ,
-                        'updated_at' => $entry->updated_at->format('Y-m-d H:i:s'),
+                        'updated_at' => $entry->updated_at ? $entry->updated_at->format('Y-m-d H:i:s') : null,
                     ];
                 }),
             ];

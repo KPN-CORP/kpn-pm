@@ -1,6 +1,19 @@
 <div class="form-group mb-4">
     <input type="hidden" name="formData[{{ $formIndex }}][formName]" value="{{ $name }}">
     @if(is_array($data))
+        <div class="row fs-14">
+            <div class="col-lg">
+                <div class="mb-4">
+                    @foreach ($ratings as $rating)
+                    <ul>
+                        <li>
+                            <p><strong>{{ $rating['value'] }}</strong> : {{ session('locale') == 'id' ? $rating['desc_idn'] : $rating['desc_eng'] }}</p>
+                        </li>
+                    </ul>
+                    @endforeach
+                </div>
+            </div>
+        </div>
         @foreach($data as $index => $dataItem)
         <div class="row fs-16">
             <div class="col-lg">
@@ -23,7 +36,7 @@
                                                 @foreach ($ratings as $item)
                                                     <option value="{{ $item['value'] }}" 
                                                         {{ isset($dataItem['score'][$indexItem]) && $dataItem['score'][$indexItem] == $item['value'] && $viewCategory != 'Review' ? 'selected' : '' }}>
-                                                        {{ $item['parameter'] }}
+                                                        {{ $item['value'] }}
                                                     </option>
                                                 @endforeach
                                             </select>

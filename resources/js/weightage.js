@@ -472,8 +472,8 @@ $(document).ready(function() {
                                     }),
                                     formAppraisals.map(form => 
                                         $('<option>', {
-                                            value: form.name,
-                                            text: form.name
+                                            value: form.name+'_'+form.desc,
+                                            text: form.name+'_'+form.desc
                                         })
                                     )
                                 ),

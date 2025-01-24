@@ -1,6 +1,12 @@
 @extends('layouts_.vertical', ['page_title' => 'On Behalf'])
 
 @section('css')
+<style>
+  textarea.form-control {
+    overflow: hidden; /* Prevent scrollbars from appearing */
+    resize: none; /* Disable manual resizing by the user */
+}
+</style>
 @endsection
 
 @section('content')
@@ -15,7 +21,7 @@
                   <select name="category" id="category" onchange="changeCategory(this.value)" class="form-select border-dark-subtle" @style('width: 120px')>
                       <option value="">- select -</option>
                       <option value="Goals">Goals</option>
-                      <option value="Performance">Performance</option>
+                      {{-- <option value="Performance">Performance</option> --}}
                   </select>
                 </div>
               </div>

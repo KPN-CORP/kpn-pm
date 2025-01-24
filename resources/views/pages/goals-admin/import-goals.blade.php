@@ -107,7 +107,6 @@
                                                 {{ $import->detail_error }}
                                             @endif
                                         </div>
-                                    
                                       <div class="modal-footer">
                                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                                       </div>

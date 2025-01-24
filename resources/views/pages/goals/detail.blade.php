@@ -27,29 +27,23 @@
                             </div>
                             <div class="card-body">
                                 <div class="row">
-                                    <div class="col-lg-4 mb-3">
+                                    <div class="col-lg-5 mb-3">
                                         <div class="form-group">
                                             <label class="form-label" for="kpi">KPI</label>
-                                            <textarea class="form-control bg-gray-100" disabled>{{ $data['kpi'] }}</textarea>
+                                            <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['kpi'] }}</p>
                                         </div>
                                     </div>
                                     <div class="col-lg-2 mb-3">
                                         <div class="form-group">
-                                            <label class="form-label" for="target">Target</label>
-                                            <input type="text" value="{{ $data['target'] }}" class="form-control bg-gray-100" disabled>
-                                        </div>
-                                    </div>
-                                    <div class="col-lg-2 mb-3">
-                                        <div class="form-group">
-                                            <label class="form-label" for="uom">{{ __('Uom') }}</label>
-                                            <input type="text" value="{{ $data['uom'] }}" class="form-control bg-gray-100" disabled>
+                                            <label class="form-label" for="target">Target in {{ $data['uom'] }}</label>
+                                            <input type="text" value="{{ $data['target'] }}" class="form-control bg-gray-100" readonly>
                                         </div>
                                     </div>
                                     <div class="col-lg-2 mb-3">
                                         <div class="form-group">
                                             <label class="form-label" for="weightage">{{ __('Weightage') }}</label>
                                             <div class="input-group">
-                                                <input type="text" class="form-control bg-gray-100" value="{{ $data['weightage'] }}" disabled>
+                                                <input type="text" class="form-control bg-gray-100" value="{{ $data['weightage'] }}" readonly>
                                                 <div class="input-group-append">
                                                     <span class="input-group-text">%</span>
                                                 </div>
@@ -63,7 +57,7 @@
                                     <div class="col-lg-2 mb-3">
                                         <div class="form-group">
                                             <label class="form-label" for="type">{{ __('Type') }}</label>
-                                            <input type="text" value="{{ $data['type'] }}" class="form-control bg-gray-100" disabled>
+                                            <input type="text" value="{{ $data['type'] }}" class="form-control bg-gray-100" readonly>
                                         </div>
                                     </div>
                                 </div>

@@ -88,4 +88,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(ApprovalLayerAppraisal::class, 'approver_id', 'employee_id')->where('layer_type', 'calibrator');
     }
+
+    public function kpiUnits()
+    {
+        return $this->check_kpi_units()->exists();
+    }
+
+    public function check_kpi_units()
+    {
+        return $this->belongsTo(KpiUnits::class, 'employee_id', 'employee_id')->orderBy('periode', 'desc');
+    }
 }
