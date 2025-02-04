@@ -112,7 +112,7 @@
                                         @endif
                                         <div class="col-md text-end order-1 order-md-2 mb-2">
                                             <a class="btn btn-outline-info m-1 {{ $ratingNotAllowed || $calibratorCount ? 'd-none' : '' }}" data-bs-toggle="modal" data-bs-id="{{ $level }}" data-bs-target="#importModal" title="Import Rating"><i class="ri-upload-cloud-2-line d-md-none"></i><span class="d-none d-md-block">Upload Rating</span></a>
-                                            <a href="{{ route('rating.export', $level) }}" class="btn btn-outline-success m-1 {{ $ratingNotAllowed ? 'disabled' : '' }}"><i class="ri-download-cloud-2-line d-md-none "></i><span class="d-none d-md-block">Download Rating</span></a>
+                                            <a href="{{ route('rating.export', $level) }}" class="btn btn-outline-success m-1"><i class="ri-download-cloud-2-line d-md-none "></i><span class="d-none d-md-block">Download Rating</span></a>
                                             <button class="btn btn-primary m-1 {{ $ratingDone ? '' : 'd-none' }}" data-id="{{ $level }}">Submit Rating</button>
                                         </div>
                                     </div>
@@ -187,10 +187,14 @@
                                                                                         @if ($item->rating_allowed['status'] && $item->form_id && $item->current_calibrator)
                                                                                             <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $item->current_calibrator }}" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending Calibration</a>
                                                                                         @else
-                                                                                            <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="360 Review incomplete" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending 360</a>
+                                                                                            @if ($item->current_calibrator)
+                                                                                                <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="360 Review incomplete" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending 360</a>
+                                                                                            @else
+                                                                                                <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="Waiting for Manager Review" class="badge bg-warning rounded-pill py-1 px-2 mt-1">On Manager Review</a>
+                                                                                            @endif
                                                                                         @endif
                                                                                     @else
-                                                                                        <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="" class="badge bg-success rounded-pill py-1 px-2 mt-1">Approved</a>
+                                                                                        <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $item->approver_name .' : '. $item->rating_approved_date }}" class="badge bg-success rounded-pill py-1 px-2 mt-1">Approved</a>
                                                                                     @endif
                                                                                 @else
                                                                                     @if (!$item->form_id)
@@ -207,7 +211,7 @@
                                                                         </div>
                                                                         <div class="col text-center">
                                                                             <span class="text-muted">Previous Rating</span>
-                                                                            <p class="mt-1 fw-medium">{{ $item->rating_allowed['status'] && $item->form_id && $item->current_calibrator && $item->previous_rating || !$item->rating_incomplete ? $item->previous_rating : '-' }}</p>
+                                                                            <p class="mt-1 fw-medium" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $item->previous_rating_name }}">{{ $item->rating_allowed['status'] && $item->form_id && $item->current_calibrator && $item->previous_rating || !$item->rating_incomplete ? $item->previous_rating : '-' }}</p>
                                                                         </div>
                                                                         <div class="col rating-field">
                                                                             <span class="text-muted">Your Rating</span>
