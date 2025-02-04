@@ -25,6 +25,7 @@ class EmployeeRatingExport implements FromCollection, WithHeadings, WithEvents, 
     public function collection()
     {
         // Format data to be exported
+        // dd($this->ratingDatas[$this->level]);
         return collect($this->ratingDatas[$this->level])->map(function ($item) {
             return [
                 'Employee_Name'    => $item->employee->fullname,
@@ -33,7 +34,8 @@ class EmployeeRatingExport implements FromCollection, WithHeadings, WithEvents, 
                 'Unit'             => $item->employee->unit,
                 'Approver_Rating_Name' => $item->approver->fullname,
                 'Approver_Rating_ID'   => $item->approver->employee_id,
-                'Review_Status'    => $item->rating_value ? 'Approved' : 'Pending',
+                'Rating_Status'    => $item->rating_value ? 'Approved' : 'Pending',
+                'Current_Approver'    => $item->approval_requests ? ($item->rating_allowed['status'] ? ($item->current_calibrator ? $item->current_calibrator : 'On Manager Review') : '360 Incompleted') : 'No Appraisal',
                 'Score_to_Rating' => $item->suggested_rating ?? '-',
                 'Previous_Rating'  => $item->previous_rating ?? '-',
                 'Your_Rating'      => $this->ratings[$item->rating_value] ?? '-',  // This column needs dropdown
@@ -50,8 +52,9 @@ class EmployeeRatingExport implements FromCollection, WithHeadings, WithEvents, 
             'Unit',
             'Approver_Rating_Name',
             'Approver_Rating_ID',
-            'Review_Status',
-            'Suggested_Rating',
+            'Rating_Status',
+            'Current_Approver',
+            'Score_to_Rating',
             'Previous_Rating',
             'Your_Rating'
         ];

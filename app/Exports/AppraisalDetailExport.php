@@ -42,14 +42,14 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             ->where('period', $year)
             ->get()
             ->groupBy('employee_id');
-            
+
         $expandedData = collect();
-        
+
         $this->data->chunk(100)->each(function ($rows) use ($expandedData, $contributorsGroupedByEmployee) {
             foreach ($this->data as $row) {
                 $employeeId = $row['Employee ID']['dataId'] ?? null;
                 $formId = $row['Form ID']['dataId'] ?? null;
-                
+
                 if ($employeeId && $contributorsGroupedByEmployee->has($employeeId)) {
                     $this->expandRowForSelf($expandedData, $row, $contributorsGroupedByEmployee->get($employeeId));
                     $this->expandRowForContributors($expandedData, $row, $contributorsGroupedByEmployee->get($employeeId));
@@ -107,16 +107,13 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             $expandedData->push($contributorRow);
         }
     }
-
     private function addFormDataToRow(array &$contributorRow, array $formData): void
     {
         if (isset($formData['formData'])) {
             foreach ($formData['formData'] as $formGroup) {
                 $formName = $formGroup['formName'] ?? 'Unknown';
                 foreach ($formGroup as $index => $itemGroup) {
-                    // Log::info('Preprocessing data to temp table', [
-                    //     'data_preview' => $index, // Log only the first 10 rows
-                    // ]);
+                   
                     if (is_array($itemGroup)) {
                         if ($formName === 'Culture' || $formName === 'Leadership') {
                             $this->processFormGroup($formName, $itemGroup, $contributorRow);
@@ -126,7 +123,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
                     }
                 }
             }
-            
+
             $contributorRow['KPI Score'] = ['dataId' => round($formData['totalKpiScore'], 2) ?? '-'];
             $contributorRow['Culture Score'] = ['dataId' => round($formData['totalCultureScore'], 2) ?? '-'];
             $contributorRow['Leadership Score'] = ['dataId' => round($formData['totalLeadershipScore'], 2) ?? '-'];
@@ -139,13 +136,13 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
      */
     private function processFormGroup(string $formName, array $itemGroup, array &$contributorRow): void
     {
-            $this->processCultureOrLeadership($formName, $itemGroup, $contributorRow);
+        $this->processCultureOrLeadership($formName, $itemGroup, $contributorRow);
     }
 
     private function processCultureOrLeadership(string $formName, array $itemGroup, array &$contributorRow): void
     {
         $title = $itemGroup['title'] ?? 'Unknown Title';
-        
+
         foreach ($itemGroup as $subIndex => $item) {
             if (is_array($item) && isset($item['formItem'], $item['score'])) {
                 $subNumber = $subIndex + 1;
@@ -191,10 +188,10 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
     private function getFormDataForContributor(AppraisalContributor $contributor): array
     {
         $appraisal = Appraisal::with(['goal'])->where('id', $contributor->appraisal_id)->first();
-        
+
         // Prepare the goal and appraisal data
         $goalData = json_decode($appraisal->goal->form_data ?? '[]', true);
-        
+
         $appraisalData = json_decode($contributor->form_data ?? '[]', true);
         $appraisalData['contributor_type'] = $contributor->contributor_type;
         $appraisalData = array($appraisalData);
@@ -216,13 +213,13 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         $jobLevel = $employeeData->job_level;
 
         $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $contributor->period)->first();
-                    
+
         $weightageContent = json_decode($weightageData->form_data, true);
-                
+
         $result = $this->appService->appraisalSummary($weightageContent, $appraisalData, $employeeData->employee_id, $jobLevel);
-        
+
         $formData = $this->appService->combineFormData($result['calculated_data'][0], $goalData, $contributor->contributor_type, $employeeData, $contributor->period);
-        
+
         foreach ($formData['formData'] as &$form) {
             if ($form['formName'] === 'Culture') {
                 foreach ($cultureData as $index => $cultureItem) {
@@ -258,12 +255,17 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
     private function getFormDataSelf(AppraisalContributor $contributor): array
     {
         $datas = Appraisal::with([
-            'employee', 
+            'employee',
+            'goal',
             'approvalSnapshots' => function ($query) {
                 $query->orderBy('created_at', 'desc');
             }
         ])->where('id', $contributor->appraisal_id)->get();
-        
+
+        if(!$datas->first()->approvalSnapshots){
+            Log::info('error on' . $datas->first()->employee_id);
+        }
+
         $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->goal->form_data, true) : [];
         $appraisalData = $datas->isNotEmpty() ? json_decode($datas->first()->approvalSnapshots->form_data, true) : [];
 
@@ -271,38 +273,31 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
         $appraisalData = array($appraisalData);
 
-        // if ($datas->first()->employee) {
-        //     Log::error('The $datas collection is empty. Cannot access employee property.', [
-        //         'appraisal_id' => $contributor->appraisal_id,
-        //     ]);
-        //     throw new \Exception('No data found for the given appraisal ID.');
-        // }
-
         $employeeData = $datas->first()->employee;
 
         // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
 
         $formGroupContent = $this->appService->formGroupAppraisal($datas->first()->employee_id, 'Appraisal Form');
-    
+
         if (!$formGroupContent) {
             $appraisalForm = ['data' => ['formData' => []]];
         } else {
             $appraisalForm = $formGroupContent;
         }
-        
+
         $cultureData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
         $leadershipData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
 
         $jobLevel = $employeeData->job_level;
 
         $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $contributor->period)->first();
-                    
+
         $weightageContent = json_decode($weightageData->form_data, true);
 
         $result = $this->appService->appraisalSummary($weightageContent, $appraisalData, $employeeData->employee_id, $jobLevel);
 
         $formData = $this->appService->combineFormData($result['calculated_data'][0], $goalData, 'employee', $employeeData, $datas->first()->period);
-        
+
         foreach ($formData['formData'] as &$form) {
             if ($form['formName'] === 'Culture') {
                 foreach ($cultureData as $index => $cultureItem) {
@@ -346,11 +341,11 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         // Check if `datas->first()->employee->id` exists
         if ($checkSnapshot) {
             $query = $checkSnapshot;
-        }else{
+        } else {
             $query = ApprovalSnapshots::where('form_id', $contributor->appraisal_id)
-            ->orderBy('created_at', 'asc');
+                ->orderBy('created_at', 'asc');
         }
-        
+
         $employeeForm = $query->first();
 
         $data = [];
@@ -358,18 +353,18 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         $goalDataCollection = [];
 
         $formGroupContent = $this->appService->formGroupAppraisal($datas->first()->employee_id, 'Appraisal Form');
-        
+
         if (!$formGroupContent) {
             $appraisalForm = ['data' => ['formData' => []]];
         } else {
             $appraisalForm = $formGroupContent;
         }
-        
+
         $cultureData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
         $leadershipData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
-        
-        
-        if($employeeForm){
+
+
+        if ($employeeForm) {
 
             // Create data item object
             $dataItem = new stdClass();
@@ -380,7 +375,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
             // Get appraisal form data for each record
             $appraisalData = [];
-            
+
             if ($employeeForm->form_data) {
                 $appraisalData = json_decode($employeeForm->form_data, true);
                 $contributorType = $employeeForm->contributor_type;
@@ -393,14 +388,14 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
                 $goalData = json_decode($employeeForm->goal->form_data, true);
                 $goalDataCollection[] = $goalData;
             }
-            
+
             // Combine the appraisal and goal data for each contributor
             $employeeData = $employeeForm->employee; // Get employee data
-    
+
             $formData[] = $appraisalData;
 
         }
-        
+
         foreach ($datas as $request) {
 
             // Create data item object
@@ -409,7 +404,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             $dataItem->name = $request->name;
             $dataItem->goal = $request->goal;
             $data[] = $dataItem;
-            
+
             // Get appraisal form data for each record
             $appraisalData = [];
 
@@ -425,10 +420,10 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
                 $goalData = json_decode($request->goal->form_data, true);
                 $goalDataCollection[] = $goalData;
             }
-            
+
             // Combine the appraisal and goal data for each contributor
             $employeeData = $request->employee; // Get employee data
-    
+
             $formData[] = $appraisalData;
 
         }
@@ -436,15 +431,15 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         $jobLevel = $employeeData->job_level;
 
         $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $request->period)->first();
-                    
+
         $weightageContent = json_decode($weightageData->form_data, true);
-        
+
         $result = $this->appService->appraisalSummary($weightageContent, $formData, $employeeData->employee_id, $jobLevel);
-        
+
         // $formData = $this->appService->combineFormData($result['summary'], $goalData, $result['summary']['contributor_type'], $employeeData, $request->period);
-        
+
         $formData = $this->appService->combineSummaryFormData($result, $goalData, $employeeData, $request->period);
-        
+
         foreach ($formData['formData'] as &$form) {
             if ($form['formName'] === 'Culture') {
                 foreach ($cultureData as $index => $cultureItem) {
@@ -559,6 +554,6 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
     public function chunkSize(): int
     {
-        return 1000; // Adjust based on your data size
+        return 100; // Adjust based on your data size
     }
 }
