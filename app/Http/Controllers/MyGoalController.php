@@ -31,7 +31,7 @@ class MyGoalController extends Controller
     {
         $this->category = 'Goals';
         $this->appService = $appService;
-        $this->user = Auth::user()->employee_id;;
+        $this->user = Auth::user()->employee_id;
     }
 
     function formatDate($date)
@@ -63,11 +63,11 @@ class MyGoalController extends Controller
         ->whereHas('approvalLayer', function ($query) use ($user) {
             $query->where('employee_id', $user)->orWhere('approver_id', $user);
         })
-        ->where('employee_id', $user)->where('category', $this->category);
+        ->where('employee_id', $user)->where('category', $this->category)->orderBy('created_at', 'DESC');
     
         // Apply additional filtering based on the selected year
         if (!empty($filterYear)) {
-            $datasQuery->whereYear('created_at', $filterYear);
+            $datasQuery->where('period', $filterYear);
         }
     
         $datas = $datasQuery->get();
@@ -208,7 +208,7 @@ class MyGoalController extends Controller
         $parentLink = __('Goal');
         $link = 'Create';
 
-        return view('pages.goals.form', compact('layer', 'link', 'parentLink', 'uomOption'));
+        return view('pages.goals.form', compact('layer', 'link', 'parentLink', 'uomOption', 'period'));
 
     }
 
@@ -256,7 +256,7 @@ class MyGoalController extends Controller
 
 
             $data = json_decode($goal->form_data, true);
-
+            
             return view('pages.goals.edit', compact('goal', 'formCount', 'link', 'data', 'uomOption', 'selectedUoM', 'typeOption', 'selectedType', 'approvalRequest', 'totalWeightages', 'parentLink'));
         }
 

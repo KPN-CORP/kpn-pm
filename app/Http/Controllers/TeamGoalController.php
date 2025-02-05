@@ -7,7 +7,9 @@ use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
 use App\Models\Employee;
 use App\Models\Goal;
+use App\Models\Schedule;
 use App\Models\User;
+use App\Services\AppService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -21,10 +23,16 @@ use stdClass;
 class TeamGoalController extends Controller
 {
     protected $category;
+    protected $user;
+    protected $appService;
+    protected $period;
 
-    public function __construct()
+    public function __construct(AppService $appService)
     {
         $this->category = 'Goals';
+        $this->appService = $appService;
+        $this->user = Auth::user()->employee_id;
+        $this->period = $this->appService->goalPeriod();
     }
 
     function index(Request $request) {
@@ -32,28 +40,46 @@ class TeamGoalController extends Controller
         $user = Auth::user()->employee_id;
 
         // Retrieve the selected year from the request
-        $filterYear = $request->input('filterYear') ? $request->input('filterYear') : now()->year;
+        $filterYear = $request->input('filterYear');
         
         $datas = ApprovalLayer::with(['employee','subordinates' => function ($query) use ($user){
             $query->with(['goal', 'updatedBy', 'approval' => function ($query) {
                 $query->with('approverName');
-            }])->whereHas('approvalLayer', function ($query) use ($user) {
+            }])->whereHas('goal', function ($query) {
+                $query->whereNull('deleted_at');
+            })->whereHas('approvalLayer', function ($query) use ($user) {
                 $query->where('employee_id', $user)->orWhere('approver_id', $user);
             })->where('category', $this->category);
-        }])->where('approver_id', Auth::user()->employee_id)->get();
+        }])->where('approver_id', $user)->get();
         
-        $tasks = ApprovalLayer::with(['employee','subordinates' => function ($query) use ($user, $filterYear){
+        $tasks = ApprovalLayer::with(['employee', 'subordinates' => function ($query) use ($user, $filterYear) {
             $query->with(['goal', 'updatedBy', 'approval' => function ($query) {
                 $query->with('approverName');
-            }])->whereHas('approvalLayer', function ($query) use ($user) {
+            }])->whereHas('goal', function ($query) {
+                $query->whereNull('deleted_at');
+            })->whereHas('approvalLayer', function ($query) use ($user) {
                 $query->where('employee_id', $user)->orWhere('approver_id', $user);
-            })->whereYear('created_at', $filterYear);
-        }])->where('category', $this->category)
-        ->leftJoin('approval_requests', 'approval_layers.employee_id', '=', 'approval_requests.employee_id')
-        ->select('approval_layers.employee_id', 'approval_layers.approver_id', 'approval_layers.layer', 'approval_requests.created_at')
-        ->whereYear('approval_requests.created_at', $filterYear)
-        ->whereHas('subordinates')->where('approver_id', Auth::user()->employee_id)
-        ->get();
+            })->when($filterYear, function ($query) use ($filterYear) {
+                $query->where('period', $filterYear);
+            }, function ($query) {
+                $query->where('period', $this->period);
+            });
+        }])
+        ->whereHas('subordinates', function ($query) use ($user, $filterYear) {
+            $query->with(['goal', 'updatedBy', 'approval' => function ($query) {
+                $query->with('approverName');
+            }])->whereHas('goal', function ($query) {
+                $query->whereNull('deleted_at');
+            })->whereHas('approvalLayer', function ($query) use ($user) {
+                $query->where('employee_id', $user)->orWhere('approver_id', $user);
+            })->when($filterYear, function ($query) use ($filterYear) {
+                $query->where('period', $filterYear);
+            }, function ($query) {
+                $query->where('period', $this->period);
+            });
+        })
+        ->where('approver_id', $user)
+        ->get();    
         
         $tasks->each(function($item) {
             $item->subordinates->map(function($subordinate) {
@@ -88,24 +114,16 @@ class TeamGoalController extends Controller
             });
         });
 
-        $notasks = ApprovalLayer::with(['employee', 'subordinates'])
-        ->leftJoin('employees', 'approval_layers.employee_id', '=', 'employees.employee_id')
-        ->where('approval_layers.approver_id', $user)
-        ->whereDoesntHave('subordinates', function ($query) use ($user, $filterYear) {
-            $query->whereYear('created_at', $filterYear)->where('category', $this->category)
-                ->with([
-                    'goal', 
-                    'updatedBy', 
-                    'approval' => function ($query) {
-                        $query->with('approverName');
-                    }
-                ])->whereHas('approvalLayer', function ($query) use ($user) {
-                    $query->where('employee_id', $user)->orWhere('approver_id', $user);
-                });
+        $notasks = ApprovalLayer::with([
+            'employee'
+        ])
+        ->where('approver_id', $user)
+        ->whereHas('employee', fn($q) => $q->where('access_menu->doj', 1))
+        ->whereDoesntHave('subordinates', function ($q) use ($user, $filterYear) {
+            $q->where('period', $filterYear ?? $this->period)
+              ->where('category', $this->category);
         })
-        ->select('approval_layers.*', 'employees.access_menu')
-        ->whereJsonContains('access_menu->doj', 1)
-        ->get();
+        ->get();    
 
         $notasks->map(function($item) {
             // Format created_at
@@ -176,14 +194,15 @@ class TeamGoalController extends Controller
         $parentLink = __('Goal');
         $link = __('Task Box');
 
-        $selectYear = ApprovalRequest::where('employee_id', $user)->where('category', $this->category)->select('created_at')->get();
+        $period = $this->period;
+        $selectYear = Schedule::withTrashed()
+        ->where('event_type', 'goals')
+        ->where('schedule_periode', '!=', $period)
+        ->selectRaw('DISTINCT schedule_periode as period')
+        ->orderBy('period', 'ASC')
+        ->get();
 
-        $selectYear->transform(function ($req) {
-            $req->year = Carbon::parse($req->created_at)->format('Y');
-            return $req;
-        });
-        
-        return view('pages.goals.team-goal', compact('data', 'tasks', 'notasks', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'selectYear'));
+        return view('pages.goals.team-goal', compact('data', 'tasks', 'notasks', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'selectYear', 'period'));
        
     }
     

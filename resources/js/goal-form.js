@@ -98,26 +98,26 @@ document.addEventListener("DOMContentLoaded", function () {
             index++; // text box increment
 
             $(wrapper).append(
-                '<div class="card col-md-12 mb-3 shadow-sm">' +
-                    "<div class='card-body'><div class='row card-title fs-16 mb-3'><div class='col'><h5>Goal " +
+                '<div class="card border-primary border col-md-12 mb-3 bg-primary-subtle">' +
+                    "<div class='card-body'><div class='row align-items-end'><div class='col'><h5 class='card-title fs-16 mb-0 text-primary'>Goal " +
                     (index ? index : x) +
                     "</h5></div>" +
-                    "<div class='col-auto'><a class='btn-close remove_field' type='button'></a></div></div>" +
+                    "<div class='col-auto'><a class='btn-close btn-sm remove_field' type='button'></a></div></div>" +
                     '<div class="row mt-2">' +
-                    '<div class="col-md-4 mb-3">' +
-                    '<label class="form-label" for="kpi">KPI ' +
-                    "</label>" +
-                    '<textarea name="kpi[]" id="kpi" class="form-control" required></textarea>' +
+                    '<div class="col-md mb-3">' +
+                    '<textarea name="kpi[]" id="kpi" class="form-control" placeholder="input your goals.." required style="height: 100px"></textarea>' +
                     "</div>" +
-                    '<div class="col-md-2 mb-3">' +
-                    '<label class="form-label" for="target">Target</label><input type="text" oninput="validateDigits(this, '
+                    "</div>" +
+                    '<div class="row">' +
+                    '<div class="col-md mb-3">' +
+                    '<label class="form-label text-primary" for="target">Target</label><input type="text" oninput="validateDigits(this, '
                     + index +
                     ')" class="form-control" required>' +
                     '<input type="hidden" name="target[]" id="target'
                     + index +'">' +
                     "</div>" +
-                    '<div class="col-md-2 mb-3">' +
-                    '<label class="form-label" for="uom">'+ uom +'</label>' +
+                    '<div class="col-md mb-3">' +
+                    '<label class="form-label text-primary" for="uom">'+ uom +'</label>' +
                     '<select class="form-select select2 select-uom" name="uom[]" id="uom' +
                     index +
                     '" data-id="' +
@@ -128,8 +128,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     index +
                     '" class="form-control mt-2" placeholder="Enter UoM" style="display: none" placeholder="Enter UoM">' +
                     "</div>" +
-                    '<div class="col-md-2 mb-3">' +
-                    '<label class="form-label" for="type">'+ type +'</label>' +
+                    '<div class="col-md mb-3">' +
+                    '<label class="form-label text-primary" for="type">'+ type +'</label>' +
                     '<select class="form-select select-type" name="type[]" id="type' +
                     index +
                     '" required>' +
@@ -139,8 +139,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     '<option value="Exact Value">Exact Value</option>' +
                     "</select>" +
                     "</div>" +
-                    '<div class="col-md-2 mb-3">' +
-                    '<label class="form-label" for="weightage">'+ weightage +'</label>' +
+                    '<div class="col-md mb-3">' +
+                    '<label class="form-label text-primary" for="weightage">'+ weightage +'</label>' +
                     '<div class="input-group">' +
                     '<input type="number" min="5" max="100" class="form-control" name="weightage[]" required>' +
                     '<div class="input-group-append">' +
@@ -280,8 +280,8 @@ function validate(submitType) {
 
     if (sum != 100 && submitType === "submit_form") {
         Swal.fire({
-            title: "Submission failed",
-            html: `Your current weightage is ${sum}%, <br>Please adjust to reach the total weightage of 100%`,
+            title: "Submit failed",
+            html: `${errorConfirmWeightageMessages1} ${sum}%, <br>${errorConfirmWeightageMessages2}`,
             confirmButtonColor: "#3e60d5",
             icon: "error",
             // If confirmed, proceed with form submission
@@ -355,10 +355,10 @@ function confirmSubmission(submitType) {
         text = "Your data will be saved as draft";
         confirmText = "Save";
     } else {
-        title1 = "Do you want to submit?";
+        title1 = `${confirmTitle}`;
         title2 = "KPI submitted successfuly!";
         text =
-            "You can still change it as long as the manager hasn't approved it yet";
+            `${confirmMessages}`;
         confirmText = "Submit";
     }
 

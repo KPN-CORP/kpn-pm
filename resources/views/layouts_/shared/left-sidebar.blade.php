@@ -40,7 +40,7 @@
             <li class="side-nav-title">Navigation</li>
 
             @if (auth()->user()->hasRole('superadmin'))
-            <li class="side-nav-item">
+            {{-- <li class="side-nav-item">
                 <a data-bs-toggle="collapse" href="#sidebarDashboards" aria-expanded="false" aria-controls="sidebarDashboards" class="side-nav-link">
                     <i class="ri-home-4-line"></i>
                     <span> Dashboards </span>
@@ -56,7 +56,7 @@
                         </li>
                     </ul>
                 </div>
-            </li>
+            </li> --}}
             @endif
             <li class="side-nav-item">
                 <a data-bs-toggle="collapse" href="#sidebarGoals" aria-expanded="false" aria-controls="sidebarGoals" class="side-nav-link">
@@ -120,7 +120,7 @@
             <li class="side-nav-item">
                 <a href="{{ url('/guides') }}" class="side-nav-link">
                     <i class="ri-file-text-line"></i>
-                    <span> User Guide </span>
+                    <span>{{ __('Guide') }}</span>
                 </a>
             </li>
 

@@ -21,7 +21,7 @@
                 <div class="col-auto">
                     <div class="mb-3">
                         <label class="form-label" for="filterYear">{{ __('Year') }}</label>
-                        <select name="filterYear" id="filterYear" onchange="yearGoal()" class="form-select border-secondary" @style('width: 120px')>
+                        <select name="filterYear" id="filterYear" onchange="yearGoal()" class="form-select border-secondary" @style('width: 180px')>
                             <option value="">{{ __('select all') }}</option>
                             @foreach ($selectYear as $year)
                                 <option value="{{ $year->year }}" {{ $year->year == $filterYear ? 'selected' : '' }}>{{ $year->year }}</option>
@@ -36,17 +36,16 @@
                 </div>
             </div>
         </form>
-        @forelse ($data as $row)
+        @forelse ($data as $goalIndex => $row)
             @php
                 // Assuming $dateTimeString is the date string '2024-04-29 06:52:40'
-                $year = date('Y', strtotime($row->request->created_at));
                 $formData = json_decode($row->request->goal['form_data'], true);
             @endphp
             <div class="row">
                 <div class="col-md-12">
-                <div class="card shadow mb-4">
-                    <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between">
-                        <h4 class="m-0 font-weight-bold text-primary">{{ __('Goal') }} {{ $year }}</h4>
+                <div class="card shadow">
+                    <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between pb-0">
+                        <h4 class="m-0 font-weight-bold text-primary">{{ __('Goal') }} {{ $row->request->period }}</h4>
                         @if ($row->request->status == 'Pending' && count($row->request->approval) == 0 || $row->request->sendback_to == $row->request->employee_id)
                             <a class="btn btn-outline-warning fw-semibold" href="{{ route('goals.edit', $row->request->goal->id) }}">{{ __('Edit') }}</a>
                         @endif
@@ -76,66 +75,84 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    @if ($row->request->sendback_messages && $row->request->sendback_to == $row->request->employee_id)
-                    <div class="card-header" style="background-color: lightyellow">
-                        <div class="row p-2">
-                            <div class="col-lg col-sm-12 px-2">
-                                <div class="form-group">
-                                    <h5>Revision Notes :</h5>
-                                    <p class="mt-1 mb-0 text-muted">{{ $row->request->sendback_messages }}</p>
-                                </div>
+                        <div class="row">
+                            <div class="col text-end">
+                                <a data-bs-toggle="collapse" href="#collapse{{ $goalIndex }}" aria-expanded="true" aria-controls="collapse{{ $goalIndex }}">
+                                    Detail <i class="ri-arrow-down-s-line"></i>
+                                </a>
                             </div>
                         </div>
                     </div>
-                    @endif
-                    <div class="card-body p-0">
-                        <table class="table table-striped table-bordered m-0">
-                            <tbody>
-                            @if ($formData)
-                            @foreach ($formData as $index => $data)
-                                <tr>
-                                    <td  scope="row">
-                                        <div class="row p-2">
-                                            <div class="col-lg-4 col-sm-12 p-2">
-                                                <div class="form-group">
-                                                    <h5>KPI {{ $index + 1 }}</h5>
-                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['kpi'] }}</p>
+                    <div class="collapse" id="collapse{{ $goalIndex }}" style="">
+                        @if ($row->request->sendback_messages && $row->request->sendback_to == $row->request->employee_id)
+                        <div class="card-header" style="background-color: lightyellow">
+                            <div class="row p-2">
+                                <div class="col-lg col-sm-12 px-2">
+                                    <div class="form-group">
+                                        <h5>Revision Notes :</h5>
+                                        <p class="mt-1 mb-0 text-muted">{{ $row->request->sendback_messages }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
+                        <div class="card-body p-0">
+                            <table class="table table-striped table-bordered m-0">
+                                <tbody>
+                                @if ($formData)
+                                @foreach ($formData as $index => $data)
+                                    <tr>
+                                        <td  scope="row">
+                                            <div class="row p-2">
+                                                <div class="col-lg-4 col-sm-12 p-2">
+                                                    <div class="form-group">
+                                                        <h5>KPI {{ $index + 1 }}</h5>
+                                                        <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['kpi'] }}</p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg col-sm-12 p-2">
+                                                    <div class="form-group">
+                                                        <h5>Target</h5>
+                                                        <p class="mt-1 mb-0 text-muted">{{ $data['target'] }}</p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg col-sm-12 p-2">
+                                                    <div class="form-group">
+                                                        <h5>{{ __('Uom') }}</h5>
+                                                        <p class="mt-1 mb-0 text-muted">{{ is_null($data['custom_uom']) ? $data['uom'] : $data['custom_uom'] }}</p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg col-sm-12 p-2">
+                                                    <div class="form-group">
+                                                        <h5>{{ __('Type') }}</h5>
+                                                        <p class="mt-1 mb-0 text-muted">{{ $data['type'] }}</p>
+                                                    </div>
+                                                </div>
+                                                <div class="col-lg col-sm-12 p-2">
+                                                    <div class="form-group">
+                                                        <h5>{{ __('Weightage') }}</h5>
+                                                        <p class="mt-1 mb-0 text-muted">{{ $data['weightage'] }}%</p>
+                                                    </div>
                                                 </div>
                                             </div>
-                                            <div class="col-lg col-sm-12 p-2">
-                                                <div class="form-group">
-                                                    <h5>Target</h5>
-                                                    <p class="mt-1 mb-0 text-muted">{{ $data['target'] }}</p>
-                                                </div>
-                                            </div>
-                                            <div class="col-lg col-sm-12 p-2">
-                                                <div class="form-group">
-                                                    <h5>{{ __('Uom') }}</h5>
-                                                    <p class="mt-1 mb-0 text-muted">{{ is_null($data['custom_uom']) ? $data['uom'] : $data['custom_uom'] }}</p>
-                                                </div>
-                                            </div>
-                                            <div class="col-lg col-sm-12 p-2">
-                                                <div class="form-group">
-                                                    <h5>{{ __('Type') }}</h5>
-                                                    <p class="mt-1 mb-0 text-muted">{{ $data['type'] }}</p>
-                                                </div>
-                                            </div>
-                                            <div class="col-lg col-sm-12 p-2">
-                                                <div class="form-group">
-                                                    <h5>{{ __('Weightage') }}</h5>
-                                                    <p class="mt-1 mb-0 text-muted">{{ $data['weightage'] }}%</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </td>
-                                </tr>
-                                @endforeach
-                                @else
-                                <p>No form data available.</p>
-                                @endif 
-                            </tbody>
-                        </table>
+                                        </td>
+                                    </tr>
+                                    @endforeach
+                                    @else
+                                    <p>No form data available.</p>
+                                    @endif 
+                                </tbody>
+                            </table>
+                        </div>
+                        <div class="card-footer">
+                            <div class="row">
+                                <div class="col text-end">
+                                    <a data-bs-toggle="collapse" href="#collapse{{ $goalIndex }}" aria-expanded="true" aria-controls="collapse{{ $goalIndex }}">
+                                        Close <i class="ri-arrow-up-s-line"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 </div>

@@ -349,6 +349,7 @@ function handleDeleteEmployeePA(element) {
         reverseButtons: true,
     }).then((result) => {
         if (result.isConfirmed) {
+            
             // If confirmed, make AJAX DELETE request using Fetch
             fetch('/admemployeedestroy', {
                 method: 'DELETE',
