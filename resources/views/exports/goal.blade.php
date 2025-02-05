@@ -6,16 +6,16 @@
         <th>Category</th>
         <th>KPI</th>
         <th>Target</th>
-        <th>{{ __('Uom') }}</th>
-        <th>{{ __('Weightage') }}</th>
-        <th>{{ __('Type') }}</th>
+        <th>Uom</th>
+        <th>Weightage</th>
+        <th>Type</th>
         <th>Form Status</th>
         <th>Approval Status</th>
         <th>Current Approver</th>
         <th>Current Approver ID</th>
-        <th>{{ __('Initiated By') }}</th>
-        <th>{{ __('Initiated By') }} ID</th>
-        <th>{{ __('Period') }}</th>
+        <th>Initiated By</th>
+        <th>Initiated By ID</th>
+        <th>Period</th>
     </tr>
     </thead>
     <tbody>

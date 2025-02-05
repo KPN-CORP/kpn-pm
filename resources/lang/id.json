@@ -17,6 +17,7 @@
     "Create Goal": "Buat Target",
     "Year": "Tahun",
     "select all": "pilih semua",
+    "select": "pilih",
     "Initiated By": "Diajukan Oleh",
     "Initiated Date": "Tanggal Diajukan",
     "Last Updated On": "Terakhir Diperbarui",
@@ -52,11 +53,15 @@
     "Submit Not Allowed": "Submit Tidak Diizinkan",
     "Text Not Allowed": "Beberapa karyawan masih belum lengkap. Harap koordinasikan dengan karyawan yang masih pending.",
     "Text Mismatch_1": "Rating berikut belum sesuai dengan Target yang diharapkan",
-    "Text Mismatch_2": "Mohon menyesuaikan Rating yang diberikan agar mengikuti ketentuan dan target yang telah ditetapkan, baris yang belum sesuai diberikan highlight warna merah tabel.",
+    "Text Mismatch_2": "Mohon menyesuaikan Rating yang diberikan agar mengikuti ketentuan dan target yang telah ditetapkan, baris yang belum sesuai diberikan highlight warna merah tabel.",
     "Ratings are Empty": "Rating masih kosong",
     "Text Ratings are Empty": "Harap pilih Rating untuk semua karyawan anda.",
     "Work Objectives": "Objektif Kerja",
     "Guide": "Panduan",
     "User Guide": "Panduan Pengguna",
-    "Mismatch Error Message": "Rating belum sesuai."
+    "Mismatch Error Message": "Rating belum sesuai.",
+    "Confirm Title": "Apakah Anda ingin mengirimkan data?",
+    "Confirm Messages": "Anda masih bisa mengubahnya selama manajer anda belum menyetujuinya.",
+    "Error Confirm Weightage Messages_1": "Bobot saat ini",
+    "Error Confirm Weightage Messages_2": "Silakan sesuaikan untuk mencapai total bobot 100%."
 }
