@@ -1,6 +1,6 @@
 <div class="form-group mb-3">
     <h4 class="mb-3">
-        Objektif Kerja
+        {{ __('Work Objectives') }}
     </h4>
     <input type="hidden" name="formData[{{ $formIndex }}][formName]" value="{{ $name }}">
     @forelse ($goalData as $index => $data)

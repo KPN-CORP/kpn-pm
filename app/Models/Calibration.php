@@ -11,7 +11,15 @@ class Calibration extends Model
     use HasFactory;
     use SoftDeletes;
 
-    protected $fillable = ['status', 'rating', 'updated_by'];
+    protected $fillable = ['id_calibration_group',
+    'appraisal_id',
+    'employee_id',
+    'approver_id',
+    'period',
+    'status',
+    'rating',
+    'created_by',
+    'updated_by'];
 
     public function approver()
     {
