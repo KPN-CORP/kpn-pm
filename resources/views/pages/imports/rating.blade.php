@@ -59,7 +59,7 @@
                             @foreach($datas as $index => $row)
                               <tr>
                                     <td>{{ $index + 1 }}</td>
-                                    <td>{{ $row->created_by }}</td>
+                                    <td>{{ $row->employee->fullname .' ('.$row->employee->employee_id.')' }}</td>
                                     <td>{{ $row->created_at }}</td>
                                     <td>
                                         <a href="{{ asset('storage/' . $row->path) }}" >
@@ -72,7 +72,9 @@
                                             {{ $row->error_files }}
                                         </a>
                                     </td>
-                                    <td class="text-end"><a href="#"><i class="ri-more-2-fill"></i></a></td>
+                                    <td class="text-end">
+                                        <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-title="Description" data-bs-content="{{ $row->desc }}"><i class="ri-more-2-fill"></i></a>
+                                    </td>
                               </tr>
                               @endforeach
                           </tbody>

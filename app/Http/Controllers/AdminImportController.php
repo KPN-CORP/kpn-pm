@@ -32,8 +32,10 @@ class AdminImportController extends Controller
         $parentLink = 'Admin';
         $link = 'Imports';
         
-        $datas = ImportRatingTransaction::where('created_by', $userId)->orderBy('created_at', 'desc')->get();
-        
+        $datas = ImportRatingTransaction::with(['employee' => function($q) {
+            $q->select('id', 'fullname', 'employee_id', 'designation_name');
+        }])->where('created_by', $userId)->orderBy('created_at', 'desc')->get();
+
         return view('pages.imports.rating', [
             'link' => $link,
             'parentLink' => $parentLink,

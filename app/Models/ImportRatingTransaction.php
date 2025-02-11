@@ -22,6 +22,6 @@ class ImportRatingTransaction extends Model
 
     public function employee()
     {
-        return $this->belongsTo(EmployeeAppraisal::class, 'id', 'created_by');
+        return $this->belongsTo(EmployeeAppraisal::class, 'created_by', 'id');
     }
 } 
