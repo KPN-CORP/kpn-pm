@@ -85,8 +85,8 @@ class EmployeeRatingExport implements FromCollection, WithHeadings, WithEvents, 
      */
     private function applyDropdownToRatingColumn($sheet, int $startRow, int $endRow)
     {
-        // Define the column for "Your Rating" (Column J in this case)
-        $column = 'J';
+        // Define the column for "Your Rating" (Column K in this case)
+        $column = 'K';
 
         // Convert dropdown options to a comma-separated string for data validation
         $dropdownValues = implode(',', $this->ratings);

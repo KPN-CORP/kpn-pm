@@ -90,8 +90,8 @@ document.addEventListener('DOMContentLoaded', function() {
         
             if (allSelectsDisabled) {
                 Swal.fire({
-                    title: 'Submit Not Allowed',
-                    text: 'Some employees are still incomplete. Please reach out to the pending employees.',
+                    title: titleNotAllowed,
+                    text: textNotAllowed,
                     icon: 'warning',
                     confirmButtonColor: "#3e60d5",
                     confirmButtonText: 'OK'
@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
             // Validate table data
             const table = document.querySelector(`table:has(.key-${level})`);
-            const rows = table.querySelectorAll('tbody tr:not(:last-child)');
+            
             let tableIsValid = true;
             let mismatchedRatings = [];
         
@@ -128,51 +128,100 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const totalRatingCell = parseInt(table.querySelector(`td.rating-total-count-${level}`).textContent);
             const firstKey = table.querySelector(`td.key-${level}`).textContent.trim();
+
+            const rows = table.querySelectorAll('tbody tr:not(:last-child)');
             
-            rows.forEach(row => {
+            rows.forEach((row, index) => {
                 const key = row.querySelector(`td.key-${level}`).textContent.trim().replace(/\s+/g, '');
                 const ratingCell = row.querySelector('td.rating');
                 const suggestedRatingCell = row.querySelector(`td.suggested-rating-count-${key}-${level}`);
                 const ratingCount = parseInt(ratingCell.textContent);
-                const suggestedRatingCount = parseInt(suggestedRatingCell.textContent);
+                const suggestedRatingCount = parseInt(suggestedRatingCell.textContent);   
+                
+                // Select the row
+                const firstRowTarget = rows[0];
+                const secondRowTarget = rows[1];
+                const thirdRowTarget = rows[2];
+                const fourthRowTarget = rows[3];
+                const fifthRowTarget = rows[4];
+
+                // Get the 'td.rating' cell in the row
+                const firstRowRatingCell = firstRowTarget.querySelector('td.rating');
+                const secondRowRatingCell = secondRowTarget.querySelector('td.rating');
+                const thirdRowRatingCell = thirdRowTarget.querySelector('td.rating');
+                const fourthRowRatingCell = fourthRowTarget.querySelector('td.rating');
+                const fifthRowRatingCell = fifthRowTarget.querySelector('td.rating');
+
+                // Extract and parse the rating count
+                const firstRowRatingCount = parseInt(firstRowRatingCell.textContent.trim(), 10);
+                const secondRowRatingCount = parseInt(secondRowRatingCell.textContent.trim(), 10);
+                const fourthRowRatingCount = parseInt(fourthRowRatingCell.textContent.trim(), 10);
+                const fifthRowRatingCount = parseInt(fifthRowRatingCell.textContent.trim(), 10);
+                const thirdRowRatingCount = totalRatingCell - firstRowRatingCount - secondRowRatingCount - fourthRowRatingCount - fifthRowRatingCount;
+
+                const thirdRowMaxTarget = firstRowRatingCount + secondRowRatingCount + thirdRowRatingCount;
+                const fourthRowMaxTarget = fourthRowRatingCount + fifthRowRatingCount;
+
+                // Log the rating count
+                console.log('Rating target in the third row:', thirdRowRatingCount);
+
+                // variable sementara untuk PA 2024 dengan 5 poin rating
+                const validIndexes = [0, 1, 4];
+                const midIndexes = [2];
+                const overQuotaIndexes = [3];
                         
                 if (totalRatingCell === 1) {
                     // Allow mismatch only if key is not 'A'
                     if (key === firstKey && ratingCount !== suggestedRatingCount) {
                         tableIsValid = false;
-                        mismatchedRatings.push(`${key}: Expected ${ratingCount}, Got ${suggestedRatingCount}`);
+                        // mismatchedRatings.push(`${key}: Expected Quota: <b>${ratingCount}</b>, Your Rating: <b>${suggestedRatingCount}</b>`);
+                        mismatchedRatings.push(`<b>${key}</b>: ${mismatchedRatingsMessages}`);
                         suggestedRatingCell.classList.add('table-danger');
                     }
                 } else if (totalRatingCell === 2) {
                     // Allow mismatch if key has no more than 1 unique rating value
                     if (suggestedRatingCount > 1 && ratingCount !== suggestedRatingCount) {
                         tableIsValid = false;
-                        mismatchedRatings.push(`${key}: Maximum Expected 1, Got ${suggestedRatingCount}`);
+                        // mismatchedRatings.push(`${key}: Maximum Expected Quota: 1, Your Rating: <b>${suggestedRatingCount}</b>`);
+                        mismatchedRatings.push(`<b>${key}</b>: ${mismatchedRatingsMessages}`);
                         suggestedRatingCell.classList.add('table-danger');
                     }
-                } else if (ratingCount !== suggestedRatingCount) {
+                } else if (validIndexes.includes(index) && suggestedRatingCount > ratingCount) {
                     // General case: Handle any other mismatch
                     tableIsValid = false;
-                    mismatchedRatings.push(`${key}: Expected ${ratingCount}, Got ${suggestedRatingCount}`);
+                    // mismatchedRatings.push(`${key}: Expected Quota: <b>${ratingCount}</b>, Your Rating: <b>${suggestedRatingCount}</b>`);
+                    mismatchedRatings.push(`<b>${key}</b>: ${mismatchedRatingsMessages}`);
+                    suggestedRatingCell.classList.add('table-danger');
+                } else if (midIndexes.includes(index) && suggestedRatingCount > thirdRowMaxTarget) {
+                    // General case: Handle any other mismatch
+                    tableIsValid = false;
+                    // mismatchedRatings.push(`${key}: Expected Quota Minimum:<b>${thirdRowRatingCount}</b>, Maximum:<b>${thirdRowMaxTarget}</b>, Your Rating:<b>${suggestedRatingCount}</b>`);
+                    mismatchedRatings.push(`<b>${key}</b>: ${mismatchedRatingsMessages}`);
+                    suggestedRatingCell.classList.add('table-danger');
+                } else if (overQuotaIndexes.includes(index) && suggestedRatingCount < fourthRowRatingCount) {
+                    // General case: Handle any other mismatch
+                    tableIsValid = false;
+                    // mismatchedRatings.push(`${key}: Expected Max Quota: <b>${fourthRowMaxTarget}</b>, Your Rating: <b>${suggestedRatingCount}</b>`);
+                    mismatchedRatings.push(`<b>${key}</b>: ${mismatchedRatingsMessages}`);
                     suggestedRatingCell.classList.add('table-danger');
                 }
             });
         
             if (!isValid) {
                 Swal.fire({
-                    title: 'Ratings are Empty!',
-                    text: 'Please select a rating for all employees.',
+                    title: `${titleEmpty}!`,
+                    text: textEmpty,
                     icon: 'error',
                     confirmButtonColor: "#3e60d5",
                     confirmButtonText: 'OK'
                 });
             } else if (!tableIsValid) {
                 Swal.fire({
-                    title: 'Rating Mismatch!',
+                    title: titleMismatch,
                     html: `
-                        <p>The following ratings do not match the expected values:</p>
+                        <p>${textMismatch_1}:</p>
                         <pre>${mismatchedRatings.join('\n')}</pre>
-                        <p>Please adjust your ratings to match the expected distribution. Mismatched cells are highlighted in the table.</p>
+                        <p>${textMismatch_2}</p>
                     `,
                     icon: 'warning',
                     confirmButtonColor: "#3e60d5",

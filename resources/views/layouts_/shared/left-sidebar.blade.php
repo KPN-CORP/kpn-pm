@@ -225,6 +225,24 @@
                     </div>
                 </li>
                 @endcan
+                @if (auth()->user()->hasRole('superadmin'))
+                    @can('viewimport')
+                    <li class="side-nav-item">
+                        <a data-bs-toggle="collapse" href="#sidebarImports" aria-expanded="false" aria-controls="sidebarImports" class="side-nav-link">
+                            <i class="ri-file-chart-line"></i>
+                            <span> Imports </span>
+                            <span class="menu-arrow"></span>
+                        </a>
+                        <div class="collapse" id="sidebarImports">
+                            <ul class="side-nav-second-level">
+                                <li>
+                                    <a href="{{ route('importRating') }}">{{ __('Imports Rating') }}</a>
+                                </li>
+                            </ul>
+                        </div>
+                    </li>
+                    @endcan
+                @endif
                 @endcan
             @endif
 

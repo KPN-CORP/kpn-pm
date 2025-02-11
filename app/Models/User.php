@@ -102,7 +102,7 @@ class User extends Authenticatable
 
     public function cekBUCement()
     {
-        return $this->belongsTo(EmployeeAppraisal::class, 'employee_id', 'employee_id')->where('group_company', 'Cement');
+        return $this->belongsTo(EmployeeAppraisal::class, 'employee_id', 'employee_id')->whereIn('group_company', ['Cement']);
     }
 
     public function isCement()

@@ -46,7 +46,7 @@
     "Close": "Close",
     "Initiate Appraisal": "Initiate Appraisal",
     "Send Back Messages": "Send Back Messages",
-    "rating_alert" : "You can't provide a rating at this moment, because some employees 360 reviews are still incomplete. Please reach out to the relevant parties to follow up on these reviews.",
+    "rating_alert" : "You cannot provide rating at this moment because some employees are still pending 360 reviews or pending calibration at the previous layer. Please reach out to your team or the relevant parties to follow up on these reviews. You can download the file available on this page for more detailed data.",
     "rating_employee_single" : "If there is only 1 employee, the Rater can select any rating between ':secondKey' - ':lastKey'.",
     "rating_employee_double" : "If there are 2 employees, you can select any rating between ':firstKey' - ':lastKey'. However, the selected rating will be available to be allocated only 1 time.",
     "Rating Mismatch": "Rating Discrepancy!",
