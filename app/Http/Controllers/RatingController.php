@@ -158,7 +158,7 @@ class RatingController extends Controller
                 ->whereIn('employee_id', $group['with_requests']->pluck('employee_id'))
                 ->whereIn('appraisal_id', $group['with_requests']->pluck('approvalRequest')->flatten()->pluck('form_id'))
                 ->whereIn('status', ['Pending', 'Approved'])
-                ->orderBy('id', 'asc')
+                ->orderBy('id', 'desc')
                 ->get()
                 ->groupBy(['employee_id', 'appraisal_id']); // Group by employee_id and appraisal_id for easy access
 
@@ -228,7 +228,7 @@ class RatingController extends Controller
                     $data->rating_incomplete = $calibrationData->whereNull('rating')->whereNull('deleted_at')->count();
 
                     // Set rating status and approved date
-                    $userCalibration = $calibrationData->where('approver_id', $user)->first();
+                    $userCalibration = $calibrationData->first();
                     if ($userCalibration) {
                         $data->rating_status = $userCalibration->status;
                         $data->rating_approved_date = Carbon::parse($userCalibration->updated_at)->format('d M Y');
@@ -237,6 +237,7 @@ class RatingController extends Controller
                     // Assign Pending and Approved Calibrators
                     $pendingCalibrator = $calibrationData->where('status', 'Pending')->first();
                     $approvedCalibrator = $calibrationData->where('status', 'Approved')->first();
+
                     $data->current_calibrator = $pendingCalibrator && $pendingCalibrator->approver
                         ? $pendingCalibrator->approver->fullname . ' (' . $pendingCalibrator->approver->employee_id . ')'
                         : false;
@@ -567,7 +568,7 @@ class RatingController extends Controller
                     $data->rating_allowed = $this->appService->ratingAllowedCheck($employeeId);
                     $data->rating_incomplete = $calibrationData->whereNull('rating')->count();
 
-                    $userCalibration = $calibrationData->where('approver_id', $user)->first();
+                    $userCalibration = $calibrationData->first();
                     if ($userCalibration) {
                         $data->rating_status = $userCalibration->status;
                         $data->rating_approved_date = Carbon::parse($userCalibration->updated_at)->format('d M Y');
