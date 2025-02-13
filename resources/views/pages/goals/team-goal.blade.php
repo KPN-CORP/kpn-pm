@@ -10,8 +10,8 @@
                     <li class="nav-item">
                       <button class="btn btn-outline-primary position-relative active me-2" id="initiated-tab" data-bs-toggle="tab" data-bs-target="#initiated" type="button" role="tab" aria-controls="initiated" aria-selected="true">
                         {{ __('Initiated') }}
-                        <span class="position-absolute top-0 start-100 translate-middle badge bg-danger">
-                          {{ $notificationGoal }}
+                        <span class="position-absolute top-0 start-100 translate-middle badge bg-danger {{ $notificationGoal ? '' : 'd-none' }}">
+                            {{ $notificationGoal }}
                         </span>
                       </button>
                     </li>
@@ -45,7 +45,7 @@
                                 <div class="col-md-3">
                                     <div class="mb-2">
                                         <label class="form-label" for="filterYear">{{ __('Year') }}</label>
-                                        <select name="filterYear" id="filterYear" onchange="yearGoal()" class="form-select">
+                                        <select name="filterYear" id="filterYear" onchange="yearGoal(this)" class="form-select">
                                             @foreach ($selectYear as $year)
                                                 <option value="{{ $period }}" {{ $period == $filterYear ? 'selected' : '' }}>{{ $period }}</option>
                                                 <option value="{{ $year->period }}" {{ $year->period == $filterYear ? 'selected' : '' }}>{{ $year->period }}</option>
@@ -71,7 +71,7 @@
                         </form>
                         <div class="row px-2">
                             <div class="col-lg-12 p-0">
-                                <div class="mt-3 p-2 bg-info bg-opacity-10 rounded shadow">
+                                <div class="mt-3 p-2 bg-primary-subtle rounded shadow">
                                     <div class="row">
                                         <div class="col d-flex align-items-center">
                                             <h5 class="m-0 w-100">
@@ -92,8 +92,8 @@
                                         </div>
                                     </div>
                                     <div class="collapse show" id="dataTasks">
-                                        <div class="card mb-0 mt-2">
-                                            <div class="card-body" id="task-container-1">
+                                        <div class="card mb-0 mt-2 border border-primary">
+                                            <div class="card-body py-1" id="task-container-1">
                                                 <!-- task -->
                                                 @forelse ($tasks as $index => $task)
                                                 @php
@@ -115,8 +115,8 @@
                                                 @endphp
                                                 <div class="row mt-2 mb-2 task-card" data-status="{{ $formStatus == 'Draft' ? 'draft' : ($status == 'Pending' ? __('Pending') : ($subordinates->isNotEmpty() ? ($status == 'Sendback' ? __('Waiting For Revision') : __($status)) : 'no data')) }}">
                                                     <div class="col">
-                                                        <div class="row mb-2">
-                                                            <div class="col-sm-6 mb-2 mb-sm-0">
+                                                        <div class="row">
+                                                            <div class="col-sm-6 mb-sm-0 p-2">
                                                                 <div id="tooltip-container">
                                                                     <img src="{{ asset('storage/img/profiles/user.png') }}" alt="image" class="avatar-xs rounded-circle me-1" data-bs-container="#tooltip-container" data-bs-toggle="tooltip" data-bs-placement="bottom"  data-bs-original-title="{{ __('Initiated By') }} {{ $task->employee->fullname.' ('.$task->employee->employee_id.')' }}">
                                                                     {{ $task->employee->fullname }} <span class="text-muted">{{ $task->employee->employee_id }}</span>
@@ -126,7 +126,7 @@
                                                         <div class="row">
                                                             <div class="col-lg col-sm-12 p-2">
                                                                 <h5>{{ __('Initiated By') }}</h5>
-                                                                <p class="mt-2 mb-0 text-muted">{{ $subordinates->isNotEmpty() ?$task->employee->fullname : '-' }}</p>
+                                                                <p class="mt-2 mb-0 text-muted">{{ $subordinates->isNotEmpty() ?$firstSubordinate->initiated->name .' ('.$firstSubordinate->initiated->employee_id.')' : '-' }}</p>
                                                             </div>
                                                             <div class="col-lg col-sm-12 p-2">
                                                                 <h5>{{ __('Initiated Date') }}</h5>
@@ -146,18 +146,22 @@
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div class="col-auto">
-                                                        @if ($task->employee->employee_id == Auth::user()->employee_id || !$subordinates->isNotEmpty() || $formStatus == 'Draft')
-                                                            @if ($formStatus == 'submitted' || $formStatus == 'Approved')
-                                                            <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
-                                                            @endif
-                                                            @else
-                                                            @if ($approverId == Auth::user()->employee_id && $status === 'Pending' || $sendbackTo == Auth::user()->employee_id && $status === 'Sendback' || !$subordinates->isNotEmpty())
-                                                                <a href="{{ route('team-goals.approval', $goalId) }}" class="btn btn-outline-primary btn-sm font-weight-medium">Act</a>
-                                                            @else
+                                                    <div class="col-md-auto">
+                                                        <div class="align-items-center text-end py-2">
+                                                            @if ($task->employee->employee_id == Auth::user()->employee_id || !$subordinates->isNotEmpty() || $formStatus == 'Draft')
+                                                                @if ($formStatus == 'submitted' || $formStatus == 'Approved')
                                                                 <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
+                                                                @endif
+                                                                <a class="btn btn-sm me-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('goals.edit', $goalId) }}">{{ __('Edit') }}</a>
+                                                            @else
+                                                                @if ($approverId == Auth::user()->employee_id && $status === 'Pending' || $sendbackTo == Auth::user()->employee_id && $status === 'Sendback' || !$subordinates->isNotEmpty())
+                                                                    <a class="btn btn-sm me-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('goals.edit', $goalId) }}">{{ __('Edit') }}</a>
+                                                                    <a href="{{ route('team-goals.approval', $goalId) }}" class="btn btn-sm btn-outline-primary font-weight-medium">Act</a>
+                                                                @else
+                                                                    <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
+                                                                @endif
                                                             @endif
-                                                        @endif
+                                                        </div>
                                                     </div>
                                                     @if($index < count($tasks) - 1)
                                                         <hr class="mb-1 mt-2">
@@ -189,10 +193,10 @@
                                 <div class="col-md-3">
                                     <div class="mb-2">
                                         <label class="form-label" for="filterYear">{{ __('Year') }}</label>
-                                        <select name="filterYear" id="filterYear" onchange="yearGoal()" class="form-select">
-                                            <option value="">{{ __('select all') }}</option>
+                                        <select name="filterYear" id="filterYear" onchange="yearGoal(this)" class="form-select">
                                             @foreach ($selectYear as $year)
-                                                <option value="{{ $year->year }}" {{ $year->year == $filterYear ? 'selected' : '' }}>{{ $year->year }}</option>
+                                                <option value="{{ $period }}" {{ $period == $filterYear ? 'selected' : '' }}>{{ $period }}</option>
+                                                <option value="{{ $year->period }}" {{ $year->period == $filterYear ? 'selected' : '' }}>{{ $year->period }}</option>
                                             @endforeach
                                         </select>
                                     </div>
@@ -215,7 +219,7 @@
                         </form>
                         <div class="row px-2">
                             <div class="col-lg-12 p-0">
-                                <div class="mt-3 p-2 bg-secondary bg-opacity-10 rounded shadow">
+                                <div class="mt-3 p-2 bg-secondary-subtle rounded shadow">
                                     <div class="row">
                                         <div class="col d-flex align-items-center">
                                             <h5 class="m-0 w-100">
@@ -236,12 +240,12 @@
                                     </div>
                                 
                                     <div class="collapse show" id="noDataTasks">
-                                        <div class="card mt-2 mb-0 d-flex">
-                                            <div class="card-body align-items-center" id="task-container-2">
+                                        <div class="card mt-2 mb-0 d-flex border border-secondary">
+                                            <div class="card-body py-1 align-items-center" id="task-container-2">
                                                 <!-- task -->
                                                 @forelse ($notasks as $index => $notask)
                                                 @php
-                                                    $subordinates = $row->request->subordinates;
+                                                    $subordinates = $notask->subordinates;
                                                     $firstSubordinate = $subordinates->isNotEmpty() ? $subordinates->first() : null;
                                                     $formStatus = $firstSubordinate ? $firstSubordinate->goal->form_status : null;
                                                     $goalId = $firstSubordinate ? $firstSubordinate->goal->id : null;
@@ -255,28 +259,34 @@
                                                     $employeeId = $firstSubordinate ? $firstSubordinate->employee_id : null;
                                                     $sendbackTo = $firstSubordinate ? $firstSubordinate->sendback_to : null;
                                                 @endphp
-                                                <div class="row mt-2 mb-2 task-card" data-status="no data">
-                                                    <div class="col-sm-12 col-md p-2">
+                                                <div class="row mt-2 mb-2 task-card d-flex" data-status="no data">
+                                                    <div class="col-sm-12 col-md-6 p-2 d-flex align-items-center">
                                                         <div id="tooltip-container">
-                                                            <img src="{{ asset('storage/img/profiles/user.png') }}" alt="image" class="avatar-xs rounded-circle me-1" data-bs-container="#tooltip-container" data-bs-toggle="tooltip" data-bs-placement="bottom"  data-bs-original-title="{{ __('Initiated By') }} {{ $notask->employee->fullname.' ('.$notask->employee->employee_id.')' }}">
+                                                            <img src="{{ asset('storage/img/profiles/user.png') }}" alt="image" class="avatar-xs rounded-circle me-1" data-bs-container="#tooltip-container" data-bs-toggle="tooltip" data-bs-placement="bottom"  data-bs-original-title="{{ $notask->employee->fullname.' ('.$notask->employee->employee_id.')' }}">
                                                             {{ $notask->employee->fullname }} <span class="text-muted">{{ $notask->employee->employee_id }}</span>
                                                         </div>
                                                     </div>
-                                                    <div class="col-sm-12 col-md p-2">
-                                                        <div class="h5 me-2 align-items-center">Date Of Joining :</div>
-                                                        <span class="align-items-center text-muted">{{ $notask->formatted_doj }}</span>
+                                                    <div class="col-sm-12 col-md mb-2">
+                                                        <label class="form-label">DOJ</label>
+                                                        <span class="d-flex align-items-center text-muted">{{ $notask->formatted_doj }}</span>
                                                     </div>
-                                                    <div class="col-sm-12 col-md p-2">
-                                                        <div class="h5 me-2 align-items-center">Status :</div>
-                                                        <div><a href="javascript:void(0)" id="approval{{ $employeeId }}" data-toggle="tooltip" data-id="{{ $employeeId }}" class="badge bg-dark-subtle text-dark rounded-pill py-1 px-2">No Data</a></div>
+                                                    <div class="col-sm-12 col-md mb-2">
+                                                        <label class="form-label">Status</label>
+                                                        <div><a href="javascript:void(0)" id="approval{{ $employeeId }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="Employee has not set goals yet." data-bs-id="{{ $employeeId }}" class="badge bg-dark-subtle text-dark rounded-pill py-1 px-2">Not Initiated</a></div>
+
+                                                    </div>
+                                                    <div class="col-auto d-flex align-items-center ms-auto">
+                                                        <button data-id="{{ $employeeId }}" id="initiateBtn{{ $index }}" class="btn btn-outline-primary btn-sm">{{ __('Initiate') }}</button>
                                                     </div>
                                                 </div>
                                                 @if($index < count($notasks) - 1)
                                                     <hr>
                                                 @endif
                                                 @empty
-                                                <div id="no-data-1" class="text-center">
-                                                    <h5 class="text-muted">No Data</h5>
+                                                <div class="p-3">
+                                                    <div id="no-data-1" class="text-center">
+                                                        <h5 class="text-muted">No Data</h5>
+                                                    </div>
                                                 </div>
                                                 @endforelse
                                             </div> <!-- end card-body-->

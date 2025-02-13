@@ -13,6 +13,54 @@
             @endforeach
     </div>
     @endif
+    <!-- Page Heading -->
+
+    <div class="detail-employee">
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md">
+                                <div class="row">
+                                    <div class="col">
+                                        <p class="mb-2"><span class="text-muted">Employee Name:</span> {{ $approvalRequest->employee->fullname }}</p>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col">
+                                        <p class="mb-2"><span class="text-muted">Employee ID:</span> {{ $approvalRequest->employee->employee_id }}</p>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col">
+                                        <p class="mb-2"><span class="text-muted">Job Level:</span> {{ $approvalRequest->employee->job_level }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md">
+                                <div class="row">
+                                    <div class="col">
+                                        <p class="mb-2"><span class="text-muted">Business Unit:</span> {{ $approvalRequest->employee->group_company }}</p>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col">
+                                        <p class="mb-2"><span class="text-muted">Division:</span> {{ $approvalRequest->employee->unit }}</p>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col">
+                                        <p class="mb-2"><span class="text-muted">Designation:</span> {{ $approvalRequest->employee->designation_name }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
     <div class="mandatory-field"></div>
     
@@ -23,7 +71,7 @@
           <input type="hidden" class="form-control" name="category" value="Goals">
           <!-- Content Row -->
           <div class="row">
-            <div class="col-md mb-2">
+            <div class="col-md">
                 <h4>{{ __('Target') }} {{ $goal->period }}</h4>
             </div>
           </div>
@@ -114,12 +162,14 @@
                                 </div>
                             </div>
                         </div>
-                        @endforeach
+                    @endforeach
                       </div>
                       <input type="hidden" id="count" value="{{ $formCount }}">
                       
                       <div class="col-md-2">
-                          <a class="btn btn-outline-primary mb-4" id="addButton" data-id="edit"><i class="ri-add-line me-1"></i><span>{{ __('Add') }}</span></a>
+                        <div class="mb-4 text-end text-md-start">
+                            <a class="btn btn-outline-primary rounded" id="addButton" data-id="edit"><i class="ri-add-line me-1"></i><span>{{ __('Add') }}</span></a>
+                        </div>
                       </div>
                       @if ($approvalRequest->sendback_messages)
                           <div class="row">
@@ -134,17 +184,17 @@
                       <div class="row align-items-center">
                           <div class="col">
                               <input type="hidden" name="submit_type" id="submitType" value=""> <!-- Hidden input to store the button clicked -->
-                              <div class="mb-3">
+                              <div class="mb-3 text-center text-md-start">
                                   <h5>{{ __('Total Weightage') }} : <span class="font-weight-bold text-success" id="totalWeightage">{{ $totalWeightages.'%' }}</span></h5>
                               </div>
                           </div>
                           <div class="col-md-auto">
                               <div class="mb-3 text-center">
                                   @if ($goal->form_status=='Draft')
-                                  <a id="submitButton" name="save_draft" class="btn btn-info save-draft me-3" data-id="save_draft" ><i class="fas fa-save d-sm-none"></i><span class="d-sm-block d-none">Save as Draft</span></a>  
+                                  <a id="submitButton" name="save_draft" class="btn btn-info rounded save-draft me-1" data-id="save_draft" ><i class="fas fa-save d-sm-none"></i><span class="d-sm-inline d-none">Save as </span>Draft</a>  
                                   @endif
-                                  <a href="{{ route('goals') }}" class="btn btn-outline-secondary px-3 me-2">{{ __('Cancel') }}</a>
-                                  <a id="submitButton" data-id="submit_form" name="submit_form" class="btn btn-primary px-3 shadow"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>{{ __('Submit') }}</a>
+                                  <a href="{{ url()->previous() }}" class="btn btn-outline-secondary rounded px-3 me-1">{{ __('Cancel') }}</a>
+                                  <a id="submitButton" data-id="submit_form" name="submit_form" class="btn btn-primary rounded px-3 shadow"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>{{ __('Submit') }}</a>
                               </div>
                           </div>
                       </div>

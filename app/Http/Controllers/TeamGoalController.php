@@ -53,7 +53,7 @@ class TeamGoalController extends Controller
         }])->where('approver_id', $user)->get();
         
         $tasks = ApprovalLayer::with(['employee', 'subordinates' => function ($query) use ($user, $filterYear) {
-            $query->with(['goal', 'updatedBy', 'approval' => function ($query) {
+            $query->with(['goal', 'updatedBy', 'initiated', 'approval' => function ($query) {
                 $query->with('approverName');
             }])->whereHas('goal', function ($query) {
                 $query->whereNull('deleted_at');

@@ -21,7 +21,7 @@
                 <div class="col-auto">
                     <div class="mb-3">
                         <label class="form-label" for="filterYear">{{ __('Year') }}</label>
-                        <select name="filterYear" id="filterYear" onchange="yearGoal()" class="form-select border-secondary" @style('width: 180px')>
+                        <select name="filterYear" id="filterYear" onchange="yearGoal(this)" class="form-select border-secondary" @style('width: 180px')>
                             <option value="">{{ __('select all') }}</option>
                             @foreach ($selectYear as $year)
                                 <option value="{{ $year->year }}" {{ $year->year == $filterYear ? 'selected' : '' }}>{{ $year->year }}</option>
@@ -47,7 +47,7 @@
                     <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between pb-0">
                         <h4 class="m-0 font-weight-bold text-primary">{{ __('Goal') }} {{ $row->request->period }}</h4>
                         @if ($row->request->status == 'Pending' && count($row->request->approval) == 0 || $row->request->sendback_to == $row->request->employee_id)
-                            <a class="btn btn-outline-warning fw-semibold" href="{{ route('goals.edit', $row->request->goal->id) }}">{{ __('Edit') }}</a>
+                            <a class="btn btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $row->request->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('goals.edit', $row->request->goal->id) }}">{{ __('Edit') }}</a>
                         @endif
                     </div>
                     <div class="card-body">

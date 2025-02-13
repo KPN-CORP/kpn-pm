@@ -15,13 +15,59 @@
     </div>
     @endif
 
+    <!-- Page Heading -->
+    <div class="detail-employee">
+        <div class="row">
+            <div class="col-12">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md">
+                                <div class="row">
+                                    <div class="col">
+                                        <p class="mb-2"><span class="text-muted">Employee Name:</span> {{ $datas->first()->employee->fullname }}</p>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col">
+                                        <p class="mb-2"><span class="text-muted">Employee ID:</span> {{ $datas->first()->employee->employee_id }}</p>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col">
+                                        <p class="mb-2"><span class="text-muted">Job Level:</span> {{ $datas->first()->employee->job_level }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md">
+                                <div class="row">
+                                    <div class="col">
+                                        <p class="mb-2"><span class="text-muted">Business Unit:</span> {{ $datas->first()->employee->group_company }}</p>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col">
+                                        <p class="mb-2"><span class="text-muted">Division:</span> {{ $datas->first()->employee->unit }}</p>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col">
+                                        <p class="mb-2"><span class="text-muted">Designation:</span> {{ $datas->first()->employee->designation_name }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="mandatory-field"></div>
         <!-- Page Heading -->
-        <div class="d-flex align-items-center justify-content-start mb-4">
-        </div>
         <form id="goalForm" action="{{ route('goals.submit') }}" method="POST">
             @csrf
-          @foreach ($layer as $index => $data)
+          @foreach ($datas as $index => $data)
           <input type="hidden" class="form-control" name="users_id" value="{{ Auth::user()->id }}">
           <input type="hidden" class="form-control" name="approver_id" value="{{ $data->approver_id }}">
           <input type="hidden" class="form-control" name="employee_id" value="{{ $data->employee_id }}">
@@ -105,18 +151,22 @@
                     <input type="hidden" id="count" value="{{ 1 }}">
                     <div class="col-md text-end text-md-start">
                         <div class="mb-3">
-                            <a class="btn btn-outline-primary rounded-pill" id="addButton" data-id="input"><i class="ri-add-line me-1"></i><span>{{ __('Add') }}</span></a>
+                            <a class="btn btn-outline-primary rounded" id="addButton" data-id="input"><i class="ri-add-line me-1"></i><span>{{ __('Add') }}</span></a>
                         </div>
                     </div>
                     <input type="hidden" name="submit_type" id="submitType" value=""> <!-- Hidden input to store the button clicked -->
                     <div class="row">
                         <div class="col-md d-md-flex align-items-center">
-                            <h5>{{ __('Total Weightage') }} : <span class="font-weight-bold" id="totalWeightage">-</span></h5>
+                            <div class="mb-3 text-center text-md-start">
+                                <h5>{{ __('Total Weightage') }} : <span class="font-weight-bold" id="totalWeightage">-</span></h5>
+                            </div>
                         </div>
-                        <div class="col-md-auto d-md-flex align-items-center justify-content-center text-center">
-                            <a id="submitButton" data-id="save_draft" name="save_draft" class="btn btn-info rounded-pill save-draft me-2"><i class="ri-save-line d-sm-none"></i><span class="d-sm-block d-none">Save as Draft</span></a>
-                            <a href="{{ url()->previous() }}" class="btn btn-outline-secondary rounded-pill me-2">{{ __('Cancel') }}</a>
-                            <a id="submitButton" data-id="submit_form" name="submit_form" class="btn btn-primary rounded-pill shadow"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>{{ __('Submit') }}</a>
+                        <div class="col-md-auto">
+                            <div class="mb-3 text-center">
+                                <a id="submitButton" data-id="save_draft" name="save_draft" class="btn btn-info rounded save-draft me-1"><span class="d-sm-inline d-none">Save as </span>Draft</a>
+                                <a href="{{ url()->previous() }}" class="btn btn-outline-secondary rounded me-1">{{ __('Cancel') }}</a>
+                                <a id="submitButton" data-id="submit_form" name="submit_form" class="btn btn-primary rounded shadow"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>{{ __('Submit') }}</a>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -132,6 +182,10 @@
         const weightage = '{{ __('Weightage') }}';
         const errorMessages = '{{ __('Error Messages') }}';
         const errorAlertMessages = '{{ __('Error Alert Messages') }}';
+        const confirmTitle = '{{ __('Confirm Title') }}';
+        const confirmMessages = '{{ __('Confirm Messages') }}';
         const errorConfirmMessages = '{{ __('Error Confirm Messages') }}';
+        const errorConfirmWeightageMessages1 = '{{ __('Error Confirm Weightage Messages_1') }}';
+        const errorConfirmWeightageMessages2 = '{{ __('Error Confirm Weightage Messages_2') }}';
     </script>
 @endpush
