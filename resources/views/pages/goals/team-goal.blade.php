@@ -6,7 +6,7 @@
 @section('content')
     <!-- Begin Page Content -->
             <div class="container-fluid">
-                <ul class="nav nav-pills my-3" id="myTab" role="tablist">
+                <ul class="nav nav-pills my-3 justify-content-md-start justify-content-center" id="myTab" role="tablist">
                     <li class="nav-item">
                       <button class="btn btn-outline-primary position-relative active me-2" id="initiated-tab" data-bs-toggle="tab" data-bs-target="#initiated" type="button" role="tab" aria-controls="initiated" aria-selected="true">
                         {{ __('Initiated') }}
@@ -46,8 +46,8 @@
                                     <div class="mb-2">
                                         <label class="form-label" for="filterYear">{{ __('Year') }}</label>
                                         <select name="filterYear" id="filterYear" onchange="yearGoal(this)" class="form-select">
+                                            <option value="{{ $period }}" {{ $period == $filterYear ? 'selected' : '' }}>{{ $period }}</option>
                                             @foreach ($selectYear as $year)
-                                                <option value="{{ $period }}" {{ $period == $filterYear ? 'selected' : '' }}>{{ $period }}</option>
                                                 <option value="{{ $year->period }}" {{ $year->period == $filterYear ? 'selected' : '' }}>{{ $year->period }}</option>
                                             @endforeach
                                         </select>
@@ -86,7 +86,7 @@
                                                 <input type="hidden" name="employee_id" id="employee_id" value="{{ Auth()->user()->employee_id }}">
                                                 <input type="hidden" name="filterYear" id="filterYear" value="{{ $filterYear ?? $period }}">
                                                 @if (count($tasks))
-                                                    <button id="report-button" type="submit" class="btn btn-sm btn-outline-info float-end"><i class="ri-download-cloud-2-line me-1"></i><span>{{ __('Download') }}</span></button>
+                                                    <button id="report-button" type="submit" class="btn btn-sm btn-outline-success float-end"><i class="ri-download-cloud-2-line me-1"></i><span>{{ __('Download') }}</span></button>
                                                 @endif
                                             </form>
                                         </div>
@@ -116,37 +116,54 @@
                                                 <div class="row mt-2 mb-2 task-card" data-status="{{ $formStatus == 'Draft' ? 'draft' : ($status == 'Pending' ? __('Pending') : ($subordinates->isNotEmpty() ? ($status == 'Sendback' ? __('Waiting For Revision') : __($status)) : 'no data')) }}">
                                                     <div class="col">
                                                         <div class="row">
-                                                            <div class="col-sm-6 mb-sm-0 p-2">
+                                                            <div class="col-md mb-sm-0 p-2">
                                                                 <div id="tooltip-container">
                                                                     <img src="{{ asset('storage/img/profiles/user.png') }}" alt="image" class="avatar-xs rounded-circle me-1" data-bs-container="#tooltip-container" data-bs-toggle="tooltip" data-bs-placement="bottom"  data-bs-original-title="{{ __('Initiated By') }} {{ $task->employee->fullname.' ('.$task->employee->employee_id.')' }}">
                                                                     {{ $task->employee->fullname }} <span class="text-muted">{{ $task->employee->employee_id }}</span>
                                                                 </div>
                                                             </div> <!-- end col -->
+                                                            <div class="col-auto p-2 d-none d-md-block text-end">
+                                                                <div class="mb-2">
+                                                                    @if ($task->employee->employee_id == Auth::user()->employee_id || !$subordinates->isNotEmpty() || $formStatus == 'Draft')
+                                                                        @if ($formStatus == 'submitted' || $formStatus == 'Approved')
+                                                                        <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
+                                                                        @endif
+                                                                        <a class="btn btn-sm me-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('goals.edit', $goalId) }}">{{ __('Edit') }}</a>
+                                                                    @else
+                                                                        @if ($approverId == Auth::user()->employee_id && $status === 'Pending' || $sendbackTo == Auth::user()->employee_id && $status === 'Sendback' || !$subordinates->isNotEmpty())
+                                                                            <a class="btn btn-sm me-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('goals.edit', $goalId) }}">{{ __('Edit') }}</a>
+                                                                            <a href="{{ route('team-goals.approval', $goalId) }}" class="btn btn-sm btn-outline-primary font-weight-medium">Act</a>
+                                                                        @else
+                                                                            <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
+                                                                        @endif
+                                                                    @endif
+                                                                </div>
+                                                            </div>
                                                         </div>
                                                         <div class="row">
-                                                            <div class="col-lg col-sm-12 p-2">
+                                                            <div class="col-md-3 p-2">
                                                                 <h5>{{ __('Initiated By') }}</h5>
                                                                 <p class="mt-2 mb-0 text-muted">{{ $subordinates->isNotEmpty() ?$firstSubordinate->initiated->name .' ('.$firstSubordinate->initiated->employee_id.')' : '-' }}</p>
                                                             </div>
-                                                            <div class="col-lg col-sm-12 p-2">
+                                                            <div class="col-md-2 p-2">
                                                                 <h5>{{ __('Initiated Date') }}</h5>
                                                                 <p class="mt-2 mb-0 text-muted">{{ $createdAt ? $createdAt : '-' }}</p>
                                                             </div>
-                                                            <div class="col-lg col-sm-12 p-2">
+                                                            <div class="col-md-2 p-2">
                                                                 <h5>Updated By</h5>
                                                                 <p class="mt-2 mb-0 text-muted">{{ $updatedBy ? $updatedBy->name : '-' }}</p>
                                                             </div>
-                                                            <div class="col-lg col-sm-12 p-2">
+                                                            <div class="col-md-2 p-2">
                                                                 <h5>{{ __('Last Updated On') }}</h5>
                                                                 <p class="mt-2 mb-0 text-muted">{{ $updatedAt ? $updatedAt : '-' }}</p>
                                                             </div>
-                                                            <div class="col-lg col-sm-12 p-2">
+                                                            <div class="col-md-3 p-2">
                                                                 <h5>Status</h5>
                                                                 <a href="javascript:void(0)" data-bs-id="{{ $task->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $formStatus == 'Draft' ? 'Draft' : ($approvalLayer ? 'Manager L'.$approvalLayer.' : '.$employeeName : $employeeName) }}" class="badge {{ $subordinates->isNotEmpty() ? ($formStatus == 'Draft' || $status == 'Sendback' ? 'bg-dark-subtle text-dark' : ($status === 'Approved' ? 'bg-success' : 'bg-warning')) : 'bg-dark-subtle text-secondary'}} rounded-pill py-1 px-2">{{ $formStatus == 'Draft' ? 'Draft': ($status == 'Pending' ? __('Pending') : ($subordinates->isNotEmpty() ? ($status == 'Sendback' ? __('Waiting For Revision') : __($status)) : 'No Data')) }}</a>
                                                             </div>
                                                         </div>
                                                     </div>
-                                                    <div class="col-md-auto">
+                                                    <div class="col-md-auto d-md-none d-block">
                                                         <div class="align-items-center text-end py-2">
                                                             @if ($task->employee->employee_id == Auth::user()->employee_id || !$subordinates->isNotEmpty() || $formStatus == 'Draft')
                                                                 @if ($formStatus == 'submitted' || $formStatus == 'Approved')
@@ -194,8 +211,8 @@
                                     <div class="mb-2">
                                         <label class="form-label" for="filterYear">{{ __('Year') }}</label>
                                         <select name="filterYear" id="filterYear" onchange="yearGoal(this)" class="form-select">
+                                            <option value="{{ $period }}" {{ $period == $filterYear ? 'selected' : '' }}>{{ $period }}</option>
                                             @foreach ($selectYear as $year)
-                                                <option value="{{ $period }}" {{ $period == $filterYear ? 'selected' : '' }}>{{ $period }}</option>
                                                 <option value="{{ $year->period }}" {{ $year->period == $filterYear ? 'selected' : '' }}>{{ $year->period }}</option>
                                             @endforeach
                                         </select>
@@ -233,7 +250,7 @@
                                                 @csrf
                                                 <input type="hidden" name="employee_id" id="employee_id" value="{{ Auth()->user()->employee_id }}">
                                                 @if (count($notasks))
-                                                    <button id="report-button" type="submit" class="btn btn-sm btn-outline-secondary float-end"><i class="ri-download-cloud-2-line me-1"></i><span>{{ __('Download') }}</span></button>
+                                                    <button id="report-button" type="submit" class="btn btn-sm btn-outline-success float-end"><i class="ri-download-cloud-2-line me-1"></i><span>{{ __('Download') }}</span></button>
                                                 @endif
                                             </form>
                                         </div>
@@ -276,7 +293,16 @@
 
                                                     </div>
                                                     <div class="col-auto d-flex align-items-center ms-auto">
-                                                        <button data-id="{{ $employeeId }}" id="initiateBtn{{ $index }}" class="btn btn-outline-primary btn-sm">{{ __('Initiate') }}</button>
+                                                        @php
+                                                            // Decode the JSON string to an array
+                                                            $accessMenu = json_decode($notask->employee->access_menu, true);
+                                                            // Get the 'goals' and 'doj' values
+                                                            $goals = $accessMenu['goals'] ?? null;
+                                                            $doj = $accessMenu['doj'] ?? null;
+                                                        @endphp
+                                                        @if ($doj && $goals)
+                                                            <button data-id="{{ $notask->employee->employee_id }}" id="initiateBtn{{ $index }}" class="btn btn-outline-primary btn-sm">{{ __('Initiate') }}</button>
+                                                        @endif
                                                     </div>
                                                 </div>
                                                 @if($index < count($notasks) - 1)

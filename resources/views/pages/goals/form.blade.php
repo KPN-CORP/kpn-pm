@@ -163,7 +163,7 @@
                         </div>
                         <div class="col-md-auto">
                             <div class="mb-3 text-center">
-                                <a id="submitButton" data-id="save_draft" name="save_draft" class="btn btn-info rounded save-draft me-1"><span class="d-sm-inline d-none">Save as </span>Draft</a>
+                                <a id="submitButton" data-id="save_draft" name="save_draft" class="btn btn-outline-info rounded save-draft me-1"><span class="d-sm-inline d-none">Save as </span>Draft</a>
                                 <a href="{{ url()->previous() }}" class="btn btn-outline-secondary rounded me-1">{{ __('Cancel') }}</a>
                                 <a id="submitButton" data-id="submit_form" name="submit_form" class="btn btn-primary rounded shadow"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>{{ __('Submit') }}</a>
                             </div>

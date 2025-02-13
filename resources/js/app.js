@@ -71,6 +71,23 @@ import "jquery-mask-plugin/dist/jquery.mask.min.js";
 
 import "simplebar";
 
+
+document.addEventListener('DOMContentLoaded', function () {
+    // Select all side-nav-link elements
+    const sideNavLinks = document.querySelectorAll('.side-nav-link');
+
+    sideNavLinks.forEach(link => {
+        
+        // Add a listener for class change or click event
+        link.addEventListener('click', function () {
+            console.log('test');
+            // Check if the link has the 'collapsed' class
+            const isCollapsed = this.classList.contains('collapsed');
+
+        });
+    });
+});
+
 $(document).ready(() => {
     (function ($) {
         "use strict";
@@ -498,3 +515,4 @@ $(document).ready(() => {
         init();
     })($);
 });
+
