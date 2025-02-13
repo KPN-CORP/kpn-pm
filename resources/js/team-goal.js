@@ -1,10 +1,42 @@
 import $ from 'jquery';
 
-function yearGoal() {
-    $("#formYearGoal").submit();
+function yearGoal(button) {
+    // Get the form
+    var form = $(button).closest('form');
+    
+    // Submit the form
+    form.submit();
 }
 
 window.yearGoal = yearGoal;
+
+$(document).ready(function () {
+    // Initiate button click event
+    $('[id^="initiateBtn"]').click(function (event) {
+        event.preventDefault(); // Prevent the default link behavior
+        
+        var employeeId = $(this).data('id');
+        var index = $(this).data('index'); // Get the index from data-attribute
+
+        Swal.fire({
+            title: 'Are you sure you want to initiate the goal setting?',
+            // text: 'This action cannot be undone.',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3e60d5',
+            cancelButtonColor: '#f15776',
+            confirmButtonText: 'Yes, initiate it!',
+            cancelButtonText: 'Cancel',
+            reverseButtons: true,
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Redirect to the form using the index for the employee
+                window.location.href = `/goals/form/${employeeId}`;
+            }
+        });
+    });
+
+});
 
 document.addEventListener('DOMContentLoaded', function () {
     const filterButtons = document.querySelectorAll('.filter-btn');

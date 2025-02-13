@@ -4,6 +4,7 @@ use App\Http\Controllers\Admin\AppraisalController as AdminAppraisalController;
 use App\Http\Controllers\Admin\OnBehalfController as AdminOnBehalfController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\SendbackController as AdminSendbackController;
+use App\Http\Controllers\AdminImportController;
 use App\Http\Controllers\Appraisal360;
 use App\Http\Controllers\AppraisalTaskController;
 use App\Http\Controllers\ApprovalController;
@@ -36,68 +37,72 @@ use App\Http\Controllers\MyGoalController;
 use App\Http\Controllers\RatingAdminController;
 use App\Http\Controllers\CalibrationController;
 use App\Http\Controllers\EmployeePAController;
+use App\Http\Controllers\FaceRecognitionController;
 use App\Http\Controllers\FormAppraisalController;
 use App\Http\Controllers\FormGroupAppraisalController;
+use App\Http\Controllers\PythonIntegrationController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\TeamAppraisalController;
 use App\Http\Controllers\TeamGoalController;
 use App\Http\Controllers\SearchController;
+use App\Http\Controllers\TourController;
 use App\Http\Controllers\WeightageController;
 use App\Imports\ApprovalLayerAppraisalImport;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\NotificationMiddleware;
 
-
-Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified', 'role:superadmin'])->name('dashboard');
-Route::get('/dashboard-team', [DashboardController::class, 'teamDashboard'])->middleware(['auth', 'verified', 'role:superadmin'])->name('dashboard.team');
-
-Route::get('/dashboard-team-data', [DashboardController::class, 'getTeamData']);
-
 Route::get('language/{locale}', [LanguageController::class, 'switchLanguage'])->name('language.switch');
 
-Route::get('dbauth', [SsoController::class, 'dbauth']);
-Route::get('sourcermb/dbauth', [SsoController::class, 'dbauthReimburse']);
-
-Route::get('fetch-employees', [EmployeeController::class, 'fetchAndStoreEmployees']);
-Route::get('updmenu-employees', [EmployeeController::class, 'updateEmployeeAccessMenu']);
-Route::get('daily-schedules', [ScheduleController::class, 'reminderDailySchedules']);
-Route::get('schedule-PA', [ScheduleController::class, 'DailyUpdateSchedulePA']);
-
-Route::get('/test-email', function () {
-    $messages = '<p>This is a test message with <strong>bold</strong> text.</p>';
-    $name = 'John Doe';
-
-    return view('email.reminderschedule', compact('messages', 'name'));
-});
-
 Route::middleware('guest')->group(function () {
+
+
     Route::get('register', [RegisteredUserController::class, 'create'])
-                ->name('register');
-
+    ->name('register');
+    
     Route::post('register', [RegisteredUserController::class, 'store']);
-
+    
     Route::get('login', [AuthenticatedSessionController::class, 'create'])
-                ->name('login');
-
+    ->name('login');
+    
     Route::post('login', [AuthenticatedSessionController::class, 'store']);
-
+    
     Route::get('reset-password/{token}', [NewPasswordController::class, 'create'])
     ->name('password.reset');
-
+    
     Route::post('reset-password', [NewPasswordController::class, 'store'])
-                ->name('password.store');
-                
+    ->name('password.store');
+    
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
-                    ->name('password.request');
-                    
+    ->name('password.request');
+    
     Route::get('reset-password-email', [PasswordResetLinkController::class, 'selfResetView']);
     
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
-                    ->name('password.email');    
+    ->name('password.email');    
 });
 
 
 Route::middleware('auth', 'locale', 'notification')->group(function () {
+    
+    Route::get('/dashboard', [DashboardController::class, 'index'])->middleware(['auth', 'verified', 'role:superadmin'])->name('dashboard');
+    Route::get('/dashboard-team', [DashboardController::class, 'teamDashboard'])->middleware(['auth', 'verified', 'role:superadmin'])->name('dashboard.team');
+    
+    Route::get('/dashboard-team-data', [DashboardController::class, 'getTeamData']);
+    
+    Route::get('dbauth', [SsoController::class, 'dbauth']);
+    Route::get('sourcermb/dbauth', [SsoController::class, 'dbauthReimburse']);
+    
+    Route::get('fetch-employees', [EmployeeController::class, 'fetchAndStoreEmployees']);
+    Route::get('updmenu-employees', [EmployeeController::class, 'updateEmployeeAccessMenu']);
+    Route::get('daily-schedules', [ScheduleController::class, 'reminderDailySchedules']);
+    Route::get('schedule-PA', [ScheduleController::class, 'DailyUpdateSchedulePA']);
+    
+    Route::get('/test-email', function () {
+        $messages = '<p>This is a test message with <strong>bold</strong> text.</p>';
+        $name = 'John Doe';
+    
+        return view('email.reminderschedule', compact('messages', 'name'));
+    });
 
     Route::get('/', function () {
         return redirect('goals');
@@ -177,7 +182,6 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
 
     Route::get('export/employees', [ExportExcelController::class, 'export'])->name('export.employee');
     Route::get('/get-report-content/{reportType}', [ReportController::class, 'getReportContent']);
-    Route::get('/export/report-emp', [ExportExcelController::class, 'exportreportemp'])->name('export.reportemp');
 
     Route::post('/export', [ExportExcelController::class, 'export'])->name('export');
     Route::post('/admin-export', [ExportExcelController::class, 'exportAdmin'])->name('admin.export');
@@ -310,9 +314,11 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
 
     Route::middleware(['permission:reportpa'])->group(function () {
         Route::get('/admin-appraisal', [AdminAppraisalController::class, 'index'])->name('admin.appraisal');
+        // Route::post('/admin-appraisal', [AdminAppraisalController::class, 'index'])->name('admin.appraisal');
         Route::get('/admin-appraisal/details/{id}', [AdminAppraisalController::class, 'detail'])->name('admin.appraisal.details');
         
         Route::post('/check-file', [AdminAppraisalController::class, 'checkFileAvailability']); // Check file existence
+        Route::post('/check-jobs', [AdminAppraisalController::class, 'checkJobAvailability']); // Check file existence
         Route::get('/appraisal-details/download/{fileName}', [AdminAppraisalController::class, 'downloadFile']);
         Route::get('/appraisal-details/delete/{fileName}', [AdminAppraisalController::class, 'deleteFile']);
 
@@ -345,8 +351,19 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::get('/employees', [EmployeeController::class, 'employee'])->name('employees');
         Route::get('/employee/filter', [EmployeeController::class, 'filterEmployees'])->name('employee.filter');
     });
+    
+    Route::middleware(['permission:viewimport', 'role:superadmin'])->group(function () {
+        Route::get('/import-rating', [AdminImportController::class, 'index'])->name('importRating');
+        Route::post('/import-rating/store', [AdminImportController::class, 'storeRating'])->name('importRating.store');
+    });
 
+    Route::post('/set-tour-session', [TourController::class, 'setTourSession'])->name('setTourSession');
+
+    Route::get('/calculate-performance', [PythonIntegrationController::class, 'calculatePerformance']);
+    Route::get('/get-face-image', [FaceRecognitionController::class, 'getFaceImage']);
 });
+
+
 
 
 Route::fallback(function () {

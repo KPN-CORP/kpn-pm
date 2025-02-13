@@ -53,7 +53,7 @@ class TeamGoalController extends Controller
         }])->where('approver_id', $user)->get();
         
         $tasks = ApprovalLayer::with(['employee', 'subordinates' => function ($query) use ($user, $filterYear) {
-            $query->with(['goal', 'updatedBy', 'approval' => function ($query) {
+            $query->with(['goal', 'updatedBy', 'initiated', 'approval' => function ($query) {
                 $query->with('approverName');
             }])->whereHas('goal', function ($query) {
                 $query->whereNull('deleted_at');
@@ -119,11 +119,12 @@ class TeamGoalController extends Controller
         ])
         ->where('approver_id', $user)
         ->whereHas('employee', fn($q) => $q->where('access_menu->doj', 1))
+        ->whereHas('employee', fn($q) => $q->whereNull('deleted_at'))
         ->whereDoesntHave('subordinates', function ($q) use ($user, $filterYear) {
             $q->where('period', $filterYear ?? $this->period)
               ->where('category', $this->category);
         })
-        ->get();    
+        ->get();  
 
         $notasks->map(function($item) {
             // Format created_at

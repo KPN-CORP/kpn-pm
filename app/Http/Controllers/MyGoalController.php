@@ -69,7 +69,7 @@ class MyGoalController extends Controller
         if (!empty($filterYear)) {
             $datasQuery->where('period', $filterYear);
         }
-    
+        
         $datas = $datasQuery->get();
     
         $formattedData = $datas->map(function($item) {
@@ -115,7 +115,7 @@ class MyGoalController extends Controller
         
         foreach ($formattedData as $request) {
             // Check form status and creator
-            if ($request->goal->form_status != 'Draft' || $request->created_by == Auth::user()->id) {
+            // if ($request->goal->form_status != 'Draft' || $request->created_by == Auth::user()->id) {
                 // Get fullname from approverName relation
                 $dataApprover = '';
                 if ($request->approval->first()) {
@@ -132,12 +132,7 @@ class MyGoalController extends Controller
     
                 // Add the data item to the array
                 $data[] = $dataItem;
-            }
-        }
-    
-        $formData = [];
-        if ($datas->isNotEmpty()) {
-            $formData = json_decode($datas->first()->goal->form_data, true);
+            // }
         }
     
         $path = base_path('resources/goal.json');
@@ -166,7 +161,7 @@ class MyGoalController extends Controller
             return $req;
         });
     
-        return view('pages.goals.my-goal', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'goals', 'selectYear', 'adjustByManager'));
+        return view('pages.goals.my-goal', compact('data', 'link', 'parentLink', 'uomOption', 'typeOption', 'goals', 'selectYear', 'adjustByManager'));
     }
 
     function show($id) {
@@ -183,13 +178,21 @@ class MyGoalController extends Controller
         if ($goal->isNotEmpty()) {
             // User ID doesn't match the condition, show error message
             Session::flash('error', "You already initiated Goals for $period.");
-            return redirect()->back(); // Redirect back with error message
+
+            if ($this->user != $id) {
+                return redirect('team-goals');
+            }
+            return redirect('goals');
         }
 
-        $layer = ApprovalLayer::where('employee_id', $id)->where('layer', 1)->get();  
-        if (!$layer->first()) {
+        $datas = ApprovalLayer::with(['employee'])->where('employee_id', $id)->where('layer', 1)->get();  
+        if (!$datas->first()) {
             Session::flash('error', "Theres no direct manager assigned in your position!");
-            return redirect()->back();
+
+            if ($this->user != $id) {
+                return redirect('team-goals');
+            }
+            return redirect('goals');
         }
 
         $path = base_path('resources/goal.json');
@@ -208,7 +211,7 @@ class MyGoalController extends Controller
         $parentLink = __('Goal');
         $link = 'Create';
 
-        return view('pages.goals.form', compact('layer', 'link', 'parentLink', 'uomOption', 'period'));
+        return view('pages.goals.form', compact('datas', 'link', 'parentLink', 'uomOption', 'period'));
 
     }
 
@@ -217,7 +220,9 @@ class MyGoalController extends Controller
         $goals = Goal::with(['approvalRequest'])->where('id', $id)->get();
         $goal =  $goals->first();
 
-        $approvalRequest = ApprovalRequest::where('form_id', $goal->id)->first();
+        $approvalRequest = ApprovalRequest::with(['employee' => function($q) {
+            $q->select('id', 'fullname', 'employee_id', 'designation_name', 'job_level', 'group_company', 'unit');
+        }])->where('form_id', $goal->id)->first();
 
         $parentLink = __('Goal');
         $link = __('Edit');
@@ -267,7 +272,7 @@ class MyGoalController extends Controller
         $user = $this->user;
         $period = $this->appService->goalPeriod();
 
-        $layer = ApprovalLayer::select('approver_id')->where('employee_id', $user)->where('layer', 1)->first();
+        $layer = ApprovalLayer::select('approver_id')->where('employee_id', $request->employee_id)->where('layer', 1)->first();
 
         if ($request->submit_type === 'save_draft') {
             // Tangani logika penyimpanan sebagai draft
@@ -387,7 +392,10 @@ class MyGoalController extends Controller
 
         // Beri respon bahwa data berhasil disimpan
         // return response()->json(['message' => 'Data saved successfully'], 200);
-            return redirect('goals');
+        if ($user != $request->employee_id) {
+            return redirect('team-goals');
+        }
+        return redirect('goals');
     }
 
     function update(Request $request) {
@@ -495,8 +503,10 @@ class MyGoalController extends Controller
         
         $snapshot->save();
 
-        return redirect('goals');
-       
+        if ($this->user != $request->employee_id) {
+            return redirect('team-goals');
+        }
+        return redirect('goals');       
 
     }
 
