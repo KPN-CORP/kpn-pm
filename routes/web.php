@@ -8,7 +8,6 @@ use App\Http\Controllers\AdminImportController;
 use App\Http\Controllers\Appraisal360;
 use App\Http\Controllers\AppraisalTaskController;
 use App\Http\Controllers\ApprovalController;
-use App\Http\Controllers\AttendanceController;
 use App\Http\Controllers\ImportGoalsController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
@@ -59,7 +58,6 @@ Route::get('fetch-employees', [EmployeeController::class, 'fetchAndStoreEmployee
 Route::get('updmenu-employees', [EmployeeController::class, 'updateEmployeeAccessMenu']);
 Route::get('daily-schedules', [ScheduleController::class, 'reminderDailySchedules']);
 Route::get('schedule-PA', [ScheduleController::class, 'DailyUpdateSchedulePA']);
-Route::get('update-bt-to-db', [AttendanceController::class, 'UpdateBTtoDB']);
 
 Route::get('/test-email', function () {
     $messages = '<p>This is a test message with <strong>bold</strong> text.</p>';
