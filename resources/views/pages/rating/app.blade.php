@@ -111,7 +111,7 @@
                                         </div>
                                         @endif
                                         <div class="col-md text-end order-1 order-md-2 mb-2">
-                                            <a class="btn btn-outline-info m-1 {{ $ratingNotAllowed || $calibratorCount ? 'd-none' : '' }}" data-bs-toggle="modal" data-bs-id="{{ $level }}" data-bs-target="#importModal" title="Import Rating"><i class="ri-upload-cloud-2-line d-md-none"></i><span class="d-none d-md-block">Upload Rating</span></a>
+                                            <a class="btn btn-outline-info m-1 {{ $ratingNotAllowed || $calibratorCount ? 'd-none' : '' }}" data-bs-toggle="modal" data-bs-id="{{ $level }}" data-bs-target="#importModal{{ $level }}" title="Import Rating"><i class="ri-upload-cloud-2-line d-md-none"></i><span class="d-none d-md-block">Upload Rating</span></a>
                                             <a href="{{ route('rating.export', $level) }}" class="btn btn-outline-success m-1"><i class="ri-download-cloud-2-line d-md-none "></i><span class="d-none d-md-block">Download Rating</span></a>
                                             <button class="btn btn-primary m-1 {{ $ratingDone ? '' : 'd-none' }}" data-id="{{ $level }}">Submit Rating</button>
                                         </div>
@@ -243,6 +243,41 @@
                                         </div>
                                     </div>
                                 </div>
+                                <!-- Modal -->
+                                <div class="modal fade" id="importModal{{ $level }}" role="dialog" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+                                    <div class="modal-dialog" role="document">
+                                        <div class="modal-content">
+                                            <div class="modal-header">
+                                                <h4 class="modal-title" id="importModalLabel">Upload Rating - {{ $level }}</h4>
+                                            </div>
+                                            <form id="importRating" action="{{ route('rating.import') }}" method="POST" enctype="multipart/form-data">
+                                                @csrf
+                                                <div class="modal-body">
+                                                    <div class="row">
+                                                        <div class="col">
+                                                            <div class="mb-4 mt-2">
+                                                                <label class="form-label" for="excelFile">Upload Excel File</label>
+                                                                <input type="file" class="form-control" id="excelFile" name="excelFile" required>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                    <!-- Hidden field to pass rating quotas data -->
+                                                    <input type="hidden" name="ratingCounts" value="{{ $data['count'] }}">
+                                                    <input type="hidden" name="ratingQuotas" value="{{ json_encode($data['combined']) }}">
+                                                    
+                                                </div>
+                                                <!-- Submit button inside the form -->
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                                                    <button type="submit" id="importRatingButton{{ $level }}" class="btn btn-primary">
+                                                        <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
+                                                        Submit
+                                                    </button>
+                                                </div>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
                             @endforeach
                         </div>
                     </div> <!-- end card-body -->
@@ -261,44 +296,6 @@
         </div>
         @endif
     </div>
-
-<!-- Floating Button -->
-<div class="position-fixed bottom-0 end-0 m-2">
-    <button id="start-tour-button" class="btn btn-outline-primary bg-light-subtle text-primary rounded-pill shadow-sm">
-        <i class="ri-play-fill me-1"></i><span>take tour</span>
-    </button>
-</div>
-
-<!-- Modal -->
-<div class="modal fade" id="importModal" role="dialog" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
-    <div class="modal-dialog" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h4 class="modal-title" id="importModalLabel">Upload Rating - Level: <span id="modalLevel"></span></h4>
-            </div>
-            <div class="modal-body">
-                <form id="importRating" action="{{ route('rating.import') }}" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    <div class="row">
-                        <div class="col">
-                            <div class="mb-4 mt-2">
-                                <label class="form-label" for="excelFile">Upload Excel File</label>
-                                <input type="file" class="form-control" id="excelFile" name="excelFile" required>
-                            </div>
-                        </div>
-                    </div>
-                </form>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">Cancel</button>
-                <button type="submit" id="importRatingButton" class="btn btn-primary">
-                    <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
-                    Submit
-                </button>
-            </div>
-        </div>
-    </div>
-</div>
 
 @endsection
 @push('scripts')

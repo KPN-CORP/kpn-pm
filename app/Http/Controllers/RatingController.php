@@ -24,7 +24,6 @@ use Illuminate\Support\Facades\Session;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 
-
 class RatingController extends Controller
 {
     protected $category;
@@ -44,12 +43,11 @@ class RatingController extends Controller
         try {
             Log::info('Starting the index method.', ['user' => $this->user]);
 
-            $amountOfTime = 300;
+            $amountOfTime = 100;
             ini_set('max_execution_time', $amountOfTime);
             $user = $this->user;
             $period = $this->appService->appraisalPeriod();
             $filterYear = $request->input('filterYear');
-            // $skipTour = $this->appService->skipTour();
 
             Log::info('Fetching KPI unit and calibration percentage.', ['user' => $user, 'period' => $period]);
 
@@ -230,7 +228,7 @@ class RatingController extends Controller
                     // Set rating status and approved date
                     $userCalibration = $calibrationData->first();
                     if ($userCalibration) {
-                        $data->rating_status = $userCalibration->status;
+                        $data->rating_status = $calibrationData->where('approver_id', $user)->first() ? $calibrationData->where('approver_id', $user)->first()->status : null;
                         $data->rating_approved_date = Carbon::parse($userCalibration->updated_at)->format('d M Y');
                     }
 
@@ -340,7 +338,6 @@ class RatingController extends Controller
 
             Log::info('Returning view with data.', ['activeLevel' => $activeLevel, 'id_calibration_group' => $id_calibration_group]);
 
-            // return view('pages.rating.app', compact('ratingDatas', 'calibrations', 'masterRating', 'link', 'parentLink', 'activeLevel', 'id_calibration_group', 'skipTour'));
             return view('pages.rating.app', compact('ratingDatas', 'calibrations', 'masterRating', 'link', 'parentLink', 'activeLevel', 'id_calibration_group'));
         } catch (Exception $e) {
             Log::error('Error in index method: ' . $e->getMessage());
@@ -369,7 +366,7 @@ class RatingController extends Controller
 
         foreach ($employees as $index => $employee) {
             
-            $nextApprover = $this->appService->processApproval($employees, $validatedData['approver_id']);
+            $nextApprover = $this->appService->processApproval($employee, $validatedData['approver_id']);
 
             $ratingData[$index] = [
                 'employee_id' => $employee,
@@ -570,7 +567,7 @@ class RatingController extends Controller
 
                     $userCalibration = $calibrationData->first();
                     if ($userCalibration) {
-                        $data->rating_status = $userCalibration->status;
+                        $data->rating_status = $calibrationData->where('approver_id', $user)->first() ? $calibrationData->where('approver_id', $user)->first()->status : null;
                         $data->rating_approved_date = Carbon::parse($userCalibration->updated_at)->format('d M Y');
                     }
 
@@ -627,9 +624,11 @@ class RatingController extends Controller
     public function importFromExcel(Request $request)
     {
         $validatedData = $request->validate([
-            'excelFile' => 'required|mimes:xlsx,xls,csv'
+            'excelFile' => 'required|mimes:xlsx,xls,csv',
+            'ratingQuotas' => 'required|string',
+            'ratingCounts' => 'required|string',
         ]);
-        
+
         // Muat file Excel ke dalam array
         $rows = Excel::toArray([], $validatedData['excelFile']);
         
@@ -662,7 +661,7 @@ class RatingController extends Controller
             // $allowedRating = ;
 
             // Initialize the import process with the user ID
-            $import = new AppraisalRatingImport($userId, $allowedRating);
+            $import = new AppraisalRatingImport($userId, $allowedRating, $validatedData['ratingQuotas'], $validatedData['ratingCounts']);
 
             // Retrieve invalid employees after import
             

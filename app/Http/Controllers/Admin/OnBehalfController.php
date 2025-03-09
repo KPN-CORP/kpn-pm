@@ -273,7 +273,7 @@ class OnBehalfController extends Controller
         
         $formData = [];
         if($datas->isNotEmpty()){
-            $formData = json_decode($datas->first()->goal->form_data, true);
+            $formData = json_decode($datas->first()->appraisal->goal->form_data, true);
         }
 
         $path = base_path('resources/goal.json');

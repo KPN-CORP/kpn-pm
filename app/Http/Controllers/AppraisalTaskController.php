@@ -32,12 +32,14 @@ class AppraisalTaskController extends Controller
     protected $category;
     protected $user;
     protected $appService;
+    protected $period;
 
     public function __construct(AppService $appService)
     {
         $this->appService = $appService;
         $this->user = Auth()->user()->employee_id;
         $this->category = 'Appraisal';
+        $this->period = $this->appService->appraisalPeriod();
     }
 
     public function index(Request $request) {
@@ -158,8 +160,8 @@ class AppraisalTaskController extends Controller
             $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $period);
         
             // Assign form scores to the item
-            $item->total_score = round($formData['totalScore'], 2) ?? [];
-            $item->kpi_score = round($formData['kpiScore'], 2) ?? [];
+            $item->total_score = round($formData['selfTotalScore'], 2) ?? [];
+            $item->kpi_score = round($formData['totalKpiScore'], 2) ?? [];
             $item->culture_score = round($formData['cultureScore'], 2) ?? [];
             $item->leadership_score = round($formData['leadershipScore'], 2) ?? [];
         
@@ -256,7 +258,7 @@ class AppraisalTaskController extends Controller
             $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $period);
         
             // Assign form scores to the item
-            $item->kpi_score = round($formData['kpiScore'], 2) ?? [];
+            $item->kpi_score = round($formData['totalKpiScore'], 2) ?? [];
             $item->culture_score = round($formData['cultureScore'], 2) ?? [];
             $item->leadership_score = round($formData['leadershipScore'], 2) ?? [];
         
@@ -329,7 +331,7 @@ class AppraisalTaskController extends Controller
 
         $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $request->id)->value('approver_id');
 
-        $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $firstCalibrator)->first();
+        $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $firstCalibrator)->where('status_aktif', 'T')->where('periode', $this->period)->first();
 
         if ($kpiUnit && $kpiUnit->masterCalibration) {
             // Get form group appraisal
@@ -415,7 +417,7 @@ class AppraisalTaskController extends Controller
 
         $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $appraisal->employee_id)->value('approver_id');
 
-        $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $firstCalibrator)->first();
+        $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $firstCalibrator)->where('status_aktif', 'T')->where('periode', $this->period)->first();
 
         $manager = ApprovalLayerAppraisal::where('employee_id', $appraisal->employee_id)->where('approver_id', Auth::user()->employee_id )->where('layer_type', 'manager')->first();
         
@@ -554,11 +556,11 @@ class AppraisalTaskController extends Controller
                 $dataItem = new stdClass();
                 $dataItem->request = $request;
                 $dataItem->name = $request->name;
-                $dataItem->goal = $request->goal;
+                $dataItem->goal = $request->appraisal->goal;
                 $data[] = $dataItem;
             }
 
-            $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->goal->form_data, true) : [];
+            $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->appraisal->goal->form_data, true) : [];
             $appraisalData = $datas->isNotEmpty() ? json_decode($datas->first()->form_data, true) : [];
 
             if (!Empty($appraisalData)) {
@@ -586,7 +588,7 @@ class AppraisalTaskController extends Controller
             $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $period);
 
             if (isset($formData['totalKpiScore'])) {
-                $appraisalData['kpiScore'] = round($formData['kpiScore'], 2);
+                $appraisalData['kpiScore'] = round($formData['totalKpiScore'], 2);
                 $appraisalData['cultureScore'] = round($formData['cultureScore'], 2);
                 $appraisalData['leadershipScore'] = round($formData['leadershipScore'], 2);
             }
@@ -712,7 +714,7 @@ class AppraisalTaskController extends Controller
 
             $kpiUnit = KpiUnits::with(['masterCalibration' => function($query) use ($period) {
                 $query->where('period', $period);
-            }])->where('employee_id', $firstCalibrator)->first();
+            }])->where('employee_id', $firstCalibrator)->where('status_aktif', 'T')->where('periode', $this->period)->first();
 
             if ($kpiUnit && $kpiUnit->masterCalibration) {
                 // Create a new Appraisal instance and save the data
@@ -826,7 +828,7 @@ class AppraisalTaskController extends Controller
             ->value('approver_id');
 
         // Fetch KpiUnit for the first calibrator
-        $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $firstCalibrator)->first();
+        $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $firstCalibrator)->where('status_aktif', 'T')->where('periode', $this->period)->first();
 
         if ($kpiUnit && $kpiUnit->masterCalibration) {
 
@@ -862,7 +864,7 @@ class AppraisalTaskController extends Controller
 
                 $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $validatedData['employee_id'])->value('approver_id');
 
-                $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $firstCalibrator)->first();
+                $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $firstCalibrator)->where('status_aktif', 'T')->where('periode', $this->period)->first();
 
                 $calibrationGroupID = $kpiUnit->masterCalibration->id_calibration_group;
 

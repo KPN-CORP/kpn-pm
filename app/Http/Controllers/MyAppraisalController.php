@@ -12,6 +12,7 @@ use App\Models\EmployeeAppraisal;
 use App\Models\FormAppraisal;
 use App\Models\FormGroupAppraisal;
 use App\Models\Goal;
+use App\Models\MasterWeightage;
 use App\Models\User;
 use Carbon\Carbon;
 use Exception;
@@ -113,8 +114,19 @@ class MyAppraisalController extends Controller
 
             $data = [];
             foreach ($formattedData as $request) {
-
                 if ($request->appraisal->goal->form_status != 'Draft' || $request->created_by == Auth::user()->id) {
+
+                    $formGroup = FormGroupAppraisal::with('rating')->find($request->appraisal->form_group_id);
+
+                    $finalRating = null;
+
+                    foreach ($formGroup->rating as $rating) {
+                        if ((int)$rating->value === (int)$request->appraisal->rating) {
+                            $finalRating = $rating->parameter; // Get the matching parameter
+                            break; // Stop looping once a match is found
+                        }
+                    }
+
                     $dataApprover = $request->approval->first() ? $request->approval->first()->approverName->fullname : '';
 
                     $dataItem = new stdClass();
@@ -122,6 +134,7 @@ class MyAppraisalController extends Controller
                     $dataItem->approver_name = $dataApprover;
                     $dataItem->name = $request->name;
                     $dataItem->approvalLayer = $request->approvalLayer;
+                    $dataItem->finalRating = $finalRating;
                     $data[] = $dataItem;
                 }
             }
@@ -171,14 +184,14 @@ class MyAppraisalController extends Controller
 
             // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
             $formGroupData = $this->appService->formGroupAppraisal($user, 'Appraisal Form');
-                        
+
             $cultureData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Culture') ?? [];
             $leadershipData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership') ?? [];
 
             $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $datas->first()->period);
 
             if (isset($formData['totalKpiScore'])) {
-                $appraisalData['kpiScore'] = round($formData['kpiScore'], 2);
+                $appraisalData['kpiScore'] = round($formData['totalKpiScore'], 2);
                 $appraisalData['cultureScore'] = round($formData['cultureScore'], 2);
                 $appraisalData['leadershipScore'] = round($formData['leadershipScore'], 2);
             }
@@ -190,7 +203,7 @@ class MyAppraisalController extends Controller
                             if (isset($form[$index][$itemIndex])) {
                                 $form[$index][$itemIndex] = [
                                     'formItem' => $item,
-                                    'score' => $form[$index][$itemIndex]['score']
+                                    'score' => $form[$index][$itemIndex]['score']  * ($formData['cultureWeightage'] / 100)
                                 ];
                             }
                         }
@@ -203,7 +216,7 @@ class MyAppraisalController extends Controller
                             if (isset($form[$index][$itemIndex])) {
                                 $form[$index][$itemIndex] = [
                                     'formItem' => $item,
-                                    'score' => $form[$index][$itemIndex]['score']
+                                    'score' => $form[$index][$itemIndex]['score']  * ($formData['cultureWeightage'] / 100)
                                 ];
                             }
                         }

@@ -363,12 +363,22 @@ $(document).ready(function() {
         }
     }
 
+    function validateInput(input) {
+        // Allow any non-empty string except "-"
+        const regex = /^-?\d+(\.\d+)?$/; // Match positive/negative integers and decimals
+        return regex.test(input) || (input !== "-" && input.trim() !== "");
+    }
+
     function validateStep(step) {
         let isValid = true;
         let firstInvalidElement = null;
     
         $(`.form-step[data-step="${step}"] .form-select, .form-step[data-step="${step}"] .form-control`).each(function() {
-            if (!$(this).val()) {
+            const inputVal = $(this).val();
+            
+            // Use validateInput to validate the field's value
+            if (!validateInput(inputVal)) {
+                console.log(inputVal);
                 $(this).siblings('.error-message').text(errorMessages);
                 $(this).addClass('border-danger');
                 isValid = false;
@@ -512,23 +522,26 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 document.addEventListener('DOMContentLoaded', function() {
-    var teamTab = document.getElementById('team-tab');
-    var reviewTab = document.getElementById('360-review-tab');
+    const teamTab = document.getElementById("teamTab");
+    const reviewTab = document.getElementById('360-review-tab');
+    
+    if (teamTab && reviewTab) {
+        teamTab.addEventListener('shown.bs.tab', function () {
+            teamTab.classList.remove('btn-outline-secondary');
+            teamTab.classList.add('btn-outline-primary');
+    
+            reviewTab.classList.remove('btn-outline-primary');
+            reviewTab.classList.add('btn-outline-secondary');
+        });
 
-    // Event listeners for 'shown' event when the tab becomes active
-    teamTab.addEventListener('shown.bs.tab', function () {
-        teamTab.classList.remove('btn-outline-secondary');
-        teamTab.classList.add('btn-outline-primary');
+        reviewTab.addEventListener('shown.bs.tab', function () {
+            reviewTab.classList.remove('btn-outline-secondary');
+            reviewTab.classList.add('btn-outline-primary');
+    
+            teamTab.classList.remove('btn-outline-primary');
+            teamTab.classList.add('btn-outline-secondary');
+        });
+        // Event listeners for 'shown' event when the tab becomes active
+    }
 
-        reviewTab.classList.remove('btn-outline-primary');
-        reviewTab.classList.add('btn-outline-secondary');
-    });
-
-    reviewTab.addEventListener('shown.bs.tab', function () {
-        reviewTab.classList.remove('btn-outline-secondary');
-        reviewTab.classList.add('btn-outline-primary');
-
-        teamTab.classList.remove('btn-outline-primary');
-        teamTab.classList.add('btn-outline-secondary');
-    });
 });

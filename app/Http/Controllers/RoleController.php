@@ -12,16 +12,20 @@ use App\Models\RoleHasPermission;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use PhpParser\Node\Stmt\TryCatch;
 use Spatie\Permission\PermissionRegistrar;
 
 class RoleController extends Controller
 {
     
     protected $link;
+    protected $userId;
 
     function __construct()
     {
         $this->link = 'Roles';
+        $this->userId = Auth()->user()->id;
     }
 
     function index() {
@@ -140,44 +144,54 @@ class RoleController extends Controller
 
     public function assignUser(Request $request)
     {
-        $roleId = $request->input('role_id');
-        $selectedUserIds = $request->input('users_id', []);
+        try {
 
-        // Retrieve the previously saved user IDs for the given role
-        $previouslySavedUserIds = ModelHasRole::where('role_id', $roleId)->pluck('model_id')->toArray();
+            $roleId = $request->input('role_id');
+            $selectedUserIds = $request->input('users_id', []);
 
-        // Determine the user IDs that need to be deleted
-        $userIdsToDelete = array_diff($previouslySavedUserIds, $selectedUserIds);
+            // Retrieve the previously saved user IDs for the given role
+            $previouslySavedUserIds = ModelHasRole::where('role_id', $roleId)->pluck('model_id')->toArray();
 
-        // Perform deletion for the user IDs that need to be removed
-        if (!empty($userIdsToDelete)) {
-            ModelHasRole::where('role_id', $roleId)
-                        ->whereIn('model_id', $userIdsToDelete)
-                        ->delete();
-        }
+            // Determine the user IDs that need to be deleted
+            $userIdsToDelete = array_diff($previouslySavedUserIds, $selectedUserIds);
 
-        // Now, you can loop through the selected user IDs and save them as needed
-        foreach ($selectedUserIds as $userId) {
-            // Save the user ID or perform any other action here
-            // Check if the user ID is already associated with the role
-            if (!in_array($userId, $previouslySavedUserIds)) {
-                // If not associated, save the association
-                ModelHasRole::create([
-                    'role_id' => $roleId,
-                    'model_type' => 'App\Models\User',
-                    'model_id' => $userId,
-                ]);
+            // Perform deletion for the user IDs that need to be removed
+            if (!empty($userIdsToDelete)) {
+                ModelHasRole::where('role_id', $roleId)
+                            ->whereIn('model_id', $userIdsToDelete)
+                            ->delete();
             }
+
+            // Now, you can loop through the selected user IDs and save them as needed
+            foreach ($selectedUserIds as $userId) {
+                // Save the user ID or perform any other action here
+                // Check if the user ID is already associated with the role
+                if (!in_array($userId, $previouslySavedUserIds)) {
+                    // If not associated, save the association
+                    ModelHasRole::create([
+                        'role_id' => $roleId,
+                        'model_type' => 'App\Models\User',
+                        'model_id' => $userId,
+                    ]);
+                }
+            }
+
+            $role = Role::find($roleId);
+
+            $userIds = json_encode($selectedUserIds);
+
+            Log::info('Roles module: ' . $this->userId . ' Assigned user role to ' . $userIds . ' on RoleId ' . $role->name);
+
+            app()->make(PermissionRegistrar::class)->forgetCachedPermissions();
+
+            // Optionally, you can redirect back to the form or another page after saving
+            return redirect()->route('roles')->with('success', 'Users saved successfully!');
+        } catch (\Exception $e) {
+            return redirect()->route('roles')->with('error', 'Users updated failed!');
         }
-
-        app()->make(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        // Optionally, you can redirect back to the form or another page after saving
-        return redirect()->route('roles.assign')->with('success', 'Users saved successfully!');
     }
 
     public function store(Request $request): RedirectResponse
-
     {
         $roleName = $request->roleName;
         $guardName = 'web';
@@ -233,6 +247,8 @@ class RoleController extends Controller
         $role->restriction = $restriction;
         $role->save();
 
+        Log::info('Roles module: ' . $this->userId . ' Create Role & Permission ' . $roleName . '. Restriction ' . $restriction);
+        
         // Loop through permissions and create new permission records
         foreach ($permissions as $key) {
             if ($key) {
@@ -241,6 +257,8 @@ class RoleController extends Controller
                 $rolepermission->role_id = $role->id;
                 $rolepermission->permission_id = $key;
                 $rolepermission->save();
+
+                Log::info('Roles module: ' . $this->userId . ' Add Permission '. $key .' on Create Role & Permission ' . $roleName);
             }
         }
 
@@ -252,86 +270,101 @@ class RoleController extends Controller
     public function update(Request $request): RedirectResponse
 
     {
-        $roleId = $request->roleId;
-        
-        RoleHasPermission::where('role_id', $roleId)->delete();
-
-        $groupCompany = $request->input('group_company', []);
-        $company = $request->input('contribution_level_code', []);
-        $location = $request->input('work_area_code', []);
-
-        $data = [
-            'work_area_code' => empty($location) ? null : $location,
-            'group_company' => empty($groupCompany) ? null : $groupCompany,
-            'contribution_level_code' => empty($company) ? null : $company,
-        ];
-        
-        // // Konversi ke JSON format
-        $restriction = json_encode($data);
-
-        // $permissions = [
-        //     'adminMenu' => $request->input('adminMenu', false), // 9 = adminmenu
-        //     'onBehalfView' => $request->input('onBehalfView', false), // Use false as default value if not set
-        //     'onBehalfApproval' => $request->input('onBehalfApproval', false),
-        //     'onBehalfSendback' => $request->input('onBehalfSendback', false),
-        //     'reportView' => $request->input('reportView', false),
-        //     'settingView' => $request->input('settingView', false),
-        //     'scheduleView' => $request->input('scheduleView', false),
-        //     'layerView' => $request->input('layerView', false),
-        //     'roleView' => $request->input('roleView', false),
-        //     'addGuide' => $request->input('addGuide', false),
-        //     'removeGuide' => $request->input('removeGuide', false),
-        // ];
-        // Ambil semua permissions dari database
-        $permissionsFromDb = Permission::pluck('name')->toArray();
-
-        // Loop melalui setiap permission untuk mengisi data request
-        $permissions = [];
-        foreach ($permissionsFromDb as $permissionName) {
-            // Setiap permission diambil dari request, default false jika tidak ada
-            $permissions[$permissionName] = $request->input($permissionName, false);
-        }
-
-        // Build permission_id string
-        $permission_id = '';
-
-        $role = Role::find($roleId);
-        $role->restriction = $restriction;
-        $role->save();
-
-        // Loop through permissions and create new permission records
-        foreach ($permissions as $key) {
-            if ($key) {
-                // Create a new permission record
-                $rolepermission = new RoleHasPermission;
-                $rolepermission->role_id = $roleId;
-                $rolepermission->permission_id = $key;
-                $rolepermission->save();
+        try {
+            //code...
+            $roleId = $request->roleId;
+            
+            RoleHasPermission::where('role_id', $roleId)->delete();
+    
+            $groupCompany = $request->input('group_company', []);
+            $company = $request->input('contribution_level_code', []);
+            $location = $request->input('work_area_code', []);
+    
+            $data = [
+                'work_area_code' => empty($location) ? null : $location,
+                'group_company' => empty($groupCompany) ? null : $groupCompany,
+                'contribution_level_code' => empty($company) ? null : $company,
+            ];
+            
+            // // Konversi ke JSON format
+            $restriction = json_encode($data);
+    
+            // $permissions = [
+            //     'adminMenu' => $request->input('adminMenu', false), // 9 = adminmenu
+            //     'onBehalfView' => $request->input('onBehalfView', false), // Use false as default value if not set
+            //     'onBehalfApproval' => $request->input('onBehalfApproval', false),
+            //     'onBehalfSendback' => $request->input('onBehalfSendback', false),
+            //     'reportView' => $request->input('reportView', false),
+            //     'settingView' => $request->input('settingView', false),
+            //     'scheduleView' => $request->input('scheduleView', false),
+            //     'layerView' => $request->input('layerView', false),
+            //     'roleView' => $request->input('roleView', false),
+            //     'addGuide' => $request->input('addGuide', false),
+            //     'removeGuide' => $request->input('removeGuide', false),
+            // ];
+            // Ambil semua permissions dari database
+            $permissionsFromDb = Permission::pluck('name')->toArray();
+    
+            // Loop melalui setiap permission untuk mengisi data request
+            $permissions = [];
+            foreach ($permissionsFromDb as $permissionName) {
+                // Setiap permission diambil dari request, default false jika tidak ada
+                $permissions[$permissionName] = $request->input($permissionName, false);
             }
+    
+            // Build permission_id string
+            $permission_id = '';
+    
+            $role = Role::find($roleId);
+            $role->restriction = $restriction;
+    
+            Log::info('Roles module: ' . $this->userId . ' Updated Role & Permission ' . $role->name . '. Restriction ' . $restriction);
+    
+            $role->save();
+    
+            // Loop through permissions and create new permission records
+            foreach ($permissions as $key) {
+                if ($key) {
+                    // Create a new permission record
+                    $rolepermission = new RoleHasPermission;
+                    $rolepermission->role_id = $roleId;
+                    $rolepermission->permission_id = $key;
+                    $rolepermission->save();
+                }
+            }
+            
+            app()->make(PermissionRegistrar::class)->forgetCachedPermissions();
+    
+            return redirect()->route('roles')->with('success', 'Role updated successfully!');
+        } catch (\Exception $e) {
+            return redirect()->route('roles')->with('error', 'Role updated failed!');
         }
-
-        app()->make(PermissionRegistrar::class)->forgetCachedPermissions();
-
-        return redirect()->route('roles')->with('success', 'Role updates successfully!');
     }
 
     public function destroy($id): RedirectResponse
 
     {
-        $role = Role::find($id);
+        try {
 
-        if ($role) {
+            $role = Role::find($id);
 
-            $role->delete();
+            if ($role) {
+
+                Log::info('Roles module: ' . $this->userId . ' Deleted Role ' . $role->name);
+
+                $role->delete();
+            
+                RoleHasPermission::where('role_id', $id)->delete();
+                ModelHasRole::where('role_id', $id)->delete();
+
+                app()->make(PermissionRegistrar::class)->forgetCachedPermissions();
         
-            RoleHasPermission::where('role_id', $id)->delete();
-            ModelHasRole::where('role_id', $id)->delete();
-
-            app()->make(PermissionRegistrar::class)->forgetCachedPermissions();
-    
-            return redirect()->route('roles')->with('success', 'Role deleted successfully!');
+                return redirect()->route('roles')->with('success', 'Role deleted successfully!');
+            }
+            return redirect()->route('roles')->with('error', 'Role not found.');
+        } catch (\Exception $e) {
+            return redirect()->route('roles')->with('error', 'Role deleted failed!');
         }
-        return redirect()->route('roles')->with('error', 'Role not found.');
 
     }
 }

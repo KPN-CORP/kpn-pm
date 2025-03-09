@@ -69,8 +69,8 @@
                                 </div>
                                 <div class="col-lg col-sm-12 p-2">
                                     <h5>Final Rating</h5>
+                                    <!--<p class="mt-2 mb-0 text-muted">{{ $row->finalRating ?? '-' }}</p>-->
                                     <p class="mt-2 mb-0 text-muted">-</p>
-                                    {{-- Final score belum tersedia --}}
                                 </div>
                                 <div class="col-lg col-sm-12 p-2">
                                     <h5>Status</h5>
@@ -85,7 +85,7 @@
                             <div class="row">
                                 <div class="col">
                                     <div class="mb-2 text-primary fw-semibold fs-16">
-                                        Total Score : {{ $formData['totalScore'] }}
+                                        Total Score : {{ round($formData['selfTotalScore'], 2) }}
                                     </div>
                                 </div>
                             </div>

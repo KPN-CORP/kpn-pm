@@ -25,7 +25,6 @@ class EmployeeRatingExport implements FromCollection, WithHeadings, WithEvents, 
     public function collection()
     {
         // Format data to be exported
-        // dd($this->ratingDatas[$this->level]);
         return collect($this->ratingDatas[$this->level])->map(function ($item) {
             return [
                 'Employee_Name'    => $item->employee->fullname,

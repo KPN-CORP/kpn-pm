@@ -15,44 +15,29 @@ class InitiatedExport implements FromView, WithStyles
     use Exportable;
 
     protected $employeeId;
-    protected $filterYear;
 
-    public function __construct($employeeId, $filterYear)
+    public function __construct($employeeId)
     {
         $this->employeeId = $employeeId;
-        $this->filterYear = $filterYear;
     }
 
     public function view(): View
     {
         $user = $this->employeeId;
-        $year = $this->filterYear;
 
         if(Auth()->user()->isApprover()){
 
-            $query = ApprovalLayer::with(['employee', 'subordinates' => function ($query) use ($user, $year) {
-                $query->with(['goal', 'updatedBy', 'approval' => function ($query) {
+            $query = ApprovalLayer::with(['employee','subordinates' => function ($query) use ($user){
+                $query->with(['manager', 'goal', 'initiated', 'approvalLayer', 'updatedBy', 'approval' => function ($query) {
                     $query->with('approverName');
-                }])->whereHas('goal', function ($query) {
-                    $query->whereNull('deleted_at');
-                })->whereHas('approvalLayer', function ($query) use ($user) {
+                }])->whereHas('approvalLayer', function ($query) use ($user) {
                     $query->where('employee_id', $user)->orWhere('approver_id', $user);
-                })->when($year, function ($query) use ($year) {
-                    $query->where('period', $year); // Apply period condition only if $year is not empty
-                });
+                })->whereYear('created_at', now()->year);
             }])
-            ->whereHas('subordinates', function ($query) use ($user, $year) {
-                $query->with(['goal', 'updatedBy', 'approval' => function ($query) {
-                    $query->with('approverName');
-                }])->whereHas('goal', function ($query) {
-                    $query->whereNull('deleted_at');
-                })->whereHas('approvalLayer', function ($query) use ($user) {
-                    $query->where('employee_id', $user)->orWhere('approver_id', $user);
-                })->when($year, function ($query) use ($year) {
-                    $query->where('period', $year); // Apply period condition only if $filterYear is not empty
-                });
-            })
-            ->where('approver_id', $user);        
+            ->leftJoin('approval_requests', 'approval_layers.employee_id', '=', 'approval_requests.employee_id')
+            ->select('approval_layers.employee_id', 'approval_layers.approver_id', 'approval_layers.layer', 'approval_requests.created_at')
+            ->whereYear('approval_requests.created_at', now()->year)
+            ->whereHas('subordinates')->where('approver_id', $user);        
         }
 
         $data = $query->get();

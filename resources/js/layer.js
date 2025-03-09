@@ -201,21 +201,23 @@ $('#submitButton').on('click', function(e) {
     const submitButton = $('#submitButton');
     const spinner = submitButton.find(".spinner-border");
 
-    if (form.checkValidity()) {
-    // Disable submit button
-    submitButton.prop('disabled', true);
-    submitButton.addClass("disabled");
-
-    // Remove d-none class from spinner if it exists
-    if (spinner.length) {
-        spinner.removeClass("d-none");
-    }
-
-    // Submit form
-    form.submit();
-    } else {
-        // If the form is not valid, trigger HTML5 validation messages
-        form.reportValidity();
+    if(form){
+        if (form && form.checkValidity()) {
+        // Disable submit button
+        submitButton.prop('disabled', true);
+        submitButton.addClass("disabled");
+    
+        // Remove d-none class from spinner if it exists
+        if (spinner.length) {
+            spinner.removeClass("d-none");
+        }
+    
+        // Submit form
+        form.submit();
+        } else {
+            // If the form is not valid, trigger HTML5 validation messages
+            form.reportValidity();
+        }
     }
 });
 $('#importButton').on('click', function(e) {
@@ -224,20 +226,22 @@ $('#importButton').on('click', function(e) {
     const submitButton = $('#importButton');
     const spinner = submitButton.find(".spinner-border");
 
-    if (form.checkValidity()) {
-    // Disable submit button
-    submitButton.prop('disabled', true);
-    submitButton.addClass("disabled");
-
-    // Remove d-none class from spinner if it exists
-    if (spinner.length) {
-        spinner.removeClass("d-none");
-    }
-
-    // Submit form
-    form.submit();
-    } else {
-        // If the form is not valid, trigger HTML5 validation messages
-        form.reportValidity();
+    if(form){
+        if (form.checkValidity()) {
+        // Disable submit button
+        submitButton.prop('disabled', true);
+        submitButton.addClass("disabled");
+    
+        // Remove d-none class from spinner if it exists
+        if (spinner.length) {
+            spinner.removeClass("d-none");
+        }
+    
+        // Submit form
+        form.submit();
+        } else {
+            // If the form is not valid, trigger HTML5 validation messages
+            form.reportValidity();
+        }
     }
 });

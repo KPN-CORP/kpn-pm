@@ -8,7 +8,7 @@ $('#period').datepicker({
     minViewMode: "years",      // Only allow year selection
     viewMode: "years",         // Start with the year view
     orientation: "bottom",
-    startDate: new Date().getFullYear().toString()
+    autoclose: true,
 });
 
 $(document).ready(function() {
@@ -91,8 +91,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const form = document.getElementById('form-weightage');
     const submitButton = document.getElementById('submit-weightage');
-    const submitId = submitButton.getAttribute('data-id');
-    const spinner = submitButton.querySelector('.spinner-border');
+    if(submitButton){
+        const submitId = submitButton.getAttribute('data-id');
+        const spinner = submitButton.querySelector('.spinner-border');
+    }
     const requiredFields = document.querySelectorAll('.required-input');
     let hasErrors = false;
 
@@ -233,99 +235,102 @@ document.addEventListener('DOMContentLoaded', function() {
     
 
     // Validation on form submit
-    submitButton.addEventListener('click', async function(event) {
-        hasErrors = false;
+    if(submitButton){
 
-        // Validate all required fields
-        requiredFields.forEach(function(input) {
-            const errorMessageElement = input.closest('.mb-2').querySelector('.error-message');
-            const inputValue = input.classList.contains('select2-hidden-accessible')
-                ? $(input).val() // For select2
-                : input.value.trim(); // For regular inputs
-
-            if (!inputValue) {
-                input.classList.add('is-invalid');
-                if (errorMessageElement) {
-                    errorMessageElement.textContent = 'This field is required';
+        submitButton.addEventListener('click', async function(event) {
+            hasErrors = false;
+    
+            // Validate all required fields
+            requiredFields.forEach(function(input) {
+                const errorMessageElement = input.closest('.mb-2').querySelector('.error-message');
+                const inputValue = input.classList.contains('select2-hidden-accessible')
+                    ? $(input).val() // For select2
+                    : input.value.trim(); // For regular inputs
+    
+                if (!inputValue) {
+                    input.classList.add('is-invalid');
+                    if (errorMessageElement) {
+                        errorMessageElement.textContent = 'This field is required';
+                    }
+                    hasErrors = true;
+                } else {
+                    input.classList.remove('is-invalid');
+                    if (errorMessageElement) {
+                        errorMessageElement.textContent = '';
+                    }
                 }
-                hasErrors = true;
+            });
+    
+            // Additional validation: Check MasterWeightage configuration
+            const period = document.getElementById('period').value; // Ensure element ID is correct
+            const groupCompany = document.getElementById('weightage-group-company').value; // Ensure element ID is correct
+    
+            // Validate job levels
+            validateJobLevel();
+    
+            // Validate weightages for dynamically generated forms
+            validateWeightages();
+    
+            // Validate form names
+            // validateFormNames();
+    
+            // Prevent form submission if there are errors or configuration is invalid
+            if (hasErrors) {
+                event.preventDefault();
+                Swal.fire({
+                    title: "Error",
+                    text: "Please fill out all required fields and ensure weightages total 100.",
+                    icon: "error",
+                    confirmButtonColor: "#f15776"
+                });
             } else {
-                input.classList.remove('is-invalid');
-                if (errorMessageElement) {
-                    errorMessageElement.textContent = '';
+    
+                if(submitId && submitId == 'create'){
+                    // Call validateConfiguration and wait for the result
+                    const isInvalid = await validateConfiguration(period, groupCompany);
+    
+                    // If the configuration is invalid, don't proceed with showing the Swal confirmation
+                    if (!isInvalid) {
+                        return; // Exit if there are validation errors
+                    }
                 }
+                    Swal.fire({
+                        title: "Save weightage?",
+                        text: "This can't be reverted",
+                        showCancelButton: true,
+                        confirmButtonColor: "#3e60d5",
+                        cancelButtonColor: "#f15776",
+                        confirmButtonText: "Ok, save it",
+                        reverseButtons: true,
+                    }).then((result) => {
+                        if (result.isConfirmed) {
+                            // Disable submit button
+                            submitButton.disabled = true; // Equivalent to .prop("disabled", true)
+                            submitButton.classList.add("disabled");
+        
+                            // Show spinner if it exists
+                            if (spinner.length) {
+                                spinner.classList.remove("d-none");
+                            }
+        
+                            // Submit the form
+                            form.submit();
+        
+                            // Show success message
+                            Swal.fire({
+                                title: "Layer saved successfully!",
+                                icon: "success",
+                                showConfirmButton: false,
+                                timer: 1500, // Optional: Auto close the success message after 1.5 seconds
+                            });
+                        }
+                    });
+                    
+                return false;
+    
             }
         });
-
-        // Additional validation: Check MasterWeightage configuration
-        const period = document.getElementById('period').value; // Ensure element ID is correct
-        const groupCompany = document.getElementById('weightage-group-company').value; // Ensure element ID is correct
-
-        // Validate job levels
-        validateJobLevel();
-
-        // Validate weightages for dynamically generated forms
-        validateWeightages();
-
-        // Validate form names
-        // validateFormNames();
-
-        // Prevent form submission if there are errors or configuration is invalid
-        if (hasErrors) {
-            event.preventDefault();
-            Swal.fire({
-                title: "Error",
-                text: "Please fill out all required fields and ensure weightages total 100.",
-                icon: "error",
-                confirmButtonColor: "#f15776"
-            });
-        } else {
-
-            if(submitId == 'create'){
-                // Call validateConfiguration and wait for the result
-                const isInvalid = await validateConfiguration(period, groupCompany);
-
-                // If the configuration is invalid, don't proceed with showing the Swal confirmation
-                if (!isInvalid) {
-                    return; // Exit if there are validation errors
-                }
-            }
-                Swal.fire({
-                    title: "Save weightage?",
-                    text: "This can't be reverted",
-                    showCancelButton: true,
-                    confirmButtonColor: "#3e60d5",
-                    cancelButtonColor: "#f15776",
-                    confirmButtonText: "Ok, save it",
-                    reverseButtons: true,
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Disable submit button
-                        submitButton.disabled = true; // Equivalent to .prop("disabled", true)
-                        submitButton.classList.add("disabled");
-    
-                        // Show spinner if it exists
-                        if (spinner.length) {
-                            spinner.classList.remove("d-none");
-                        }
-    
-                        // Submit the form
-                        form.submit();
-    
-                        // Show success message
-                        Swal.fire({
-                            title: "Layer saved successfully!",
-                            icon: "success",
-                            showConfirmButton: false,
-                            timer: 1500, // Optional: Auto close the success message after 1.5 seconds
-                        });
-                    }
-                });
-                
-            return false;
-
-        }
-    });
+    }
 
     // Optional: Validate as the user types or selects a value
     requiredFields.forEach(function(input) {

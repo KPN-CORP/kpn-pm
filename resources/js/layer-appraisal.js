@@ -370,30 +370,32 @@ $(document).ready(function() {
 document.addEventListener('DOMContentLoaded', function () {
     const detailModal = document.getElementById('detailModal');
     
-    detailModal.addEventListener('show.bs.modal', async function (event) {
-        const button = event.relatedTarget;
-        const employeeId = button.getAttribute('data-bs-id');
-        
-        // Show loading state before fetching data
-        showLoadingState();
-
-        try {
-            // Fetch the employee details using async/await
-            const data = await fetchEmployeeDetails(employeeId);
+    if (detailModal) {
+        detailModal.addEventListener('show.bs.modal', async function (event) {
+            const button = event.relatedTarget;
+            const employeeId = button.getAttribute('data-bs-id');
             
-            // Populate the modal with the retrieved data
-            populateModal(data);
-            
-            // Populate history table
-            populateHistoryTable(data.history);
-        } catch (error) {
-            console.error('Error fetching employee details:', error);
-            showErrorMessage('Unable to retrieve employee details. Please try again.');
-        } finally {
-            // Hide loading state
-            hideLoadingState();
-        }
-    });
+            // Show loading state before fetching data
+            showLoadingState();
+    
+            try {
+                // Fetch the employee details using async/await
+                const data = await fetchEmployeeDetails(employeeId);
+                
+                // Populate the modal with the retrieved data
+                populateModal(data);
+                
+                // Populate history table
+                populateHistoryTable(data.history);
+            } catch (error) {
+                console.error('Error fetching employee details:', error);
+                showErrorMessage('Unable to retrieve employee details. Please try again.');
+            } finally {
+                // Hide loading state
+                hideLoadingState();
+            }
+        });
+    }
 
     // Function to fetch employee details from the backend
     async function fetchEmployeeDetails(employeeId) {

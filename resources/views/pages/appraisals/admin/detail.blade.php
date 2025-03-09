@@ -103,6 +103,23 @@
                     <div class="card-header pb-0">
                         <input type="hidden" id="appraisal_id" value="{{ $datas->appraisal->first()->id }}">
                         <ul class="nav nav-pills" id="myTab" role="tablist">
+                            @foreach ($groupedData['self'] as $key => $self)
+                                @foreach ($self as $value)
+                                    <li class="nav-item">
+                                        <button class="btn btn-sm btn-outline-primary position-relative me-2 mb-2 type-button" 
+                                                id="{{ $key }}-tab" 
+                                                data-id="employee"
+                                                data-bs-toggle="tab" 
+                                                data-bs-target="#{{ $key }}" 
+                                                type="button" 
+                                                role="tab" 
+                                                aria-controls="{{ $key }}" 
+                                                aria-selected="false">
+                                            {{ $key }}
+                                        </button>
+                                    </li>
+                                @endforeach
+                            @endforeach
                             @foreach ($groupedData['manager'] as $key => $manager)
                                 @foreach ($manager as $value)
                                     <li class="nav-item">

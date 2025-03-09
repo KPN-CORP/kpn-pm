@@ -102,7 +102,7 @@
                                 @if ($formData)
                                 @foreach ($formData as $index => $data)
                                     <tr>
-                                        <td  scope="row">
+                                        <td scope="row">
                                             <div class="row p-2">
                                                 <div class="col-lg-4 col-sm-12 p-2">
                                                     <div class="form-group">
@@ -132,6 +132,14 @@
                                                     <div class="form-group">
                                                         <h5>{{ __('Weightage') }}</h5>
                                                         <p class="mt-1 mb-0 text-muted">{{ $data['weightage'] }}%</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="row p-2">
+                                                <div class="col-md-12">
+                                                    <div class="form-group">
+                                                        <h5>{{ __('Description') }}</h5>
+                                                        <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['description'] ?? '-' }}</p>
                                                     </div>
                                                 </div>
                                             </div>

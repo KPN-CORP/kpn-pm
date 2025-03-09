@@ -103,12 +103,11 @@ class EmployeeController extends Controller
     }
     public function fetchAndStoreEmployees()
     {
-        ProcessEmployeeData::dispatch([0, 1801]);
-        ProcessEmployeeData::dispatch([3601, 5401]);
+        ProcessEmployeeData::dispatch([0, 1801, 3601, 5401]);
+        // ProcessEmployeeData::dispatch([3601, 5401]);
 
         return response()->json(['message' => 'Jobs dispatched successfully']);
     }
-
     public function updateEmployeeAccessMenu()
     {
         $today = Carbon::today()->format('Y-m-d');

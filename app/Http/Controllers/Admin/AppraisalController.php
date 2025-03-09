@@ -21,6 +21,7 @@ use App\Services\AppService;
 use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Queue;
@@ -44,137 +45,126 @@ class AppraisalController extends Controller
         $this->category = 'Appraisal';
         $this->roles = Auth()->user()->roles;
     }
-    
+
     public function index(Request $request)
     {
-        $period = $this->appService->appraisalPeriod();
 
-        $restrictionData = [];
-        if(!is_null($this->roles)){
-            $restrictionData = json_decode($this->roles->first()->restriction, true);
-        }
+        $userID = Auth::id();
+
+        $restrictionData = $this->getRestrictionData();
+        $filterInputs = $this->getFilterInputs($request, $restrictionData);
+        $criteria = $this->buildCriteria($restrictionData);
+        $query = $this->buildAppraisalQuery($criteria, $filterInputs);
+
+        $datas = $this->transformAppraisalData($query->get(), $filterInputs['period']);
+
+        $layerHeaders = $this->getLayerHeaders($datas);
+        $groupCompanies = $this->getDistinctValues('group_company', $criteria);
+        $companies = $this->getDistinctCompany('company_name', $criteria);
+        $locations = $this->getDistinctValues('office_area', $criteria);
+        $units = $this->getDistinctValues('unit', $criteria);
+
+        $reportFiles = $this->getReportFiles($userID);
+        $jobs = $this->getExportJobs($userID);
         
-        $permissionGroupCompanies = $restrictionData['group_company'] ?? [];
-        $permissionCompanies = $restrictionData['contribution_level_code'] ?? [];
-        $permissionLocations = $restrictionData['work_area_code'] ?? [];
+        $maxCalibrator = $datas->pluck('approvalStatus.calibrator')->flatten()->count();
 
-        $criteria = [
-            'work_area_code' => $permissionLocations,
-            'group_company' => $permissionGroupCompanies,
-            'contribution_level_code' => $permissionCompanies,
+        $layerBody = $maxCalibrator > 0 
+            ? array_map(fn ($i) => ($i + 1), range(0, min($maxCalibrator - 1, 9))) 
+            : [];
+
+        $parentLink = __('Reports');
+        $link = __('Appraisal');
+
+        return view('pages.appraisals.admin.app', compact(
+            'datas', 'layerHeaders', 'layerBody', 'filterInputs', 'groupCompanies', 'companies', 'units', 'locations', 'reportFiles', 'jobs', 'parentLink', 'link'
+        ));
+    }
+
+    private function getRestrictionData()
+    {
+        $role = Auth::user()->roles->first();
+        return $role ? json_decode($role->restriction, true) : [];
+    }
+
+    private function getFilterInputs(Request $request, $restriction)
+    {
+        // Retrieve group_company input
+        $groupCompanyInput = $request->input('group_company', []);
+
+        // Handle default and multiple values for group_company
+        if (empty($groupCompanyInput)) {
+            if (empty($restriction['group_company'])) {
+                $groupCompanyInput = 'KPN Corporation'; // Default when empty
+            } else {
+                $groupCompanyInput = reset($restriction['group_company']); // Default when empty
+            }
+        } else {
+            $groupCompanyInput = $groupCompanyInput; // Select only the first value
+        }
+
+        return [
+            'filter_year' => $request->input('filter_year', []),
+            'group_company' => $groupCompanyInput,
+            'company' => $request->input('company', []),
+            'location' => $request->input('location', []),
+            'unit' => $request->input('unit', []),
+            'period' => $request->input('filter_year', []) ?: app('App\Services\AppService')->appraisalPeriod(),
         ];
+    }
 
-        $query = EmployeeAppraisal::with(['appraisal' => function($query) use ($period) {
-                $query->where('period', $period);
-            }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal']);
-            // }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal'])->where('employee_id', '01119060003');
+    private function buildCriteria(array $restrictionData)
+    {
+        return [
+            'work_area_code' => $restrictionData['work_area_code'] ?? [],
+            'group_company' => $restrictionData['group_company'] ?? [],
+            'contribution_level_code' => $restrictionData['contribution_level_code'] ?? [],
+        ];
+    }
 
-        $query->where(function ($query) use ($criteria) {
+    private function buildAppraisalQuery(array $criteria, array $filters)
+    {
+        return EmployeeAppraisal::with([
+            'appraisal' => function ($query) use ($filters) {
+                $query->where('period', $filters['period']);
+            },
+            'appraisalLayer.approver',
+            'appraisalContributor' => function ($query) use ($filters) {
+                $query->where('period', $filters['period']);
+            },
+            'calibration' => function ($query) use ($filters) {
+                $query->where('period', $filters['period']);
+            },
+            'appraisal.formGroupAppraisal',
+        ])
+        // }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal'])->where('employee_id', '01115080004')
+        ->where(function ($query) use ($criteria) {
             foreach ($criteria as $key => $value) {
-                if ($value !== null && !empty($value)) {
+                if (!empty($value)) {
                     $query->whereIn($key, $value);
                 }
             }
+
+        })             
+        ->when($filters['group_company'], function ($query, $groupCompany) {
+            $query->where('group_company', $groupCompany);
+        })
+        ->when($filters['company'], function ($query, $company) {
+            $query->whereIn('contribution_level_code', $company);
+        })
+        ->when($filters['location'], function ($query, $location) {
+            $query->whereIn('office_area', $location);
+        })
+        ->when($filters['unit'], function ($query, $unit) {
+            $query->whereIn('unit', $unit);
         });
+    }
 
-        $data = $query->get();
-
-        $datas = $data->map(function ($employee) {
-            $approvalStatus = [];
-
-            foreach ($employee->appraisalLayer as $layer) {
-                // if ($layer->layer_type !== 'manager') {
-                    if (!isset($approvalStatus[$layer->layer_type])) {
-                        $approvalStatus[$layer->layer_type] = [];
-                    }
-
-                    // Check availability depending on the layer_type (AppraisalContributor for peers/subordinates, Calibration for calibrators)
-                    $ratingCalibrator = null;
-
-                    if ($layer->layer_type === 'calibrator') {
-                        // Check using Calibration model for calibrators
-                        $isAvailable = Calibration::where('approver_id', $layer->approver_id)
-                            ->where('employee_id', $employee->employee_id)
-                            ->where('status', 'Approved')
-                            ->exists();
-                            
-                        if($isAvailable){
-                            $ratingCalibrator = Calibration::where('approver_id', $layer->approver_id)
-                                ->where('employee_id', $employee->employee_id)
-                                ->where('status', 'Approved')
-                                ->first();
-                        }
-                    } else {
-                        // Check using AppraisalContributor model for peers and subordinates
-                        $isAvailable = AppraisalContributor::where('contributor_id', $layer->approver_id)
-                            // ->where('contributor_type', '!=', 'manager')
-                            ->where('employee_id', $employee->employee_id)
-                            ->exists();
-                    }
-
-                    if ($employee->appraisal->first()) {
-                        # code...
-                        $masterRating = MasterRating::select('id_rating_group', 'parameter', 'value', 'min_range', 'max_range')
-                            ->where('id_rating_group', $employee->appraisal->first()->formGroupAppraisal->id_rating_group)
-                            ->get();
-                        $convertRating = [];
-            
-                        foreach ($masterRating as $rating) {
-                            $convertRating[$rating->value] = $rating->parameter;
-                        }
-
-                        $rated =  $ratingCalibrator
-                                        ? '|' . $convertRating[$ratingCalibrator->rating] 
-                                        : '-';
-                    }else{
-                        $rated = '-';
-                    }
-
-                    // Append approver_id, layer, and status data to the corresponding array
-                    $approvalStatus[$layer->layer_type][] = [
-                        'approver_id' => $layer->approver_id,
-                        'layer' => $layer->layer,
-                        'status' => $isAvailable,
-                        'rating' => $ratingCalibrator ? $rated : null,
-                        'approver_name' => $layer->approver->fullname,
-                        'approver_id' => $layer->approver->employee_id,
-                    ];
-                // }
-            }
-
-            // Sort each layer_type's array by 'layer'
-            foreach ($approvalStatus as $type => $layers) {
-                usort($layers, function ($a, $b) {
-                    return $a['layer'] <=> $b['layer'];
-                });
-                $approvalStatus[$type] = $layers;
-            }
-
-            // Prepare popover content
-            $popoverContent = [];
-            
-            // Add calibrator layers
-            foreach ($approvalStatus['calibrator'] ?? [] as $layerIndex => $layer) {
-                $popoverContent[] = "C" . ($layerIndex + 1) . ": " . ($layer['approver_name'] .' ('.$layer['approver_id'].')' ?? 'N/A');
-            }
-
-            // Add peer layers
-            foreach ($approvalStatus['peers'] ?? [] as $layerIndex => $layer) {
-                $popoverContent[] = "P" . ($layerIndex + 1) . ": " . ($layer['approver_name'] .' ('.$layer['approver_id'].')' ?? 'N/A');
-            }
-
-            // Add subordinate layers
-            foreach ($approvalStatus['subordinate'] ?? [] as $layerIndex => $layer) {
-                $popoverContent[] = "S" . ($layerIndex + 1) . ": " . ($layer['approver_name'] .' ('.$layer['approver_id'].')' ?? 'N/A');
-            }
-
-            foreach ($approvalStatus['manager'] ?? [] as $layerIndex => $layer) {
-                $popoverContent[] = "M: " . ($layer['approver_name'] .' ('.$layer['approver_id'].')' ?? 'N/A');
-            }
-
-            // Join content with line breaks
-            $popoverText = implode("<br>", $popoverContent);
-            
+    private function transformAppraisalData($data, $period)
+    {
+        return $data->map(function ($employee) use ($period) {
+            $approvalStatus = $this->buildApprovalStatus($employee, $period);
+            $popoverContent = $this->generatePopoverContent($approvalStatus);
             if ($employee->appraisal->first()) {
                 # code...
                 $masterRating = MasterRating::select('id_rating_group', 'parameter', 'value', 'min_range', 'max_range')
@@ -192,44 +182,156 @@ class AppraisalController extends Controller
                 $appraisal = '-';
             }
 
-            $accessMenu = json_decode($employee->access_menu, true);
-
             return [
                 'id' => $employee->employee_id,
                 'name' => $employee->fullname,
                 'groupCompany' => $employee->group_company,
-                'accessPA' => isset($accessMenu['accesspa']) ? $accessMenu['accesspa'] : 0,
+                'accessPA' => optional(json_decode($employee->access_menu, true))['createpa'] ?? 0,
                 'appraisalStatus' => $employee->appraisal->first(),
-                'approvalStatus' => $approvalStatus,
                 'finalScore' => $appraisal,
-                'popoverContent' => $popoverText, // Add popover content here
+                'approvalStatus' => $approvalStatus,
+                'popoverContent' => $popoverContent,
             ];
+
         });
+    }
 
-        $maxCalibrator = min($datas->map(function($employee) {
-            return isset($employee['approvalStatus']['calibrator']) 
-                ? count($employee['approvalStatus']['calibrator']) 
-                : 0;
-        })->max(), 10);
-        
-        if ($maxCalibrator > 0) {
-            $layerHeaders = array_map(function($num) {
-                return 'C' . ($num + 1);
-            }, range(0, $maxCalibrator - 1));
-        
-            $layerBody = array_map(function($num) {
-                return ($num + 1);
-            }, range(0, $maxCalibrator - 1));
-        } else {
-            // Handle the case when maxCalibrator is 0
-            $layerHeaders = [];  // Or set to a default message like ['No calibrators available']
-            $layerBody = [];     // Or set to a default message if needed
+    private function buildApprovalStatus($employee, $period)
+    {
+        $status = [];
+        foreach ($employee->appraisalLayer as $layer) {
+            
+            $availability = $this->checkLayerAvailability($layer, $employee->employee_id, $period);
+
+            if ($employee->appraisal->first()) {
+                # code...
+                $masterRating = MasterRating::select('id_rating_group', 'parameter', 'value', 'min_range', 'max_range')
+                    ->where('id_rating_group', $employee->appraisal->first()->formGroupAppraisal->id_rating_group)
+                    ->get();
+                $convertRating = [];
+    
+                foreach ($masterRating as $rating) {
+                    $convertRating[$rating->value] = $rating->parameter;
+                }
+
+                $rated =  $availability['rating']
+                                ? '|' . $convertRating[$availability['rating']] 
+                                : '|-';
+            }else{
+                $rated = '|-';
+            }
+
+            $status[$layer->layer_type][] = [
+                'approver_id' => $layer->approver_id,
+                'layer' => $layer->layer,
+                'rating' => $rated, // Include rating if available
+                'status' => $availability['exists'], // Keep the availability status
+                'approver_name' => $layer->approver->fullname ?? 'N/A',
+            ];
         }
-        
-        $parentLink = __('Reports');
-        $link = __('Appraisal');
+        return $status;
+    }
 
-        return view('pages.appraisals.admin.app', compact('datas', 'layerHeaders', 'layerBody', 'link', 'parentLink'));
+    private function checkLayerAvailability($layer, $employeeId, $period)
+    {
+        if ($layer->layer_type === 'calibrator') {
+            $calibration = Calibration::where('approver_id', $layer->approver_id)
+                ->where('employee_id', $employeeId)
+                ->where('period', $period)
+                ->where('status', 'Approved')
+                ->first();
+
+            return [
+                'exists' => (bool) $calibration, // Availability status
+                'rating' => $calibration->rating ?? null, // Rating if available
+            ];
+        } else {
+            $contributorExists = AppraisalContributor::where('contributor_id', $layer->approver_id)
+                ->where('employee_id', $employeeId)
+                ->where('period', $period)
+                ->exists();
+
+            return [
+                'exists' => $contributorExists,
+                'rating' => null, // No rating for contributors
+            ];
+        }
+    }
+
+    private function generatePopoverContent(array $approvalStatus)
+    {
+        $content = [];
+        
+        foreach ($approvalStatus as $type => $layers) {
+            // Sort layers by the "layer" key in ascending order
+            usort($layers, function ($a, $b) {
+                return $a['layer'] <=> $b['layer'];
+            });
+
+            foreach ($layers as $index => $layer) {
+                $content[] = strtoupper(substr($type, 0, 1)) . ($index + 1) . ": " . $layer['approver_name'] . " (" . $layer['approver_id'] . ")";
+            }
+        }
+
+        return implode("<br>", $content);
+    }
+
+
+    private function getLayerHeaders($datas)
+    {
+        $maxCalibrators = $datas->pluck('approvalStatus.calibrator')->flatten()->count();
+        return array_map(fn ($i) => 'C' . ($i + 1), range(0, min($maxCalibrators - 1, 9)));
+    }
+
+    private function getDistinctValues($column, $criteria)
+    {
+        return EmployeeAppraisal::select($column)
+            ->distinct()
+            ->where(function ($query) use ($criteria) {
+                foreach ($criteria as $key => $value) {
+                    if (!empty($value)) {
+                        $query->whereIn($key, $value);
+                    }
+                }
+            })
+            ->get();
+    }
+
+    private function getDistinctCompany($column, $criteria)
+    {
+        return EmployeeAppraisal::select('contribution_level_code', $column)
+            ->distinct('contribution_level_code')
+            ->where(function ($query) use ($criteria) {
+                foreach ($criteria as $key => $value) {
+                    if (!empty($value)) {
+                        $query->whereIn($key, $value);
+                    }
+                }
+            })
+            ->get();
+    }
+
+    private function getReportFiles($userID)
+    {
+        $directory = 'exports';
+        $filePrefix = 'appraisal_details_' . $userID;
+    
+        $files = collect(Storage::disk('public')->files($directory))
+            ->filter(fn($file) => str_starts_with(basename($file), $filePrefix) && str_ends_with($file, '.xlsx'))
+            ->map(fn($file) => [
+                'name' => basename($file),
+                'last_modified' => date('Y-m-d H:i:s', Storage::disk('public')->lastModified($file)),
+            ])->toArray(); // Convert collection to array
+    
+        // Return the first file or null if no files found
+        return reset($files); // `reset()` retrieves the first value
+    }
+
+    private function getExportJobs($userID)
+    {
+        return DB::table('jobs')
+            ->where('payload', 'like', '%export_appraisal_reports_' . $userID . '%')
+            ->get();
     }
 
     public function detail(Request $request)
@@ -402,7 +504,7 @@ class AppraisalController extends Controller
                     $dataItem = new stdClass();
                     $dataItem->request = $request;
                     $dataItem->name = $request->name;
-                    $dataItem->goal = $request->goal;
+                    $dataItem->goal = $request->appraisal->goal;
                     $data[] = $dataItem;
                     
                     // Get appraisal form data for each record
@@ -416,8 +518,8 @@ class AppraisalController extends Controller
 
                     // Get goal form data for each record
                     $goalData = [];
-                    if ($request->goal && $request->goal->form_data) {
-                        $goalData = json_decode($request->goal->form_data, true);
+                    if ($request->appraisal->goal && $request->appraisal->goal->form_data) {
+                        $goalData = json_decode($request->appraisal->goal->form_data, true);
                         $goalDataCollection[] = $goalData;
                     }
                     
@@ -430,7 +532,7 @@ class AppraisalController extends Controller
 
                 $jobLevel = $employeeData->job_level;
 
-                $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $request->period)->first();
+                $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $datas->first()->period)->first();
                             
                 $weightageContent = json_decode($weightageData->form_data, true);
                 
@@ -530,7 +632,7 @@ class AppraisalController extends Controller
     
                 $jobLevel = $employeeData->job_level;
 
-                $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $request->period)->first();
+                $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $datas->first()->period)->first();
                             
                 $weightageContent = json_decode($weightageData->form_data, true);
 
@@ -602,7 +704,7 @@ class AppraisalController extends Controller
             }else{
 
                 $datasQuery = AppraisalContributor::with(['employee'])->where('id', $id);
-    
+
                 $datas = $datasQuery->get();
                 
                 $formattedData = $datas->map(function($item) {
@@ -613,28 +715,21 @@ class AppraisalController extends Controller
                     return $item;
                 });
     
-                $data = [];
-                foreach ($formattedData as $request) {
-                    $dataItem = new stdClass();
-                    $dataItem->request = $request;
-                    $dataItem->name = $request->name;
-                    $dataItem->goal = $request->goal;
-                    $data[] = $dataItem;
-                }
-    
-                $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->goal->form_data, true) : [];
+                $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->appraisal->goal->form_data, true) : [];
                 $appraisalData = $datas->isNotEmpty() ? json_decode($datas->first()->form_data, true) : [];
 
+                
+                
                 $appraisalData['contributor_type'] = $datas->first()->contributor_type;
-
+                
                 $appraisalData = array($appraisalData);
-    
+                
                 $employeeData = $datas->first()->employee;
-    
+                
                 // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
-
+                
                 $formGroupContent = $this->appService->formGroupAppraisal($datas->first()->employee_id, 'Appraisal Form');
-            
+                
                 if (!$formGroupContent) {
                     $appraisalForm = ['data' => ['formData' => []]];
                 } else {
@@ -643,10 +738,10 @@ class AppraisalController extends Controller
                 
                 $cultureData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
                 $leadershipData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
-    
+                
                 $jobLevel = $employeeData->job_level;
-
-                $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $request->period)->first();
+                
+                $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $datas->first()->period)->first();
                             
                 $weightageContent = json_decode($weightageData->form_data, true);
                 
@@ -727,16 +822,49 @@ class AppraisalController extends Controller
 
     public function exportAppraisalDetail(Request $request)
     {
+        // Increase the PHP memory limit
+        ini_set('memory_limit', '512M');
+    
         $data = $request->input('data'); // Retrieve the data sent by DataTable
         $headers = $request->input('headers'); // Dynamic headers from the request
+        $batchSize = $request->input('batchSize', 100);
         $userID = Auth()->user()->id;
+        
+        $directory = 'exports';
+        $temporary = 'temp';
+        $filePrefix = 'appraisal_details_' . $userID;
+        $tempFilePrefix = $userID . '_batch';
 
-        $job = ExportAppraisalDetails::dispatch($this->appService, $data, $headers, $userID);
+        // List all files in the directory
+        $files = Storage::disk('public')->files($directory);
+        $temporaryFiles = Storage::disk('public')->files($temporary);
+
+        // Find and delete files matching the prefix, regardless of their extension
+        foreach ($files as $file) {
+            $baseName = pathinfo($file, PATHINFO_FILENAME); // Extract the file name without extension
+            if ($baseName === $filePrefix) {
+                Storage::disk('public')->delete($file);
+                Log::info($userID . ' Old file deleted: ' . $file);
+            }
+        }
+
+        foreach ($temporaryFiles as $file) {
+            $baseName = pathinfo($file, PATHINFO_FILENAME); // Extract the file name without extension
+            if (strpos($baseName, $tempFilePrefix) !== false) { // Check if $filePrefix is contained in $baseName
+                Storage::disk('public')->delete($file);
+                Log::info($userID . ' Old temp file deleted: ' . $file);
+            }
+        }
+
+        $isZip = count($data) > $batchSize;
+
+        $job = ExportAppraisalDetails::dispatch($this->appService, $data, $headers, $userID, $batchSize, Auth()->user());
 
         // Log::info('Dispatched job:', ['job' => $job]);
 
         return response()->json([
             'message' => 'Export is being processed in the background.',
+            'isZip' => $isZip
             // 'message' => 'Your file is being processed, you will be notified when it is ready for download.',
         ]);
 
@@ -753,16 +881,40 @@ class AppraisalController extends Controller
     public function checkFileAvailability(Request $request)
     {
         $fileName = $request->input('file'); // Get the file name from the request
+
+        // Define the directory where files are stored
+        $directory = 'exports';
         
-        // Define the path where files are stored
-        $filePath = 'exports/' . $fileName;
+        // Get all files in the directory
+        $files = Storage::disk('public')->files($directory);
         
-        // Check if the file exists
-        if (Storage::disk('public')->exists($filePath)) {
-            return response()->json(['exists' => true, 'filePath' => $filePath]);
+        // Search for a file with the given base name (ignoring extension)
+        $matchingFile = collect($files)->first(function ($file) use ($fileName) {
+            return pathinfo($file, PATHINFO_FILENAME) === $fileName;
+        });
+        
+        // Check if a matching file was found
+        if ($matchingFile) {
+            return response()->json(['exists' => true, 'filePath' => $matchingFile]);
         } else {
             return response()->json(['exists' => false, 'message' => 'File not found.']);
         }
+        
+    }
+
+    public function checkJobAvailability(Request $request)
+    {
+        $user = $request->input('user'); // Get the file name from the request
+
+        $jobs = $this->getExportJobs($user);
+
+        // Check if a matching file was found
+        if ($jobs) {
+            return response()->json(['exists' => true, 'message' => 'Jobs found.']);
+        } else {
+            return response()->json(['exists' => false, 'message' => 'Jobs not found.']);
+        }
+        
     }
 
     /**

@@ -14,6 +14,7 @@ use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
@@ -209,18 +210,22 @@ class TeamGoalController extends Controller
     
     function create($id) {
 
-        $goal = Goal::where('employee_id', $id)->get(); 
-        
+        $period = $this->appService->goalPeriod();
+
+        $goal = Goal::where('employee_id', $id)->where('period', $period)->get();
         if ($goal->isNotEmpty()) {
             // User ID doesn't match the condition, show error message
-            Alert::error('You already initiated Goals.')->autoClose(2000);
-            return redirect()->back(); // Redirect back with error message
+            Session::flash('error', "You already initiated Goals for $period.");
+
+            return redirect('team-goals');
+
         }
 
-        $layer = ApprovalLayer::where('employee_id', $id)->where('layer', 1)->get();  
-        if (!$layer->first()) {
-            Alert::error("Cannot create goals", "Theres no direct manager assigned in your position!")->showConfirmButton('OK');
-            return redirect()->back();
+        $datas = ApprovalLayer::with(['employee'])->where('employee_id', $id)->where('layer', 1)->get();  
+        if (!$datas->first()) {
+            Session::flash('error', "Theres no direct manager assigned in your position!");
+
+            return redirect('team-goals');
         }
 
         $path = base_path('resources/goal.json');
@@ -236,9 +241,10 @@ class TeamGoalController extends Controller
 
         $uomOption = $uomOptions['UoM'];
         
-        $Link = __('Goal');
+        $parentLink = __('Goal');
+        $link = 'Create';
 
-        return view('pages.goals.form', compact('layer', 'link', 'uomOption'));
+        return view('pages.goals.form', compact('datas', 'link', 'parentLink', 'uomOption', 'period'));
 
     }
 
@@ -247,7 +253,12 @@ class TeamGoalController extends Controller
         $goals = Goal::with(['approvalRequest'])->where('id', $id)->get();
         $goal =  $goals->first();
 
-        $Link = __('Goal');
+        $approvalRequest = ApprovalRequest::with(['employee' => function($q) {
+            $q->select('id', 'fullname', 'employee_id', 'designation_name', 'job_level', 'group_company', 'unit');
+        }])->where('form_id', $goal->id)->first();
+
+        $parentLink = __('Goal');
+        $link = __('Edit');
 
         $path = base_path('resources/goal.json');
 
@@ -258,8 +269,7 @@ class TeamGoalController extends Controller
         }
 
         if(!$goal){
-            return redirect()->route('goals');
-            // $goal = Goal::where('id', $data->goal->id)->get();  
+            return redirect()->route('team-goals');
         }else{
             // Read the contents of the JSON file
             $formData = json_decode($goal->form_data, true);
@@ -272,15 +282,19 @@ class TeamGoalController extends Controller
 
             $selectedUoM = [];
             $selectedType = [];
+            $weigthage = [];
+            $totalWeightages = 0;
             
             foreach ($formData as $index => $row) {
                 $selectedUoM[$index] = $row['uom'] ?? '';
                 $selectedType[$index] = $row['type'] ?? '';
+                $weigthage[$index] = $row['weightage'] ?? '';
+                $totalWeightages += (int)$weigthage[$index];
             }
 
             $data = json_decode($goal->form_data, true);
-
-            return view('pages.goals.edit', compact('goal', 'formCount', 'link', 'data', 'uomOption', 'selectedUoM', 'typeOption', 'selectedType'));
+            
+            return view('pages.goals.edit', compact('goal', 'formCount', 'link', 'data', 'uomOption', 'selectedUoM', 'typeOption', 'selectedType', 'approvalRequest', 'totalWeightages', 'parentLink'));
         }
 
     }
@@ -320,7 +334,7 @@ class TeamGoalController extends Controller
         
         $formData = [];
         if($datas->isNotEmpty()){
-            $formData = json_decode($datas->first()->goal->form_data, true);
+            $formData = json_decode($datas->first()->appraisal->goal->form_data, true);
         }
 
         $path = base_path('resources/goal.json');
@@ -356,6 +370,7 @@ class TeamGoalController extends Controller
         $customMessages = [];
 
         $kpis = $request->input('kpi', []);
+        $descriptions = $request->input('description', []);
         $targets = $request->input('target', []);
         $uoms = $request->input('uom', []);
         $weightages = $request->input('weightage', []);
@@ -366,7 +381,8 @@ class TeamGoalController extends Controller
         // Menyiapkan aturan validasi
         $rules = [
             'kpi.*' => 'required|string',
-            'target.*' => 'required|string',
+            'description.*' => 'string',
+            'target.*' => 'required|numeric',
             'uom.*' => 'required|string',
             'weightage.*' => 'required|integer|min:5|max:100',
             'type.*' => 'required|string',
@@ -408,6 +424,7 @@ class TeamGoalController extends Controller
 
                 $kpiData[$index] = [
                     'kpi' => $kpi,
+                    'description' => $descriptions[$index],
                     'target' => $targets[$index],
                     'uom' => $uoms[$index],
                     'weightage' => $weightages[$index],
@@ -466,6 +483,7 @@ class TeamGoalController extends Controller
         $customMessages = [];
 
         $kpis = $request->input('kpi', []);
+        $descriptions = $request->input('description', []);
         $targets = $request->input('target', []);
         $uoms = $request->input('uom', []);
         $weightages = $request->input('weightage', []);
@@ -476,7 +494,8 @@ class TeamGoalController extends Controller
         // Menyiapkan aturan validasi
         $rules = [
             'kpi.*' => 'required|string',
-            'target.*' => 'required|string',
+            'description.*' => 'string',
+            'target.*' => 'required|numeric',
             'uom.*' => 'required|string',
             'weightage.*' => 'required|integer|min:5|max:100',
             'type.*' => 'required|string',
@@ -516,6 +535,7 @@ class TeamGoalController extends Controller
 
                 $kpiData[$index] = [
                     'kpi' => $kpi,
+                    'description' => $descriptions[$index],
                     'target' => $targets[$index],
                     'uom' => $uoms[$index],
                     'weightage' => $weightages[$index],

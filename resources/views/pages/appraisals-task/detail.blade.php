@@ -78,7 +78,7 @@
                         <div class="row">
                             <div class="col">
                                 <div class="mb-2 text-primary fw-semibold fs-16 {{ $formData['kpiScore'] ? '' : 'd-none'}}">
-                                    Total Score : {{ $formData['totalScore'] }}
+                                    Total Score : {{ round($formData['selfTotalScore'], 2) }}
                                 </div>
                             </div>
                         </div>
