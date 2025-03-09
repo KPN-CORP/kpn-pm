@@ -1,0 +1,160 @@
+{
+  "_jquery-BT3bhPE2.js": {
+    "file": "assets/jquery-BT3bhPE2.js",
+    "name": "jquery"
+  },
+  "public/images/bg-auth.jpg": {
+    "file": "assets/bg-auth-CZRtsHoG.jpg",
+    "src": "public/images/bg-auth.jpg"
+  },
+  "resources/css/nucleo-icons.css": {
+    "file": "assets/nucleo-icons-TmTXO36u.css",
+    "src": "resources/css/nucleo-icons.css",
+    "isEntry": true
+  },
+  "resources/css/nucleo-svg.css": {
+    "file": "assets/nucleo-svg-zkig0geZ.css",
+    "src": "resources/css/nucleo-svg.css",
+    "isEntry": true
+  },
+  "resources/css/perfect-scrollbar.css": {
+    "file": "assets/perfect-scrollbar-SvkcpJEK.css",
+    "src": "resources/css/perfect-scrollbar.css",
+    "isEntry": true
+  },
+  "resources/css/soft-ui-dashboard-tailwind.min.css": {
+    "file": "assets/soft-ui-dashboard-tailwind-G4ShmOP9.css",
+    "src": "resources/css/soft-ui-dashboard-tailwind.min.css",
+    "isEntry": true
+  },
+  "resources/fonts/bootstrap-icons.woff": {
+    "file": "assets/bootstrap-icons-D8ioIzQS.woff",
+    "src": "resources/fonts/bootstrap-icons.woff"
+  },
+  "resources/fonts/bootstrap-icons.woff2": {
+    "file": "assets/bootstrap-icons-Drp84nVS.woff2",
+    "src": "resources/fonts/bootstrap-icons.woff2"
+  },
+  "resources/fonts/nucleo-icons.eot": {
+    "file": "assets/nucleo-icons-BgnVbBvX.eot",
+    "src": "resources/fonts/nucleo-icons.eot"
+  },
+  "resources/fonts/nucleo-icons.svg": {
+    "file": "assets/nucleo-icons-C6OFysxg.svg",
+    "src": "resources/fonts/nucleo-icons.svg"
+  },
+  "resources/fonts/nucleo-icons.ttf": {
+    "file": "assets/nucleo-icons-kNTzvw2K.ttf",
+    "src": "resources/fonts/nucleo-icons.ttf"
+  },
+  "resources/fonts/nucleo-icons.woff": {
+    "file": "assets/nucleo-icons-BuEzPWOc.woff",
+    "src": "resources/fonts/nucleo-icons.woff"
+  },
+  "resources/fonts/nucleo-icons.woff2": {
+    "file": "assets/nucleo-icons-CTnIBWcu.woff2",
+    "src": "resources/fonts/nucleo-icons.woff2"
+  },
+  "resources/fonts/remixicon.eot": {
+    "file": "assets/remixicon-CsbJS0Nd.eot",
+    "src": "resources/fonts/remixicon.eot"
+  },
+  "resources/fonts/remixicon.svg": {
+    "file": "assets/remixicon-DV9onB9s.svg",
+    "src": "resources/fonts/remixicon.svg"
+  },
+  "resources/fonts/remixicon.ttf": {
+    "file": "assets/remixicon-DdzasgUs.ttf",
+    "src": "resources/fonts/remixicon.ttf"
+  },
+  "resources/fonts/remixicon.woff": {
+    "file": "assets/remixicon-2iUEOVAH.woff",
+    "src": "resources/fonts/remixicon.woff"
+  },
+  "resources/fonts/remixicon.woff2": {
+    "file": "assets/remixicon-BBTkVcFJ.woff2",
+    "src": "resources/fonts/remixicon.woff2"
+  },
+  "resources/js/app.js": {
+    "file": "assets/app-Caz4Rs9I.js",
+    "name": "app",
+    "src": "resources/js/app.js",
+    "isEntry": true,
+    "imports": [
+      "_jquery-BT3bhPE2.js"
+    ],
+    "css": [
+      "assets/app-B-UcSYg4.css"
+    ]
+  },
+  "resources/js/guide.js": {
+    "file": "assets/guide-96oRPA33.js",
+    "name": "guide",
+    "src": "resources/js/guide.js",
+    "isEntry": true,
+    "imports": [
+      "_jquery-BT3bhPE2.js"
+    ]
+  },
+  "resources/js/head.js": {
+    "file": "assets/head-DoQpomps.js",
+    "name": "head",
+    "src": "resources/js/head.js",
+    "isEntry": true
+  },
+  "resources/js/layout.js": {
+    "file": "assets/layout-De5pXFvi.js",
+    "name": "layout",
+    "src": "resources/js/layout.js",
+    "isEntry": true
+  },
+  "resources/js/pages/demo.form-wizard.js": {
+    "file": "assets/demo.form-wizard-CYyLlAJd.js",
+    "name": "demo.form-wizard",
+    "src": "resources/js/pages/demo.form-wizard.js",
+    "isEntry": true
+  },
+  "resources/js/plugins/perfect-scrollbar.min.js": {
+    "file": "assets/perfect-scrollbar.min-C8iGYwXP.js",
+    "name": "perfect-scrollbar.min",
+    "src": "resources/js/plugins/perfect-scrollbar.min.js",
+    "isEntry": true
+  },
+  "resources/js/popper.min.js": {
+    "file": "assets/popper.min-Hgmw4vEo.js",
+    "name": "popper.min",
+    "src": "resources/js/popper.min.js",
+    "isEntry": true
+  },
+  "resources/js/soft-ui-dashboard-tailwind.min.js": {
+    "file": "assets/soft-ui-dashboard-tailwind.min-CDan4zXt.js",
+    "name": "soft-ui-dashboard-tailwind.min",
+    "src": "resources/js/soft-ui-dashboard-tailwind.min.js",
+    "isEntry": true
+  },
+  "resources/js/team-goal.js": {
+    "file": "assets/team-goal-CteASkZw.js",
+    "name": "team-goal",
+    "src": "resources/js/team-goal.js",
+    "isEntry": true,
+    "imports": [
+      "_jquery-BT3bhPE2.js"
+    ]
+  },
+  "resources/js/tippy.min.js": {
+    "file": "assets/tippy.min-DL7Fija6.js",
+    "name": "tippy.min",
+    "src": "resources/js/tippy.min.js",
+    "isEntry": true
+  },
+  "resources/scss/app.scss": {
+    "file": "assets/app-Bg89N_-L.css",
+    "src": "resources/scss/app.scss",
+    "isEntry": true
+  },
+  "resources/scss/icons.scss": {
+    "file": "assets/icons-uStCfKcy.css",
+    "src": "resources/scss/icons.scss",
+    "isEntry": true
+  }
+}
