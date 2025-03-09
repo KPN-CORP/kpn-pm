@@ -31,7 +31,7 @@ deployment:
     - /bin/cp -r app bootstrap config database routes resources $DEPLOYPATH
 
     # Copy public assets to the public_html directory
-    - /bin/cp -r public/assets public/css public/img public/images public/js public/scss /home/hcis8257/public_html/kpnpm.hcis.dev
+    - /bin/cp -r public/css public/img public/images public/js public/scss /home/hcis8257/public_html/kpnpm.hcis.dev
 
     # Change directory to the deployment path
     # - cd $DEPLOYPATH
