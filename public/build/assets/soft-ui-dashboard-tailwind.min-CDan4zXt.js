@@ -1,0 +1,7 @@
+/*!
+
+=========================================================
+
+* The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+*/window.location.pathname.split("/").pop().split(".")[0];var n=window.location.pathname.split("/"),e=n.includes("pages")?"../":"./";window.location.pathname.split("/");function t(r,s){let a=document.createElement("script");a.setAttribute("src",r),a.setAttribute("type","text/javascript"),a.setAttribute("async",s),document.head.appendChild(a)}function o(r){let s=document.createElement("link");s.setAttribute("href",r),s.setAttribute("type","text/css"),s.setAttribute("rel","stylesheet"),document.head.appendChild(s)}n.includes("pages"),o(e+"assets/css/perfect-scrollbar.css"),t(e+"assets/js/perfect-scrollbar.js",!0),document.querySelector("nav [navbar-trigger]")&&t(e+"assets/js/navbar-collapse.js",!0),document.querySelector("[data-target='tooltip']")&&(t(e+"assets/js/tooltips.js",!0),o(e+"assets/css/tooltips.css")),document.querySelector("[nav-pills]")&&t(e+"assets/js/nav-pills.js",!0),document.querySelector("[dropdown-trigger]")&&t(e+"assets/js/dropdown.js",!0),document.querySelector("[fixed-plugin]")&&t(e+"assets/js/fixed-plugin.js",!0),document.querySelector("[navbar-main]")&&(t(e+"assets/js/sidenav-burger.js",!0),t(e+"assets/js/navbar-sticky.js",!0)),document.querySelector("canvas")&&(t(e+"assets/js/chart-1.js",!0),t(e+"assets/js/chart-2.js",!0));
