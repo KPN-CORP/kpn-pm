@@ -28,13 +28,13 @@ deployment:
     - export DEPLOYPATH=/home/hcis8257/kpn-pm
 
     # Copy essential Laravel application directories to deployment path
-    - /bin/cp -r app bootstrap config database routes resources $DEPLOYPATH
+    - /bin/cp -r app bootstrap config database routes resources public/build $DEPLOYPATH
 
     # Copy public assets to the public_html directory
     - /bin/cp -r public/css public/img public/images public/js public/scss /home/hcis8257/public_html/kpnpm.hcis.dev
 
     # Change directory to the deployment path
-    # - cd $DEPLOYPATH
+    - cd $DEPLOYPATH
 
     # Install production dependencies using Composer
     # - composer install --no-dev --optimize-autoloader
@@ -43,4 +43,4 @@ deployment:
     # - php artisan migrate --force
 
     # Clear Laravel application cache
-    # - php artisan optimize:clear
+    - php artisan optimize:clear
