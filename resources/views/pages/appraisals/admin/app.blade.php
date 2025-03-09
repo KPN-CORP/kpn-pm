@@ -44,6 +44,11 @@
         </div>
         <!-- Content Row -->
         <div class="row">
+            <div class="col">
+                <div class="d-md">
+                  <button class="input-group-text bg-white border-dark-subtle float-end mb-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight" id="filter" aria-controls="offcanvasRight"><i class="ri-filter-line me-1"></i>Filters</button>
+                </div>
+            </div>
           <div class="col-md-12">
             <div class="card shadow mb-4">
               <div class="card-body">
@@ -53,6 +58,7 @@
                             <th>No</th>
                             <th>Employee ID</th>
                             <th>Employee Name</th>
+                            <th class="d-none">Form ID</th>
                             <th class="d-none">Business Unit</th>
                             <th>M</th>
                             @foreach(['P1', 'P2', 'P3'] as $peers)
@@ -64,10 +70,8 @@
                             @foreach($layerHeaders as $calibrator)
                                 <th>{{ $calibrator }}</th>
                             @endforeach
-                            <th>Final Rating</th>
-                            @can('reportpadetail')                                
-                            <th class="sorting_1">Details</th>
-                            @endcan
+                            <th class="sorting_1">Final Rating</th>
+                            <th class="sorting_1 {{ auth()->user()->can('reportpadetail') ? '' : 'd-none' }}">Details</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -76,6 +80,7 @@
                             <td>{{ $index + 1 }}</td>
                             <td>{{ $employee['id'] }}</td>
                             <td>{{ $employee['name'] }} {{ $employee['accessPA'] ? ( $employee['appraisalStatus'] ? '' : '(Not Initiated)' ) : '(Not Eligible)' }}</td>
+                            <td class="d-none">{{ $employee['appraisalStatus'] ? $employee['appraisalStatus']['id'] : '' }}</td>
                             <td class="d-none">{{ $employee['groupCompany'] }}</td>
     
                             {{-- Manager Layers --}}
@@ -158,10 +163,10 @@
                                     data-id="{{ 
                                         $calibratorLayer 
                                             ? ($calibratorLayer['status'] 
-                                                ? 'Approved - ' . $calibratorLayer['approver_name'] . ' (' . $calibratorLayer['approver_id'] . ') ' . ($calibratorLayer['rating'] ?? '') 
-                                                : 'Pending - ' . $calibratorLayer['approver_name'] . ' (' . $calibratorLayer['approver_id'] . ') ' . ($calibratorLayer['rating'] ?? '')) 
+                                                ? 'Approved - ' . $calibratorLayer['approver_name'] . ' (' . $calibratorLayer['approver_id'] . ') ' . $calibratorLayer['rating'] ?? '' 
+                                                : 'Pending - ' . $calibratorLayer['approver_name'] . ' (' . $calibratorLayer['approver_id'] . ') ' . $calibratorLayer['rating'] ?? '') 
                                             : '-' 
-                                    }}"
+                                    }}"                                    
                                     >
                                     @if ($calibratorLayer)
                                         @if($calibratorLayer['status'])
@@ -174,16 +179,15 @@
                             @endforeach
                             
                             <td class="text-center">{{ $employee['finalScore'] }}</td>
-                            @can('reportpadetail')
-                            <td class="sorting_1 text-center">
-                                <!--count(collect($employee['approvalStatus'])->except('calibrator'))-->
-                                @if ($employee['appraisalStatus'] && count(collect($employee['approvalStatus'])) != 0)
-                                    <a href="{{ route('admin.appraisal.details', $employee['id']) }}" class="btn btn-sm btn-outline-info"><i class="ri-eye-line"></i></a>
-                                @else
-                                    <a class="btn btn-sm btn-outline-secondary" onclick="alert('no data appraisal or pending reviewer')"><i class="ri-eye-line"></i></a>
-                                @endif
+                            <td class="sorting_1 text-center {{ auth()->user()->can('reportpadetail') ? '' : 'd-none' }}">
+                                @can('reportpadetail')
+                                    @if ($employee['appraisalStatus'] && count(collect($employee['approvalStatus'])) != 0)
+                                        <a href="{{ route('admin.appraisal.details', $employee['id']) }}" class="btn btn-sm btn-outline-info"><i class="ri-eye-line"></i></a>
+                                    @else
+                                        <a class="btn btn-sm btn-outline-secondary" onclick="alert('no data appraisal or pending reviewer')"><i class="ri-eye-line"></i></a>
+                                    @endif
+                                @endcan
                             </td>
-                            @endcan
                         </tr>
                         @endforeach
                     </tbody>
@@ -192,11 +196,92 @@
             </div>
           </div>
       </div>
+
+    <div class="offcanvas offcanvas-end" tabindex="-1"  id="offcanvasRight" aria-labelledby="offcanvasRightLabel" aria-modal="false" role="dialog">
+        <div class="offcanvas-header">
+            <h5 id="offcanvasRightLabel">Filters</h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div> <!-- end offcanvas-header-->
+
+        <div class="offcanvas-body">
+          <form id="admin_appraisal_filter" action="{{ url('admin-appraisal') }}" method="GET">
+                <div class="row">
+                    <div class="col">
+                        <div class="mb-3">
+                            <label class="form-label" for="filter_year">{{ __('Year') }}</label>
+                            <select name="filter_year" id="filter_year" class="form-select">
+                                <option value="">{{ __('select all') }}</option>
+                                <option value="2024" {{ $filterInputs['filter_year'] == '2024' ? 'selected' : '' }}>2024</option>
+                                <option value="2025" {{ $filterInputs['filter_year'] == '2025' ? 'selected' : '' }}>2025</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="mb-3">
+                            <label class="form-label" for="group_company">Group Company</label>
+                            <select class="form-select select2" name="group_company" id="group_company">
+                                <option value="">- {{ __('select') }} -</option>
+                                @foreach ($groupCompanies as $item)
+                                    <option {{ $item->group_company == $filterInputs['group_company'] ? 'selected' : '' }} value="{{ $item->group_company }}">{{ $item->group_company }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="mb-3">
+                            <label class="form-label" for="company">Company</label>
+                            <select class="form-select select2" name="company[]" id="company" multiple>
+                                @foreach ($companies as $item)
+                                    <option {{ in_array($item->contribution_level_code, $filterInputs['company']) ? 'selected' : '' }} value="{{ $item->contribution_level_code }}">{{ $item->company_name .' ('.$item->contribution_level_code.')' }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="mb-3">
+                            <label class="form-label" for="location">Location</label>
+                            <select class="form-select select2" name="location[]" id="location" multiple>
+                                @foreach ($locations as $item)
+                                    <option {{ in_array($item->office_area, $filterInputs['location']) ? 'selected' : '' }} value="{{ $item->office_area }}">{{ $item->office_area }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col">
+                        <div class="mb-3">
+                            <label class="form-label" for="unit">Unit</label>
+                            <select class="form-select select2" name="unit[]" id="unit" multiple>
+                                @foreach ($units as $item)
+                                    <option {{ in_array($item->unit, $filterInputs['unit']) ? 'selected' : '' }} value="{{ $item->unit }}">{{ $item->unit }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+                </div>
+          </form>
+        </div> <!-- end offcanvas-body-->
+        <div class="offcanvas-footer p-3 text-end">
+          <button type="button" id="offcanvas-cancel" class="btn btn-outline-secondary me-2" data-bs-dismiss="offcanvas">{{ __('Cancel') }}</button>
+          <button type="submit" class="btn btn-primary" form="admin_appraisal_filter">Apply</button>
+        </div>
+    </div>
+
     </div>
 @endsection
 @push('scripts')
 <script>
     var employeesData = {!! json_encode($datas) !!};
-    var userID = {!! json_encode(auth()->user()->id) !!};
+    window.userID = {!! json_encode(auth()->user()->id) !!};
+    window.reportFile = {!! json_encode($reportFiles['name'] ?? null) !!};
+    window.reportFileDate = {!! json_encode($reportFiles['last_modified'] ?? null) !!};
+    window.jobs = {!! json_encode($jobs) !!};
 </script>
 @endpush

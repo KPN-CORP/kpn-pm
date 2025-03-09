@@ -8,6 +8,7 @@ use App\Models\ApprovalSnapshots;
 use App\Models\MasterWeightage;
 use App\Services\AppService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\ShouldAutoSize;
@@ -23,12 +24,14 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
     protected array $headers;
     protected AppService $appService;
     protected array $dynamicHeaders = [];
+    protected $user;
 
-    public function __construct(AppService $appService, array $data, array $headers)
+    public function __construct(AppService $appService, array $data, array $headers, $user)
     {
         $this->data = collect($data); // Convert array data to a collection
         $this->headers = $headers;
         $this->appService = $appService;
+        $this->user = $user;
     }
 
     public function collection(): Collection
@@ -113,7 +116,9 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             foreach ($formData['formData'] as $formGroup) {
                 $formName = $formGroup['formName'] ?? 'Unknown';
                 foreach ($formGroup as $index => $itemGroup) {
-                   
+                    // Log::info('Preprocessing data to temp table', [
+                    //     'data_preview' => $index, // Log only the first 10 rows
+                    // ]);
                     if (is_array($itemGroup)) {
                         if ($formName === 'Culture' || $formName === 'Leadership') {
                             $this->processFormGroup($formName, $itemGroup, $contributorRow);
@@ -207,6 +212,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             $appraisalForm = $formGroupContent;
         }
 
+        // culture & leadership BI items
         $cultureData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
         $leadershipData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
 
@@ -216,9 +222,18 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
         $weightageContent = json_decode($weightageData->form_data, true);
 
-        $result = $this->appService->appraisalSummary($weightageContent, $appraisalData, $employeeData->employee_id, $jobLevel);
+        if ($this->user->hasRole('superadmin')) {
+            // for non percentage by 360 data BI items
+            $result = $this->appService->appraisalSummaryWithout360Calculation($weightageContent, $appraisalData, $employeeData->employee_id, $jobLevel);
+        } else {
+            $result = $this->appService->appraisalSummary($weightageContent, $appraisalData, $employeeData->employee_id, $jobLevel);
+        }
 
         $formData = $this->appService->combineFormData($result['calculated_data'][0], $goalData, $contributor->contributor_type, $employeeData, $contributor->period);
+
+        Log::info('Debug Export Data', [
+            'data' => $this->user, // Log only the first 10 rows
+        ]);
 
         foreach ($formData['formData'] as &$form) {
             if ($form['formName'] === 'Culture') {
@@ -256,15 +271,10 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
     {
         $datas = Appraisal::with([
             'employee',
-            'goal',
             'approvalSnapshots' => function ($query) {
                 $query->orderBy('created_at', 'desc');
             }
         ])->where('id', $contributor->appraisal_id)->get();
-
-        if(!$datas->first()->approvalSnapshots){
-            Log::info('error on' . $datas->first()->employee_id);
-        }
 
         $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->goal->form_data, true) : [];
         $appraisalData = $datas->isNotEmpty() ? json_decode($datas->first()->approvalSnapshots->form_data, true) : [];
@@ -294,7 +304,12 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
         $weightageContent = json_decode($weightageData->form_data, true);
 
-        $result = $this->appService->appraisalSummary($weightageContent, $appraisalData, $employeeData->employee_id, $jobLevel);
+        if ($this->user->hasRole('superadmin')) {
+            // for non percentage by 360 data BI items
+            $result = $this->appService->appraisalSummaryWithout360Calculation($weightageContent, $appraisalData, $employeeData->employee_id, $jobLevel);
+        } else {
+            $result = $this->appService->appraisalSummary($weightageContent, $appraisalData, $employeeData->employee_id, $jobLevel);
+        }
 
         $formData = $this->appService->combineFormData($result['calculated_data'][0], $goalData, 'employee', $employeeData, $datas->first()->period);
 
@@ -402,7 +417,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             $dataItem = new stdClass();
             $dataItem->request = $request;
             $dataItem->name = $request->name;
-            $dataItem->goal = $request->goal;
+            $dataItem->goal = $request->appraisal->goal;
             $data[] = $dataItem;
 
             // Get appraisal form data for each record
@@ -416,8 +431,8 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
             // Get goal form data for each record
             $goalData = [];
-            if ($request->goal && $request->goal->form_data) {
-                $goalData = json_decode($request->goal->form_data, true);
+            if ($request->appraisal->goal && $request->appraisal->goal->form_data) {
+                $goalData = json_decode($request->appraisal->goal->form_data, true);
                 $goalDataCollection[] = $goalData;
             }
 
@@ -554,6 +569,6 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
     public function chunkSize(): int
     {
-        return 100; // Adjust based on your data size
+        return 1000; // Adjust based on your data size
     }
 }

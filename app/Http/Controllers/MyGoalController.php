@@ -115,7 +115,7 @@ class MyGoalController extends Controller
         
         foreach ($formattedData as $request) {
             // Check form status and creator
-            // if ($request->goal->form_status != 'Draft' || $request->created_by == Auth::user()->id) {
+            // if ($request->appraisal->goal->form_status != 'Draft' || $request->created_by == Auth::user()->id) {
                 // Get fullname from approverName relation
                 $dataApprover = '';
                 if ($request->approval->first()) {
@@ -160,6 +160,8 @@ class MyGoalController extends Controller
             $req->year = Carbon::parse($req->created_at)->format('Y');
             return $req;
         });
+
+        // dd($data)
     
         return view('pages.goals.my-goal', compact('data', 'link', 'parentLink', 'uomOption', 'typeOption', 'goals', 'selectYear', 'adjustByManager'));
     }
@@ -284,6 +286,7 @@ class MyGoalController extends Controller
         $customMessages = [];
 
         $kpis = $request->input('kpi', []);
+        $descriptions = $request->input('description', []);
         $targets = $request->input('target', []);
         $uoms = $request->input('uom', []);
         $weightages = $request->input('weightage', []);
@@ -294,7 +297,8 @@ class MyGoalController extends Controller
         // Menyiapkan aturan validasi
         $rules = [
             'kpi.*' => 'required|string',
-            'target.*' => 'required|string',
+            'descriptions.*' => 'string',
+            'target.*' => 'required|numeric',
             'uom.*' => 'required|string',
             'weightage.*' => 'required|integer|min:5|max:100',
             'type.*' => 'required|string',
@@ -347,6 +351,7 @@ class MyGoalController extends Controller
 
                 $kpiData[$index] = [
                     'kpi' => $kpi,
+                    'description' => $descriptions[$index],
                     'target' => $targets[$index],
                     'uom' => $uoms[$index],
                     'weightage' => $weightages[$index],
@@ -410,6 +415,7 @@ class MyGoalController extends Controller
         $customMessages = [];
 
         $kpis = $request->input('kpi', []);
+        $descriptions = $request->input('description', []);
         $targets = $request->input('target', []);
         $uoms = $request->input('uom', []);
         $weightages = $request->input('weightage', []);
@@ -420,7 +426,8 @@ class MyGoalController extends Controller
         // Menyiapkan aturan validasi
         $rules = [
             'kpi.*' => 'required|string',
-            'target.*' => 'required|string',
+            'description.*' => 'string',
+            'target.*' => 'required|numeric',
             'uom.*' => 'required|string',
             'weightage.*' => 'required|integer|min:5|max:100',
             'type.*' => 'required|string',
@@ -460,6 +467,7 @@ class MyGoalController extends Controller
 
                 $kpiData[$index] = [
                     'kpi' => $kpi,
+                    'description' => $descriptions[$index],
                     'target' => $targets[$index],
                     'uom' => $uoms[$index],
                     'weightage' => $weightages[$index],

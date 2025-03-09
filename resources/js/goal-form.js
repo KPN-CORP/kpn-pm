@@ -104,8 +104,18 @@ document.addEventListener("DOMContentLoaded", function () {
                     "</h5></div>" +
                     "<div class='col-auto'><a class='btn-close btn-sm remove_field' type='button'></a></div></div>" +
                     '<div class="row mt-2">' +
-                    '<div class="col-md mb-3">' +
-                    '<textarea name="kpi[]" id="kpi" class="form-control" placeholder="input your goals.." required style="height: 100px"></textarea>' +
+                    '<div class="col-md">' +
+                    '<div class="mb-3 position-relative">' +
+                    '<textarea name="kpi[]" id="kpi" class="form-control overflow-hidden kpi-textarea" placeholder="input your goals.." required style="padding-right: 40px; resize: none"></textarea>'+
+                    "</div>" +
+                    "</div>" +
+                    "</div>" +
+                    '<div class="row">  ' +
+                    '<div class="col-md">' +
+                    '<label class="form-label text-primary" for="kpi-description">Goal Descriptions</label>' +
+                    '<div class="mb-3 position-relative">' +
+                    '<textarea name="description[]" id="kpi-description" class="form-control overflow-hidden kpi-descriptions" rows="2" placeholder="Input goal descriptions.." required style="padding-right: 40px; resize: none"></textarea>' +
+                    "</div>" +
                     "</div>" +
                     "</div>" +
                     '<div class="row">' +
@@ -153,6 +163,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     "</div>"
             );
              // add input box
+             // Reinitialize auto-resize and character counter for new textareas
+            initializeTextareaEvents();
 
             // Populate UoM select for the newly added field
             var newSelect = $("#uom" + index); // Assuming your select has an ID like "uom1", "uom2", ...
@@ -280,8 +292,8 @@ function validate(submitType) {
 
     if (sum != 100 && submitType === "submit_form") {
         Swal.fire({
-            title: "Submit failed",
-            html: `${errorConfirmWeightageMessages1} ${sum}%, <br>${errorConfirmWeightageMessages2}`,
+            title: "Submission failed",
+            html: `Your current weightage is ${sum}%, <br>Please adjust to reach the total weightage of 100%`,
             confirmButtonColor: "#3e60d5",
             icon: "error",
             // If confirmed, proceed with form submission
@@ -355,10 +367,10 @@ function confirmSubmission(submitType) {
         text = "Your data will be saved as draft";
         confirmText = "Save";
     } else {
-        title1 = `${confirmTitle}`;
+        title1 = "Do you want to submit?";
         title2 = "KPI submitted successfuly!";
         text =
-            `${confirmMessages}`;
+            "You can still change it as long as the manager hasn't approved it yet";
         confirmText = "Submit";
     }
 
@@ -458,3 +470,48 @@ function validateDigits(input, index) {
 }
 
 window.validateDigits = validateDigits;
+
+function initializeTextareaEvents() {
+    const textareas = document.querySelectorAll(".kpi-textarea, .kpi-descriptions");
+
+    textareas.forEach(textarea => {
+        const counter = document.createElement("small");
+        counter.classList.add("text-muted",  "position-absolute", "bottom-0", "end-0", "pe-1", "char-counter");
+        counter.textContent = "0/1000";
+
+        textarea.parentNode.appendChild(counter); // Tambahkan counter ke parent div
+
+        function updateCounter() {
+            counter.textContent = textarea.value.length + "/1000";
+        }
+
+        textarea.addEventListener("input", function () {
+            if (this.value.length > 1000) {
+                this.value = this.value.substring(0, 1000); // Batasi ke 1000 karakter
+            }
+            updateCounter();
+        });
+
+        updateCounter(); // Setel jumlah karakter awal
+
+        function adjustHeight() {
+            textarea.style.height = "auto"; // Reset tinggi dulu
+            textarea.style.height = textarea.scrollHeight + "px"; // Sesuaikan tinggi dengan konten tanpa batas
+        }
+
+        textarea.addEventListener("input", function () {
+            if (this.value.length > 1000) {
+                this.value = this.value.substring(0, 1000); // Batasi ke 1000 karakter
+            }
+            adjustHeight();
+        });
+
+        window.addEventListener("resize", adjustHeight); // Sesuaikan saat layar berubah ukuran
+
+        // Setel tinggi awal
+        adjustHeight();
+    });
+};
+
+// Run initialization when page loads
+document.addEventListener("DOMContentLoaded", initializeTextareaEvents);

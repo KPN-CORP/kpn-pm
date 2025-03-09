@@ -2,7 +2,7 @@
     <div class="modal-dialog modal-dialog-centered modal-xl mt-2" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                  <h4 class="modal-title h4" id="viewFormEmployeeLabel">Goal Details</h4>
+                  <h4 class="modal-title h4" id="viewFormEmployeeLabel">Goal's</h4>
                   <button type="button" class="btn-close mr-3" data-bs-dismiss="modal" aria-label="Close"></button>
               <div class="input-group-md">
                   <input type="text" id="employee_name" class="form-control" placeholder="Search employee.." hidden>
@@ -21,26 +21,25 @@
                     @endphp
                     @if ($formData)
                     @foreach ($formData as $index => $data)
-                        <div class="card col-md-12 shadow-sm">
+                        <div class="card col-md-12 mb-4 shadow-sm">
                             <div class="card-header bg-white pb-0">
-                                <h5>Goals {{ $index + 1 }}</h5>
+                                <h4>KPI {{ $index + 1 }}</h4>
                             </div>
-                            <div class="card-body pt-0">
+                            <div class="card-body">
                                 <div class="row">
-                                    <div class="col-md mb-3">
+                                    <div class="col-lg-5 mb-3">
                                         <div class="form-group">
+                                            <label class="form-label" for="kpi">KPI</label>
                                             <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['kpi'] }}</p>
                                         </div>
                                     </div>
-                                </div>
-                                <div class="row">
-                                    <div class="col-md">
+                                    <div class="col-lg-2 mb-3">
                                         <div class="form-group">
                                             <label class="form-label" for="target">Target in {{ $data['uom'] }}</label>
                                             <input type="text" value="{{ $data['target'] }}" class="form-control bg-gray-100" readonly>
                                         </div>
                                     </div>
-                                    <div class="col-md">
+                                    <div class="col-lg-2 mb-3">
                                         <div class="form-group">
                                             <label class="form-label" for="weightage">{{ __('Weightage') }}</label>
                                             <div class="input-group">
@@ -55,7 +54,7 @@
                                             @endif
                                         </div>
                                     </div>
-                                    <div class="col-md">
+                                    <div class="col-lg-2 mb-3">
                                         <div class="form-group">
                                             <label class="form-label" for="type">{{ __('Type') }}</label>
                                             <input type="text" value="{{ $data['type'] }}" class="form-control bg-gray-100" readonly>

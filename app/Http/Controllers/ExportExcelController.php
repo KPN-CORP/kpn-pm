@@ -100,11 +100,14 @@ class ExportExcelController extends Controller
     public function initiated(Request $request) 
     {
         $employee_id = $request->employee_id;
-        $filterYear = $request->filterYear;
 
-        $data = new InitiatedExport($employee_id, $filterYear);
-        return Excel::download($data, 'myteam_goals_task.xlsx');
+        $data = new InitiatedExport($employee_id);
+        return Excel::download($data, 'employee_initiated_goals.xlsx');
 
     }
 
+    public function exportreportemp() 
+    {
+        return Excel::download(new EmployeeDetailExport, 'employees_detail.xlsx');
+    }
 }

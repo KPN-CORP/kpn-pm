@@ -136,7 +136,6 @@ class EmployeePAController extends Controller
         try{
 
         if ($employees->exists()) {
-            $employees->update(['deleted_by' => $userId]);
             $employees->delete();
         }
             return response()->json(['success' => true, 'message' => 'Employee terminated successfully.']);

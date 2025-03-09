@@ -43,7 +43,7 @@
                     <h3 class="card-title"></h3>
                 </div>
                   <div class="table-responsive">
-                      <table class="table table-hover dt-responsive nowrap activate-select" id="scheduleTable" width="100%" cellspacing="0">
+                      <table class="table table-hover activate-select dt-responsive nowrap" id="scheduleTable" width="100%" cellspacing="0">
                           <thead class="thead-light">
                               <tr class="text-center">
                                   <th>No</th>

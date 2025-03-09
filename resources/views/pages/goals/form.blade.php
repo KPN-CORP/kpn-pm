@@ -20,7 +20,7 @@
         <div class="row">
             <div class="col-12">
                 <div class="card shadow-sm">
-                    <div class="card-body">
+                    <div class="card-body p-2 pb-0">
                         <div class="row">
                             <div class="col-md">
                                 <div class="row">
@@ -88,8 +88,16 @@
                               <h5 class="card-title fs-16 text-primary">Goal {{ $index + 1 }}</h5>
                               <div class="row">
                                 <div class="col-md">
-                                    <div class="mb-3">
-                                        <textarea name="kpi[]" id="kpi" class="form-control" placeholder="input your goals.." required @style('height: 100px')>{{ old('kpi.0') }}</textarea>
+                                    <div class="mb-3 position-relative">
+                                        <textarea name="kpi[]" id="kpi" class="form-control overflow-hidden kpi-textarea pb-2 pe-3" rows="2" placeholder="Input your goals.." required style="resize: none">{{ old('kpi.0') }}</textarea>
+                                    </div>
+                                </div>
+                              </div>
+                              <div class="row">
+                                <div class="col-md">
+                                    <div class="mb-3 position-relative">
+                                        <label class="form-label text-primary" for="kpi-description">Goal Descriptions</label>
+                                        <textarea name="description[]" id="kpi-description" class="form-control overflow-hidden kpi-descriptions pb-2 pe-3" rows="2" placeholder="Input goal descriptions.." required style="resize: none">{{ old('description.0') }}</textarea>
                                     </div>
                                 </div>
                               </div>

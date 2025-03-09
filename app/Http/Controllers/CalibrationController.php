@@ -19,7 +19,7 @@ class CalibrationController extends Controller
         $parentLink = 'Settings';
         $link = 'Calibration';
         // $ratings = Rating::orderBy('created_at', 'desc')->get();
-        // $calibrations = MasterCalibration::with('createdBy')->orderBy('created_at', 'desc')->get();
+        $calibrations = MasterCalibration::with('createdBy')->orderBy('created_at', 'desc')->get();
         $calibrations = MasterCalibration::select(
             'id_calibration_group',
             'master_calibrations.name as name',

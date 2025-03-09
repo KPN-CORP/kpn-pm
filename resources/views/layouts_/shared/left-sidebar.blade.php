@@ -38,26 +38,6 @@
         <ul class="side-nav">
 
             <li class="side-nav-title">Navigation</li>
-
-            @if (auth()->user()->hasRole('superadmin'))
-            {{-- <li class="side-nav-item">
-                <a data-bs-toggle="collapse" href="#sidebarDashboards" aria-expanded="false" aria-controls="sidebarDashboards" class="side-nav-link">
-                    <i class="ri-home-4-line"></i>
-                    <span> Dashboards </span>
-                    <span class="menu-arrow"></span>
-                </a>
-                <div class="collapse" id="sidebarDashboards">
-                    <ul class="side-nav-second-level">
-                        <li>
-                            <a href="{{ route('dashboard') }}">Analytics</a>
-                        </li>
-                        <li>
-                            <a href="{{ route('dashboard.team') }}">My Team</a>
-                        </li>
-                    </ul>
-                </div>
-            </li> --}}
-            @endif
             <li class="side-nav-item">
                 <a data-bs-toggle="collapse" href="#sidebarGoals" aria-expanded="false" aria-controls="sidebarGoals" class="side-nav-link">
                     <i class="ri-focus-2-line"></i>
@@ -100,9 +80,9 @@
                         </ul>
                     </div>
                 </li>
-                @if(auth()->user()->isCalibrator() && auth()->user()->kpiUnits() && !auth()->user()->isCement())
+                @if(auth()->user()->isCalibrator() && auth()->user()->kpiUnits())
                 <li class="side-nav-item">
-                    <a href="{{ route('rating') }}" class="side-nav-link">
+                    <a href="{{ route('rating') }}" onclick="showLoader()" class="side-nav-link">
                         <i class="ri-star-line"></i>
                         <span> Rating </span>
                     </a>
@@ -120,7 +100,7 @@
             <li class="side-nav-item">
                 <a href="{{ url('/guides') }}" class="side-nav-link">
                     <i class="ri-file-text-line"></i>
-                    <span>{{ __('Guide') }}</span>
+                    <span> User Guide </span>
                 </a>
             </li>
 
@@ -209,11 +189,11 @@
                     <div class="collapse" id="sidebarReports">
                         <ul class="side-nav-second-level">
                             <li>
-                                <a href="{{ route('admin.reports') }}">{{ __('Report') }}</a>
+                                <a href="{{ route('admin.reports') }}" onclick="showLoader()">{{ __('Report') }}</a>
                             </li>
                             @can('reportpa')
                             <li>
-                                <a href="{{ route('admin.appraisal') }}">{{ __('Appraisal') }}</a>
+                                <a href="{{ route('admin.appraisal') }}" onclick="showLoader()">{{ __('Appraisal') }}</a>
                             </li>
                             @endcan
                             {{-- @can('employeepa')

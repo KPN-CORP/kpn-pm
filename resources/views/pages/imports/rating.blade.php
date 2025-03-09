@@ -73,7 +73,7 @@
                                         </a>
                                     </td>
                                     <td class="text-end">
-                                        <a href="javascript:void(0)" data-bs-custom-class="primary-popover" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-title="Description" data-bs-content="{{ $row->desc }}"><i class="ri-more-2-fill"></i></a>
+                                        <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-title="Description" data-bs-content="{{ $row->desc }}"><i class="ri-more-2-fill"></i></a>
                                     </td>
                               </tr>
                               @endforeach

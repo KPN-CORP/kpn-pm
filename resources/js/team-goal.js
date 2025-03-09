@@ -31,7 +31,7 @@ $(document).ready(function () {
         }).then((result) => {
             if (result.isConfirmed) {
                 // Redirect to the form using the index for the employee
-                window.location.href = `/goals/form/${employeeId}`;
+                window.location.href = `/team-goals/form/${employeeId}`;
             }
         });
     });

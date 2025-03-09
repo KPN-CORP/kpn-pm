@@ -20,7 +20,7 @@
         <div class="row">
             <div class="col-12">
                 <div class="card shadow-sm">
-                    <div class="card-body">
+                    <div class="card-body p-2 pb-0">
                         <div class="row">
                             <div class="col-md">
                                 <div class="row">
@@ -91,10 +91,18 @@
                                       </div>
                                       <div class="row mt-2">
                                           <div class="col-md">
-                                              <div class="mb-3">
-                                                  <textarea name="kpi[]" id="kpi" class="form-control" placeholder="input your goals.." required @style('height: 100px')>{{ $data['kpi'] }}</textarea>
+                                              <div class="mb-3 position-relative">
+                                                <textarea name="kpi[]" id="kpi" class="form-control overflow-hidden kpi-textarea pb-2 pe-3" rows="2" placeholder="Input your goals.." readonly style="resize: none">{{ $data['kpi'] }}</textarea>
                                               </div>
                                           </div>
+                                      </div>
+                                      <div class="row">
+                                        <div class="col-md">
+                                            <div class="mb-3 position-relative">
+                                                <label class="form-label text-primary" for="kpi-description">Goal Descriptions</label>
+                                                <textarea name="description[]" id="kpi-description" class="form-control overflow-hidden kpi-descriptions pb-2 pe-3" rows="2" placeholder="Input goal descriptions.." style="resize: none" readonly>{{ $data['description'] }}</textarea>
+                                            </div>
+                                        </div>
                                       </div>
                                       <div class="row justify-content-between">
                                           <div class="col-md">

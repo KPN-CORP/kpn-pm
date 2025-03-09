@@ -65,5 +65,6 @@
     "Confirm Title": "Apakah Anda ingin mengirimkan data?",
     "Confirm Messages": "Anda masih bisa mengubahnya selama manajer anda belum menyetujuinya.",
     "Error Confirm Weightage Messages_1": "Bobot saat ini",
-    "Error Confirm Weightage Messages_2": "Silakan sesuaikan untuk mencapai total bobot 100%."
+    "Error Confirm Weightage Messages_2": "Silakan sesuaikan untuk mencapai total bobot 100%.",
+    "Description": "Deskripsi"
 }
