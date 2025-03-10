@@ -74,6 +74,7 @@
                                         @if($schedule->event_type == 'goals'){{ 'Goal Setting' }}
                                         @elseif($schedule->event_type == 'schedulepa'){{ 'PA '.$schedule->schedule_periode }}
                                         @elseif($schedule->event_type == 'masterschedulepa'){{ 'Master PA '.$schedule->schedule_periode }}
+                                        @elseif($schedule->event_type == 'masterschedulegoals'){{ 'Master Goal Settings '.$schedule->schedule_periode }}
                                         @endif
                                     </td>
                                     <td>{{ $schedule->start_date }}</td>
@@ -96,7 +97,11 @@
                                                     <a href="{{ route('edit-schedule', \Crypt::encrypt($schedule->id)) }}" class="btn btn-sm btn-outline-warning" title="Edit"><i class="ri-edit-box-line"></i></a>
                                                     {{-- <a class="btn btn-sm btn-danger" title="Delete" onclick="handleDelete(this)" data-id="{{ $schedule->id }}"><i class="ri-delete-bin-line"></i></a> --}}
                                                     <a class="btn btn-sm btn-danger" title="Delete" onclick="confirmDelete({{ $schedule->id }})" data-id="{{ $schedule->id }}"><i class="ri-delete-bin-line"></i></a>
-
+                                                @endif
+                                            @elseif($schedule->event_type == 'goals')
+                                                @if($schedulemastergoals && $schedulegoals->contains($schedule->id))
+                                                    <a href="{{ route('edit-schedule', \Crypt::encrypt($schedule->id)) }}" class="btn btn-sm btn-outline-warning" title="Edit"><i class="ri-edit-box-line"></i></a>
+                                                    <a class="btn btn-sm btn-danger" title="Delete" onclick="confirmDelete({{ $schedule->id }})" data-id="{{ $schedule->id }}"><i class="ri-delete-bin-line"></i></a>
                                                 @endif
                                             @else
                                                 <a href="{{ route('edit-schedule', \Crypt::encrypt($schedule->id)) }}" class="btn btn-sm btn-outline-warning" title="Edit"><i class="ri-edit-box-line"></i></a>
