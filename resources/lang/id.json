@@ -67,5 +67,7 @@
     "Error Confirm Weightage Messages_1": "Bobot saat ini",
     "Error Confirm Weightage Messages_2": "Silakan sesuaikan untuk mencapai total bobot 100%.",
     "Description": "Deskripsi",
-    "This field is mandatory": "Kolom wajib diisi"
+    "This field is mandatory": "Kolom wajib diisi",
+    "Approval": "Persetujuan",
+    "Not Initiated": "Belum Mengajukan"
 }

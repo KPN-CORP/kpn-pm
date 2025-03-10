@@ -9,7 +9,7 @@
                 <ul class="nav nav-pills my-3 justify-content-md-start justify-content-center" id="myTab" role="tablist">
                     <li class="nav-item">
                       <button class="btn btn-outline-primary position-relative active me-2" id="initiated-tab" data-bs-toggle="tab" data-bs-target="#initiated" type="button" role="tab" aria-controls="initiated" aria-selected="true">
-                        {{ __('Initiated') }}
+                        {{ __('Approval') }}
                         <span class="position-absolute top-0 start-100 translate-middle badge bg-danger {{ $notificationGoal ? '' : 'd-none' }}">
                             {{ $notificationGoal }}
                         </span>
