@@ -67,5 +67,7 @@
     "Error Confirm Weightage Messages_1": "Your current weightage is",
     "Error Confirm Weightage Messages_2": "Please adjust to reach the total weightage of 100%.",
     "Description": "Description",
-    "This field is mandatory": "This field is mandatory"
+    "This field is mandatory": "This field is mandatory",
+    "Approval": "Approval",
+    "Not Initiated": "Not Initiated"
 }
