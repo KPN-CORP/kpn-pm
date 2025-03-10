@@ -160,8 +160,6 @@ class MyGoalController extends Controller
             $req->year = Carbon::parse($req->created_at)->format('Y');
             return $req;
         });
-
-        // dd($data)
     
         return view('pages.goals.my-goal', compact('data', 'link', 'parentLink', 'uomOption', 'typeOption', 'goals', 'selectYear', 'adjustByManager'));
     }
