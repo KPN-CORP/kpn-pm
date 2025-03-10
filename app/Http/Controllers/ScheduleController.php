@@ -59,12 +59,17 @@ class ScheduleController extends Controller
                             ->whereDate('end_date', '>=', $today)
                             ->orderBy('created_at')
                             ->first();
-        $schedulegoals = schedule::where('event_type','goals')
-                            ->whereDate('start_date', '>=', $schedulemastergoals->start_date)
-                            ->whereDate('end_date', '<=', $schedulemastergoals->end_date)
-                            ->where('created_by', $userId)
-                            ->orderBy('created_at')
-                            ->pluck('id');
+        $schedulegoals = collect([]); // Default: koleksi kosong jika $schedulemastergoals null
+
+        if ($schedulemastergoals) {
+            $schedulegoals = schedule::where('event_type', 'goals')
+                ->whereDate('start_date', '>=', $schedulemastergoals->start_date)
+                ->whereDate('end_date', '<=', $schedulemastergoals->end_date)
+                ->where('created_by', $userId)
+                ->orderBy('created_at')
+                ->pluck('id');
+        }
+        
         //buat validasi agar schedule goals yg bisa di edit hanya goals yg memiliki waktu $schedulemastergoals
                             
         return view('pages.schedules.schedule', [
@@ -520,7 +525,22 @@ class ScheduleController extends Controller
             }
 
             app()->make(PermissionRegistrar::class)->forgetCachedPermissions();
-        } else {
+        } else if ($schedule->event_type == "masterschedulegoals") {
+            // Handle master schedule deletion
+            $idpermissions = Permission::where('name', 'goals')->first();
+            $idschedulegoals = $idpermissions->id;
+
+            $idroles = RoleHasPermission::where('permission_id', '6')
+                                        ->whereNotIn('role_id', ['1', '8'])->get();
+
+            foreach ($idroles as $idrole) {
+                RoleHasPermission::where('role_id', $idrole->role_id)
+                                ->where('permission_id', $idschedulegoals)
+                                ->delete();
+            }
+
+            app()->make(PermissionRegistrar::class)->forgetCachedPermissions();
+        }else {
             if ($schedule->start_date <= $today && $schedule->end_date >= $today) {
                 $query = Employee::query();
                 $querypa = EmployeeAppraisal::query();
