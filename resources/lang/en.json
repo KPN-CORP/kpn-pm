@@ -43,7 +43,7 @@
     "Enter Achievement": "Enter achievement",
     "Empty Messages": "This field is required.",
     "Error Messages": "Please fill in the required fields below before submitting.",
-    "Error Alert Messages": "Please fill out all empty fields!",
+    "Error Alert Messages": "Please fill out all mandatory fields!",
     "Close": "Close",
     "Initiate Appraisal": "Initiate Appraisal",
     "Send Back": "Send Back",
