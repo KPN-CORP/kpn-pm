@@ -77,14 +77,14 @@
                 <div class="dropdown-menu dropdown-menu-end dropdown-menu-animated">
                     <!-- English Option -->
                     <a href="{{ route('language.switch', ['locale' => 'en']) }}" 
-                       class="dropdown-item {{ $lang === 'en' ? 'd-none' : '' }}">
+                       class="dropdown-item {{ $lang === 'en' ? 'd-none' : '' }}" onclick="showLoader()">
                         <img src="{{ asset('storage/img/flags/en.jpg') }}" alt="English" class="me-1" height="12">
                         <span class="align-middle">English</span>
                     </a>
                 
                     <!-- Bahasa Option -->
                     <a href="{{ route('language.switch', ['locale' => 'id']) }}"
-                       class="dropdown-item {{ $lang === 'id' ? 'd-none' : '' }}">
+                       class="dropdown-item {{ $lang === 'id' ? 'd-none' : '' }}" onclick="showLoader()">
                         <img src="{{ asset('storage/img/flags/id.jpg') }}" alt="Bahasa" class="me-1" height="12">
                         <span class="align-middle">Bahasa</span>
                     </a>
