@@ -24,16 +24,24 @@
                                 </div>
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label" for="type">Event Type </label>
-                                    <select name="event_type" id="event_type" class="form-select" onchange="toggleMaster()">
-                                        <option value="goals">Goals</option>
+                                    <select name="event_type" id="event_type" class="form-select" onchange="toggleMaster()" required>
+                                        <option value="">-</option>
                                         @if(auth()->check())
                                             @can('schedulepa')
                                                 @if($schedulemasterpa)
                                                     <option value="schedulepa">Schedule PA</option>
                                                 @endif
-                                            @endcan     
+                                            @endcan
+                                            @can('goals')
+                                                @if($schedulemastergoals)
+                                                    <option value="goals">Schedule Goals</option>
+                                                @endif
+                                            @endcan
                                             @can('masterschedulepa')
                                                 <option value="masterschedulepa">Master Schedule PA</option>
+                                            @endcan
+                                            @can('masterschedulegoals')
+                                                <option value="masterschedulegoals">Master Schedule Goals</option>
                                             @endcan
                                         @endif
                                     </select>
@@ -45,7 +53,7 @@
                                         <label class="form-label" for="type">Schedule Periode</label>
                                         <select name="schedule_periode" class="form-select">
                                             @for($year = 2024; $year <= now()->year + 1; $year++)
-                                                <option value="{{ $year }}">{{ $year }}</option>
+                                                <option value="{{ $year }}" {{ $year == now()->year ? 'selected' : '' }}>{{ $year }}</option>
                                             @endfor
                                         </select>
                                     </div>
@@ -70,12 +78,6 @@
                                         <div class="mb-2">
                                             <label class="form-label" for="type">Business Unit</label>
                                             <select name="bisnis_unit[]" id="bisnis_unit" class="form-select bg-light select2" multiple required>
-                                                {{-- <option value="KPN Corporation">KPN Corporation</option>
-                                                <option value="KPN Plantations">KPN Plantations</option>
-                                                <option value="Downstream">Downstream</option>
-                                                <option value="Property">Property</option>
-                                                <option value="Cement">Cement</option>
-                                                <option value="KPN Sugar">KPN Sugar</option> --}}
                                                 @foreach($allowedGroupCompanies as $allowedGroupCompaniy)
                                                     <option value="{{ $allowedGroupCompaniy }}">{{ $allowedGroupCompaniy }}</option>
                                                 @endforeach
@@ -133,14 +135,12 @@
                                     <div class="mb-2">
                                         <label class="form-label" for="start">Start Date</label>
                                         <input type="date" name="start_date" class="form-control" id="start" placeholder="mm/dd/yyyy"  required>
-                                        {{-- min="{{ $schedulemasterpa->start_date ?? '' }}" max="{{ $schedulemasterpa->end_date ?? '' }}" --}}
                                     </div>
                                 </div>
                                 <div class="col-md-6">
                                     <div class="mb-2">
                                         <label class="form-label" for="end">End Date</label>
                                         <input type="date" name="end_date" class="form-control" id="end" placeholder="mm/dd/yyyy" required>
-                                        {{-- min="{{ $schedulemasterpa->start_date ?? '' }}" max="{{ $schedulemasterpa->end_date ?? '' }}"  --}}
                                     </div>
                                 </div>
                             </div>
@@ -273,7 +273,7 @@
             endInput.value = "";
         }
         
-        if (event_type.value === "masterschedulepa") {
+        if (event_type.value === "masterschedulepa" || event_type.value === "masterschedulegoals") {
             nonmaster1.style.display = "none";
             nonmaster2.style.display = "none";
             bisnis_unit.removeAttribute("required");
@@ -294,7 +294,16 @@
             endInput.min = startDate;
             endInput.max = endDate;
             check360.style.display = "block";
-        } else {
+        } else if (event_type.value === 'goals'){
+            // Set min and max from the server-rendered values
+            const startDate = "{{ optional($schedulemastergoals)->start_date ? \Carbon\Carbon::parse(optional($schedulemastergoals)->start_date)->format('Y-m-d') : '' }}";
+            const endDate = "{{ optional($schedulemastergoals)->end_date ? \Carbon\Carbon::parse(optional($schedulemastergoals)->end_date)->format('Y-m-d') : '' }}";
+            startInput.min = startDate;
+            startInput.max = endDate;
+            endInput.min = startDate;
+            endInput.max = endDate;
+            check360.style.display = "none";
+        }else {
             // Clear min and max if event_type is not 'schedulepa'
             startInput.min = '';
             startInput.max = '';

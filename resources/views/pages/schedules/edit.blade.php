@@ -42,6 +42,7 @@
                                     value="@if($model->event_type=='goals')Goals
                                     @elseif($model->event_type=='schedulepa')Schedule PA
                                     @elseif($model->event_type=='masterschedulepa')Master Schedule PA
+                                    @elseif($model->event_type=='masterschedulegoals')Master Schedule Goal Settings
                                     @endif" readonly>
                                 </div>
                             </div>
@@ -53,7 +54,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div id="nonmaster1" @if($model->event_type=='masterschedulepa') style="display:none" @endif>
+                            <div id="nonmaster1" @if($hidediv=='1') style="display:none" @endif>
                                 <div class="row my-2">
                                     <div class="col-md-12">
                                         <div class="mb-2">
@@ -94,6 +95,7 @@
                                         </div>
                                     </div>
                                 </div>
+                                @if($schedulemasterpa)
                                 <div class="row my-2">
                                     <div class="col-md-5">
                                         <div class="form-group">
@@ -104,6 +106,7 @@
                                         </div>
                                     </div>
                                 </div>
+                                @endif
                             </div>
                             <div class="row my-2">
                                 <div class="col-md-6">
@@ -119,7 +122,7 @@
                                     </div>
                                 </div>
                             </div>
-                            <div id="nonmaster2" @if($model->event_type=='masterschedulepa') style="display:none" @endif>
+                            <div id="nonmaster2" @if($hidediv=='1') style="display:none" @endif>
                                 <div class="row my-2">
                                     <div class="col-md-5">
                                         <div class="mb-2">
@@ -251,7 +254,15 @@
             startInput.max = endDate;
             endInput.min = startDate;
             endInput.max = endDate;
-        } else {
+        } else if (event_type.value === 'goals') {
+            // Set min and max from the server-rendered values
+            const startDate = "{{ optional($schedulemastergoals)->start_date ? \Carbon\Carbon::parse(optional($schedulemastergoals)->start_date)->format('Y-m-d') : '' }}";
+            const endDate = "{{ optional($schedulemastergoals)->end_date ? \Carbon\Carbon::parse(optional($schedulemastergoals)->end_date)->format('Y-m-d') : '' }}";
+            startInput.min = startDate;
+            startInput.max = endDate;
+            endInput.min = startDate;
+            endInput.max = endDate;
+        }else {
             // Clear min and max if event_type is not 'schedulepa'
             startInput.min = '';
             startInput.max = '';

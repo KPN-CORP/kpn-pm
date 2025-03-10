@@ -54,6 +54,18 @@ class ScheduleController extends Controller
                             ->whereDate('end_date', '>=', $today)
                             ->orderBy('created_at')
                             ->first();
+        $schedulemastergoals = schedule::where('event_type','masterschedulegoals')
+                            ->whereDate('start_date', '<=', $today)
+                            ->whereDate('end_date', '>=', $today)
+                            ->orderBy('created_at')
+                            ->first();
+        $schedulegoals = schedule::where('event_type','goals')
+                            ->whereDate('start_date', '>=', $schedulemastergoals->start_date)
+                            ->whereDate('end_date', '<=', $schedulemastergoals->end_date)
+                            ->where('created_by', $userId)
+                            ->orderBy('created_at')
+                            ->pluck('id');
+        //buat validasi agar schedule goals yg bisa di edit hanya goals yg memiliki waktu $schedulemastergoals
                             
         return view('pages.schedules.schedule', [
             'link' => $link,
@@ -61,6 +73,8 @@ class ScheduleController extends Controller
             'schedules' => $schedules,
             'userId' => $userId,
             'schedulemasterpa' => $schedulemasterpa,
+            'schedulemastergoals' => $schedulemastergoals,
+            'schedulegoals' => $schedulegoals,
         ]);
     }
     function form() {
@@ -95,6 +109,11 @@ class ScheduleController extends Controller
                             ->whereDate('end_date', '>=', $today)
                             ->orderBy('created_at')
                             ->first();
+        $schedulemastergoals = schedule::where('event_type','masterschedulegoals')
+                            ->whereDate('start_date', '<=', $today)
+                            ->whereDate('end_date', '>=', $today)
+                            ->orderBy('created_at')
+                            ->first();
         
         return view('pages.schedules.form', [
             'sublink' => $sublink,
@@ -104,6 +123,7 @@ class ScheduleController extends Controller
             'companies' => $companies,
             'allowedGroupCompanies' => $allowedGroupCompanies,
             'schedulemasterpa' => $schedulemasterpa,
+            'schedulemastergoals' => $schedulemastergoals,
         ]);
     }
     function save(Request $req) {
@@ -155,6 +175,33 @@ class ScheduleController extends Controller
 
             //cek id di permission untuk schedulepa & masterschedulepa
             $idpermissions = Permission::where('name','schedulepa')->first();
+            $idschedulepa = $idpermissions->id;
+
+            //cek di role has permission yg memiliki akses ke id 6 schedule
+            $idroles = RoleHasPermission::where('permission_id', '6')->whereNotIn('role_id',['1','8'])->get();
+            
+            //cek tanggal sesudah dan sebelum
+            if($req->start_date <= $today && $req->end_date >= $today){
+
+                foreach($idroles as $idrole){
+                    //input data di RoleHasPermission dengan permission_id $idschedulepa untuk user yg memiliki akses permission_id=6
+                    $existingPermission = RoleHasPermission::where('role_id', $idrole->role_id)
+                                               ->where('permission_id', $idschedulepa)
+                                               ->first();
+
+                    if (!$existingPermission) {
+                        RoleHasPermission::create([
+                            'role_id' => $idrole->role_id,
+                            'permission_id' => $idschedulepa,
+                        ]);
+                    }
+                }
+                app()->make(PermissionRegistrar::class)->forgetCachedPermissions();
+            }
+        }else if($req->event_type=="masterschedulegoals"){
+
+            //cek id di permission untuk goals
+            $idpermissions = Permission::where('name','goals')->first();
             $idschedulepa = $idpermissions->id;
 
             //cek di role has permission yg memiliki akses ke id 6 schedule
@@ -272,6 +319,17 @@ class ScheduleController extends Controller
                             ->whereDate('end_date', '>=', $today)
                             ->orderBy('created_at')
                             ->first();
+        $schedulemastergoals = schedule::where('event_type','masterschedulegoals')
+                            ->whereDate('start_date', '<=', $today)
+                            ->whereDate('end_date', '>=', $today)
+                            ->orderBy('created_at')
+                            ->first();
+        $hidediv=0;
+        if($model->event_type=='masterschedulepa' || $model->event_type=='masterschedulegoals'){
+            $hidediv=1;
+        }else{
+            $hidediv=0;
+        }
  
         if(!$model)
             return redirect("schedules");
@@ -282,6 +340,8 @@ class ScheduleController extends Controller
                 'parentLink' => $parentLink,
                 'model' => $model,
                 'schedulemasterpa' => $schedulemasterpa,
+                'schedulemastergoals' => $schedulemastergoals,
+                'hidediv' => $hidediv,
             ]);
     }
     function update(Request $req) {
