@@ -124,7 +124,6 @@ class ApprovalController extends Controller
         $snapshot->save();
 
         $model = Goal::find($request->id);
-        $model->form_data = $jsonData;
         $model->form_status = $statusForm;
         
         $model->save();

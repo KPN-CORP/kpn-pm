@@ -63,8 +63,7 @@
     </div>
 
     <div class="mandatory-field"></div>
-    
-        <form id="goalForm" action="{{ route('goals.update') }}" method="POST">
+        <form id="goalForm" action="{{ route('goals.update') }}" class="needs-validation" method="POST">
         @csrf
           <input type="hidden" class="form-control" name="id" value="{{ $goal->id }}">
           <input type="hidden" class="form-control" name="employee_id" value="{{ $goal->employee_id }}">
@@ -92,6 +91,9 @@
                                     <div class="col-md">
                                       <div class="mb-3 position-relative">
                                             <textarea name="kpi[]" id="kpi" class="form-control overflow-hidden kpi-textarea pb-2 pe-3" rows="2" placeholder="Input your goals.." required style="resize: none">{{ $row['kpi'] }}</textarea>
+                                            <div class="invalid-feedback">
+                                                {{ __('This field is mandatory') }}
+                                            </div>
                                       </div>
                                     </div>
                                 </div>
@@ -109,6 +111,9 @@
                                           <label class="form-label text-primary" for="target">Target</label>
                                           <input type="text" oninput="validateDigits(this, {{ $index }})" value="{{ number_format($row['target'], 0, '', ',') }}" class="form-control" required>
                                           <input type="hidden" name="target[]" id="target{{ $index }}" value="{{ $row['target'] }}">
+                                          <div class="invalid-feedback">
+                                            {{ __('This field is mandatory') }}
+                                        </div>
                                       </div>
                                     </div>
                                     <div class="col-md">
@@ -127,6 +132,9 @@
                                               </optgroup>
                                               @endforeach
                                           </select>
+                                          <div class="invalid-feedback">
+                                            {{ __('This field is mandatory') }}
+                                          </div>
                                           <input 
                                               type="text" 
                                               name="custom_uom[]" 
@@ -153,17 +161,21 @@
                                                   @endforeach
                                               @endforeach
                                           </select>
+                                          <div class="invalid-feedback">
+                                            {{ __('This field is mandatory') }}
+                                        </div>
                                       </div>
                                     </div>
-                                    <div class="col-md">
+                                    <div class="col-6 col-md-2">
                                       <div class="mb-3">
                                           <label class="form-label text-primary" for="weightage">{{ __('Weightage') }}</label>
-                                          <div class="input-group flex-nowrap ">
-                                              <input type="number" min="5" max="100" class="form-control" name="weightage[]" value="{{ $row['weightage'] }}" required>
-                                              <div class="input-group-append">
-                                                  <span class="input-group-text">%</span>
-                                              </div>
-                                          </div>                                  
+                                            <div class="input-group">
+                                                <input type="number" min="5" max="100" class="form-control" name="weightage[]" value="{{ $row['weightage'] }}" required>
+                                                <span class="input-group-text">%</span>
+                                                <div class="invalid-feedback">
+                                                    {{ __('This field is mandatory') }}
+                                                </div>
+                                            </div>                              
                                           {{ $errors->first("weightage") }}
                                       </div>
                                     </div>
@@ -224,5 +236,6 @@
         const errorConfirmMessages = '{{ __('Error Confirm Messages') }}';
         const errorConfirmWeightageMessages1 = '{{ __('Error Confirm Weightage Messages_1') }}';
         const errorConfirmWeightageMessages2 = '{{ __('Error Confirm Weightage Messages_2') }}';
+        const textMandatory = '{{ __('This field is mandatory') }}';
     </script>
     @endpush

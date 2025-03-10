@@ -31,7 +31,7 @@
                 </div>
                 <div class="col">
                     <div class="mb-3 text-end">
-                        <a href="{{ $goals ? route('goals.form', Auth::user()->employee_id) : '#' }}" class="btn {{ $goals ? 'btn-primary shadow' : 'btn-secondary-subtle disabled' }}">{{ __('Create Goal') }}</a>
+                        <a href="{{ $goals ? route('goals.form', Auth::user()->employee_id) : '#' }}" onclick="showLoader()" class="btn {{ $goals ? 'btn-primary shadow' : 'btn-secondary-subtle disabled' }}">{{ __('Create Goal') }}</a>
                     </div>
                 </div>
             </div>
@@ -47,7 +47,7 @@
                     <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between pb-0">
                         <h4 class="m-0 font-weight-bold text-primary">{{ __('Goal') }} {{ $row->request->period }}</h4>
                         @if ($row->request->status == 'Pending' && count($row->request->approval) == 0 || $row->request->sendback_to == $row->request->employee_id)
-                            <a class="btn btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $row->request->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('goals.edit', $row->request->goal->id) }}">{{ __('Edit') }}</a>
+                            <a class="btn btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $row->request->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('goals.edit', $row->request->goal->id) }}" onclick="showLoader()">{{ __('Edit') }}</a>
                         @endif
                     </div>
                     <div class="card-body">

@@ -107,6 +107,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     '<div class="col-md">' +
                     '<div class="mb-3 position-relative">' +
                     '<textarea name="kpi[]" id="kpi" class="form-control overflow-hidden kpi-textarea" placeholder="input your goals.." required style="padding-right: 40px; resize: none"></textarea>'+
+                    '<div class="invalid-feedback">' + textMandatory + '</div>' +
                     "</div>" +
                     "</div>" +
                     "</div>" +
@@ -114,7 +115,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     '<div class="col-md">' +
                     '<label class="form-label text-primary" for="kpi-description">Goal Descriptions</label>' +
                     '<div class="mb-3 position-relative">' +
-                    '<textarea name="description[]" id="kpi-description" class="form-control overflow-hidden kpi-descriptions" rows="2" placeholder="Input goal descriptions.." required style="padding-right: 40px; resize: none"></textarea>' +
+                    '<textarea name="description[]" id="kpi-description" class="form-control overflow-hidden kpi-descriptions" rows="2" placeholder="Input goal descriptions.." style="padding-right: 40px; resize: none"></textarea>' +
                     "</div>" +
                     "</div>" +
                     "</div>" +
@@ -125,6 +126,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     ')" class="form-control" required>' +
                     '<input type="hidden" name="target[]" id="target'
                     + index +'">' +
+                    '<div class="invalid-feedback">' + textMandatory + '</div>' +
                     "</div>" +
                     '<div class="col-md mb-3">' +
                     '<label class="form-label text-primary" for="uom">'+ uom +'</label>' +
@@ -137,6 +139,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     '</select><input type="text" name="custom_uom[]" id="custom_uom' +
                     index +
                     '" class="form-control mt-2" placeholder="Enter UoM" style="display: none" placeholder="Enter UoM">' +
+                    '<div class="invalid-feedback">' + textMandatory + '</div>' +
                     "</div>" +
                     '<div class="col-md mb-3">' +
                     '<label class="form-label text-primary" for="type">'+ type +'</label>' +
@@ -148,14 +151,14 @@ document.addEventListener("DOMContentLoaded", function () {
                     '<option value="Lower Better">Lower Better</option>' +
                     '<option value="Exact Value">Exact Value</option>' +
                     "</select>" +
+                    '<div class="invalid-feedback">' + textMandatory + '</div>' +
                     "</div>" +
-                    '<div class="col-md mb-3">' +
+                    '<div class="col-6 col-md-2 mb-3">' +
                     '<label class="form-label text-primary" for="weightage">'+ weightage +'</label>' +
                     '<div class="input-group">' +
                     '<input type="number" min="5" max="100" class="form-control" name="weightage[]" required>' +
-                    '<div class="input-group-append">' +
                     '<span class="input-group-text">%</span>' +
-                    "</div>" +
+                    '<div class="invalid-feedback">' + textMandatory + '</div>' +
                     "</div>" +
                     "</div>" +
                     "</div>" +
@@ -273,6 +276,7 @@ function checkEmptyFields(submitType) {
                         // Show the alert field after the SweetAlert2 modal is closed
                         var alertField = $("#alertField");
                         alertField.removeAttr("hidden").addClass("show");
+                        document.getElementById("goalForm").classList.add("was-validated");
                     },
                 });
                 return false; // Prevent form submission

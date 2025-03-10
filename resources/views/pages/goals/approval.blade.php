@@ -108,7 +108,7 @@
                                           <div class="col-md">
                                               <div class="mb-3">
                                                   <label class="form-label text-primary" for="target">Target</label>
-                                                  <input type="text" oninput="validateDigits(this, {{ $index }})" value="{{ number_format($data['target'], 0, '', ',') }}" class="form-control" required>
+                                                  <input type="text" oninput="validateDigits(this, {{ $index }})" value="{{ number_format($data['target'], 0, '', ',') }}" class="form-control" readonly>
                                                   <input type="hidden" name="target[]" id="target{{ $index }}" value="{{ $data['target'] }}">
                                               </div>
                                           </div>
@@ -124,11 +124,11 @@
                                                 <input type="text" name="type[]" id="type" value="{{ $data['type'] }}" class="form-control bg-secondary-subtle" readonly>
                                             </div>
                                           </div>
-                                          <div class="col-md">
+                                          <div class="col-6 col-md-2">
                                               <div class="mb-3">
                                                   <label class="form-label text-primary" for="weightage">{{ __('Weightage') }}</label>
                                                   <div class="input-group flex-nowrap ">
-                                                      <input type="number" min="5" max="100" class="form-control" name="weightage[]" value="{{ $data['weightage'] }}" required>
+                                                      <input type="number" min="5" max="100" class="form-control text-center" name="weightage[]" value="{{ $data['weightage'] }}" readonly>
                                                       <div class="input-group-append">
                                                           <span class="input-group-text">%</span>
                                                       </div>

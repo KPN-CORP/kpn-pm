@@ -42,7 +42,7 @@
     "Achievement In": "Pencapaian dalam",
     "Enter Achievement": "Masukkan pencapaian",
     "Empty Messages": "Kolom ini wajib diisi.",
-    "Error Messages": "Semua kolom wajib diisi. Mohon periksa kembali kolom-kolom di bawah ini.",
+    "Error Messages": "Silakan isi kolom yang wajib diisi di bawah ini.",
     "Error Alert Messages": "Harap lengkapi semua kolom yang kosong!",
     "Close": "Tutup",
     "Initiate Appraisal": "Buat Penilaian",
@@ -66,5 +66,6 @@
     "Confirm Messages": "Anda masih bisa mengubahnya selama manajer anda belum menyetujuinya.",
     "Error Confirm Weightage Messages_1": "Bobot saat ini",
     "Error Confirm Weightage Messages_2": "Silakan sesuaikan untuk mencapai total bobot 100%.",
-    "Description": "Deskripsi"
+    "Description": "Deskripsi",
+    "This field is mandatory": "Kolom wajib diisi"
 }

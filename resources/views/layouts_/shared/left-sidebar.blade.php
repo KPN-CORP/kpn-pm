@@ -131,7 +131,7 @@
                                     <ul class="side-nav-third-level">
                                         
                                         <li>
-                                            <a href="{{ route('layer') }}">Goals</a>
+                                            <a href="{{ route('layer') }}">{{ __('Goal') }}</a>
                                         </li>
                                         @can('layerpa')
                                         <li>
