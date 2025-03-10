@@ -100,7 +100,7 @@
                                 <div class="col-md">
                                     <div class="mb-3 position-relative">
                                         <label class="form-label text-primary" for="kpi-description">Goal Descriptions</label>
-                                        <textarea name="description[]" id="kpi-description" class="form-control overflow-hidden kpi-descriptions pb-2 pe-3" rows="2" placeholder="Input goal descriptions.." required style="resize: none">{{ old('description.0') }}</textarea>
+                                        <textarea name="description[]" id="kpi-description" class="form-control overflow-hidden kpi-descriptions pb-2 pe-3" rows="2" placeholder="Input goal descriptions.." style="resize: none">{{ old('description.0') }}</textarea>
                                     </div>
                                 </div>
                               </div>
