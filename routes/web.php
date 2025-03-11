@@ -327,6 +327,8 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::post('/admin/goal-content', [AdminOnBehalfController::class, 'getGoalContent']);
         // Sendback
         Route::post('/admin/sendback/goal', [AdminSendbackController::class, 'store'])->name('admin.sendback.goal');
+        // Revoke
+        Route::post('/admin/goals-revoke', [AdminOnBehalfController::class, 'goalsRevoke'])->name('admin.goals.revoke');
     });
     
     Route::middleware(['permission:viewreport'])->group(function () {
@@ -336,7 +338,6 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::post('/admin/get-report-content', [AdminReportController::class, 'getReportContent']);
         Route::get('/admin/changes-group-company', [AdminReportController::class, 'changesGroupCompany']);
         Route::get('/admin/changes-company', [AdminReportController::class, 'changesCompany']);
-        Route::post('/admin/goals-revoke', [AdminReportController::class, 'goalsRevoke'])->name('admin.goals.revoke');
         //Employee
         Route::get('/employees', [EmployeeController::class, 'employee'])->name('employees');
         Route::get('/employee/filter', [EmployeeController::class, 'filterEmployees'])->name('employee.filter');

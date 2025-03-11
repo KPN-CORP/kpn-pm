@@ -381,7 +381,6 @@ class TeamGoalController extends Controller
         // Menyiapkan aturan validasi
         $rules = [
             'kpi.*' => 'required|string',
-            'description.*' => 'string',
             'target.*' => 'required|numeric',
             'uom.*' => 'required|string',
             'weightage.*' => 'required|integer|min:5|max:100',
@@ -494,7 +493,6 @@ class TeamGoalController extends Controller
         // Menyiapkan aturan validasi
         $rules = [
             'kpi.*' => 'required|string',
-            'description.*' => 'string',
             'target.*' => 'required|numeric',
             'uom.*' => 'required|string',
             'weightage.*' => 'required|integer|min:5|max:100',

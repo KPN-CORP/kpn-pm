@@ -1,10 +1,12 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\Http\Controllers\Admin;
 
 use Illuminate\Http\Request;
 use App\Models\Employee;
 use App\Models\Location;
+use App\Http\Controllers\Controller; // Ensure this is included
+
 
 class EmployeeController extends Controller
 {

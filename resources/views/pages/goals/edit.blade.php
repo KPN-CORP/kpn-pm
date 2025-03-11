@@ -109,7 +109,7 @@
                                     <div class="col-md">
                                         <div class="mb-3">
                                           <label class="form-label text-primary" for="target">Target</label>
-                                          <input type="text" oninput="validateDigits(this, {{ $index }})" value="{{ number_format($row['target'], 0, '', ',') }}" class="form-control" required>
+                                          <input type="text" oninput="validateDigits(this, {{ $index }})" value="{{ old('target.0') ? number_format(old('target.0'), 0, '', ',') : '' }}" class="form-control" required>
                                           <input type="hidden" name="target[]" id="target{{ $index }}" value="{{ $row['target'] }}">
                                           <div class="invalid-feedback">
                                             {{ __('This field is mandatory') }}
