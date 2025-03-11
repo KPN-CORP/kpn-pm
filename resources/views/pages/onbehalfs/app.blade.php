@@ -10,6 +10,7 @@
 @endsection
 
 @section('content')
+<meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- Begin Page Content -->
     <div class="container-fluid">
       <div class="card">
@@ -89,7 +90,7 @@
                             <label class="form-label" for="company">Company</label>
                             <select class="form-select select2" name="company[]" id="company" multiple>
                                 @foreach ($companies as $company)
-                                <option value="{{ $company->contribution_level_code }}">{{ $company->contribution_level }}</option>
+                                <option value="{{ $company->contribution_level_code }}">{{ $company->contribution_level . ' (' . $company->contribution_level_code . ')' }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -101,7 +102,7 @@
                             <label class="form-label" for="location">Location</label>
                             <select class="form-select select2" name="location[]" id="location" multiple>
                                 @foreach ($locations as $location)
-                                <option value="{{ $location->work_area }}">{{ $location->area.' ('.$location->company_name.')' }}</option>
+                                <option value="{{ $location->work_area_code }}">{{ $location->office_area.' ('.$location->group_company.')' }}</option>
                                 @endforeach
                             </select>
                         </div>

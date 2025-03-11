@@ -130,9 +130,11 @@
                                                                         @endif
                                                                         <a class="btn btn-sm me-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Edit') }}</a>
                                                                     @else
-                                                                        @if ($approverId == Auth::user()->employee_id && $status === 'Pending' || $sendbackTo == Auth::user()->employee_id && $status === 'Sendback' || !$subordinates->isNotEmpty())
+                                                                        @if ($approverId == Auth::user()->employee_id && $status === 'Pending' || $sendbackTo == Auth::user()->employee_id && $status === 'Sendback' || !$subordinates->isNotEmpty() || Auth::user()->employee_id == $firstSubordinate->initiated->employee_id&& $status === 'Sendback' && $task->employee->employee_id != Auth::user()->employee_id)
                                                                             <a class="btn btn-sm me-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Edit') }}</a>
-                                                                            <a href="{{ route('team-goals.approval', $goalId) }}" class="btn btn-sm btn-outline-primary font-weight-medium" onclick="showLoader()">Act</a>
+                                                                            @if ($status != 'Sendback')
+                                                                                <a href="{{ route('team-goals.approval', $goalId) }}" class="btn btn-sm btn-outline-primary font-weight-medium" onclick="showLoader()">Act</a>
+                                                                            @endif
                                                                         @else
                                                                             <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                                         @endif

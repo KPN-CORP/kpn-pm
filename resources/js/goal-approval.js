@@ -328,12 +328,15 @@ function changeCategory(val) {
                 dom: "lrtip",
                 stateSave: true,
                 fixedColumns: {
-                    leftColumns: 0,
-                    rightColumns: 1
+                    leftColumns: 1,
+                    rightColumns: 0
                 },
                 scrollCollapse: true,
                 scrollX: true,
                 pageLength: 25,
+                columnDefs: [
+                    { targets: [0], orderable: false }, // Disable sorting for the first column
+                  ],
             });
             
             onBehalfTable.on('draw', function () {
@@ -401,12 +404,15 @@ document.addEventListener("DOMContentLoaded", function () {
                     dom: "lrtip",
                     stateSave: true,
                     fixedColumns: {
-                        leftColumns: 0,
-                        rightColumns: 1
+                        leftColumns: 1,
+                        rightColumns: 0
                     },
                     scrollCollapse: true,
                     scrollX: true,
                     pageLength: 25,
+                    columnDefs: [
+                        { targets: [0], orderable: false }, // Disable sorting for the first column
+                    ],
                 });
                 
                 onBehalfTable.on('draw', function () {
@@ -455,3 +461,101 @@ function autoResize(textarea) {
 document.querySelectorAll('textarea[readonly]').forEach(textarea => {
     autoResize(textarea);
 });
+
+function revokeGoal(button) {
+    const goalId = button.getAttribute('data-id');
+    const employee = button.getAttribute('data-name');
+    const form = $("#onbehalf_filter");
+    const contentOnBehalf = $("#contentOnBehalf");
+    const customsearch = $("#customsearch");
+    const formData = form.serialize();
+
+    Swal.fire({
+        title: 'Are you sure?',
+        html: `You are about to grant access for<br><strong>${employee}</strong><br>to revise their goals.`, // Ensures <br> works correctly
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: "#3e60d5",
+        cancelButtonColor: "#f15776",
+        confirmButtonText: "Yes, grant access!",
+        cancelButtonText: "Cancel",
+        reverseButtons: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            fetch('/admin/goals-revoke', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                },
+                body: JSON.stringify({ id: goalId })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    Swal.fire('Revise Granted!', 'The employee now can revise their goals.', 'success');
+                    $(button).addClass('d-none'); // Hide button after successful action
+                    
+                    $.ajax({
+                        url: "/admin/onbehalf/content",
+                        method: "POST",
+                        data: formData,
+                        success: function (data) {
+                            contentOnBehalf.html(data); // Update report content
+
+                            // Destroy existing DataTable if it exists
+                            if ($.fn.DataTable.isDataTable("#onBehalfTable")) {
+                                $("#onBehalfTable").DataTable().destroy();
+                            }
+
+                            // Initialize DataTable
+                            const onBehalfTable = $("#onBehalfTable").DataTable({
+                                dom: "lrtip",
+                                stateSave: true,
+                                fixedColumns: {
+                                    leftColumns: 1,
+                                    rightColumns: 0
+                                },
+                                scrollCollapse: true,
+                                scrollX: true,
+                                pageLength: 25,
+                                columnDefs: [
+                                    { targets: [0], orderable: false }, // Disable sorting for the first column
+                                ],
+                            });
+
+                            // Reinitialize Popovers after DataTable redraw
+                            onBehalfTable.on('draw', function () {
+                                initializePopovers();
+                            });
+
+                            // Search functionality
+                            customsearch.off("keyup").on("keyup", function () {
+                                onBehalfTable.search($(this).val()).draw();
+                            });
+
+                            // Filter buttons
+                            $(".filter-btn").off("click").on("click", function () {
+                                const filterValue = $(this).data("id");
+                                onBehalfTable.search(filterValue === "all" ? "" : filterValue).draw();
+                            });
+                        },
+                        error: function (xhr, status, error) {
+                            console.error("Error fetching report content:", error);
+                            contentOnBehalf.html("Error fetching report content. Please try again.");
+                            hideLoader();
+                        }
+                    });
+                } else {
+                    Swal.fire('Error!', data.message, 'error');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                Swal.fire('Error!', 'An error occurred while revoking the goal.', 'error');
+            });
+        }
+    });
+}
+
+window.revokeGoal = revokeGoal;

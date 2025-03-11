@@ -8,7 +8,7 @@
                   <input type="text" id="employee_name" class="form-control" placeholder="Search employee.." hidden>
               </div>
         </div>
-        <div class="modal-body bg-secondary-subtle">
+        <div class="modal-body bg-primary-subtle">
           <div class="container-fluid py-3">
               <form action="" method="post">
                   <div class="d-sm-flex align-items-center mb-4">
@@ -21,7 +21,7 @@
                     @endphp
                     @if ($formData)
                     @foreach ($formData as $index => $data)
-                        <div class="card col-md-12 mb-4 shadow-sm">
+                        <div class="card col-md-12 mb-2 border border-primary">
                             <div class="card-header bg-white pb-0">
                                 <h4>KPI {{ $index + 1 }}</h4>
                             </div>
@@ -43,21 +43,25 @@
                                         <div class="form-group">
                                             <label class="form-label" for="weightage">{{ __('Weightage') }}</label>
                                             <div class="input-group">
-                                                <input type="text" class="form-control bg-gray-100" value="{{ $data['weightage'] }}" readonly>
-                                                <div class="input-group-append">
-                                                    <span class="input-group-text">%</span>
-                                                </div>
+                                                <input type="text" class="form-control bg-gray-100" value="{{ $data['weightage'] }}%" readonly>
                                             </div>
-                                            <!-- Tambahkan kode untuk menampilkan error weightage jika ada -->
-                                            @if ($errors->has("weightage"))
-                                                <span class="text-danger">{{ $errors->first("weightage") }}</span>
-                                            @endif
                                         </div>
                                     </div>
                                     <div class="col-lg-2 mb-3">
                                         <div class="form-group">
                                             <label class="form-label" for="type">{{ __('Type') }}</label>
                                             <input type="text" value="{{ $data['type'] }}" class="form-control bg-gray-100" readonly>
+                                        </div>
+                                    </div>
+                                </div>
+                                <hr class="mt-0 mb-2">
+                                <div class="row">
+                                    <div class="col-md mb-2">
+                                        <div class="form-group
+                                        ">
+                                            <label class="form-label
+                                            " for="description">Description</label>
+                                            <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['description'] ?? '-' }}</p>
                                         </div>
                                     </div>
                                 </div>
