@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Models\Appraisal;
 use App\Models\AppraisalContributor;
+use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
 use App\Models\MasterWeightage;
 use App\Services\AppService;
@@ -41,26 +42,47 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         // Existing code for data collection
         $year = $this->appService->appraisalPeriod();
 
-        $contributorsGroupedByEmployee = AppraisalContributor::with('employee')
-            ->where('period', $year)
-            ->get()
-            ->groupBy('employee_id');
+        $contributorsGroupedByEmployee = AppraisalContributor::with([
+            'employee' => function ($query) {
+                $query->select('employee_id', 'fullname', 'gender', 'email', 'job_level', 'group_company', 'designation_name', 'company_name', 'contribution_level_code'); // Adjust fields as needed
+            }
+        ])
+        ->where('period', $year)
+        ->get()
+        ->groupBy('employee_id');
+
+        $employeeAppraisalById = Appraisal::with([
+            'employee' => function ($query) {
+                $query->select('employee_id', 'fullname', 'gender', 'email', 'job_level', 'group_company', 'designation_name', 'company_name', 'contribution_level_code'); // Adjust fields as needed
+            }
+        ])
+        ->where('period', $year)
+        ->get()
+        ->groupBy('id');
 
         $expandedData = collect();
 
-        $this->data->chunk(100)->each(function ($rows) use ($expandedData, $contributorsGroupedByEmployee) {
+        $this->data->chunk(100)->each(function ($rows) use ($expandedData, $contributorsGroupedByEmployee, $employeeAppraisalById) {
             foreach ($this->data as $row) {
                 $employeeId = $row['Employee ID']['dataId'] ?? null;
                 $formId = $row['Form ID']['dataId'] ?? null;
 
-                if ($employeeId && $contributorsGroupedByEmployee->has($employeeId)) {
-                    $this->expandRowForSelf($expandedData, $row, $contributorsGroupedByEmployee->get($employeeId));
-                    $this->expandRowForContributors($expandedData, $row, $contributorsGroupedByEmployee->get($employeeId));
-                    $this->expandRowForSummary($expandedData, $row, $contributorsGroupedByEmployee->get($employeeId));
+                
+                if ($formId && $employeeId) {
+                    // Log::info('Preprocessing data export', [
+                    //     'data_preview' => $employeeAppraisalById->get($formId),
+                    // ]);
+                    $this->expandRowForSelf($expandedData, $row, $employeeAppraisalById->get($formId));
 
+                    if ($contributorsGroupedByEmployee->has($employeeId)) {
+                        $this->expandRowForContributors($expandedData, $row, $contributorsGroupedByEmployee->get($employeeId));
+                        $this->expandRowForSummary($expandedData, $row, $contributorsGroupedByEmployee->get($employeeId));
+    
+                    }
                 } else {
                     $expandedData->push($this->createDefaultContributorRow($row));
                 }
+
             }
         });
 
@@ -85,6 +107,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
     private function expandRowForSelf(Collection $expandedData, array $row, Collection $contributors): void
     {
+        
         $contributor = $contributors->first();
 
         if ($contributor) {
@@ -231,9 +254,9 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
         $formData = $this->appService->combineFormData($result['calculated_data'][0], $goalData, $contributor->contributor_type, $employeeData, $contributor->period);
 
-        Log::info('Debug Export Data', [
-            'data' => $this->user, // Log only the first 10 rows
-        ]);
+        // Log::info('Debug Export Data', [
+        //     'data' => $this->user, // Log only the first 10 rows
+        // ]);
 
         foreach ($formData['formData'] as &$form) {
             if ($form['formName'] === 'Culture') {
@@ -267,14 +290,20 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         return $formData;
     }
 
-    private function getFormDataSelf(AppraisalContributor $contributor): array
+    private function getFormDataSelf(Appraisal $contributor): array
     {
         $datas = Appraisal::with([
             'employee',
             'approvalSnapshots' => function ($query) {
                 $query->orderBy('created_at', 'desc');
             }
-        ])->where('id', $contributor->appraisal_id)->get();
+        ])->where('id', $contributor->id)->get();
+
+        if(!$datas->first()->approvalSnapshots){
+            Log::info('Debug Snapshots Data', [
+                'data' => $datas->first()->employee_id, // Log only the first 10 rows
+            ]);
+        }
 
         $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->goal->form_data, true) : [];
         $appraisalData = $datas->isNotEmpty() ? json_decode($datas->first()->approvalSnapshots->form_data, true) : [];
