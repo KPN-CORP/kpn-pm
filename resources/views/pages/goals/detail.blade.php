@@ -23,7 +23,7 @@
                             @foreach ($formData as $index => $data)
                                 <div class="card col-md-12 mb-2 border border-primary">
                                     <div class="card-header bg-white pb-0">
-                                        <h4>KPI {{ $index + 1 }}</h4>
+                                        <h4>{{ __('Goal') }} {{ $index + 1 }}</h4>
                                     </div>
                                     <div class="card-body">
                                         <div class="row">

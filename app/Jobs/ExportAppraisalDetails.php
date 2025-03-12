@@ -93,7 +93,7 @@ class ExportAppraisalDetails implements ShouldQueue
     
                 Log::info($this->userId . ' Processing batch ' . $batchNumber);
     
-                $export = new AppraisalDetailExport($this->appService, $batchData, $this->headers, $user);
+                $export = new AppraisalDetailExport($this->appService, $batchData, $this->headers, $this->user);
                 Excel::store($export, $tempFileName, 'public');
             }
     

@@ -125,7 +125,7 @@ class AppService
                 return abs($achievement - $target) < $epsilon ? 100 : 0;
     
             default:
-                throw new Exception('Invalid type');
+                throw new Exception('Invalid type'. $type);
         }
     }
 
