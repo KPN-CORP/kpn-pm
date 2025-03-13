@@ -33,22 +33,22 @@
                                                     <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['kpi'] }}</p>
                                                 </div>
                                             </div>
-                                            <div class="col-lg-2 mb-3">
+                                            <div class="col-lg-3 mb-3">
                                                 <div class="form-group">
                                                     <label class="form-label" for="target">{{ __('Target In') }} {{ $data['uom'] }}</label>
-                                                    <input type="text" value="{{ $data['target'] }}" class="form-control bg-gray-100" readonly>
+                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['target'] }}</p>
                                                 </div>
                                             </div>
                                             <div class="col-lg-2 mb-3">
                                                 <div class="form-group">
                                                     <label class="form-label" for="weightage">{{ __('Weightage') }}</label>
-                                                    <input type="text" class="form-control bg-gray-100" value="{{ $data['weightage'] }}%" readonly>
+                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['weightage'] }}%</p>
                                                 </div>
                                             </div>
                                             <div class="col-lg-2 mb-3">
                                                 <div class="form-group">
                                                     <label class="form-label" for="type">{{ __('Type') }}</label>
-                                                    <input type="text" value="{{ $data['type'] }}" class="form-control bg-gray-100" readonly>
+                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['type'] }}</p>
                                                 </div>
                                             </div>
                                         </div>
