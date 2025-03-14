@@ -7,7 +7,7 @@
     <!-- Begin Page Content -->
     <div class="container-fluid">
       <div class="card">
-        <div class="card-body">
+        <div class="card-body pb-0">
           <div class="row">
             <div class="col-lg">
               <div class="row">
@@ -93,9 +93,9 @@
                             @endphp
                               <label class="form-label" for="filterYear">{{ __('Year') }}</label>
                               <select name="filterYear" id="filterYear" class="form-select" @style('width: 120px')>
-                                  <option value="">{{ __('select all') }}</option>
+                                  <option value="{{ $period }}" {{ $period == $filterYear ? 'selected' : '' }}>{{ $period }}</option>
                                   @foreach ($selectYear as $year)
-                                      <option value="{{ $year->year }}" {{ $year->year == $filterYear ? 'selected' : '' }}>{{ $year->year }}</option>
+                                      <option value="{{ $year->period }}" {{ $year->period == $filterYear ? 'selected' : '' }}>{{ $year->period }}</option>
                                   @endforeach
                               </select>
                           </div>

@@ -69,5 +69,6 @@
     "Description": "Deskripsi",
     "This field is mandatory": "Kolom wajib diisi",
     "Approval": "Persetujuan",
-    "Not Initiated": "Belum Mengajukan"
+    "Not Initiated": "Belum Mengajukan",
+    "Note Import Goal Manager": "Template Import Goals bisa didapatkan pada : "
 }

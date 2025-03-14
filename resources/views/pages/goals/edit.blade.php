@@ -170,7 +170,7 @@
                                       <div class="mb-3">
                                           <label class="form-label text-primary" for="weightage">{{ __('Weightage') }}</label>
                                             <div class="input-group">
-                                                <input type="number" min="5" max="100" class="form-control" name="weightage[]" value="{{ $row['weightage'] }}" required>
+                                                <input type="number" min="5" max="100" step="0.1" class="form-control" name="weightage[]" value="{{ $row['weightage'] }}" required>
                                                 <span class="input-group-text">%</span>
                                                 <div class="invalid-feedback">
                                                     {{ __('This field is mandatory') }}

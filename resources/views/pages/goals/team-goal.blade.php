@@ -6,24 +6,41 @@
 @section('content')
     <!-- Begin Page Content -->
             <div class="container-fluid">
-                <ul class="nav nav-pills my-3 justify-content-md-start justify-content-center" id="myTab" role="tablist">
-                    <li class="nav-item">
-                      <button class="btn btn-outline-primary position-relative active me-2" id="initiated-tab" data-bs-toggle="tab" data-bs-target="#initiated" type="button" role="tab" aria-controls="initiated" aria-selected="true">
-                        {{ __('Approval') }}
-                        <span class="position-absolute top-0 start-100 translate-middle badge bg-danger {{ $notificationGoal ? '' : 'd-none' }}">
-                            {{ $notificationGoal }}
-                        </span>
-                      </button>
-                    </li>
-                    <li class="nav-item">
-                      <button class="btn btn-outline-secondary position-relative" id="not-initiated-tab" data-bs-toggle="tab" data-bs-target="#not-initiated" type="button" role="tab" aria-controls="not-initiated" aria-selected="false">
-                        {{ __('Not Initiated') }}
-                        <span class="position-absolute top-0 start-100 translate-middle badge bg-danger {{ count($notasks) ? '' : 'd-none' }}">
-                            {{ count($notasks) }}
-                        </span>
-                      </button>
-                    </li>
-                </ul>  
+                @if (session('success'))
+                    <div class="alert alert-success mt-3">
+                        {!! session('success') !!}
+                    </div>
+                @endif
+                @if (session('error'))
+                    <div class="alert alert-danger mt-3">
+                        {!! session('error') !!}
+                    </div>
+                @endif
+                <div class="row my-3">
+                    <div class="col-md">
+                        <ul class="nav nav-pills justify-content-md-start justify-content-center" id="myTab" role="tablist">
+                            <li class="nav-item">
+                              <button class="btn btn-outline-primary position-relative active me-2" id="initiated-tab" data-bs-toggle="tab" data-bs-target="#initiated" type="button" role="tab" aria-controls="initiated" aria-selected="true">
+                                {{ __('Approval') }}
+                                <span class="position-absolute top-0 start-100 translate-middle badge bg-danger {{ $notificationGoal ? '' : 'd-none' }}">
+                                    {{ $notificationGoal }}
+                                </span>
+                              </button>
+                            </li>
+                            <li class="nav-item">
+                              <button class="btn btn-outline-secondary position-relative" id="not-initiated-tab" data-bs-toggle="tab" data-bs-target="#not-initiated" type="button" role="tab" aria-controls="not-initiated" aria-selected="false">
+                                {{ __('Not Initiated') }}
+                                <span class="position-absolute top-0 start-100 translate-middle badge bg-danger {{ count($notasks) ? '' : 'd-none' }}">
+                                    {{ count($notasks) }}
+                                </span>
+                              </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-auto">
+                        <button type="button" class="btn btn-primary shadow" data-bs-toggle="modal" data-bs-target="#importModal">Import Goals</button>
+                    </div>
+                </div>
                 <div class="tab-content">
                     <div class="tab-pane active show" id="initiated" role="tabpanel">
                         <div class="row rounded mb-2">
@@ -286,7 +303,7 @@
                                                         </div>
                                                     </div>
                                                     <div class="col-sm-12 col-md mb-2">
-                                                        <label class="form-label">DOJ</label>
+                                                        <label class="form-label">Date of Joining</label>
                                                         <span class="d-flex align-items-center text-muted">{{ $notask->formatted_doj }}</span>
                                                     </div>
                                                     <div class="col-sm-12 col-md mb-2">
@@ -327,5 +344,43 @@
                     </div>
                 </div> 
                 
+    </div>
+    <!-- Modal Pop-Up -->
+    <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importModalLabel">Import Goals</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <form id="importGoal" action="{{ route('importgoalsmanager') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col">
+                                <div class="alert alert-info">
+                                    <strong>Notes:</strong>
+                                    <ul class="mb-0">
+                                        <li>{{ __('Note Import Goal Manager') }}<strong><br> > Tab "{{ __('Not Initiated') }}" -> {{ __('Download') }}</strong></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="file">Upload File</label>
+                            <input type="file" name="file" id="file" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" id="importGoalsButton" class="btn btn-primary">
+                            <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
+                            Import
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 @endsection

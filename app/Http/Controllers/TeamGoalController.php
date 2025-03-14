@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\InvalidGoalImport;
+use App\Imports\GoalsDataImportManager;
 use App\Models\ApprovalLayer;
 use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
@@ -13,10 +15,13 @@ use App\Services\AppService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 use RealRashid\SweetAlert\Facades\Alert;
 use stdClass;
@@ -282,14 +287,14 @@ class TeamGoalController extends Controller
 
             $selectedUoM = [];
             $selectedType = [];
-            $weigthage = [];
+            $weightage = [];
             $totalWeightages = 0;
             
             foreach ($formData as $index => $row) {
                 $selectedUoM[$index] = $row['uom'] ?? '';
                 $selectedType[$index] = $row['type'] ?? '';
-                $weigthage[$index] = $row['weightage'] ?? '';
-                $totalWeightages += (int)$weigthage[$index];
+                $weightage[$index] = $row['weightage'] ?? '';
+                $totalWeightages += (float)$weightage[$index];
             }
 
             $data = json_decode($goal->form_data, true);
@@ -383,15 +388,15 @@ class TeamGoalController extends Controller
             'kpi.*' => 'required|string',
             'target.*' => 'required|numeric',
             'uom.*' => 'required|string',
-            'weightage.*' => 'required|integer|min:5|max:100',
+            'weightage.*' => 'required|numeric|min:5|max:100',
             'type.*' => 'required|string',
         ];
 
         // Pesan validasi kustom
         $customMessages = [
-            'weightage.*.integer' => 'Weightage harus berupa angka.',
-            'weightage.*.min' => 'Weightage harus lebih besar atau sama dengan :min %.',
-            'weightage.*.max' => 'Weightage harus kurang dari atau sama dengan :max %.',
+            'weightage.*.numeric' => 'Weightage harus berupa angka bulat (8) / desimal (8.5)',
+            'weightage.*.min' => 'Weightage harus lebih besar atau sama dengan :min %',
+            'weightage.*.max' => 'Weightage harus kurang dari atau sama dengan :max %',
         ];
 
         // Membuat Validator instance
@@ -495,13 +500,13 @@ class TeamGoalController extends Controller
             'kpi.*' => 'required|string',
             'target.*' => 'required|numeric',
             'uom.*' => 'required|string',
-            'weightage.*' => 'required|integer|min:5|max:100',
+            'weightage.*' => 'required|numeric|min:5|max:100',
             'type.*' => 'required|string',
         ];
 
         // Pesan validasi kustom
         $customMessages = [
-            'weightage.*.integer' => 'Weightage harus berupa angka.',
+            'weightage.*.numeric' => 'Weightage harus berupa angka bulat (8) / desimal (8.5)',
             'weightage.*.min' => 'Weightage harus lebih besar atau sama dengan :min %.',
             'weightage.*.max' => 'Weightage harus kurang dari atau sama dengan :max %.',
         ];
@@ -585,6 +590,69 @@ class TeamGoalController extends Controller
     {
         $uom = file_get_contents(base_path('resources/goal.json'));
         return response()->json(json_decode($uom, true));
+    }
+
+    public function import(Request $request)
+    {
+        // Validasi file
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,csv,xls',
+        ]);
+
+        // Pastikan file terupload
+        if ($request->hasFile('file')) {
+            $filePath = $request->file('file')->store($path='public/uploads');
+            Log::info("File uploaded successfully: " . $filePath);
+        } else {
+            Log::error("File upload failed."); 
+            return back()->with('error', "File upload failed.");
+        }
+        DB::enableQueryLog();
+        // Jalankan proses impor
+        try {
+            
+            $import = new GoalsDataImportManager($filePath, $this->user, $this->period);
+            Excel::import($import, $filePath);
+
+            // Simpan data ke database setelah semua baris diproses
+            $import->saveToDatabase();
+            
+            // Simpan transaksi
+            $import->saveTransaction();
+
+            $invalidEmployees = $import->getInvalidEmployees();
+    
+            if (!empty($invalidEmployees)) {
+                session()->put('invalid_employees', $invalidEmployees);
+                $message = 'Some of import data failed! <a href="' . route('export.invalid.goal') . '"><u>Click here to download the list of errors.</u></a>';
+            }
+            return redirect()->back()->with('error', $message);
+            Log::info(Auth::id() ." Goal import : Data imported successfully.");
+            
+        } catch (ValidationException $e) {
+            // Catch the validation exception and redirect back with a custom error message
+            return redirect()->back()->with('error', $e->errors()['error'][0]);
+        } catch (\Exception $e) {
+            Log::error(Auth::id() ." Import failed: " . $e->getMessage());
+            return back()->with('error', "Import failed: " . $e->getMessage());
+        }
+        $queries = DB::getQueryLog();
+        Log::info(Auth::id() ." Executed queries import goals manager: ", $queries);
+        // Redirect dengan pesan sukses
+        return redirect()->back()->with('success', 'Goals imported successfully!');
+    }
+
+    public function exportInvalidGoal()
+    {
+        // Retrieve the invalid employees from the session or another source
+        $invalidEmployees = session('invalid_employees');
+
+        if (empty($invalidEmployees)) {
+            return redirect()->back()->with('success', 'No invalid employees to export.');
+        }
+
+        // Export the invalid employees to an Excel file
+        return Excel::download(new InvalidGoalImport($invalidEmployees), 'errors_goal_import.xlsx');
     }
 
 }

@@ -71,7 +71,7 @@ class ImportGoalsController extends Controller
             return back()->with('error', "Import failed 2: " . $e->getMessage());
         }
         $queries = DB::getQueryLog();
-        Log::info("Executed queries: ", $queries);
+        Log::info("Executed queries import goals admin: ", $queries);
         // Redirect dengan pesan sukses
         return redirect()->back()->with('success', 'Goals imported successfully!');
     }
