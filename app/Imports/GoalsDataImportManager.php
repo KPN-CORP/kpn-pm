@@ -65,6 +65,13 @@ class GoalsDataImportManager implements ToModel, WithValidation, WithHeadingRow
             $nextLayer = ApprovalLayer::where('approver_id', $this->userId)
                                     ->where('employee_id', $row['employee_id'])->max('layer');
 
+            if ($nextLayer === null) {
+                $this->invalidEmployees[] = [
+                    'employee_id' => $row['employee_id'],
+                    'message' => "Employee ID: $row[employee_id] is not under your approval layer.", // Get the first error message
+                ];
+            }
+
             // Cari approver_id pada layer selanjutnya
             $nextApprover = ApprovalLayer::where('layer', $nextLayer + 1)->where('employee_id', $row['employee_id'])->value('approver_id');
 
@@ -92,8 +99,6 @@ class GoalsDataImportManager implements ToModel, WithValidation, WithHeadingRow
                         'employee_id' => $row['employee_id'],
                         'message' => "Employee ID must contain 11 digits.", // Get the first error message
                     ];
-                    DB::rollBack();
-
                 }
                 
                 // Check if 'weightage' has errors
@@ -102,8 +107,6 @@ class GoalsDataImportManager implements ToModel, WithValidation, WithHeadingRow
                         'employee_id' => $row['employee_id'],
                         'message' => "Weightage must be in percent minimum 5% and maximum 100%.", // Separate messages
                     ];
-                    
-                    DB::rollBack();
                 }
             }
 
