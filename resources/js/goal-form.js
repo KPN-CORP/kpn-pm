@@ -156,7 +156,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     '<div class="col-6 col-md-2 mb-3">' +
                     '<label class="form-label text-primary" for="weightage">'+ weightage +'</label>' +
                     '<div class="input-group">' +
-                    '<input type="number" min="5" max="100" class="form-control" name="weightage[]" required>' +
+                    '<input type="number" min="5" max="100" step="0.1" class="form-control" name="weightage[]" required>' +
                     '<span class="input-group-text">%</span>' +
                     '<div class="invalid-feedback">' + textMandatory + '</div>' +
                     "</div>" +
@@ -230,7 +230,7 @@ document.addEventListener("DOMContentLoaded", function () {
             summaryElement.classList.add("text-danger"); // Add text-danger class
             // Add or update a sibling element to display the additional message
             if (summaryElement) {
-                summaryElement.textContent = totalSum.toFixed(0) + "% of 100%";
+                summaryElement.textContent = totalSum + "% of 100%";
             }
         } else {
             summaryElement.classList.remove("text-danger"); // Remove text-danger class
@@ -291,12 +291,12 @@ function validate(submitType) {
     var weight = document.querySelectorAll('input[name="weightage[]"]');
     var sum = 0;
     for (var i = 0; i < weight.length; i++) {
-        sum += parseInt(weight[i].value) || 0; // Parse input value to integer, default to 0 if NaN
+        sum += parseFloat(weight[i].value) || 0; // Parse input value to integer, default to 0 if NaN
     }
 
     if (sum != 100 && submitType === "submit_form") {
         Swal.fire({
-            title: "Submission failed",
+            title: "Submit failed",
             html: `Your current weightage is ${sum}%, <br>Please adjust to reach the total weightage of 100%`,
             confirmButtonColor: "#3e60d5",
             icon: "error",
@@ -437,7 +437,7 @@ function updateWeightageSummary() {
         summaryElement.classList.add("text-danger"); // Add text-danger class
         // Add or update a sibling element to display the additional message
         if (summaryElement) {
-            summaryElement.textContent = totalSum.toFixed(0) + "% of 100%";
+            summaryElement.textContent = totalSum + "% of 100%";
         }
     } else {
         summaryElement.classList.remove("text-danger"); // Remove text-danger class

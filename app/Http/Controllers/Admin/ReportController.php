@@ -15,6 +15,7 @@ use App\Models\EmployeeAppraisal;
 use App\Models\Goal;
 use App\Models\Location;
 use App\Models\Report;
+use App\Models\Schedule;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -37,7 +38,7 @@ class ReportController extends Controller
     public function __construct()
     {
         $this->category = 'Goals';
-        $this->roles = Auth()->user()->roles;
+        $this->roles = Auth::user()->roles;
         
         $restrictionData = [];
         if(!is_null($this->roles)){
@@ -92,18 +93,15 @@ class ReportController extends Controller
         ->pluck('company_name');
         $companies = Company::select('contribution_level', 'contribution_level_code')->orderBy('contribution_level_code')->get();
 
-        $selectYear = ApprovalRequest::select(DB::raw('YEAR(created_at) as year'))
-        ->distinct()
-        ->orderBy('year')
-        ->where('category', $this->category)
+        $period = date('Y');
+
+        $selectYear = Schedule::withTrashed()
+        ->where('schedule_periode', '!=', $period)
+        ->selectRaw('DISTINCT schedule_periode as period')
+        ->orderBy('period', 'ASC')
         ->get();
 
-        $selectYear->transform(function ($req) {
-            $req->year = Carbon::parse($req->created_at)->format('Y');
-            return $req;
-        });
-
-        return view('reports-admin.app', compact('locations', 'companies', 'groupCompanies', 'link', 'parentLink', 'selectYear'));
+        return view('reports-admin.app', compact('locations', 'companies', 'groupCompanies', 'link', 'parentLink', 'selectYear', 'period'));
     }
 
     public function changesGroupCompany(Request $request)

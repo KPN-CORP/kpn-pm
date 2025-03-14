@@ -76,7 +76,7 @@
     "src": "resources/fonts/remixicon.woff2"
   },
   "resources/js/app.js": {
-    "file": "assets/app-O78PYkGh.js",
+    "file": "assets/app-DK4lj5fS.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -133,7 +133,7 @@
     "isEntry": true
   },
   "resources/js/team-goal.js": {
-    "file": "assets/team-goal-CteASkZw.js",
+    "file": "assets/team-goal-BcRrxsnC.js",
     "name": "team-goal",
     "src": "resources/js/team-goal.js",
     "isEntry": true,

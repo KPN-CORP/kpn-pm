@@ -249,14 +249,14 @@ class MyGoalController extends Controller
 
             $selectedUoM = [];
             $selectedType = [];
-            $weigthage = [];
+            $weightage = [];
             $totalWeightages = 0;
             
             foreach ($formData as $index => $row) {
                 $selectedUoM[$index] = $row['uom'] ?? '';
                 $selectedType[$index] = $row['type'] ?? '';
-                $weigthage[$index] = $row['weightage'] ?? '';
-                $totalWeightages += (int)$weigthage[$index];
+                $weightage[$index] = $row['weightage'] ?? '';
+                $totalWeightages += (float)$weightage[$index];
             }
 
 
@@ -297,13 +297,13 @@ class MyGoalController extends Controller
             'kpi.*' => 'required|string',
             'target.*' => 'required|numeric',
             'uom.*' => 'required|string',
-            'weightage.*' => 'required|integer|min:5|max:100',
+            'weightage.*' => 'required|numeric|min:5|max:100',
             'type.*' => 'required|string',
         ];
 
         // Pesan validasi kustom
         $customMessages = [
-            'weightage.*.integer' => 'Weightage harus berupa angka.',
+            'weightage.*.numeric' => 'Weightage harus berupa angka bulat (8) / desimal (8.5)',
             'weightage.*.min' => 'Weightage harus lebih besar atau sama dengan :min %.',
             'weightage.*.max' => 'Weightage harus kurang dari atau sama dengan :max %.',
         ];
@@ -425,13 +425,13 @@ class MyGoalController extends Controller
             'kpi.*' => 'required|string',
             'target.*' => 'required|numeric',
             'uom.*' => 'required|string',
-            'weightage.*' => 'required|integer|min:5|max:100',
+            'weightage.*' => 'required|numeric|min:5|max:100',
             'type.*' => 'required|string',
         ];
 
         // Pesan validasi kustom
         $customMessages = [
-            'weightage.*.integer' => 'Weightage harus berupa angka.',
+            'weightage.*.numeric' => 'Weightage harus berupa angka bulat (8) / desimal (8.5)',
             'weightage.*.min' => 'Weightage harus lebih besar atau sama dengan :min %.',
             'weightage.*.max' => 'Weightage harus kurang dari atau sama dengan :max %.',
         ];

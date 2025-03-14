@@ -280,7 +280,7 @@ function updateWeightageSummary() {
         summaryElement.classList.add("text-danger"); // Add text-danger class
         // Add or update a sibling element to display the additional message
         if (summaryElement) {
-            summaryElement.textContent = totalSum.toFixed(0) + "% of 100%";
+            summaryElement.textContent = totalSum + "% of 100%";
         }
     } else {
         summaryElement.classList.remove("text-danger"); // Remove text-danger class

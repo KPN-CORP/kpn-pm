@@ -162,11 +162,6 @@
                                 <a href="{{ route('schedules') }}">Schedule</a>
                             </li>
                             @endcan
-                            @can('importgoals')
-                            <li>
-                                <a href="{{ route('importg') }}">Import Goals</a>
-                            </li>
-                            @endcan
                         </ul>
                     </div>
                 </li>
@@ -196,16 +191,11 @@
                                 <a href="{{ route('admin.appraisal') }}" onclick="showLoader()">{{ __('Appraisal') }}</a>
                             </li>
                             @endcan
-                            {{-- @can('employeepa')
-                            <li>
-                                <a href="{{ route('admemployee') }}">Employee PA</a>
-                            </li>
-                            @endcan --}}
                         </ul>
                     </div>
                 </li>
                 @endcan
-                @if (auth()->user()->hasRole('superadmin'))
+                
                     @can('viewimport')
                     <li class="side-nav-item">
                         <a data-bs-toggle="collapse" href="#sidebarImports" aria-expanded="false" aria-controls="sidebarImports" class="side-nav-link">
@@ -215,14 +205,20 @@
                         </a>
                         <div class="collapse" id="sidebarImports">
                             <ul class="side-nav-second-level">
+                                @can('importgoals')
                                 <li>
-                                    <a href="{{ route('importRating') }}">{{ __('Imports Rating') }}</a>
+                                    <a href="{{ route('importg') }}">{{ __('Import Goals') }}</a>
                                 </li>
+                                @endcan
+                                @if (auth()->user()->hasRole('superadmin'))
+                                <li>
+                                    <a href="{{ route('importRating') }}">{{ __('Import Rating') }}</a>
+                                </li>
+                                @endif
                             </ul>
                         </div>
                     </li>
                     @endcan
-                @endif
                 @endcan
             @endif
 

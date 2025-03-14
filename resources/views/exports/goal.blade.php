@@ -9,6 +9,7 @@
         <th>Uom</th>
         <th>Weightage</th>
         <th>Type</th>
+        <th>Description</th>
         <th>Form Status</th>
         <th>Approval Status</th>
         <th>Current Approver</th>
@@ -34,6 +35,7 @@
                     <td>{{ $item['uom']==='Other' ? $item['custom_uom'] : $item['uom'] }}</td>
                     <td>{{ $item['weightage'] }}</td>
                     <td>{{ $item['type'] }}</td>
+                    <td>{{ $item['description'] ?? "-" }}</td>
                     <td>{{ $row->goal->form_status }}</td>
                     <td>{{ $row->status=='Pending'? ($row->sendback_to ? 'Waiting For Revision' : ($row->goal->form_status=='Draft'?'Not Started':'Waiting For Approval')) : $row->status }}</td>
                     <td>{{ $row->status=='Sendback' && $row->sendback_to == $row->employee_id || $row->goal->form_status=='Draft' ? '-' : $row->manager->fullname }}</td>

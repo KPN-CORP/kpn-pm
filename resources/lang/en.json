@@ -69,5 +69,6 @@
     "Description": "Description",
     "This field is mandatory": "This field is mandatory",
     "Approval": "Approval",
-    "Not Initiated": "Not Initiated"
+    "Not Initiated": "Not Initiated",
+    "Note Import Goal Manager": "Template Import Goals can use from : "
 }

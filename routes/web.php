@@ -128,6 +128,9 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::get('/team-goals/approval/{id}', [TeamGoalController::class, 'approval'])->name('team-goals.approval');
     Route::get('/get-tooltip-content', [TeamGoalController::class, 'getTooltipContent']);
     Route::get('/units-of-measurement', [TeamGoalController::class, 'unitOfMeasurement']);
+    Route::post('/import-goals-manager', [TeamGoalController::class, 'import'])->name('importgoalsmanager');
+    Route::get('/export-invalid-goal', [TeamGoalController::class, 'exportInvalidGoal'])->name('export.invalid.goal');
+
 
     // My Appraisal
     Route::get('/appraisals', [MyAppraisalController::class, 'index'])->name('appraisals');

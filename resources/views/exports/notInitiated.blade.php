@@ -1,12 +1,14 @@
 <table>
     <thead>
     <tr>
-        <th>Employee ID</th>
-        <th>Name</th>
-        <th>Designation</th>
-        <th>Business Unit</th>
-        <th>Company</th>
-        <th>Location</th>
+        <th>Employee_ID</th>
+        <th>Employee_Name</th>
+        <th>KPI</th>
+        <th>Target</th>
+        <th>UoM</th>
+        <th>Weightage</th>
+        <th>Type</th>
+        <th>Description</th>
     </tr>
     </thead>
     <tbody>
@@ -14,10 +16,12 @@
         <tr>
             <td>{{ $row->employee_id }}</td>
             <td>{{ $row->employee->fullname }}</td>
-            <td>{{ $row->employee->designation_name }}</td>
-            <td>{{ $row->employee->group_company }}</td>
-            <td>{{ $row->employee->contribution_level_code }}</td>
-            <td>{{ $row->employee->office_area }}</td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
         </tr>
     @endforeach
     </tbody>

@@ -6,22 +6,24 @@
         <th>Category</th>
         <th>KPI</th>
         <th>Target</th>
-        <th>{{ __('Uom') }}</th>
-        <th>{{ __('Weightage') }}</th>
-        <th>{{ __('Type') }}</th>
+        <th>Uom</th>
+        <th>Weightage</th>
+        <th>Type</th>
         <th>Form Status</th>
         <th>Approval Status</th>
         <th>Current Approver</th>
         <th>Current Approver ID</th>
-        <th>{{ __('Initiated By') }}</th>
-        <th>{{ __('Initiated By') }} ID</th>
+        <th>Initiated By</th>
+        <th>Initiated By ID</th>
     </tr>
     </thead>
     <tbody>
         @foreach ($data as $row)
         @foreach($row->subordinates as $subordinate)
-            @php
-                $formData = json_decode($subordinate->goal->form_data, true);
+             @php
+                $formData = $subordinate->goal && $subordinate->goal->form_data 
+                            ? json_decode($subordinate->goal->form_data, true) 
+                            : null;
             @endphp
         @endforeach
             @if ($formData)

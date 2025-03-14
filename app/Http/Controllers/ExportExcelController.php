@@ -10,6 +10,8 @@ use App\Exports\NotInitiatedExport;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\EmployeepaExport;
+use App\Services\AppService;
+use Illuminate\Support\Facades\Auth;
 
 class ExportExcelController extends Controller
 {
@@ -17,10 +19,12 @@ class ExportExcelController extends Controller
     protected $permissionCompanies;
     protected $permissionLocations;
     protected $roles;
+    protected $appService;
     
-    public function __construct()
+    public function __construct(AppService $appService)
     {
-        $this->roles = Auth()->user()->roles;
+        $this->roles = Auth::user()->roles;
+        $this->appService = $appService;
         
         $restrictionData = [];
 
@@ -92,7 +96,7 @@ class ExportExcelController extends Controller
     {
         $employee_id = $request->employee_id;
 
-        $data = new NotInitiatedExport($employee_id);
+        $data = new NotInitiatedExport($employee_id, $this->appService);
         return Excel::download($data, 'employee_not_initiated_goals.xlsx');
 
     }
