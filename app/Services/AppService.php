@@ -18,8 +18,6 @@ use App\Models\MasterWeightage;
 use App\Models\Schedule;
 use Carbon\Carbon;
 use Exception;
-use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 
 use stdClass;
@@ -844,6 +842,7 @@ class AppService
         $period = Schedule::where('event_type', 'goals')
                         ->orderByDesc('id')
                         ->value('schedule_periode');
+
         return $period;
     }
 
