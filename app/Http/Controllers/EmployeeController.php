@@ -116,12 +116,10 @@ class EmployeeController extends Controller
         $schedules = DB::table('schedules')
             ->where(function($query) use ($today) {
                 $query->where('start_date', $today)
-                      //->orWhere('end_date', $today);
                       ->orWhere(DB::raw('DATE_ADD(end_date, INTERVAL 1 DAY)'), $today);
             })
             ->whereNull('deleted_at')
             ->get();
-            // dd($schedules);
 
             foreach ($schedules as $schedule) {
                 if($schedule->event_type<>'masterschedulepa'){
