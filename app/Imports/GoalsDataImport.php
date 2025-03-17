@@ -1,6 +1,8 @@
 <?php
 namespace App\Imports;
 
+use App\Models\Appraisal;
+use App\Models\Employee;
 use App\Models\EmployeeAppraisal;
 
 use Illuminate\Support\Str;
@@ -39,11 +41,11 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
 
             if (!$headersChecked) {  
                 $headers = collect($row)->keys();  
-                $expectedHeaders = ['employee_id', 'kpi', 'target', 'uom', 'weightage', 'type', 'description'];  
+                $expectedHeaders = ['employee_id', 'employee_name', 'kpi', 'target', 'uom', 'weightage', 'type', 'description'];  
 
                 if (!collect($expectedHeaders)->diff($headers)->isEmpty()) {  
                     throw ValidationException::withMessages([  
-                        'error' => 'Invalid excel format. The header must contain Employee_ID, KPI, Target, UOM, Weightage, Type, Description.',  
+                        'error' => 'Invalid excel format. The header must contain Employee_ID, Employee_Name, KPI, Target, UOM, Weightage, Type, Description.',  
                     ]);  
                 }  
 
@@ -77,9 +79,27 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
 
             $employeeId = $row['employee_id'];
 
+            $employeeExist = Employee::where('employee_id', $employeeId)
+                    ->where('fullname', 'like', '%' . $row['employee_name'] . '%')
+                    ->exists();
+
+                if (!$employeeExist) {
+                    $message = "Employee : " . $row['employee_name'] ." with ID " . $employeeId . " not exist.";
+                    Log::info($message);
+                    
+                    $this->detailError[] = [
+                        'employee_id' => $employeeId,
+                        'message' => $message,
+                    ];
+
+                    $this->errorCount++;    
+                    return;
+                }
+
             // Simpan data KPI ke array berdasarkan employee_id
             if (!isset($this->employeesData[$employeeId])) {
                 $this->employeesData[$employeeId] = [
+                    'employee_name' => $row['employee_name'],
                     'category' => $row['category'],
                     'form_data' => [],
                     'current_approval_id' => $row['current_approver_id'],  // Menyimpan langsung current_approval_id
@@ -92,7 +112,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
                 'kpi' => $row['kpi'],
                 'target' => $row['target'],
                 'uom' => $row['uom'],
-                'weightage' => $row['weightage'],
+                'weightage' => $row['weightage'] * 100,
                 'description' => $row['description'],
                 'type' => $row['type'],
                 'custom_uom' => null,
@@ -111,8 +131,9 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
             DB::beginTransaction();
 
             try {
-                $existsInAppraisals = DB::table('appraisals')
-                    ->where('employee_id', $employeeId)
+
+                $existsInAppraisals = Appraisal::where('employee_id', $employeeId)
+                    ->where('period', $data['period'])
                     ->exists();
 
                 if ($existsInAppraisals) {
