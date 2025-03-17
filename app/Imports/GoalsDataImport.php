@@ -158,10 +158,21 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
                 ]);
                 Log::info("Old goals updated for Employee ID: " . $employeeId);
 
-                DB::table('approval_requests')
+                
+                $approvalRequests = DB::table('approval_requests')
                     ->where('employee_id', $employeeId)
                     ->where('category', $data['category'])
                     ->where('period', $data['period'])
+                    ->pluck('id'); // Get the list of IDs
+
+                // Soft delete approvals linked to these requests
+                DB::table('approvals')
+                    ->whereIn('request_id', $approvalRequests) // Use the retrieved IDs
+                    ->update(['deleted_at' => now()]);
+
+                // Soft delete approval_requests
+                DB::table('approval_requests')
+                    ->whereIn('id', $approvalRequests)
                     ->update(['deleted_at' => now()]);
 
                 $empId = EmployeeAppraisal::where('employee_id', $employeeId)->pluck('id')->first();
