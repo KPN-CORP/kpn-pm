@@ -131,6 +131,7 @@ class ReportController extends Controller
         $user = Auth::user();
         $employeeId = $user->employee_id;
         $report_type = $request->report_type;
+        $period = $request->input('filterYear');
         $group_company = $request->input('group_company', []);
         $location = $request->input('location', []);
         $company = $request->input('company', []);
@@ -138,7 +139,7 @@ class ReportController extends Controller
         $permissionCompanies = $this->permissionCompanies;
         $permissionGroupCompanies = $this->permissionGroupCompanies;
 
-        $filters = compact('report_type', 'group_company', 'location', 'company');
+        $filters = compact('period', 'report_type', 'group_company', 'location', 'company');
 
         // Start building the query
         if ($report_type === 'Goal') {
@@ -174,6 +175,11 @@ class ReportController extends Controller
                 $query->whereHas('employee', function ($query) use ($company) {
                     $query->whereIn('contribution_level_code', $company);
                 });
+            }
+            if (!empty($period)) {
+                $query->where('period', $period);
+            } else {
+                $query->where('period', date('Y'));
             }
 
             // Apply employee filters
@@ -308,6 +314,7 @@ class ReportController extends Controller
         $groupCompany = $request->export_group_company;
         $company = $request->export_company;
         $location = $request->export_location;
+        $period = $request->export_period;
         $permissionLocations = $this->permissionLocations;
         $permissionCompanies = $this->permissionCompanies;
         $permissionGroupCompanies = $this->permissionGroupCompanies;
@@ -319,7 +326,7 @@ class ReportController extends Controller
         $fileName = $reportType.'_'.$date.'.xlsx'; // Nama file yang akan disimpan
 
         if($reportType==='Goal'){
-            $export = new GoalExport($groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
+            $export = new GoalExport($period, $groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
             $fileContent = Excel::download($export, $fileName)->getFile();
         }
         return false;

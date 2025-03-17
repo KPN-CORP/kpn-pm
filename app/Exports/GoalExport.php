@@ -17,17 +17,19 @@ class GoalExport implements FromView, WithStyles
     protected $groupCompany;
     protected $location;
     protected $company;
+    protected $period;
     protected $admin;
     protected $permissionGroupCompanies;
     protected $permissionCompanies;
     protected $permissionLocations;
 
-    public function __construct($groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies)
+    public function __construct($period, $groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies)
     {
         $this->groupCompany = $groupCompany;
         $this->location = $location;
         $this->company = $company;
         $this->admin = $admin;
+        $this->period = $period;
 
         $this->permissionLocations = $permissionLocations;
         $this->permissionCompanies = $permissionCompanies;
@@ -39,7 +41,7 @@ class GoalExport implements FromView, WithStyles
     {
         $query = ApprovalRequest::query();
 
-        $query->where('category', 'Goals');
+        $query->where('category', 'Goals')->where('period', $this->period);
 
         if (!$this->admin) {
             $query->whereHas('approvalLayer', function ($query) {

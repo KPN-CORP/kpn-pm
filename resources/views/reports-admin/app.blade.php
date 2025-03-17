@@ -56,6 +56,7 @@
               <input type="hidden" name="export_group_company" id="export_group_company">
               <input type="hidden" name="export_company" id="export_company">
               <input type="hidden" name="export_location" id="export_location">
+              <input type="hidden" name="export_period" id="export_period">
               <a id="export" onclick="exportExcel()" class="btn btn-outline-secondary px-4 shadow disabled"><i class="ri-arrow-circle-down-line"></i> Download</a>
             </form>
           </div>

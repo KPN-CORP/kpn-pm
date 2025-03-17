@@ -33,85 +33,101 @@
                     <h4 class="me-1">On Behalf as : <u>{{ $row->request->manager->fullname }}</u></h4><span class="text-muted h4"><u>{{ $row->request->manager->employee_id }}</u></span>
               </div>
               <!-- Content Row -->
-              <div class="container-card">
-                @php
-                    $formData = json_decode($row->request->goal['form_data'], true);
-                @endphp
-                @if ($formData)
-                @foreach ($formData as $index => $data)
-                    <div class="card col-md-12 mb-4 shadow-sm">
-                        <div class="card-header bg-white pb-0">
-                            <h4>KPI {{ $index + 1 }}</h4>
-                        </div>
-                        <div class="card-body">
-                            <div class="row">
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label class="form-label" for="kpi">KPI</label>
-                                        <textarea name="kpi[]" oninput="autoResize(this)" class="form-control" readonly>{{ $data['kpi'] }}</textarea>
+              <div class="container-fluid p-0">
+                <div class="card col-md-12 mb-3 shadow">
+                    <div class="card-body pb-0 px-2 px-md-3">
+                        <div class="container-card">
+                        @php
+                            $formData = json_decode($row->request->goal['form_data'], true);
+                        @endphp
+                        @if ($formData)
+                        @foreach ($formData as $index => $data)
+                            <div class="card border-primary border col-md-12 mb-3 bg-primary-subtle">
+                                <div class="card-body">
+                                    <div class='row align-items-end'>
+                                        <div class='col'><h5 class='card-title fs-16 mb-0 text-primary'>Goal {{ $index + 1 }}</h5></div>
+                                        {{-- @if ($index >= 1)
+                                            <div class='col-auto'><a class='btn-close remove_field' type='button'></a></div>
+                                        @endif --}}
                                     </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <div class="mb-3">
-                                        <label class="form-label" for="target">Target</label>
-                                        <input type="text" name="target[]" value="{{ $data['target'] }}" class="form-control" readonly>
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <div class="mb-3">
-                                        <label class="form-label" for="uom">{{ __('Uom') }}</label>
-                                        <input type="text" name="uom[]" id="uom" value="{{ $data['uom'] }}" class="form-control" readonly>
-                                        <input 
-                                            type="text" 
-                                            name="custom_uom[]" 
-                                            id="custom_uom{{ $index }}" 
-                                            class="form-control mt-2" 
-                                            value="{{ $data['custom_uom'] }}" 
-                                            placeholder=" UoM" 
-                                            @if ($data['uom'] !== 'Other') 
-                                                style="display: none;" 
-                                            @endif 
-                                            readonly
-                                        >
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <div class="mb-3">
-                                        <label class="form-label" for="type">{{ __('Type') }}</label>
-                                        <input type="text" oninput="validateDigits(this)" name="type[]" id="type" value="{{ $data['type'] }}" class="form-control" readonly>
-                                    </div>
-                                </div>
-                                <div class="col-md-2">
-                                    <div class="mb-3">
-                                        <label class="form-label" for="weightage">{{ __('Weightage') }}</label>
-                                        <div class="input-group">
-                                            <input name="weightage[]" class="form-control" value="{{ $data['weightage'] }}" readonly>
-                                            <div class="input-group-append">
-                                                <span class="input-group-text">%</span>
+                                    <div class="row mt-2">
+                                        <div class="col-md">
+                                            <div class="mb-3 position-relative">
+                                                <textarea name="kpi[]" id="kpi" class="form-control overflow-hidden kpi-textarea pb-2 pe-3" rows="2" placeholder="Input your goals.." readonly style="resize: none" readonly>{{ $data['kpi'] }}</textarea>
                                             </div>
                                         </div>
-                                        <!-- Tambahkan kode untuk menampilkan error weightage jika ada -->
-                                        @if ($errors->has("weightage"))
-                                            <span class="text-danger">{{ $errors->first("weightage") }}</span>
-                                        @endif
+                                    </div>
+                                    <div class="row">
+                                        <div class="col-md">
+                                            <div class="mb-3 position-relative">
+                                                <label class="form-label text-primary" for="kpi-description">Goal Descriptions</label>
+                                                <textarea name="description[]" id="kpi-description" class="form-control overflow-hidden kpi-descriptions pb-2 pe-3" rows="2" placeholder="Input goal descriptions.." style="resize: none" readonly>{{ $data['description'] ?? "" }}</textarea>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="row justify-content-between">
+                                        <div class="col-md">
+                                            <div class="mb-3">
+                                                <label class="form-label text-primary" for="target">Target</label>
+                                                <input type="text" oninput="validateDigits(this, {{ $index }})" value="{{ number_format($data['target'], 0, '', ',') }}" class="form-control" readonly>
+                                                <input type="hidden" name="target[]" id="target{{ $index }}" value="{{ $data['target'] }}">
+                                            </div>
+                                        </div>
+                                        <div class="col-md">
+                                            <div class="mb-3">
+                                                <label class="form-label text-primary" for="uom">{{ __('Uom') }}</label>
+                                                <input type="text" name="uom[]" id="uom" value="{{ $data['uom'] }}" class="form-control" readonly>
+                                                <input 
+                                                    type="text" 
+                                                    name="custom_uom[]" 
+                                                    id="custom_uom{{ $index }}" 
+                                                    class="form-control mt-2" 
+                                                    value="{{ $data['custom_uom'] }}" 
+                                                    placeholder=" UoM" 
+                                                    @if ($data['uom'] !== 'Other') 
+                                                        style="display: none;" 
+                                                    @endif 
+                                                    readonly
+                                                >
+                                            </div>
+                                        </div>
+                                        <div class="col-md">
+                                            <div class="mb-3">
+                                                <label class="form-label text-primary" for="type">{{ __('Type') }}</label>
+                                                <input type="text" name="type[]" id="type" value="{{ $data['type'] }}" class="form-control bg-secondary-subtle" readonly>
+                                            </div>
+                                        </div>
+                                        <div class="col-6 col-md-2">
+                                            <div class="mb-3">
+                                                <label class="form-label text-primary" for="weightage">{{ __('Weightage') }}</label>
+                                                <div class="input-group flex-nowrap ">
+                                                    <input type="number" min="5" max="100" step="0.1" class="form-control text-center" name="weightage[]" value="{{ $data['weightage'] }}" readonly>
+                                                    <div class="input-group-append">
+                                                        <span class="input-group-text">%</span>
+                                                    </div>
+                                                </div>                                  
+                                                {{ $errors->first("weightage") }}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                @endforeach
-                <div class="row">
-                    <div class="col-lg-6">
-                        <div class="mb-3">
-                            <label class="form-label" for="messages">Messages*</label>
-                            <textarea name="messages" id="messages{{ $row->request->id }}" class="form-control" placeholder="Enter messages..">{{ $row->request->messages }}</textarea>
-                        </div>
+                            @endforeach
+                            <div class="row">
+                                <div class="col-lg-6">
+                                    <div class="mb-3">
+                                        <label class="form-label" for="messages">Messages*</label>
+                                        <textarea name="messages" id="messages{{ $row->request->id }}" class="form-control" placeholder="Enter messages..">{{ $row->request->messages }}</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            @else
+                                <p>No form data available.</p>
+                            @endif   
+                        </div>      
                     </div>
                 </div>
-                @else
-                    <p>No form data available.</p>
-                @endif                
-            </div>
+              </div> 
         </form>
         <form id="goalSendbackForm" action="{{ route('admin.sendback.goal') }}" method="post">
             @csrf
