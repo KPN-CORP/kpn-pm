@@ -174,6 +174,22 @@ class MyGoalController extends Controller
 
         $period = $this->appService->goalPeriod();
 
+        $employee = Employee::where('employee_id', $this->user)->first();
+        $access_menu = json_decode($employee->access_menu, true);
+        $goal_access = $access_menu['goals'] ?? null;
+        $doj_access = $access_menu['doj'] ?? null;
+
+        if (!$goal_access && !$doj_access) {
+            // User ID doesn't match the condition, show error message
+            if ($this->user != $id) {
+                Session::flash('error', "This employee not granted access to initiate Goals for $period.");
+                return redirect('team-goals');
+            } else {
+                Session::flash('error', "You are not granted access to initiate Goals for $period.");
+            }
+            return redirect('goals');
+        }
+
         $goal = Goal::where('employee_id', $id)->where('period', $period)->get();
         if ($goal->isNotEmpty()) {
             // User ID doesn't match the condition, show error message
