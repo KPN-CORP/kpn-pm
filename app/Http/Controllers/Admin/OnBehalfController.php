@@ -311,6 +311,7 @@ class OnBehalfController extends Controller
         $targets = $request->input('target', []);
         $uoms = $request->input('uom', []);
         $weightages = $request->input('weightage', []);
+        $descriptions = $request->input('description', []);
         $types = $request->input('type', []);
         $custom_uoms = $request->input('custom_uom', []);
 
@@ -362,6 +363,7 @@ class OnBehalfController extends Controller
                     'target' => $targets[$index],
                     'uom' => $uoms[$index],
                     'weightage' => $weightages[$index],
+                    'description' => $descriptions[$index],
                     'type' => $types[$index],
                     'custom_uom' => $customuom
                 ];
