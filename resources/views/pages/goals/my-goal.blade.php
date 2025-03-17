@@ -31,7 +31,7 @@
                 </div>
                 <div class="col">
                     <div class="mb-3 text-end">
-                        <a href="{{ $goals ? route('goals.form', Auth::user()->employee_id) : '#' }}" onclick="showLoader()" class="btn {{ $goals ? 'btn-primary shadow' : 'btn-secondary-subtle disabled' }}">{{ __('Create Goal') }}</a>
+                        <a href="{{ $access ? route('goals.form', Auth::user()->employee_id) : '#' }}" onclick="showLoader()" class="btn {{ $access ? 'btn-primary shadow' : 'btn-secondary-subtle disabled' }}">{{ __('Create Goal') }}</a>
                     </div>
                 </div>
             </div>

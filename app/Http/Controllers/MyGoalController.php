@@ -153,7 +153,7 @@ class MyGoalController extends Controller
     
         $employee = Employee::where('employee_id', $user)->first();
         $access_menu = json_decode($employee->access_menu, true);
-        $goals = $access_menu['goals'] ?? null;
+        $access = $access_menu['goals'] && $access_menu['doj'] ?? null;
     
         $selectYear = ApprovalRequest::where('employee_id', $user)->where('category', $this->category)->select('created_at')->get();
         $selectYear->transform(function ($req) {
@@ -161,7 +161,7 @@ class MyGoalController extends Controller
             return $req;
         });
     
-        return view('pages.goals.my-goal', compact('data', 'link', 'parentLink', 'uomOption', 'typeOption', 'goals', 'selectYear', 'adjustByManager'));
+        return view('pages.goals.my-goal', compact('data', 'link', 'parentLink', 'uomOption', 'typeOption', 'access', 'selectYear', 'adjustByManager'));
     }
 
     function show($id) {
@@ -179,7 +179,7 @@ class MyGoalController extends Controller
         $goal_access = $access_menu['goals'] ?? null;
         $doj_access = $access_menu['doj'] ?? null;
 
-        if (!$goal_access && !$doj_access) {
+        if (!$goal_access || !$doj_access) {
             // User ID doesn't match the condition, show error message
             if ($this->user != $id) {
                 Session::flash('error', "This employee not granted access to initiate Goals for $period.");
