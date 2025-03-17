@@ -287,7 +287,7 @@ class MyAppraisalController extends Controller
             return redirect()->route('appraisals');
         }
 
-        if (!$accessMenu['createpa']) {
+        if (!$accessMenu['createpa'] && !$accessMenu['accesspa']) {
             Session::flash('error', "You are not eligible to create Appraisal $period.");
             return redirect()->route('appraisals');
         }

@@ -121,6 +121,8 @@ class EmployeeController extends Controller
             ->whereNull('deleted_at')
             ->get();
 
+            Log::info('Schedules fetched', ['count' => $schedules]);
+            Log::info('Today', ['date' => $today]);
             foreach ($schedules as $schedule) {
                 if($schedule->event_type<>'masterschedulepa'){
                     if ($schedule->start_date == $today) {
@@ -186,6 +188,8 @@ class EmployeeController extends Controller
                         'access_menu' => json_encode($accessMenuJson),
                         'updated_at' => Carbon::now()  // Update the updated_at column
                     ]);
+
+                Log::info('Scheduled access_menu employees table updated.');
             }
         }else if($schedule->event_type=='schedulepa'){
             foreach ($employeePA as $employee) {
@@ -202,6 +206,8 @@ class EmployeeController extends Controller
                         'access_menu' => json_encode($accessMenuJson),
                         'updated_at' => Carbon::now()  // Update the updated_at column
                     ]);
+
+                Log::info('Scheduled access_menu employees_pa table updated.');
             }
         }
     }
