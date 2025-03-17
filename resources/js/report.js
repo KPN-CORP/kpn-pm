@@ -5,6 +5,7 @@ function hideLoader() {
 }
 
 import bootstrap from "bootstrap/dist/js/bootstrap.bundle.min.js";
+import { log } from 'handlebars';
 
 function adminReportType(val) {
     $("#report_type").val(val);
@@ -37,6 +38,14 @@ function adminReportType(val) {
                 scrollCollapse: true,
                 scrollX: true
             });
+
+            // Retrieve previous search value from stateSave
+            let savedState = reportGoalsTable.state.loaded();  
+            if (savedState && savedState.search.search) {
+                reportGoalsTable.search(savedState.search.search).draw();
+                customsearch.val(savedState.search.search); // Set input value
+            }
+
             reportGoalsTable.on('draw', function () {
                 initializePopovers();
             });
@@ -97,6 +106,13 @@ document.addEventListener("DOMContentLoaded", function () {
                     scrollCollapse: true,
                     scrollX: true
                 });
+
+                // Retrieve previous search value from stateSave
+                let savedState = reportGoalsTable.state.loaded();  
+                if (savedState && savedState.search.search) {
+                    reportGoalsTable.search(savedState.search.search).draw();
+                    customsearch.val(savedState.search.search); // Set input value
+                }
                 
                 customsearch.on("keyup", function () {
                     reportGoalsTable.search($(this).val()).draw();
@@ -281,11 +297,13 @@ function exportExcel() {
     const groupCompany = $("#group_company").val();
     const company = $("#company").val();
     const location = $("#location").val();
+    const period = $("#filterYear").val();
     
     $("#export_report_type").val(reportType);
     $("#export_group_company").val(groupCompany);
     $("#export_company").val(company);
     $("#export_location").val(location);
+    $("#export_period").val(period);
     
     // Submit the form
     exportForm.submit();

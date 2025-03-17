@@ -10,6 +10,8 @@ use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
 {
@@ -32,6 +34,47 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
         Log::info("Processing row: ", $row);
 
         try {
+            
+            static $headersChecked = false;  
+
+            if (!$headersChecked) {  
+                $headers = collect($row)->keys();  
+                $expectedHeaders = ['employee_id', 'kpi', 'target', 'uom', 'weightage', 'type', 'description'];  
+
+                if (!collect($expectedHeaders)->diff($headers)->isEmpty()) {  
+                    throw ValidationException::withMessages([  
+                        'error' => 'Invalid excel format. The header must contain Employee_ID, KPI, Target, UOM, Weightage, Type, Description.',  
+                    ]);  
+                }  
+
+                $headersChecked = true;  
+            }  
+
+            $validate = Validator::make($row, [
+                'employee_id' => 'digits:11', // Ensure employee_id is exactly 11 digits
+                'weightage' => 'required|numeric|min:0.05|max:1.00'
+            ]);
+
+            if ($validate->fails()) {
+                $errors = $validate->errors(); // Get validation errors
+                            
+                // Check if 'employee_id' has errors
+                if ($errors->has('employee_id')) {
+                    $this->detailError[] = [
+                        'employee_id' => $row['employee_id'],
+                        'message' => "Employee ID must contain 11 digits.", // Get the first error message
+                    ];
+                }
+                
+                // Check if 'weightage' has errors
+                if ($errors->has('weightage')) {
+                    $this->detailError[] = [
+                        'employee_id' => $row['employee_id'],
+                        'message' => "Weightage must be in percent minimum 5% and maximum 100%.", // Separate messages
+                    ];
+                }
+            }
+
             $employeeId = $row['employee_id'];
 
             // Simpan data KPI ke array berdasarkan employee_id
@@ -50,6 +93,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
                 'target' => $row['target'],
                 'uom' => $row['uom'],
                 'weightage' => $row['weightage'],
+                'description' => $row['description'],
                 'type' => $row['type'],
                 'custom_uom' => null,
             ];
@@ -136,6 +180,16 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
                     'status' => 'Approved',
                     'messages' => 'import by admin',
                     'period' => $data['period'],
+                    'created_by' => $empId,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+
+                // Use the request ID in the approvals table
+                DB::table('approvals')->insert([
+                    'request_id' => $requestId,  // Use the stored ID
+                    'approver_id' => $data['current_approval_id'],
+                    'status' => 'Approved',
                     'created_by' => $empId,
                     'created_at' => now(),
                     'updated_at' => now(),

@@ -44,6 +44,7 @@ class ExportExcelController extends Controller
         $groupCompany = $request->export_group_company;
         $company = $request->export_company;
         $location = $request->export_location;
+        $period = $request->export_period;
 
         $permissionGroupCompanies = $this->permissionGroupCompanies;
         $permissionCompanies = $this->permissionCompanies;
@@ -52,7 +53,7 @@ class ExportExcelController extends Controller
         $admin = 0;
 
         if($reportType==='Goal'){
-            $goal = new GoalExport($groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
+            $goal = new GoalExport($period, $groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
             return Excel::download($goal, 'goals.xlsx');
         }
         if($reportType==='Employee'){
@@ -69,6 +70,7 @@ class ExportExcelController extends Controller
         $groupCompany = $request->export_group_company;
         $company = $request->export_company;
         $location = $request->export_location;
+        $period = $request->export_period;
 
         $permissionGroupCompanies = $this->permissionGroupCompanies;
         $permissionCompanies = $this->permissionCompanies;
@@ -77,7 +79,7 @@ class ExportExcelController extends Controller
         $admin = 1;
 
         if($reportType==='Goal'){
-            $goal = new GoalExport($groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
+            $goal = new GoalExport($period, $groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
             return Excel::download($goal, 'goals.xlsx');
         }
         if($reportType==='Employee'){
