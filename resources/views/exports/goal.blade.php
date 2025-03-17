@@ -33,7 +33,7 @@
                     <td>{{ $item['kpi'] }}</td>
                     <td>{{ $item['target'] }}</td>
                     <td>{{ $item['uom']==='Other' ? $item['custom_uom'] : $item['uom'] }}</td>
-                    <td>{{ $item['weightage'] }}</td>
+                    <td>{{ $item['weightage'] / 100 }}</td>
                     <td>{{ $item['type'] }}</td>
                     <td>{{ $item['description'] ?? "-" }}</td>
                     <td>{{ $row->goal->form_status }}</td>
