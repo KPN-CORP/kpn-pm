@@ -9,6 +9,11 @@ class ApprovalSnapshots extends Model
 {
     use HasFactory;
 
+    protected $fillable = [
+        'form_id',
+        'form_data',
+    ];
+
     public function employee()
     {
         return $this->belongsTo(Employee::class, 'employee_id', 'employee_id');

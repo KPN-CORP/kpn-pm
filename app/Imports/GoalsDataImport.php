@@ -4,10 +4,11 @@ namespace App\Imports;
 use App\Models\Appraisal;
 use App\Models\Employee;
 use App\Models\EmployeeAppraisal;
-
+use Exception;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -41,11 +42,11 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
 
             if (!$headersChecked) {  
                 $headers = collect($row)->keys();  
-                $expectedHeaders = ['employee_id', 'employee_name', 'kpi', 'target', 'uom', 'weightage', 'type', 'description'];  
+                $expectedHeaders = ['employee_id', 'employee_name', 'category', 'kpi', 'target', 'uom', 'weightage', 'type', 'description', 'current_approver_id', 'period'];  
 
                 if (!collect($expectedHeaders)->diff($headers)->isEmpty()) {  
                     throw ValidationException::withMessages([  
-                        'error' => 'Invalid excel format. The header must contain Employee_ID, Employee_Name, KPI, Target, UOM, Weightage, Type, Description.',  
+                        'error' => 'Invalid excel format. The header must contain Employee_ID, Employee_Name, KPI, Target, UOM, Weightage, Type, Description, Current Approver ID, Period.',  
                     ]);  
                 }  
 
@@ -75,6 +76,28 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
                         'message' => "Weightage must be in percent minimum 5% and maximum 100%.", // Separate messages
                     ];
                 }
+            }
+
+            $path = base_path('resources/goal.json');
+    
+            // Check if the JSON file exists
+            if (!File::exists($path)) {
+                abort(500, 'JSON file does not exist.');
+            }
+        
+            // Read the contents of the JSON file
+            $options = json_decode(File::get($path), true);
+        
+            $uomOption = $options['UoM'];
+
+            $validUoms = collect($uomOption)->flatten()->all();
+
+            if (in_array($row['uom'], $validUoms, true)) {
+                $uom = $row['uom'];
+                $custom_uom = null;
+            }else{
+                $uom = "Other";
+                $custom_uom = $row['uom'];
             }
 
             $employeeId = $row['employee_id'];
@@ -111,11 +134,11 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
             $this->employeesData[$employeeId]['form_data'][] = [
                 'kpi' => $row['kpi'],
                 'target' => $row['target'],
-                'uom' => $row['uom'],
+                'uom' => $uom,
                 'weightage' => $row['weightage'] * 100,
                 'description' => $row['description'],
                 'type' => $row['type'],
-                'custom_uom' => null,
+                'custom_uom' => $custom_uom,
             ];
         } catch (\Exception $e) {
             Log::error("Error processing row: " . $e->getMessage());

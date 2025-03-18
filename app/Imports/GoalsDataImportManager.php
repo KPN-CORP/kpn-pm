@@ -10,6 +10,7 @@ use App\Models\Goal;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Maatwebsite\Excel\Concerns\ToModel;
 use Maatwebsite\Excel\Concerns\WithValidation;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
@@ -110,6 +111,28 @@ class GoalsDataImportManager implements ToModel, WithValidation, WithHeadingRow
                 }
             }
 
+            $path = base_path('resources/goal.json');
+    
+            // Check if the JSON file exists
+            if (!File::exists($path)) {
+                abort(500, 'JSON file does not exist.');
+            }
+        
+            // Read the contents of the JSON file
+            $options = json_decode(File::get($path), true);
+        
+            $uomOption = $options['UoM'];
+
+            $validUoms = collect($uomOption)->flatten()->all();
+
+            if (in_array($row['uom'], $validUoms, true)) {
+                $uom = $row['uom'];
+                $custom_uom = null;
+            }else{
+                $uom = "Other";
+                $custom_uom = $row['uom'];
+            }
+
             $status = 'Approved';
 
             $employeeId = $row['employee_id'];
@@ -131,11 +154,11 @@ class GoalsDataImportManager implements ToModel, WithValidation, WithHeadingRow
             $this->employeesData[$employeeId]['form_data'][] = [
                 'kpi' => $row['kpi'],
                 'target' => $row['target'],
-                'uom' => $row['uom'],
+                'uom' => $uom,
                 'weightage' => $row['weightage'] * 100, // Convert to percentage
                 'description' => $row['description'],
                 'type' => $row['type'],
-                'custom_uom' => null,
+                'custom_uom' => $custom_uom,
             ];
             
         } catch (\Exception $e) {
@@ -311,25 +334,26 @@ class GoalsDataImportManager implements ToModel, WithValidation, WithHeadingRow
                     'updated_at' => now(),
                 ]);
 
-                DB::commit();
-
                 $this->successCount++;
                 Log::info("Data inserted for Employee ID: " . $employeeId);
 
+                DB::commit();
             } catch (\Exception $e) {
                 DB::rollBack();
-
-                Log::error("Error inserting data for Employee ID: " . $employeeId . ". Error: " . $e->getMessage());
-
+                
+                // Define the error message explicitly
+                $errorMessage = "Error during import for Employee ID $employeeId: " . $e->getMessage();
+                
+                Log::error($errorMessage);
+                
                 $this->errorCount++;
                 $this->detailError[] = [
                     'employee_id' => $employeeId,
-                    'message' => "Error during import: " . $e->getMessage(),
+                    'message' => $errorMessage,
                 ];
-
                 $this->invalidEmployees[] = [
                     'employee_id' => $employeeId,
-                    'message' => "Error during import: " . $e->getMessage(), // Get the first error message
+                    'message' => $errorMessage,
                 ];
             }
         }
