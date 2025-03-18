@@ -173,6 +173,35 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
                     continue;
                 }
 
+                $totalWeightage = 0;
+
+                // Decode form_data if it's a JSON string
+                $formData = is_string($data['form_data']) ? json_decode($data['form_data'], true) : $data['form_data'];
+
+                if (!is_array($formData)) {
+                    continue; // Skip if form_data is not valid
+                }
+
+                // Loop through each KPI entry and sum the weightage
+                foreach ($formData as $entry) {
+                    $totalWeightage += (float)($entry['weightage'] ?? 0); // Ensure float conversion
+                }
+
+                // Validate if total weightage is exactly 100
+                if ($totalWeightage !== 100.0) {
+                    $message = "Total weightage for Employee ID $employeeId must be 100%. Current total: $totalWeightage%";
+                    Log::info($message);
+                    
+                    $this->detailError[] = [
+                        'employee_id' => $employeeId,
+                        'message' => $message,
+                    ];
+
+                    $this->errorCount++;
+                    DB::rollBack();
+                    continue;
+                }
+
                 $formId = Str::uuid();
 
                 Log::info("Preparing to insert data for Employee ID: " . $employeeId, [
