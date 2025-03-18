@@ -178,7 +178,7 @@ class MyGoalController extends Controller
 
         $period = $this->appService->goalPeriod();
 
-        $employee = Employee::where('employee_id', $this->user)->first();
+        $employee = Employee::where('employee_id', $id)->first();
         $access_menu = json_decode($employee->access_menu, true);
         $goal_access = $access_menu['goals'] ?? null;
         $doj_access = $access_menu['doj'] ?? null;
@@ -291,6 +291,21 @@ class MyGoalController extends Controller
     {
         $user = $this->user;
         $period = $this->appService->goalPeriod();
+        $employee = Employee::where('employee_id', $request->employee_id)->first();
+        $access_menu = json_decode($employee->access_menu, true);
+        $goal_access = $access_menu['goals'] ?? null;
+        $doj_access = $access_menu['doj'] ?? null;
+
+        if (!$goal_access || !$doj_access) {
+            // User ID doesn't match the condition, show error message
+            if ($this->user != $request->employee_id) {
+                Session::flash('error', "This employee not granted access to initiate Goals.");
+                return redirect('team-goals');
+            } else {
+                Session::flash('error', "You are not granted access to initiate Goals.");
+            }
+            return redirect('goals');
+        }
 
         // Check approval layer existence early
         $layer = ApprovalLayer::select('approver_id')
@@ -309,7 +324,7 @@ class MyGoalController extends Controller
         if ($submit_status === 'Submitted') {
             $rules = [
                 'kpi.*' => 'required|string',
-                'target.*' => 'required|numeric',
+                'target.*' => 'required|string',
                 'uom.*' => 'required|string',
                 'weightage.*' => 'required|numeric|min:5|max:100',
                 'type.*' => 'required|string',
@@ -346,14 +361,18 @@ class MyGoalController extends Controller
             // Cari approver_id pada layer selanjutnya
             $nextApprover = ApprovalLayer::where('layer', $nextLayer + 1)->where('employee_id', $request->employee_id)->value('approver_id');
 
-            if (!$nextApprover) {
+            if($request->employee_id == $user) {
+                $approver = $layer->approver_id;
+                $statusRequest = 'Pending';
+                $statusForm = $submit_status;
+            } else if (!$nextApprover) {
                 $approver = $layer->approver_id;
                 $statusRequest = 'Approved';
                 $statusForm = 'Approved';
             }else{
                 $approver = $nextApprover;
                 $statusRequest = 'Pending';
-                $statusForm = 'Submitted';
+                $statusForm = $submit_status;
             }
 
             // Prepare KPI data
@@ -376,7 +395,7 @@ class MyGoalController extends Controller
             $goal->employee_id = $request->employee_id;
             $goal->category = $request->category;
             $goal->form_data = json_encode($kpiData);
-            $goal->form_status = $submit_status;
+            $goal->form_status = $statusForm;
             $goal->period = $period;
 
             if (!$goal->save()) {
@@ -402,6 +421,7 @@ class MyGoalController extends Controller
             $approvalRequest->employee_id = $request->employee_id;
             $approvalRequest->current_approval_id = $approver; /// Approver pertama
             $approvalRequest->period = $period;
+            $approvalRequest->status = $statusRequest;
             $approvalRequest->created_by = Auth::id();
 
             if (!$approvalRequest->save()) {
@@ -468,6 +488,27 @@ class MyGoalController extends Controller
             }
         }
 
+        $approver = null;	
+        $statusRequest = 'Pending';
+
+        if($request->employee_id != $user){
+            $nextLayer = ApprovalLayer::where('approver_id', $user)
+                                        ->where('employee_id', $request->employee_id)->max('layer');
+    
+            // Cari approver_id pada layer selanjutnya
+            $nextApprover = ApprovalLayer::where('layer', $nextLayer + 1)->where('employee_id', $request->employee_id)->value('approver_id');
+    
+            if (!$nextApprover) {
+                $approver = $user;
+                $statusRequest = 'Approved';
+                $submit_status = 'Approved';
+            }else{
+                $approver = $nextApprover;
+                $statusRequest = $statusRequest;
+                $submit_status = 'Submitted';
+            }
+        }
+
         // Start transaction
         DB::beginTransaction();
         try {
@@ -503,7 +544,10 @@ class MyGoalController extends Controller
 
             // Update approval request
             $approvalRequest = ApprovalRequest::where('form_id', $goal->id)->firstOrFail();
-            $approvalRequest->status = 'Pending';
+            $approvalRequest->status = $statusRequest;
+            if($approver){
+                $approvalRequest->current_approval_id = $approver;
+            }
             $approvalRequest->sendback_messages = null;
             $approvalRequest->sendback_to = null;
             

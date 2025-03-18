@@ -13,6 +13,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 use Exception;
 
 class ApprovalController extends Controller
@@ -71,15 +72,29 @@ class ApprovalController extends Controller
 
             $jsonData = json_encode($kpiData);
 
-            // Update approval snapshot
+            // Get the current approver's ID from the request
+            $approverId = $request->current_approver_id;
+
+            // Use firstOrNew to handle both cases (existing/new)
             $snapshot = ApprovalSnapshots::firstOrNew([
                 'form_id' => $request->id,
-                'employee_id' => $request->current_approver_id,
+                'employee_id' => $approverId,
             ]);
 
+            // For new records, set required fields
+            if (!$snapshot->exists) {
+                $snapshot->id = Str::uuid(); // Remove if using model UUID generation
+                $snapshot->form_id = $request->id;
+                $snapshot->employee_id = $approverId;
+                $snapshot->created_by = Auth::user()->id;
+            }
+
+            // Update common fields for both cases
             $snapshot->form_data = $jsonData;
-            $snapshot->updated_by = Auth::id();
-            $snapshot->created_by = $snapshot->created_by ?? Auth::id();
+            $snapshot->updated_by = Auth::user()->id;
+
+            // Save the record
+            $snapshot->save();
 
             if (!$snapshot->save()) {
                 throw new Exception('Gagal menyimpan snapshot persetujuan');
@@ -115,7 +130,7 @@ class ApprovalController extends Controller
             ]);
 
             $approval->messages = $request->messages;
-            $approval->status = $statusRequest === 'Approved' ? 'Approved' : 'Processed';
+            $approval->status = 'Approved';
             $approval->created_by = Auth::id();
 
             if (!$approval->save()) {

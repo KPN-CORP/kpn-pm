@@ -21,7 +21,7 @@
                         <p class="mt-1">{{ $data['type'] }}</p>
                     </div>
                     <div class="col-lg col-md-12 p-2">
-                        <span class="text-muted">{{ __('Target In') }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</span>
+                        <span class="text-muted">{{ __('Target In UoM') }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</span>
                         <p class="mt-1">{{ $data['target'] }}</p>
                     </div>
                     <div class="col-lg-2 col-md-12 p-2">

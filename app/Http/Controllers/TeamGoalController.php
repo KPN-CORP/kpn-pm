@@ -216,6 +216,21 @@ class TeamGoalController extends Controller
     function create($id) {
 
         $period = $this->appService->goalPeriod();
+        $employee = Employee::where('employee_id', $id)->first();
+        $access_menu = json_decode($employee->access_menu, true);
+        $goal_access = $access_menu['goals'] ?? null;
+        $doj_access = $access_menu['doj'] ?? null;
+
+        if (!$goal_access || !$doj_access) {
+            // User ID doesn't match the condition, show error message
+            if ($this->user != $id) {
+                Session::flash('error', "This employee not granted access to initiate Goals.");
+                return redirect('team-goals');
+            } else {
+                Session::flash('error', "You are not granted access to initiate Goals.");
+            }
+            return redirect('goals');
+        }
 
         $goal = Goal::where('employee_id', $id)->where('period', $period)->get();
         if ($goal->isNotEmpty()) {
@@ -363,211 +378,6 @@ class TeamGoalController extends Controller
 
     }
 
-    function store(Request $request)
-    {
-        if ($request->submit_type === 'save_draft') {
-            // Tangani logika penyimpanan sebagai draft
-            $submit_status = 'Draft';
-        } else {
-            $submit_status = 'Submitted';
-        }
-        // Inisialisasi array untuk menyimpan pesan validasi kustom
-        $customMessages = [];
-
-        $kpis = $request->input('kpi', []);
-        $descriptions = $request->input('description', []);
-        $targets = $request->input('target', []);
-        $uoms = $request->input('uom', []);
-        $weightages = $request->input('weightage', []);
-        $types = $request->input('type', []);
-        $status = $submit_status;
-        $custom_uoms = $request->input('custom_uom', []);
-        
-        // Menyiapkan aturan validasi
-        $rules = [
-            'kpi.*' => 'required|string',
-            'target.*' => 'required|numeric',
-            'uom.*' => 'required|string',
-            'weightage.*' => 'required|numeric|min:5|max:100',
-            'type.*' => 'required|string',
-        ];
-
-        // Pesan validasi kustom
-        $customMessages = [
-            'weightage.*.numeric' => 'Weightage harus berupa angka bulat (8) / desimal (8.5)',
-            'weightage.*.min' => 'Weightage harus lebih besar atau sama dengan :min %',
-            'weightage.*.max' => 'Weightage harus kurang dari atau sama dengan :max %',
-        ];
-
-        // Membuat Validator instance
-        if ($request->submit_type === 'submit_form') {
-            $validator = Validator::make($request->all(), $rules, $customMessages);
-    
-            // Jika validasi gagal
-            if ($validator->fails()) {
-                return back()->withErrors($validator)->withInput();
-            }
-        }
-
-        // Inisialisasi array untuk menyimpan data KPI
-        
-        $kpiData = [];
-        // Reset nomor indeks untuk penggunaan berikutnya
-        $index = 1;
-
-        // Iterasi melalui input untuk mendapatkan data KPI
-        foreach ($kpis as $index => $kpi) {
-            // Memastikan ada nilai untuk semua input terkait
-            if ($submit_status=='Draft' || isset($targets[$index], $uoms[$index], $weightages[$index], $types[$index])) {
-                // Simpan data KPI ke dalam array dengan nomor indeks sebagai kunci
-                if($custom_uoms[$index]){
-                    $customuom = $custom_uoms[$index];
-                }else{
-                    $customuom = null;
-                }
-
-                $kpiData[$index] = [
-                    'kpi' => $kpi,
-                    'description' => $descriptions[$index],
-                    'target' => $targets[$index],
-                    'uom' => $uoms[$index],
-                    'weightage' => $weightages[$index],
-                    'type' => $types[$index],
-                    'custom_uom' => $customuom
-                ];
-
-                $index++;
-            }
-        }
-
-        // Simpan data KPI ke dalam file JSON
-        $jsonData = json_encode($kpiData);
-
-        $model =  new Goal;
-        $model->id = Str::uuid();
-        $model->employee_id = $request->employee_id;
-        $model->category = $request->category;
-        $model->form_data = $jsonData;
-        $model->form_status = $status;
-        
-        $model->save();
-
-        $snapshot =  new ApprovalSnapshots;
-        $snapshot->id = Str::uuid();
-        $snapshot->form_id = $model->id;
-        $snapshot->form_data = $jsonData;
-        $snapshot->employee_id = $request->employee_id;
-        $snapshot->created_by = Auth::user()->id;
-        
-        $snapshot->save();
-
-        $approval = new ApprovalRequest();
-        $approval->form_id = $model->id;
-        $approval->category = $this->category;
-        $approval->employee_id = $request->employee_id;
-        $approval->current_approval_id = $request->approver_id;
-        $approval->created_by = Auth::user()->id;
-        // Set other attributes as needed
-        $approval->save();
-
-        // Beri respon bahwa data berhasil disimpan
-        // return response()->json(['message' => 'Data saved successfully'], 200);
-            return redirect('team-goals');
-    }
-
-    function update(Request $request) {
-
-        if ($request->submit_type === 'save_draft') {
-            // Tangani logika penyimpanan sebagai draft
-            $submit_status = 'Draft';
-        } else {
-            $submit_status = 'Submitted';
-        }
-        // Inisialisasi array untuk menyimpan pesan validasi kustom
-        $customMessages = [];
-
-        $kpis = $request->input('kpi', []);
-        $descriptions = $request->input('description', []);
-        $targets = $request->input('target', []);
-        $uoms = $request->input('uom', []);
-        $weightages = $request->input('weightage', []);
-        $types = $request->input('type', []);
-        $status = $submit_status;
-        $custom_uoms = $request->input('custom_uom', []);
-
-        // Menyiapkan aturan validasi
-        $rules = [
-            'kpi.*' => 'required|string',
-            'target.*' => 'required|numeric',
-            'uom.*' => 'required|string',
-            'weightage.*' => 'required|numeric|min:5|max:100',
-            'type.*' => 'required|string',
-        ];
-
-        // Pesan validasi kustom
-        $customMessages = [
-            'weightage.*.numeric' => 'Weightage harus berupa angka bulat (8) / desimal (8.5)',
-            'weightage.*.min' => 'Weightage harus lebih besar atau sama dengan :min %.',
-            'weightage.*.max' => 'Weightage harus kurang dari atau sama dengan :max %.',
-        ];
-
-        // Membuat Validator instance
-        if ($request->submit_type === 'submit_form') {
-            $validator = Validator::make($request->all(), $rules, $customMessages);
-    
-            // Jika validasi gagal
-            if ($validator->fails()) {
-                return back()->withErrors($validator)->withInput();
-            }
-        }
-
-        $kpiData = [];
-        // Reset nomor indeks untuk penggunaan berikutnya
-        $index = 1;
-
-        // Iterasi melalui input untuk mendapatkan data KPI
-        foreach ($kpis as $index => $kpi) {
-            // Memastikan ada nilai untuk semua input terkait
-            if ($submit_status=='Draft' || isset($targets[$index], $uoms[$index], $weightages[$index], $types[$index])) {
-                // Simpan data KPI ke dalam array dengan nomor indeks sebagai kunci
-                if($custom_uoms[$index]){
-                    $customuom = $custom_uoms[$index];
-                }else{
-                    $customuom = null;
-                }
-
-                $kpiData[$index] = [
-                    'kpi' => $kpi,
-                    'description' => $descriptions[$index],
-                    'target' => $targets[$index],
-                    'uom' => $uoms[$index],
-                    'weightage' => $weightages[$index],
-                    'type' => $types[$index],
-                    'custom_uom' => $customuom
-                ];
-
-                $index++;
-            }
-        }
-
-        // Simpan data KPI ke dalam file JSON
-        $jsonData = json_encode($kpiData);
-        
-        $goal = Goal::find($request->id);
-        $goal->form_data = $jsonData;
-        $goal->form_status = $status;
-        
-        $goal->save();
-
-        $snapshot =  ApprovalSnapshots::where('form_id', $request->id)->where('employee_id', $request->employee_id)->first();
-        $snapshot->form_data = $jsonData;
-        $snapshot->updated_by = Auth::user()->id;
-        
-        $snapshot->save();
-
-            return redirect('team-goals');
-
-    }
 
     public function getTooltipContent(Request $request)
     {
