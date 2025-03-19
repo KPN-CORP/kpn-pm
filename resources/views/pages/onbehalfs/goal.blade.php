@@ -16,7 +16,6 @@
             <table class="table table-sm table-hover align-middle activate-select dt-responsive nowrap w-100 fs-14" id="onBehalfTable">
                 <thead class="thead-light">
                     <tr class="text-center">
-                        <th class="sorting_1 px-1"></th>
                         <th>Employees</th>
                         <th>Goals</th>
                         <th>Approval Status</th>
@@ -24,16 +23,30 @@
                         <th>{{ __('Initiated By') }}</th>
                         <th>{{ __('Last Updated On') }}</th>
                         <th>Updated By</th>
+                        <th class="sorting_1">Action</th>
                     </tr>
                 </thead>
                 <tbody>
                     @foreach ($data as $row)
                     <tr>
-                      <td class="text-center sorting_1">
+                      <td>{{ $row->employee->fullname .' ('.$row->employee->employee_id.')'}}</td>
+                      <td class="text-center">
+                        <a href="javascript:void(0)" class="btn btn-outline-secondary rounded btn-sm {{ $row->goal->form_status === 'Draft' ? 'disabled' : '' }}" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $row->goal->id }}"><i class="ri-file-text-line"></i></a>
+                      </td>
+                      <td class="text-center">
+                        <a href="javascript:void(0)" data-bs-id="{{ $row->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : $row->name }}" class="badge py-1 px-2 rounded-pill {{ $row->goal->form_status == 'Draft' || $row->status == 'Sendback' ? 'bg-secondary' : ($row->status === 'Approved' ? 'bg-success' : 'bg-warning')}} ">{{ $row->goal->form_status == 'Draft' ? 'Draft': ($row->status == 'Pending' ? __('Pending') : ($row->status == 'Sendback' ? 'Waiting For Revision' : $row->status)) }}</a></td>
+                      <td class="text-center">{{ $row->formatted_created_at }}</td>
+                      <td>{{ $row->initiated->name ? $row->initiated->name .' ('. $row->initiated->employee_id .')'  : '-' }}</td>
+                      <td class="text-center">{{ $row->formatted_updated_at }}</td>
+                      <td>{{ $row->updatedBy ? $row->updatedBy->name.' ('.$row->updatedBy->employee_id.')' : '-' }}</td>
+                      @if ($data)
+                      @include('pages.onbehalfs.detail')
+                      @endif
+                      <td class="text-center sorting_1 px-1">
                         @can('approvalonbehalf')
                         <div class="btn-group dropstart">
-                          <button class="btn btn-sm btn-light px-1 rounded" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="animated-preview" data-bs-offset="0,10">
-                            <i class="ri-more-2-fill"></i>
+                          <button class="btn btn-sm {{ $row->status != 'Sendback' && $row->goal->form_status != 'Draft' ? 'btn-primary' : 'btn-light disabled' }} px-1 rounded" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="animated-preview" data-bs-offset="0,10">
+                            Action
                           </button>
                           <div class="dropdown-menu dropdown-menu-animated">
                             @if ( $row->status != 'Sendback' && $row->goal->form_status != 'Draft')
@@ -50,19 +63,6 @@
                         {{ "-" }}
                         @endcan
                       </td>
-                      <td>{{ $row->employee->fullname .' ('.$row->employee->employee_id.')'}}</td>
-                      <td class="text-center">
-                        <a href="javascript:void(0)" class="btn btn-outline-secondary rounded btn-sm {{ $row->goal->form_status === 'Draft' ? 'disabled' : '' }}" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $row->goal->id }}"><i class="ri-file-text-line"></i></a>
-                      </td>
-                      <td class="text-center">
-                        <a href="javascript:void(0)" data-bs-id="{{ $row->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : $row->name }}" class="badge py-1 px-2 rounded-pill {{ $row->goal->form_status == 'Draft' || $row->status == 'Sendback' ? 'bg-secondary' : ($row->status === 'Approved' ? 'bg-success' : 'bg-warning')}} ">{{ $row->goal->form_status == 'Draft' ? 'Draft': ($row->status == 'Pending' ? __('Pending') : ($row->status == 'Sendback' ? 'Waiting For Revision' : $row->status)) }}</a></td>
-                      <td class="text-center">{{ $row->formatted_created_at }}</td>
-                      <td>{{ $row->initiated->name ? $row->initiated->name .' ('. $row->initiated->employee_id .')'  : '-' }}</td>
-                      <td class="text-center">{{ $row->formatted_updated_at }}</td>
-                      <td>{{ $row->updatedBy ? $row->updatedBy->name.' ('.$row->updatedBy->employee_id.')' : '-' }}</td>
-                      @if ($data)
-                      @include('pages.onbehalfs.detail')
-                      @endif
                     </tr>
                     @endforeach
                 </tbody>

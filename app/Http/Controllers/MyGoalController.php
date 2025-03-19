@@ -557,11 +557,12 @@ class MyGoalController extends Controller
 
             // Update/create approval snapshot
             $snapshot = ApprovalSnapshots::firstOrNew([
-                'form_id' => $goal->id,
-                'employee_id' => $request->employee_id
+                'form_id' => $goal->id
             ]);
             
+            $snapshot->id = $snapshot->id ?? Str::uuid();
             $snapshot->form_data = $goal->form_data;
+            $snapshot->employee_id = $request->employee_id;
             $snapshot->updated_by = Auth::id();
             $snapshot->created_by = $snapshot->created_by ?? Auth::id();
             

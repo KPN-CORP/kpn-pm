@@ -205,7 +205,7 @@ function sendBack(id, nik, name) {
 
     const approver = $("#approver").val();
 
-    let title1 = "Do you want to sendback?";
+    let title1 = "Confirm you want to send back?";
     let title2 = "KPI sendback successfuly!";
     let text = `This form will sendback to ${name}`;
     let confirmText = "Submit";
@@ -328,8 +328,8 @@ function changeCategory(val) {
                 dom: "lrtip",
                 stateSave: true,
                 fixedColumns: {
-                    leftColumns: 1,
-                    rightColumns: 0
+                    leftColumns: 0,
+                    rightColumns: 1
                 },
                 scrollCollapse: true,
                 scrollX: true,
@@ -404,8 +404,8 @@ document.addEventListener("DOMContentLoaded", function () {
                     dom: "lrtip",
                     stateSave: true,
                     fixedColumns: {
-                        leftColumns: 1,
-                        rightColumns: 0
+                        leftColumns: 0,
+                        rightColumns: 1
                     },
                     scrollCollapse: true,
                     scrollX: true,
@@ -513,8 +513,8 @@ function revokeGoal(button) {
                                 dom: "lrtip",
                                 stateSave: true,
                                 fixedColumns: {
-                                    leftColumns: 1,
-                                    rightColumns: 0
+                                    leftColumns: 0,
+                                    rightColumns: 1
                                 },
                                 scrollCollapse: true,
                                 scrollX: true,

@@ -2,6 +2,7 @@
 namespace App\Imports;
 
 use App\Models\Appraisal;
+use App\Models\ApprovalLayer;
 use App\Models\Employee;
 use App\Models\EmployeeAppraisal;
 use Exception;
@@ -149,11 +150,30 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
 
     public function saveToDatabase()
     {
+        ksort($this->employeesData, SORT_NUMERIC);
+        
         foreach ($this->employeesData as $employeeId => $data) {
 
             DB::beginTransaction();
 
             try {
+
+                $existLayer = ApprovalLayer::where('approver_id', $data['current_approval_id'])
+                                    ->where('employee_id', $employeeId)->max('layer');
+
+                if ($existLayer) {
+                    $message = "Cannot find Layer ID : " . $data['current_approval_id'] . " on Employee ID: $employeeId.";
+                    Log::info($message);
+                    
+                    $this->detailError[] = [
+                        'employee_id' => $employeeId,
+                        'message' => $message,
+                    ];
+
+                    $this->errorCount++;
+                    DB::rollBack();
+                    continue;
+                }
 
                 $existsInAppraisals = Appraisal::where('employee_id', $employeeId)
                     ->where('period', $data['period'])
