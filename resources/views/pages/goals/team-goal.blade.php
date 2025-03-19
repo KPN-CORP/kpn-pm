@@ -20,7 +20,7 @@
                     <div class="col-md">
                         <ul class="nav nav-pills justify-content-md-start justify-content-center" id="myTab" role="tablist">
                             <li class="nav-item">
-                              <button class="btn btn-outline-primary position-relative active me-2 mb-2" id="initiated-tab" data-bs-toggle="tab" data-bs-target="#initiated" type="button" role="tab" aria-controls="initiated" aria-selected="true">
+                              <button class="btn btn-outline-primary position-relative active me-2 mb-3" id="initiated-tab" data-bs-toggle="tab" data-bs-target="#initiated" type="button" role="tab" aria-controls="initiated" aria-selected="true">
                                 {{ __('Approval') }}
                                 <span class="position-absolute top-0 start-100 translate-middle badge bg-danger {{ $notificationGoal ? '' : 'd-none' }}">
                                     {{ $notificationGoal }}
@@ -28,7 +28,7 @@
                               </button>
                             </li>
                             <li class="nav-item">
-                              <button class="btn btn-outline-secondary position-relative mb-2" id="not-initiated-tab" data-bs-toggle="tab" data-bs-target="#not-initiated" type="button" role="tab" aria-controls="not-initiated" aria-selected="false">
+                              <button class="btn btn-outline-secondary position-relative mb-3" id="not-initiated-tab" data-bs-toggle="tab" data-bs-target="#not-initiated" type="button" role="tab" aria-controls="not-initiated" aria-selected="false">
                                 {{ __('Not Initiated') }}
                                 <span class="position-absolute top-0 start-100 translate-middle badge bg-danger {{ count($notasks) ? '' : 'd-none' }}">
                                     {{ count($notasks) }}
@@ -37,8 +37,8 @@
                             </li>
                         </ul>
                     </div>
-                    <div class="col-auto">
-                        <button type="button" class="btn btn-primary shadow mb-2 float-end" data-bs-toggle="modal" data-bs-target="#importModal">Import Goals</button>
+                    <div class="col-md-auto">
+                        <button type="button" class="btn btn-primary shadow" data-bs-toggle="modal" data-bs-target="#importModal">Import Goals</button>
                     </div>
                 </div>
                 <div class="tab-content">
@@ -126,7 +126,7 @@
                                                     $approverId = $firstSubordinate ? $firstSubordinate->current_approval_id : null;
                                                     $sendbackTo = $firstSubordinate ? $firstSubordinate->sendback_to : null;
                                                     $employeeId = $firstSubordinate ? $firstSubordinate->employee_id : null;
-                                                    $sendbackTo = $firstSubordinate ? $firstSubordinate->sendback_to : null;
+                                                    $sendbackMessages = $firstSubordinate ? $firstSubordinate->sendback_messages : null;
                                                     $employeeName = $firstSubordinate ? $firstSubordinate->name : null;
                                                     $approvalLayer = $firstSubordinate ? $firstSubordinate->approvalLayer : null;
                                                 @endphp

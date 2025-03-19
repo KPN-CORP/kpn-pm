@@ -75,6 +75,17 @@
                                 </div>
                             </div>
                         </div>
+                        @if ($row->request->sendback_messages && $row->request->sendback_to == $row->request->employee_id)
+                            <hr class="mt-2 mb-2">
+                            <div class="row p-2">
+                                <div class="col-lg col-sm-12 px-2">
+                                    <div class="form-group">
+                                        <h5>Revision Notes :</h5>
+                                        <p class="mt-1 mb-0 text-muted">{{ $row->request->sendback_messages }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
                         <div class="row">
                             <div class="col text-end">
                                 <a data-bs-toggle="collapse" href="#collapse{{ $goalIndex }}" aria-expanded="true" aria-controls="collapse{{ $goalIndex }}">
@@ -84,18 +95,6 @@
                         </div>
                     </div>
                     <div class="collapse" id="collapse{{ $goalIndex }}" style="">
-                        @if ($row->request->sendback_messages && $row->request->sendback_to == $row->request->employee_id)
-                        <div class="card-header" style="background-color: lightyellow">
-                            <div class="row p-2">
-                                <div class="col-lg col-sm-12 px-2">
-                                    <div class="form-group">
-                                        <h5>Revision Notes :</h5>
-                                        <p class="mt-1 mb-0 text-muted">{{ $row->request->sendback_messages }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        @endif
                         <div class="card-body p-0">
                             <table class="table table-striped table-bordered m-0">
                                 <tbody>

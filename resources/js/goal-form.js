@@ -106,7 +106,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     '<div class="row mt-2">' +
                     '<div class="col-md">' +
                     '<div class="mb-3 position-relative">' +
-                    '<textarea name="kpi[]" id="kpi" class="form-control overflow-hidden kpi-textarea" placeholder="input your goals.." required style="padding-right: 40px; resize: none"></textarea>'+
+                    '<textarea name="kpi[]" id="kpi" class="form-control overflow-hidden kpi-textarea" placeholder="input your goal.." required style="padding-right: 40px; resize: none"></textarea>'+
                     '<div class="invalid-feedback">' + textMandatory + '</div>' +
                     "</div>" +
                     "</div>" +

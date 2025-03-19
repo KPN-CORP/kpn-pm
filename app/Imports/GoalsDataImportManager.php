@@ -88,7 +88,7 @@ class GoalsDataImportManager implements ToModel, WithValidation, WithHeadingRow
 
             $validate = Validator::make($row, [
                 'employee_id' => 'digits:11', // Ensure employee_id is exactly 11 digits
-                'weightage' => 'required|numeric|min:0.05|max:1.00'
+                'weightage' => 'required|numeric'
             ]);
 
             if ($validate->fails()) {
@@ -96,18 +96,28 @@ class GoalsDataImportManager implements ToModel, WithValidation, WithHeadingRow
                             
                 // Check if 'employee_id' has errors
                 if ($errors->has('employee_id')) {
+                    $this->detailError[] = [
+                        'employee_id' => $row['employee_id'],
+                        'message' => "Employee ID must contain 11 digits.",
+                    ];
                     $this->invalidEmployees[] = [
                         'employee_id' => $row['employee_id'],
                         'message' => "Employee ID must contain 11 digits.", // Get the first error message
                     ];
+                    return;
                 }
                 
                 // Check if 'weightage' has errors
                 if ($errors->has('weightage')) {
+                    $this->detailError[] = [
+                        'employee_id' => $row['employee_id'],
+                        'message' => "Weightage must be in percent.",
+                    ];
                     $this->invalidEmployees[] = [
                         'employee_id' => $row['employee_id'],
-                        'message' => "Weightage must be in percent minimum 5% and maximum 100%.", // Separate messages
+                        'message' => "Weightage must be in percent.", // Separate messages
                     ];
+                    return;
                 }
             }
 
@@ -174,6 +184,8 @@ class GoalsDataImportManager implements ToModel, WithValidation, WithHeadingRow
 
     public function saveToDatabase()
     {
+        ksort($this->employeesData, SORT_NUMERIC);
+
         foreach ($this->employeesData as $employeeId => $data) {
 
             DB::beginTransaction();
@@ -256,9 +268,29 @@ class GoalsDataImportManager implements ToModel, WithValidation, WithHeadingRow
                     continue; // Skip if form_data is not valid
                 }
 
-                // Loop through each KPI entry and sum the weightage
                 foreach ($formData as $entry) {
-                    $totalWeightage += (float)($entry['weightage'] ?? 0); // Ensure float conversion
+                    $weightage = (float)($entry['weightage']); // Ensure float conversion
+
+                    if ($weightage < 5.0 || $weightage > 100.0) {
+                        $message = "Weightage must be minimum 5% and maximum 100%.";
+                        Log::info($message);
+    
+                        $this->detailError[] = [
+                            'employee_id' => $employeeId,
+                            'message' => $message,
+                        ];
+                        
+                        $this->invalidEmployees[] = [
+                            'employee_id' => $employeeId,
+                            'message' => $message, // Separate messages
+                        ];
+    
+                        $this->errorCount++;
+                        DB::rollBack();
+                        continue 2; // Skip to the next employee
+                    }
+                    
+                    $totalWeightage += $weightage; // Sum the weightage
                 }
 
                 // Validate if total weightage is exactly 100

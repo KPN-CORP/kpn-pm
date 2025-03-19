@@ -187,7 +187,7 @@ function sendBack(id, nik, name) {
 
     const approver = $("#approver").val();
 
-    title1 = "Do you want to sendback?";
+    title1 = "Confirm you want to send back?";
     title2 = "KPI sendback successfuly!";
     text = `This form will sendback to ${name}`;
     confirmText = "Submit";

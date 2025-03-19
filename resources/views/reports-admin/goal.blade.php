@@ -48,7 +48,7 @@
                         <div class="modal-dialog modal-dialog-centered modal-xl mt-2" role="document">
                             <div class="modal-content">
                                 <div class="modal-header">
-                                    <h4 class="modal-title" id="viewFormEmployeeLabel">Goal's</h4>
+                                    <h4 class="modal-title" id="viewFormEmployeeLabel">Goals</h4>
                                         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
                                         </button>
                                     <div class="input-group-md">

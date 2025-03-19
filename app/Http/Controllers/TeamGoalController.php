@@ -432,19 +432,23 @@ class TeamGoalController extends Controller
 
             $invalidEmployees = $import->getInvalidEmployees();
     
+            $message = 'Data imported successfully.';
+
             if (!empty($invalidEmployees)) {
                 session()->put('invalid_employees', $invalidEmployees);
                 $message = 'Some of import data failed! <a href="' . route('export.invalid.goal') . '"><u>Click here to download the list of errors.</u></a>';
+                return redirect()->back()->with('error', $message);
             }
-            return redirect()->back()->with('error', $message);
+            return redirect()->back()->with('success', $message);
             Log::info(Auth::id() ." Goal import : Data imported successfully.");
             
         } catch (ValidationException $e) {
             // Catch the validation exception and redirect back with a custom error message
             return redirect()->back()->with('error', $e->errors()['error'][0]);
         } catch (\Exception $e) {
-            Log::error(Auth::id() ." Import failed: " . $e->getMessage());
-            return back()->with('error', "Import failed: " . $e->getMessage());
+            $errorMessage = "Import failed: " . $e->getMessage(); // Define a variable
+            Log::error(Auth::id() . " " . $errorMessage);
+            return back()->with('error', $errorMessage);
         }
         $queries = DB::getQueryLog();
         Log::info(Auth::id() ." Executed queries import goals manager: ", $queries);

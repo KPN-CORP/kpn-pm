@@ -2,7 +2,7 @@
     <div class="modal-dialog modal-dialog-centered modal-xl mt-2" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title h4" id="viewFormEmployeeLabel">Goal's</h4>
+                <h4 class="modal-title h4" id="viewFormEmployeeLabel">Goals</h4>
                 <button type="button" class="btn-close mr-3" data-bs-dismiss="modal" aria-label="Close"></button>
                 <div class="input-group-md">
                     <input type="text" id="employee_name" class="form-control" placeholder="Search employee.." hidden>
@@ -14,6 +14,20 @@
                         <div class="d-sm-flex align-items-center mb-3">
                                 <h4 class="me-1">{{ $task->employee->fullname }}</h4><span class="text-muted h4">{{ $task->employee->employee_id }}</span>
                         </div>
+                        @if ($sendbackMessages && $sendbackTo == $employeeId)
+                        <div class="card col-md-12 mb-2 border border-dark">
+                            <div class="card-body">
+                                <div class="row">
+                                    <div class="col-md px-2">
+                                        <div class="form-group">
+                                            <h5>Revision Notes :</h5>
+                                            <p class="mt-1 mb-0 text-muted">{{ $sendbackMessages }}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
                         <!-- Content Row -->
                         <div class="container-card">
                             @php
