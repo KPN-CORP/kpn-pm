@@ -53,6 +53,8 @@ class MyGoalController extends Controller
 
     function index(Request $request) {
         $user = $this->user;
+
+        $period = $this->appService->goalPeriod();
     
         // Retrieve the selected year from the request
         $filterYear = $request->input('filterYear');
@@ -165,7 +167,7 @@ class MyGoalController extends Controller
             return $req;
         });
     
-        return view('pages.goals.my-goal', compact('data', 'link', 'parentLink', 'uomOption', 'typeOption', 'access', 'selectYear', 'adjustByManager'));
+        return view('pages.goals.my-goal', compact('data', 'link', 'parentLink', 'uomOption', 'typeOption', 'access', 'selectYear', 'adjustByManager', 'period'));
     }
 
     function show($id) {

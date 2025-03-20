@@ -130,13 +130,6 @@ class TeamGoalController extends Controller
             $q->where('period', $filterYear ?? $this->period)
               ->where('category', $this->category);
         })
-        ->whereHas('subordinates', function ($query) use ($filterYear) {
-            $query->when($filterYear, function ($query) use ($filterYear) {
-            $query->where('period', $filterYear);
-            }, function ($query) {
-            $query->where('period', $this->period);
-            });
-        })
         ->get();  
 
         $notasks->map(function($item) {
