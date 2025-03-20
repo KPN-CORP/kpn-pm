@@ -189,7 +189,7 @@ function sendBack(id, nik, name) {
 
     title1 = "Confirm you want to send back?";
     title2 = "KPI sendback successfuly!";
-    text = `The goal will be send back to ${name}`;
+    text = `The goals will be sent back to ${name}`;
     confirmText = "Submit";
 
     Swal.fire({
