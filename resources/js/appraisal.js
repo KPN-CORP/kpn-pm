@@ -88,7 +88,7 @@ $(document).ready(function() {
     
             if (submitType === "submit_form") {
                 title1 = "Submit From?";
-                text = "You can still change it as long as the manager hasn't approved it yet";
+                text = "You can still change it as long as the manager has not approved it yet";
                 title2 = "Appraisal submitted successfully!";
                 confirmText = "Submit";
 

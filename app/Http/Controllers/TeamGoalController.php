@@ -130,14 +130,21 @@ class TeamGoalController extends Controller
             $q->where('period', $filterYear ?? $this->period)
               ->where('category', $this->category);
         })
+        ->whereHas('subordinates', function ($query) use ($filterYear) {
+            $query->when($filterYear, function ($query) use ($filterYear) {
+            $query->where('period', $filterYear);
+            }, function ($query) {
+            $query->where('period', $this->period);
+            });
+        })
         ->get();  
 
         $notasks->map(function($item) {
             // Format created_at
             $doj = Carbon::parse($item->employee->date_of_joining);
 
-                $item->formatted_doj = $doj->format('d M Y');
-                
+            $item->formatted_doj = $doj->format('d M Y');
+            
             return $item;
         });
         

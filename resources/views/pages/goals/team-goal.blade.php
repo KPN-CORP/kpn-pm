@@ -63,7 +63,9 @@
                                     <div class="mb-2">
                                         <label class="form-label" for="filterYear">{{ __('Year') }}</label>
                                         <select name="filterYear" id="filterYear" onchange="yearGoal(this)" class="form-select">
-                                            <option value="{{ $period }}" {{ $period == $filterYear ? 'selected' : '' }}>{{ $period }}</option>
+                                            @if ($period)
+                                                <option value="{{ $period }}" {{ $period == $filterYear ? 'selected' : '' }}>{{ $period }}</option>  
+                                            @endif
                                             @foreach ($selectYear as $year)
                                                 <option value="{{ $year->period }}" {{ $year->period == $filterYear ? 'selected' : '' }}>{{ $year->period }}</option>
                                             @endforeach
@@ -207,8 +209,10 @@
                                                     @include('pages.goals.detail')
                                                 {{-- @endif --}}
                                                 @empty
-                                                <div id="no-data-1" class="text-center">
-                                                    <h5 class="text-muted">No Data</h5>
+                                                <div class="p-3">
+                                                    <div id="no-data-1" class="text-center">
+                                                        <h5 class="text-muted">No Data</h5>
+                                                    </div>
                                                 </div>
                                                 @endforelse
                                                 <!-- end task -->
@@ -230,7 +234,9 @@
                                     <div class="mb-2">
                                         <label class="form-label" for="filterYear">{{ __('Year') }}</label>
                                         <select name="filterYear" id="filterYear" onchange="yearGoal(this)" class="form-select">
-                                            <option value="{{ $period }}" {{ $period == $filterYear ? 'selected' : '' }}>{{ $period }}</option>
+                                            @if ($period)
+                                                <option value="{{ $period }}" {{ $period == $filterYear ? 'selected' : '' }}>{{ $period }}</option>  
+                                            @endif
                                             @foreach ($selectYear as $year)
                                                 <option value="{{ $year->period }}" {{ $year->period == $filterYear ? 'selected' : '' }}>{{ $year->period }}</option>
                                             @endforeach

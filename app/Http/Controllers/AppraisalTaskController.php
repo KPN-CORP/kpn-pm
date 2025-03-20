@@ -54,6 +54,8 @@ class AppraisalTaskController extends Controller
             // Get dataTeams and filter contributors in one pass
             $dataTeams = ApprovalLayerAppraisal::with(['approver', 'contributors' => function($query) use ($user, $period) {
                 $query->where('contributor_id', $user)->where('period', $period);
+            }, 'goal' => function($query) use ($period) {
+                $query->where('period', $period);
             }])
             ->where('approver_id', $user)
             ->where('layer_type', 'manager')
@@ -66,13 +68,15 @@ class AppraisalTaskController extends Controller
             ->get();
     
             // Filter contributors for 'dataTeams' that are empty
-            $filteredDataTeams = $dataTeams->filter(fn($item) => $item->contributors->isEmpty());
+            $filteredDataTeams = $dataTeams->filter(fn($item) => $item->contributors->isEmpty() && $item->goal->isNotEmpty());
             $notifDataTeams = $filteredDataTeams->count();
             
             // Get data360 and filter contributors and appraisal in one pass
             $data360 = ApprovalLayerAppraisal::with(['approver', 'contributors' => function($query) use ($period) {
                 $query->where('contributor_id', Auth::user()->employee_id)->where('period', $period);
-            }, 'appraisal'])
+            }, 'appraisal' => function($query) use ($period) {
+                $query->where('period', $period);
+            }])
             ->where('approver_id', $user)
             ->whereNotIn('layer_type', ['manager', 'calibrator'])
             ->whereHas('employee', function ($query) {
@@ -114,6 +118,7 @@ class AppraisalTaskController extends Controller
     {
         $user = $this->user;
         $period = $this->appService->appraisalPeriod();
+
         $filterYear = $request->input('filterYear');
         
         $datas = ApprovalLayerAppraisal::with(['employee' => function($query) {
@@ -151,19 +156,19 @@ class AppraisalTaskController extends Controller
 
             if (!Empty($appraisalData)) {
                 $period = $item->contributors->first()->period;
+                // Get employee data
+                $employeeData = $item->employee ?? null;
+                
+                // Combine form data
+                $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $period);
+                
+                // Assign form scores to the item
+                $item->total_score = round($formData['selfTotalScore'], 2) ?? [];
+                $item->kpi_score = round($formData['totalKpiScore'], 2) ?? [];
+                $item->culture_score = round($formData['cultureScore'], 2) ?? [];
+                $item->leadership_score = round($formData['leadershipScore'], 2) ?? [];
             }
         
-            // Get employee data
-            $employeeData = $item->employee ?? null;
-        
-            // Combine form data
-            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $period);
-        
-            // Assign form scores to the item
-            $item->total_score = round($formData['selfTotalScore'], 2) ?? [];
-            $item->kpi_score = round($formData['totalKpiScore'], 2) ?? [];
-            $item->culture_score = round($formData['cultureScore'], 2) ?? [];
-            $item->leadership_score = round($formData['leadershipScore'], 2) ?? [];
         
             return $item;
         });
@@ -173,7 +178,12 @@ class AppraisalTaskController extends Controller
 
         foreach ($datas as $index => $team) {
             // Ensure 'employee' exists before proceeding
-            if (!$team->employee) {
+
+            if (Empty($team->employee->first())) {
+                continue; // Skip this iteration if 'employee' is not set
+            }
+
+            if (Empty($team->goal->first())) {
                 continue; // Skip this iteration if 'employee' is not set
             }
 
@@ -249,18 +259,18 @@ class AppraisalTaskController extends Controller
 
             if (!Empty($appraisalData)) {
                 $period = $item->contributors->first()->period;
+            
+                // Get employee data
+                $employeeData = $item->employee ?? null;
+            
+                // Combine form data
+                $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $period);
+            
+                // Assign form scores to the item
+                $item->kpi_score = round($formData['totalKpiScore'], 2) ?? [];
+                $item->culture_score = round($formData['cultureScore'], 2) ?? [];
+                $item->leadership_score = round($formData['leadershipScore'], 2) ?? [];
             }
-        
-            // Get employee data
-            $employeeData = $item->employee ?? null;
-        
-            // Combine form data
-            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $period);
-        
-            // Assign form scores to the item
-            $item->kpi_score = round($formData['totalKpiScore'], 2) ?? [];
-            $item->culture_score = round($formData['cultureScore'], 2) ?? [];
-            $item->leadership_score = round($formData['leadershipScore'], 2) ?? [];
         
             return $item;
         });
@@ -268,8 +278,20 @@ class AppraisalTaskController extends Controller
         // Prepare data for DataTables
         $data = [];
 
-
         foreach ($datas as $index => $team) {
+
+            if (Empty($team->employee->first())) {
+                continue; // Skip this iteration if 'employee' is not set
+            }
+
+            if (Empty($team->goal->first())) {
+                continue; // Skip this iteration if 'employee' is not set
+            }
+
+            if (Empty($team->contributors->first())) {
+                continue; // Skip this iteration if 'contributors' is not set
+            }
+
             $data[] = [
                 'index' => $index + 1,
                 'employee' => [

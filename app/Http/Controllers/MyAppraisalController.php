@@ -267,8 +267,10 @@ class MyAppraisalController extends Controller
         $step = $request->input('step', 1);
 
         $period = $this->appService->appraisalPeriod();
+        $goalPeriod = $this->appService->goalPeriod();
+        $goalApproved = Goal::where('employee_id', $request->id)->where('form_status', 'Approved')->where('period', $period)->exists();
 
-        $goal = Goal::where('employee_id', $request->id)->where('form_status', 'Approved')->where('period', $period)->first();
+        $goal = Goal::where('employee_id', $request->id)->where('period', $period)->first();
 
         $appraisal = Appraisal::where('employee_id', $request->id)->where('period', $period)->first();
 
@@ -280,7 +282,7 @@ class MyAppraisalController extends Controller
         }
 
         // check goals
-        if ($goal) {
+        if ($goalApproved || !$goalPeriod) {
             $goalData = json_decode($goal->form_data, true);
         } else {
             Session::flash('error', "Your Goals for $period are not found or not fully Approved.");
