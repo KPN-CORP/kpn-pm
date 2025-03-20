@@ -840,7 +840,7 @@ class AppService
         $today = Carbon::today()->toDateString();
 
         $period = Schedule::where('event_type', 'goals')
-                        ->orderByDesc('id')
+                        ->orderBy('id', 'desc')
                         ->value('schedule_periode');
 
         return $period;
@@ -853,7 +853,7 @@ class AppService
         $period = Schedule::where('event_type', 'goals')
                         ->where('start_date', '<=', $today)
                         ->where('end_date', '>=', $today)
-                        ->orderByDesc('id')
+                        ->orderBy('id', 'desc')
                         ->value('schedule_periode');
         return $period;
     }
@@ -863,7 +863,7 @@ class AppService
         $today = Carbon::today()->toDateString();
 
         $period = Schedule::where('event_type', 'masterschedulepa')
-                        ->orderByDesc('id')
+                        ->orderBy('id', 'desc')
                         ->value('schedule_periode');
         return $period;
     }
@@ -875,7 +875,7 @@ class AppService
         $period = Schedule::where('event_type', 'masterschedulepa')
                         ->where('start_date', '<=', $today)
                         ->where('end_date', '>=', $today)
-                        ->orderByDesc('id')
+                        ->orderBy('id', 'desc')
                         ->value('schedule_periode');
         return $period;
     }

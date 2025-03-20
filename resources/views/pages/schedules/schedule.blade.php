@@ -75,53 +75,53 @@
                                         <th>Reminder</th>
                                         <th>Days</th>
                                         <th>Created By</th>
-                                        <th>Actions</th>
+                                        <th class="sorting_1">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
         
                                     @foreach($schedules as $schedule)
                                     <tr>
-                                            <td>{{ $loop->index + 1 }}</td>
-                                            <td style="width: 20%; word-wrap: break-word; white-space: normal;">{{ $schedule->schedule_name }}</td>
-                                            <td>
-                                                @if($schedule->event_type == 'goals'){{ 'Goal Setting' }}
-                                                @elseif($schedule->event_type == 'schedulepa'){{ 'PA '.$schedule->schedule_periode }}
-                                                @elseif($schedule->event_type == 'masterschedulepa'){{ 'Master PA '.$schedule->schedule_periode }}
-                                                @elseif($schedule->event_type == 'masterschedulegoals'){{ 'Master Goal Settings '.$schedule->schedule_periode }}
+                                        <td>{{ $loop->index + 1 }}</td>
+                                        <td style="width: 20%; word-wrap: break-word; white-space: normal;">{{ $schedule->schedule_name }}</td>
+                                        <td>
+                                            @if($schedule->event_type == 'goals'){{ 'Goal Setting' }}
+                                            @elseif($schedule->event_type == 'schedulepa'){{ 'PA '.$schedule->schedule_periode }}
+                                            @elseif($schedule->event_type == 'masterschedulepa'){{ 'Master PA '.$schedule->schedule_periode }}
+                                            @elseif($schedule->event_type == 'masterschedulegoals'){{ 'Master Goal Settings '.$schedule->schedule_periode }}
+                                            @endif
+                                        </td>
+                                        <td>{{ $schedule->start_date }}</td>
+                                        <td>{{ $schedule->end_date }}</td>
+                                        <td>@if($schedule->checkbox_reminder == '1') Yes @else No @endif</td>
+                                        <td>@if($schedule->checkbox_reminder == 1)
+                                                @if($schedule->repeat_days <> '')
+                                                    {{ $schedule->repeat_days }}
+                                                @else
+                                                    {{ $schedule->before_end_date . ' Days Before End Date' }}
                                                 @endif
-                                            </td>
-                                            <td>{{ $schedule->start_date }}</td>
-                                            <td>{{ $schedule->end_date }}</td>
-                                            <td>@if($schedule->checkbox_reminder == '1') Yes @else No @endif</td>
-                                            <td>@if($schedule->checkbox_reminder == 1)
-                                                    @if($schedule->repeat_days <> '')
-                                                        {{ $schedule->repeat_days }}
-                                                    @else
-                                                        {{ $schedule->before_end_date . ' Days Before End Date' }}
+                                            @endif
+                                        </td>
+                                        <td>{{ isset($schedule->createdBy->name) ? $schedule->createdBy->name : '-' }}</td>
+                                        <td class="text-center sorting_1">
+                                            @if($schedule->created_by == $userId && !$schedule->deleted_at)
+                                                @if($schedule->event_type == 'schedulepa')
+                                                    @if($schedulemasterpa)
+                                                        <a href="{{ route('edit-schedule', \Crypt::encrypt($schedule->id)) }}" class="btn btn-sm btn-outline-warning" title="Edit"><i class="ri-edit-box-line"></i></a>
+                                                        {{-- <a class="btn btn-sm btn-danger" title="Delete" onclick="handleDelete(this)" data-id="{{ $schedule->id }}"><i class="ri-delete-bin-line"></i></a> --}}
+                                                        <a class="btn btn-sm btn-danger" title="Delete" onclick="confirmDelete({{ $schedule->id }})" data-id="{{ $schedule->id }}"><i class="ri-delete-bin-line"></i></a>
                                                     @endif
-                                                @endif
-                                            </td>
-                                            <td>{{ isset($schedule->createdBy->name) ? $schedule->createdBy->name : '-' }}</td>
-                                            <td class="text-center">
-                                                @if($schedule->created_by == $userId && !$schedule->deleted_at)
-                                                    @if($schedule->event_type == 'schedulepa')
-                                                        @if($schedulemasterpa)
-                                                            <a href="{{ route('edit-schedule', \Crypt::encrypt($schedule->id)) }}" class="btn btn-sm btn-outline-warning" title="Edit"><i class="ri-edit-box-line"></i></a>
-                                                            {{-- <a class="btn btn-sm btn-danger" title="Delete" onclick="handleDelete(this)" data-id="{{ $schedule->id }}"><i class="ri-delete-bin-line"></i></a> --}}
-                                                            <a class="btn btn-sm btn-danger" title="Delete" onclick="confirmDelete({{ $schedule->id }})" data-id="{{ $schedule->id }}"><i class="ri-delete-bin-line"></i></a>
-                                                        @endif
-                                                    @elseif($schedule->event_type == 'goals')
-                                                        @if($schedulemastergoals && $schedulegoals->contains($schedule->id))
-                                                            <a href="{{ route('edit-schedule', \Crypt::encrypt($schedule->id)) }}" class="btn btn-sm btn-outline-warning" title="Edit"><i class="ri-edit-box-line"></i></a>
-                                                            <a class="btn btn-sm btn-danger" title="Delete" onclick="confirmDelete({{ $schedule->id }})" data-id="{{ $schedule->id }}"><i class="ri-delete-bin-line"></i></a>
-                                                        @endif
-                                                    @else
+                                                @elseif($schedule->event_type == 'goals')
+                                                    @if($schedulemastergoals && $schedulegoals->contains($schedule->id))
                                                         <a href="{{ route('edit-schedule', \Crypt::encrypt($schedule->id)) }}" class="btn btn-sm btn-outline-warning" title="Edit"><i class="ri-edit-box-line"></i></a>
                                                         <a class="btn btn-sm btn-danger" title="Delete" onclick="confirmDelete({{ $schedule->id }})" data-id="{{ $schedule->id }}"><i class="ri-delete-bin-line"></i></a>
                                                     @endif
+                                                @else
+                                                    <a href="{{ route('edit-schedule', \Crypt::encrypt($schedule->id)) }}" class="btn btn-sm btn-outline-warning" title="Edit"><i class="ri-edit-box-line"></i></a>
+                                                    <a class="btn btn-sm btn-danger" title="Delete" onclick="confirmDelete({{ $schedule->id }})" data-id="{{ $schedule->id }}"><i class="ri-delete-bin-line"></i></a>
                                                 @endif
-                                            </td>
+                                            @endif
+                                        </td>
                                     </tr>
                                     @endforeach
                                 </tbody>
