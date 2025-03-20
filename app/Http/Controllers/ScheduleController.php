@@ -48,7 +48,8 @@ class ScheduleController extends Controller
         $parentLink = 'Settings';
         $link = 'Schedule';
         $today = Carbon::today();
-        $schedules = Schedule::with('createdBy')->get();
+        $schedules = Schedule::with('createdBy')->orderBy('created_at', 'desc')->get();
+        $inactiveSchedules = Schedule::onlyTrashed()->with('createdBy')->orderBy('deleted_at', 'asc')->orderBy('created_at', 'desc')->get();
         $schedulemasterpa = schedule::where('event_type','masterschedulepa')
                             ->whereDate('start_date', '<=', $today)
                             ->whereDate('end_date', '>=', $today)
@@ -77,6 +78,7 @@ class ScheduleController extends Controller
             'link' => $link,
             'parentLink' => $parentLink,
             'schedules' => $schedules,
+            'inactiveSchedules' => $inactiveSchedules,
             'userId' => $userId,
             'schedulemasterpa' => $schedulemasterpa,
             'schedulemastergoals' => $schedulemastergoals,

@@ -922,6 +922,8 @@ class AppService
         // Count for teams notifications
         $dataTeams = ApprovalLayerAppraisal::with(['approver', 'contributors' => function($query) use ($user, $period) {
             $query->where('contributor_id', $user)->where('period', $period);
+        }, 'goal' => function($query) use ($period) {
+            $query->where('period', $period);
         }])
         ->where('approver_id', $user)
         ->where('layer_type', 'manager')
@@ -934,20 +936,22 @@ class AppService
         ->get();
 
         $notifTeams = $dataTeams->filter(function ($item) {
-            return $item->contributors->isEmpty();
+            return $item->contributors->isEmpty() && $item->goal->isNotEmpty();
         })->count();
         
         // Count for 360 appraisal notifications
         $data360 = ApprovalLayerAppraisal::with(['approver', 'contributors' => function($query) use ($user, $period) {
             $query->where('contributor_id', $user)->where('period', $period);
-        }, 'appraisal'])
+        }, 'appraisal' => function($query) use ($period) {
+            $query->where('period', $period);
+        }])
             ->where('approver_id', $user)
             ->whereNotIn('layer_type', ['manager', 'calibrator'])
             ->get()
             ->filter(function ($item) {
                 return $item->appraisal != null && $item->contributors->isEmpty();
             });
-
+        
         $notif360 = $data360->count();
 
         $notifData = $notifTeams + $notif360;

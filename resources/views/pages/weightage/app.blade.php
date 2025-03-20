@@ -52,7 +52,7 @@
                                     <a href="{{ route('admin-weightage.detail', $row->id) }}" title="Detail" class="btn btn-sm rounded btn-outline-info me-1"><i class="ri-eye-line fs-16"></i></a>
                                     <button data-id="{{ $row->id }}" title="Archive" class="btn btn-sm rounded btn-outline-dark me-1 archive"><i class="ri-inbox-archive-line fs-16"></i></button> 
                                 @else
-                                    <a href="{{ route('admin-weightage.archive', $row->id) }}" title="Archieved" class="btn btn-sm rounded btn-outline-secondary me-1"><i class="ri-archive-line fs-16"></i></a>
+                                    <a href="{{ route('admin-weightage.archive', $row->id) }}" title="Archived" class="btn btn-sm rounded btn-outline-secondary me-1"><i class="ri-archive-line fs-16"></i></a>
                                 @endif
                             </td>
                         </tr>
