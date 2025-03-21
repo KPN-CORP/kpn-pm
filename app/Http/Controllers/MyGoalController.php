@@ -437,7 +437,7 @@ class MyGoalController extends Controller
             }
 
             // Create initial approval record
-            if($request->employee_id == Auth::user()->employee_id){
+            if($request->employee_id != Auth::user()->employee_id){
                 $approval = new Approval();
                 $approval->request_id = $approvalRequest->id;
                 $approval->approver_id = Auth::user()->employee_id;
