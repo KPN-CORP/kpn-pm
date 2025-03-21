@@ -437,14 +437,16 @@ class MyGoalController extends Controller
             }
 
             // Create initial approval record
-            $approval = new Approval();
-            $approval->request_id = $approvalRequest->id;
-            $approval->approver_id = Auth::user()->employee_id;
-            $approval->created_by = Auth::id();
-            $approval->status = 'Approved';
-
-            if (!$approval->save()) {
-                throw new Exception("Failed to record approval");
+            if($request->employee_id == Auth::user()->employee_id){
+                $approval = new Approval();
+                $approval->request_id = $approvalRequest->id;
+                $approval->approver_id = Auth::user()->employee_id;
+                $approval->created_by = Auth::id();
+                $approval->status = 'Approved';
+    
+                if (!$approval->save()) {
+                    throw new Exception("Failed to record approval");
+                }
             }
 
             DB::commit();
