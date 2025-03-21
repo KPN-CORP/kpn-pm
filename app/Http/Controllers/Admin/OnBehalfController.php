@@ -185,6 +185,11 @@ class OnBehalfController extends Controller
                                                         ->value('layer');
                 }
 
+                $access_menu = json_decode($item->employee->access_menu, true);
+                $access = $access_menu['goals'] && $access_menu['doj'] ?? null;
+
+                $item->access = $access;
+
                 return $item;
 
                 });
@@ -207,8 +212,7 @@ class OnBehalfController extends Controller
                     
                 }
             }
-        }
-        
+        }        
         
         $locations = $this->locations;
         $companies = $this->companies;
