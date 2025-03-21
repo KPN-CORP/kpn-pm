@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\UserExport;
+use App\Models\Appraisal;
 use App\Models\Approval;
 use App\Models\ApprovalLayer;
 use App\Models\ApprovalRequest;
@@ -77,8 +78,13 @@ class MyGoalController extends Controller
         }
         
         $datas = $datasQuery->get();
-    
+
         $formattedData = $datas->map(function($item) {
+
+            $appraisalCheck = Appraisal::where('goals_id', $item->goal->id)->exists();
+
+            $item->appraisalCheck = $appraisalCheck;
+
             // Format created_at
             $createdDate = Carbon::parse($item->created_at);
             if ($createdDate->isToday()) {
@@ -121,7 +127,6 @@ class MyGoalController extends Controller
         
         foreach ($formattedData as $request) {
             // Check form status and creator
-            // if ($request->appraisal->goal->form_status != 'Draft' || $request->created_by == Auth::user()->id) {
                 // Get fullname from approverName relation
                 $dataApprover = '';
                 if ($request->approval->first()) {
@@ -138,7 +143,6 @@ class MyGoalController extends Controller
     
                 // Add the data item to the array
                 $data[] = $dataItem;
-            // }
         }
     
         $path = base_path('resources/goal.json');
