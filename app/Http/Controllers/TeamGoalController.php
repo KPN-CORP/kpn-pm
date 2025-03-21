@@ -215,6 +215,8 @@ class TeamGoalController extends Controller
     
     function create($id) {
 
+        $id = decrypt($id);
+
         $period = $this->appService->goalPeriod();
         $employee = Employee::where('employee_id', $id)->first();
         $access_menu = json_decode($employee->access_menu, true);

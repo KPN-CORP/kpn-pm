@@ -27,21 +27,26 @@
         <div class="pt-1 row">
         </div>
         
-        <div class="row">
-            <div class="col-10">
-            <div class="col-md-auto">
-              <div class="mb-3">
-                <div class="input-group" style="width: 30%;">
-                  <div class="input-group-prepend">
-                    <span class="input-group-text bg-white border-dark-subtle"><i class="ri-search-line"></i></span>
-                  </div>
-                  <input type="text" name="customsearch" id="customsearch" class="form-control  border-dark-subtle border-left-0" placeholder="search.." aria-label="search" aria-describedby="search">
+        <div class="row justify-content-between">
+            <div class="col-md-4 order-2 order-md-0">
+                <div class="mb-3">
+                    <div class="input-group">
+                        <div class="input-group-prepend">
+                            <span class="input-group-text bg-white border-dark-subtle">
+                                <i class="ri-search-line"></i>
+                            </span>
+                        </div>
+                        <input type="text" name="customsearch" id="customsearch" 
+                               class="form-control border-dark-subtle border-left-0" 
+                               placeholder="search.." aria-label="search">
+                    </div>
                 </div>
-              </div>
             </div>
-            </div>
-            <div class="col-2" style="text-align:right">
-                <a href="{{ route('schedules.form') }}" class="btn btn-primary shadow">Create Schedule</a>
+            <div class="col-md-2 order-1 order-md-0 text-md-end">
+                <div class="mb-3">
+                    <a href="{{ route('schedules.form') }}" 
+                       class="btn btn-primary shadow">Create Schedule</a>
+                </div>
             </div>
         </div>
         <!-- Content Row -->
@@ -64,7 +69,7 @@
                 <div class="tab-content">
                     <div class="tab-pane show active" id="active" role="tabpanel">
                         <div class="table-responsive">
-                            <table class="table table-hover dt-responsive nowrap" id="scheduleTable" width="100%" cellspacing="0">
+                            <table class="table table-hover dt-responsive nowrap activate-select" id="scheduleTable" width="100%" cellspacing="0">
                                 <thead class="thead-light">
                                     <tr class="text-center">
                                         <th>#</th>
