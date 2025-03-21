@@ -36,27 +36,19 @@ document.getElementById("deleteToggle").addEventListener("change", function () {
     var deleteButtons = document.querySelectorAll(".deleteBtn");
     if (this.checked) {
         deleteButtons.forEach(function (deleteBtn) {
-            deleteBtn.classList.remove("hide");
+            deleteBtn.classList.remove("hide", "d-none", "disabled");
             deleteBtn.classList.add("show");
+            deleteBtn.disabled = false;
         });
     } else {
         deleteButtons.forEach(function (deleteBtn) {
             deleteBtn.classList.remove("show");
             deleteBtn.classList.toggle("hide");
+            deleteBtn.disabled = true;
             setTimeout(function () {
                 deleteBtn.classList.remove("hide");
+                deleteBtn.classList.add("d-none", "disabled");
             }, 30);
         });
     }
 });
-
-// if (this.checked) {
-//     deleteBtn.classList.remove("hide");
-//     deleteBtn.classList.add("show");
-// } else {
-//     deleteBtn.classList.remove("show");
-//     deleteBtn.classList.toggle("hide");
-//     setTimeout(function () {
-//         deleteBtn.classList.remove("hide");
-//     }, 30);
-// }
