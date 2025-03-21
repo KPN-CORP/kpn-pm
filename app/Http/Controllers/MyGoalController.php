@@ -178,6 +178,8 @@ class MyGoalController extends Controller
     
     function create($id) {
 
+        $id = decrypt($id);
+
         $period = $this->appService->goalPeriod();
 
         $employee = Employee::where('employee_id', $id)->first();
@@ -490,8 +492,12 @@ class MyGoalController extends Controller
             }
         }
 
-        $approver = null;	
         $statusRequest = 'Pending';
+
+        $approver = null;	
+        
+        $firstLayer = ApprovalLayer::where('employee_id', $request->employee_id)->orderBy('layer', 'asc')->first();
+        $approver = $firstLayer->approver_id;	
 
         if($request->employee_id != $user){
             $nextLayer = ApprovalLayer::where('approver_id', $user)
@@ -557,19 +563,16 @@ class MyGoalController extends Controller
                 throw new Exception("Failed to update approval request");
             }
 
-            // Update/create approval snapshot
-            $snapshot = ApprovalSnapshots::firstOrNew([
-                'form_id' => $goal->id
-            ]);
-            
-            $snapshot->id = $snapshot->id ?? Str::uuid();
+            // Always create a new approval snapshot
+            $snapshot = new ApprovalSnapshots();
+            $snapshot->id = Str::uuid();
+            $snapshot->form_id = $goal->id;
             $snapshot->form_data = $goal->form_data;
             $snapshot->employee_id = $request->employee_id;
-            $snapshot->updated_by = Auth::id();
-            $snapshot->created_by = $snapshot->created_by ?? Auth::id();
+            $snapshot->created_by = Auth::id();
             
             if (!$snapshot->save()) {
-                throw new Exception("Failed to update approval snapshot");
+                throw new Exception("Failed to create approval snapshot");
             }
 
             DB::commit();

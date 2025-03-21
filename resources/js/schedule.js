@@ -143,16 +143,19 @@ document.addEventListener("DOMContentLoaded", function () {
         },
         pageLength: 50,
         scrollCollapse: true,
-        scrollX: true
+        scrollX: true,
+        columnDefs: [
+            // Target the last column (fixed right column)
+            {
+                targets: -1, // -1 refers to the last column
+                className: 'sorting_1 text-center'
+            }
+        ]
     });
 
     const inactiveScheduleTable = $("#inactiveScheduleTable").DataTable({
         dom: "lrtip",
         stateSave: true,
-        fixedColumns: {
-            leftColumns: 0,
-            rightColumns: 1
-        },
         pageLength: 50,
         scrollCollapse: true,
         scrollX: true

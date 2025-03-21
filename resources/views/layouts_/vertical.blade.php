@@ -26,6 +26,7 @@
                 <!-- Start Content-->
                 @yield('content')
             </div>
+            @include('layouts_.shared/footer')
         </div>
 
         <!-- ============================================================== -->

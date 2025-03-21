@@ -326,7 +326,7 @@
                                                             $doj = $accessMenu['doj'] ?? null;
                                                         @endphp
                                                         @if ($doj && $goals)
-                                                            <button data-id="{{ $notask->employee->employee_id }}" id="initiateBtn{{ $index }}" class="btn btn-outline-primary btn-sm">{{ __('Initiate') }}</button>
+                                                            <button data-id="{{ encrypt($notask->employee->employee_id) }}" id="initiateBtn{{ $index }}" class="btn btn-outline-primary btn-sm">{{ __('Initiate') }}</button>
                                                         @endif
                                                     </div>
                                                 </div>

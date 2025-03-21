@@ -3,16 +3,9 @@
     <div class="container-fluid">
         <div class="row">
             <div class="col-md-6">
-                <
-                    document.write(new Date().getFullYear())
-                </script> © Attex - Coderthemes.com
-            </div>
-            <div class="col-md-6">
-                <div class="text-md-end footer-links d-none d-md-block">
-                    <a href="javascript: void(0);">About</a>
-                    <a href="javascript: void(0);">Support</a>
-                    <a href="javascript: void(0);">Contact Us</a>
-                </div>
+                <span class="fs-6">
+                    © {{ date('Y') }} KPN Corporation - HCIS. All rights reserved.
+                </span>
             </div>
         </div>
     </div>
