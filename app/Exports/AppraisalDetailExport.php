@@ -26,28 +26,28 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
     protected AppService $appService;
     protected array $dynamicHeaders = [];
     protected $user;
+    protected $period;
 
-    public function __construct(AppService $appService, array $data, array $headers, $user)
+    public function __construct(AppService $appService, array $data, array $headers, $user, $period)
     {
         $this->data = collect($data); // Convert array data to a collection
         $this->headers = $headers;
         $this->appService = $appService;
         $this->user = $user;
+        $this->period = $period;
     }
 
     public function collection(): Collection
     {
-        $this->dynamicHeaders = []; // Reset dynamic headers for each export
 
-        // Existing code for data collection
-        $year = $this->appService->appraisalPeriod();
+        $this->dynamicHeaders = []; // Reset dynamic headers for each export
 
         $contributorsGroupedByEmployee = AppraisalContributor::with([
             'employee' => function ($query) {
                 $query->select('employee_id', 'fullname', 'gender', 'email', 'job_level', 'group_company', 'designation_name', 'company_name', 'contribution_level_code'); // Adjust fields as needed
             }
         ])
-        ->where('period', $year)
+        ->where('period', $this->period)
         ->get()
         ->groupBy('employee_id');
 
@@ -56,14 +56,14 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
                 $query->select('employee_id', 'fullname', 'gender', 'email', 'job_level', 'group_company', 'designation_name', 'company_name', 'contribution_level_code'); // Adjust fields as needed
             }
         ])
-        ->where('period', $year)
+        ->where('period', $this->period)
         ->get()
         ->groupBy('id');
 
         $expandedData = collect();
 
-        $this->data->chunk(100)->each(function ($rows) use ($expandedData, $contributorsGroupedByEmployee, $employeeAppraisalById) {
-            foreach ($this->data as $row) {
+        $this->data->chunk(100)->each(function ($chunk) use ($expandedData, $contributorsGroupedByEmployee, $employeeAppraisalById) {
+            foreach ($chunk as $row) {
                 $employeeId = $row['Employee ID']['dataId'] ?? null;
                 $formId = $row['Form ID']['dataId'] ?? null;
 
@@ -183,6 +183,8 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
     private function processKPI(string $formName, array $itemGroup, array &$contributorRow, int $index): void
     {
+        $maxKpi = 10;
+        $index = min($index, $maxKpi - 1); // Ensure index stays within 0-9
 
         $itemGroup = [
             "kpi" => $itemGroup["kpi"],
@@ -197,10 +199,18 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             "final_score" => $itemGroup["final_score"],
         ];
 
+        // Generate headers for ALL 10 KPI positions (1-10)
+        for ($kpiNumber = 1; $kpiNumber <= $maxKpi; $kpiNumber++) {
+            foreach ($itemGroup as $subKey => $value) {
+                $kpiKey = strtolower(trim("{$formName}_{$subKey}_{$kpiNumber}"));
+                $this->captureDynamicHeader($kpiKey);
+            }
+        }
+
+        // Process current KPI's data
         foreach ($itemGroup as $subKey => $value) {
-            $subNumber = $index + 1;
+            $subNumber = $index + 1; // Convert to 1-based index
             $kpiKey = strtolower(trim("{$formName}_{$subKey}_{$subNumber}"));
-            $this->captureDynamicHeader($kpiKey);
             $contributorRow[$kpiKey] = ['dataId' => $value];
         }
     }
@@ -312,7 +322,8 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
         $appraisalData = array($appraisalData);
 
-        $employeeData = $datas->first()->employee;
+        $data = $datas->first();
+        $employeeData = $data ? $data->employee : null;
 
         // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
 
@@ -527,8 +538,15 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         return $row;
     }
 
+    protected $headersCached = false;
+
     public function headings(): array
     {
+        if (!$this->headersCached) {
+            $this->collection();
+            $this->headersCached = true;
+        }
+
         if (empty($this->dynamicHeaders)) {
             // Populate collection to ensure dynamic headers are captured
             $this->collection();

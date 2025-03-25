@@ -103,6 +103,7 @@ $(document).ready(function () {
                     
                     let groupCompany = document.getElementById("group_company");                    
                     let filter = document.getElementById("filter");                    
+                    let filterYear = document.getElementById("filter_year").value;                    
 
                     if(groupCompany.value){
                         if (combinedData.length > 0) {                        
@@ -143,6 +144,7 @@ $(document).ready(function () {
                                     headers: headers,
                                     data: combinedData,
                                     batchSize: BATCH_SIZE,
+                                    period: filterYear,
                                 }),
                             })
                                 .then((response) => response.json())

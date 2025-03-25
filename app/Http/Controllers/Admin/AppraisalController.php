@@ -830,6 +830,7 @@ class AppraisalController extends Controller
         $data = $request->input('data'); // Retrieve the data sent by DataTable
         $headers = $request->input('headers'); // Dynamic headers from the request
         $batchSize = $request->input('batchSize', 100);
+        $period = $request->input('period');
         $userID = Auth()->user()->id;
         
         $directory = 'exports';
@@ -860,7 +861,7 @@ class AppraisalController extends Controller
 
         $isZip = count($data) > $batchSize;
 
-        $job = ExportAppraisalDetails::dispatch($this->appService, $data, $headers, $userID, $batchSize, Auth()->user());
+        $job = ExportAppraisalDetails::dispatch($this->appService, $data, $headers, $userID, $batchSize, Auth()->user(), $period);
 
         // Log::info('Dispatched job:', ['job' => $job]);
 
