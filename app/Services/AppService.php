@@ -945,8 +945,14 @@ class AppService
         }, 'appraisal' => function($query) use ($period) {
             $query->where('period', $period);
         }])
-            ->where('approver_id', $user)
+        ->where('approver_id', $user)
             ->whereNotIn('layer_type', ['manager', 'calibrator'])
+            ->whereHas('employee', function ($query) {
+                $query->where(function($q) {
+                    $q->whereRaw('json_valid(access_menu)')
+                      ->whereJsonContains('access_menu', ['createpa' => 1]);
+                });
+            })
             ->get()
             ->filter(function ($item) {
                 return $item->appraisal != null && $item->contributors->isEmpty();
