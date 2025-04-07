@@ -282,6 +282,6 @@
     window.userID = {!! json_encode(auth()->user()->id) !!};
     window.reportFile = {!! json_encode($reportFiles['name'] ?? null) !!};
     window.reportFileDate = {!! json_encode($reportFiles['last_modified'] ?? null) !!};
-    window.jobs = {!! json_encode($jobs) !!};
+    window.jobs = {!! json_encode($jobs ?? []) !!};
 </script>
 @endpush

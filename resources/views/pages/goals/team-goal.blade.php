@@ -13,7 +13,7 @@
                 @endif
                 @if (session('error'))
                     <div class="alert alert-danger mt-3">
-                        {!! session('error') !!}
+                        {!! session('error')['message'] !!}
                     </div>
                 @endif
                 <div class="row my-3">

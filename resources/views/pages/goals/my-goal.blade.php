@@ -9,7 +9,7 @@
         <!-- Page Heading -->
         <div class="mandatory-field">
             <div id="alertField" class="alert alert-danger alert-dismissible {{ Session::has('error') ? '':'fade' }}" role="alert" {{ Session::has('error') ? '':'hidden' }}>
-                <strong>{{ Session::get('error') }}</strong>
+                <strong>{{ Session::get('error')['message'] ?? null }}</strong>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         </div>
@@ -188,8 +188,8 @@
             document.addEventListener('DOMContentLoaded', function () {                
                 Swal.fire({
                     icon: "error",
-                    title: "Cannot create goals",
-                    text: '{{ Session::get('error') }}',
+                    title: "{{ Session::get('error')['title'] }}",
+                    text: "{{ Session::get('error')['message'] }}",
                     confirmButtonText: "OK",
                 });
             });            
