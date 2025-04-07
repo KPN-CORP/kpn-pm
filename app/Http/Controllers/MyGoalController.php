@@ -564,6 +564,7 @@ class MyGoalController extends Controller
             }
             $approvalRequest->sendback_messages = null;
             $approvalRequest->sendback_to = null;
+            $approvalRequest->updated_by = Auth::id();
             
             if (!$approvalRequest->save()) {
                 throw new Exception("Failed to update approval request");
