@@ -582,6 +582,30 @@ class MyGoalController extends Controller
                 throw new Exception("Failed to create approval snapshot");
             }
 
+            // Create initial approval record
+            if ($user != $request->employee_id) {
+                $existingApproval = Approval::where('request_id', $approvalRequest->id)
+                    ->where('approver_id', Auth::user()->employee_id)
+                    ->first();
+            
+                if (!$existingApproval) {
+                    $approval = new Approval();
+                    $approval->request_id = $approvalRequest->id;
+                    $approval->approver_id = Auth::user()->employee_id;
+                    $approval->created_by = Auth::id();
+                    $approval->status = 'Approved';
+            
+                    if (!$approval->save()) {
+                        throw new Exception("Failed to record approval");
+                    }
+                } else {
+                    // Update the updated_at timestamp and status if needed
+                    $existingApproval->updated_at = now(); // Laravel will automatically update this if you call save()
+                    // Optional: update other fields
+                    $existingApproval->save();
+                }
+            }            
+
             DB::commit();
 
             return $user != $request->employee_id 
