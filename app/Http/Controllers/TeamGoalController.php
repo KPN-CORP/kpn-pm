@@ -231,10 +231,16 @@ class TeamGoalController extends Controller
         if (!$goal_access || !$doj_access) {
             // User ID doesn't match the condition, show error message
             if ($this->user != $id) {
-                Session::flash('error', "This employee not granted access to initiate Goals.");
+                Session::flash('error', [
+                    'title' => 'Cannot create goal',
+                    'message' => "This employee not granted access to initiate Goals"
+                ]);
                 return redirect('team-goals');
             } else {
-                Session::flash('error', "You are not granted access to initiate Goals.");
+                Session::flash('error', [
+                    'title' => 'Cannot create goal',
+                    'message' => "You are not granted access to initiate Goals."
+                ]);
             }
             return redirect('goals');
         }
@@ -242,7 +248,10 @@ class TeamGoalController extends Controller
         $goal = Goal::where('employee_id', $id)->where('period', $period)->get();
         if ($goal->isNotEmpty()) {
             // User ID doesn't match the condition, show error message
-            Session::flash('error', "You already initiated Goals for $period.");
+            Session::flash('error', [
+                'title' => 'Cannot create goal',
+                'message' => "You already initiated Goals for $period."
+            ]);
 
             return redirect('team-goals');
 
@@ -250,7 +259,10 @@ class TeamGoalController extends Controller
 
         $datas = ApprovalLayer::with(['employee'])->where('employee_id', $id)->where('layer', 1)->get();  
         if (!$datas->first()) {
-            Session::flash('error', "Theres no direct manager assigned in your position!");
+            Session::flash('error', [
+                'title' => 'Cannot create goal',
+                'message' => "There is no direct manager assigned in employee position!"
+            ]);
 
             return redirect('team-goals');
         }
@@ -277,27 +289,49 @@ class TeamGoalController extends Controller
 
     function edit($id) {
 
-        $goals = Goal::with(['approvalRequest'])->where('id', $id)->get();
-        $goal =  $goals->first();
+        $period = $this->appService->goalPeriod();
 
-        $approvalRequest = ApprovalRequest::with(['employee' => function($q) {
-            $q->select('id', 'fullname', 'employee_id', 'designation_name', 'job_level', 'group_company', 'unit');
-        }])->where('form_id', $goal->id)->first();
+        $goalsQuery = Goal::with(['approvalRequest' => function ($query) {
+            $query->where('created_by', Auth::user()->id);
+        }])->where('id', $id);
+        $goal =  $goalsQuery->first();
+        $goalsCheck = $goalsQuery->where('period', $period)->get();
 
         $parentLink = __('Goal');
         $link = __('Edit');
 
         $path = base_path('resources/goal.json');
 
-        // Check if the JSON file exists
-        if (!File::exists($path)) {
-            // Handle the situation where the JSON file doesn't exist
-            abort(500, 'JSON file does not exist.');
-        }
-
         if(!$goal){
+            Session::flash('error', [
+                'title' => 'Cannot update goal',
+                'message' => "Goal data not found."
+            ]);
             return redirect()->route('team-goals');
         }else{
+
+            if ($goalsCheck->isEmpty() || $goalsCheck->first()->approvalRequest == null) {
+                // User ID doesn't match the condition, show error message
+                Session::flash('error', [
+                    'title' => 'Permission Denied',
+                    'message' => "You do not have permission to edit this goal."
+                ]);
+    
+                if ($this->user != $goal->employee_id) {
+                    return redirect('team-goals');
+                }
+                return redirect('goals');
+            }
+
+            // Check if the JSON file exists
+            if (!File::exists($path)) {
+                // Handle the situation where the JSON file doesn't exist
+                abort(500, 'JSON file does not exist.');
+            }
+
+            $approvalRequest = ApprovalRequest::with(['employee' => function($q) {
+                $q->select('id', 'fullname', 'employee_id', 'designation_name', 'job_level', 'group_company', 'unit');
+            }])->where('form_id', $goal->id)->first();
             // Read the contents of the JSON file
             $formData = json_decode($goal->form_data, true);
 
