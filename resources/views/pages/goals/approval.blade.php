@@ -182,7 +182,9 @@
                                         <a class="btn btn-warning rounded px-2 me-2 dropdown-toggle" href="javascript:void(0)" role="button" aria-haspopup="true" data-bs-toggle="dropdown" data-bs-offset="0,10" aria-expanded="false">{{ __('Send Back') }}</a>
                                             <div class="dropdown-menu shadow-sm">
                                                 <h6 class="dropdown-header dark">Select person below :</h6>
-                                                <a class="dropdown-item" href="javascript:void(0)" onclick="sendBack('{{ $row->request->id }}','{{ $row->request->employee->employee_id }}','{{ $row->request->employee->fullname }}')">{{ $row->request->employee->fullname .' '.$row->request->employee->employee_id }}</a>
+                                                @if ($row->request->created_by == $row->request->employee->id)
+                                                    <a class="dropdown-item" href="javascript:void(0)" onclick="sendBack('{{ $row->request->id }}','{{ $row->request->employee->employee_id }}','{{ $row->request->employee->fullname }}')">{{ $row->request->employee->fullname .' '.$row->request->employee->employee_id }}</a>
+                                                @endif
                                                 @foreach ($row->request->approval as $item)
                                                     <a class="dropdown-item" href="javascript:void(0)" onclick="sendBack('{{ $item->request_id }}','{{ $item->approver_id }}','{{ $item->approverName->fullname }}')">{{ $item->approverName->fullname.' '.$item->approver_id }}</a>
                                                 @endforeach
