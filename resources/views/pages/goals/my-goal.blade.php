@@ -46,11 +46,13 @@
                 <div class="card shadow">
                     <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between pb-0">
                         <h4 class="m-0 font-weight-bold text-primary">{{ __('Goal') }} {{ $row->request->period }}</h4>
-                        @if ($period == $row->request->goal->period && $row->request->goal->form_status != 'Draft' && $row->request->created_by == Auth::user()->id && $row->request->appraisalCheck)
-                        <a class="btn btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $row->request->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('goals.edit', $row->request->goal->id) }}" onclick="showLoader()">{{ __('Revise Goals') }}</a>
-                        @endif
-                        @if ($row->request->goal->form_status == 'Draft' || $row->request->status == 'Pending' && count($row->request->approval) == 0 || $row->request->sendback_to == $row->request->employee_id)
-                            <a class="btn btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $row->request->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('goals.edit', $row->request->goal->id) }}" onclick="showLoader()">{{ $row->request->status === 'Sendback' ? __('Revise Goals') : __('Edit') }}</a>
+                        @if ($period == $row->request->goal->period)
+                            @if ($row->request->goal->form_status != 'Draft' && $row->request->created_by == Auth::user()->id && $row->request->appraisalCheck)
+                            <a class="btn btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $row->request->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('goals.edit', $row->request->goal->id) }}" onclick="showLoader()">{{ __('Revise Goals') }}</a>
+                            @endif
+                            @if ($row->request->goal->form_status == 'Draft' || $row->request->status == 'Pending' && count($row->request->approval) == 0 || $row->request->sendback_to == $row->request->employee_id)
+                                <a class="btn btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $row->request->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('goals.edit', $row->request->goal->id) }}" onclick="showLoader()">{{ $row->request->status === 'Sendback' ? __('Revise Goals') : __('Edit') }}</a>
+                            @endif
                         @endif
                     </div>
                     <div class="card-body">
