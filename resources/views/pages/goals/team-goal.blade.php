@@ -120,6 +120,8 @@
                                                     $firstSubordinate = $subordinates->isNotEmpty() ? $subordinates->first() : null;
                                                     $formStatus = $firstSubordinate ? $firstSubordinate->goal->form_status : null;
                                                     $goalId = $firstSubordinate ? $firstSubordinate->goal->id : null;
+                                                    $appraisalCheck = $firstSubordinate ? $firstSubordinate->appraisalCheck : null;
+                                                    $goalPeriod = $firstSubordinate ? $firstSubordinate->goal->period : null;
                                                     $goalData = $firstSubordinate ? $firstSubordinate->goal['form_data'] : null;
                                                     $createdAt = $firstSubordinate ? $firstSubordinate->formatted_created_at : null;
                                                     $updatedAt = $firstSubordinate ? $firstSubordinate->formatted_updated_at : null;
@@ -143,6 +145,9 @@
                                                             </div> <!-- end col -->
                                                             <div class="col-auto p-2 d-none d-md-block text-end">
                                                                 <div class="mb-2">
+                                                                    @if ($period == $goalPeriod && $formStatus != 'Draft' && $status != 'Sendback' && $appraisalCheck)
+                                                                        <a class="btn btn-sm btn-outline-warning me-1 fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Revise Goals') }}</a>
+                                                                    @endif
                                                                     @if ($task->employee->employee_id == Auth::user()->employee_id || !$subordinates->isNotEmpty() || $formStatus == 'Draft')
                                                                         @if ($formStatus == 'submitted' || $formStatus == 'Approved')
                                                                         <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
@@ -186,6 +191,9 @@
                                                     </div>
                                                     <div class="col-md-auto d-md-none d-block">
                                                         <div class="align-items-center text-end py-2">
+                                                            @if ($period == $goalPeriod && $formStatus != 'Draft' && $status != 'Sendback' && $appraisalCheck)
+                                                                <a class="btn btn-sm btn-outline-warning me-1 fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Revise Goals') }}</a>
+                                                            @endif
                                                             @if ($task->employee->employee_id == Auth::user()->employee_id || !$subordinates->isNotEmpty() || $formStatus == 'Draft')
                                                                 @if ($formStatus == 'submitted' || $formStatus == 'Approved')
                                                                 <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>

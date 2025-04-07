@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exports\InvalidGoalImport;
 use App\Imports\GoalsDataImportManager;
+use App\Models\Appraisal;
 use App\Models\ApprovalLayer;
 use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
@@ -115,6 +116,10 @@ class TeamGoalController extends Controller
                                                             ->where('approver_id', $subordinate->current_approval_id)
                                                             ->value('layer');
                 }
+
+                $appraisalCheck = Appraisal::where('goals_id', $subordinate->goal->id)->exists();
+
+                $subordinate->appraisalCheck = $appraisalCheck;
 
                 return $subordinate;
             });

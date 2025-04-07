@@ -99,7 +99,7 @@ class ExportExcelController extends Controller
         $employee_id = $request->employee_id;
 
         $data = new NotInitiatedExport($employee_id, $this->appService);
-        return Excel::download($data, 'employee_not_initiated_goals.xlsx');
+        return Excel::download($data, 'import_team_goals.xlsx');
 
     }
 
