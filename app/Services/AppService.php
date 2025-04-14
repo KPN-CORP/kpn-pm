@@ -889,9 +889,9 @@ class AppService
         return null;
     }
 
-    public function getNotificationCountsGoal($user)
+    public function getNotificationCountsGoal($user, $filterYear)
     {
-        $period = $this->goalPeriod();
+        $period = $filterYear && $this->goalPeriod() != $filterYear ? null : $this->goalPeriod();
         
         $category = 'Goals';
 
@@ -908,16 +908,16 @@ class AppService
             $query->whereNull('deleted_at');
         })
         ->get();
-    
+        
         $isApprover = $tasks->count();
         
         // Output the result
         return $isApprover;
     }
 
-    public function getNotificationCountsAppraisal($user)
+    public function getNotificationCountsAppraisal($user, $filterYear)
     {
-        $period = $this->appraisalPeriod();
+        $period = $filterYear && $this->appraisalPeriod() != $filterYear ? null : $this->appraisalPeriod();
 
         // Count for teams notifications
         $dataTeams = ApprovalLayerAppraisal::with(['approver', 'contributors' => function($query) use ($user, $period) {
