@@ -71,7 +71,7 @@
                             </div>
                             <div class="col-lg col-sm-12 p-2">
                                 <h5>{{ __('Adjusted By') }}</h5>
-                                <p class="mt-2 mb-0 text-muted">{{ $row->request->updatedBy ? $row->request->updatedBy->name.' '.$row->request->updatedBy->employee_id : '-' }}{{ $row->request->updated_by != auth()->user()->id && empty($adjustByManager) && auth()->check() && auth()->user()->roles->isNotEmpty() && $period == $row->request->goal->period ? ' (Admin)': '' }}</p>
+                                <p class="mt-2 mb-0 text-muted">{{ $row->request->updatedBy ? $row->request->updatedBy->name.' '.$row->request->updatedBy->employee_id : '-' }}{{ $row->request->updated_by != auth()->user()->id && empty($adjustByManager) && auth()->check() && auth()->user()->roles->isNotEmpty() && $period == $row->request->goal->period && $row->request->initiated->employee_id != $row->request->employee_id ? ' (Admin)': '' }}</p>
                             </div>
                             <div class="col-lg col-sm-12 p-2">
                                 <h5>Status</h5>
