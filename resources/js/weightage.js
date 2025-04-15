@@ -236,6 +236,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Validation on form submit
     if(submitButton){
+        const submitId = submitButton.getAttribute('data-id');
+        const spinner = submitButton.querySelector('.spinner-border');
 
         submitButton.addEventListener('click', async function(event) {
             hasErrors = false;
