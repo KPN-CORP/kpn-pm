@@ -35,7 +35,7 @@
                 </div>
                 <div class="col-auto">
                     <div class="mb-3 mt-3">
-                        <a href="{{ route('form.appraisal', Auth::user()->employee_id) }}" class="btn {{ isset($accessMenu) && $accessMenu['createpa'] ? 'btn-primary shadow' : 'btn-outline-secondary disabled' }}" onclick="showLoader()">{{ __('Initiate Appraisal') }}</a>
+                        <a href="{{ route('form.appraisal', Auth::user()->employee_id) }}" class="btn {{ isset($accessMenu) && isset($accessMenu['createpa']) && $accessMenu['createpa'] ? 'btn-primary shadow' : 'btn-outline-secondary disabled' }}" onclick="showLoader()">{{ __('Initiate Appraisal') }}</a>
                     </div>
                 </div>
             </div>

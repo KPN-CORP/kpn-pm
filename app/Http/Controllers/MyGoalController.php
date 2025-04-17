@@ -163,7 +163,7 @@ class MyGoalController extends Controller
     
         $employee = Employee::where('employee_id', $user)->first();
         $access_menu = json_decode($employee->access_menu, true);
-        $access = $access_menu['goals'] && $access_menu['doj'] ?? null;
+        $access = ($access_menu['goals'] ?? false) && ($access_menu['doj'] ?? false);
     
         $selectYear = ApprovalRequest::where('employee_id', $user)->where('category', $this->category)->select('created_at')->get();
         $selectYear->transform(function ($req) {
