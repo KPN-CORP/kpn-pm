@@ -184,12 +184,13 @@ class MyAppraisalController extends Controller
 
             // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
             $formGroupData = $this->appService->formGroupAppraisal($user, 'Appraisal Form');
-
+            
             $cultureData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Culture') ?? [];
             $leadershipData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership') ?? [];
-
+            
             $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $datas->first()->period);
-
+            
+            dd($formData);
             if (isset($formData['totalKpiScore'])) {
                 $appraisalData['kpiScore'] = round($formData['totalKpiScore'], 2);
                 $appraisalData['cultureScore'] = round($formData['cultureScore'], 2);

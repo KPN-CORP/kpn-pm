@@ -1,5 +1,4 @@
 <?php
-
 namespace App\Imports;
 
 use App\Exports\InvalidApprovalAppraisalImport;
@@ -26,194 +25,49 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
     protected $invalidEmployeeIds = [];
     protected $employeeIds = [];
 
-
     public function __construct($userId, $period)
     {
         $this->userId = $userId;
         $this->period = $period;
     }
-    /**
-    * @param array $row
-    *
-    * @return \Illuminate\Database\Eloquent\Model|null
-    */
 
+    /**
+     * @param Collection $collection
+     */
     public function collection(Collection $collection)
     {
-
         $headers = $collection->first()->keys();
 
         // Define the expected headers in the correct order
-        $expectedHeaders = ['employee_id', 'approver_id', 'layer_type', 'layer'];
+        $expectedHeaders = [
+            'employee_id', 'employee_name', 'manager_id_1', 'manager_name_1',
+            'peers_id_1', 'peers_name_1', 'peers_id_2', 'peers_name_2', 'peers_id_3', 'peers_name_3',
+            'subordinate_id_1', 'subordinate_name_1', 'subordinate_id_2', 'subordinate_name_2', 'subordinate_id_3', 'subordinate_name_3',
+            'calibrator_id_1', 'calibrator_name_1', 'calibrator_id_2', 'calibrator_name_2', 'calibrator_id_3', 'calibrator_name_3',
+            'calibrator_id_4', 'calibrator_name_4', 'calibrator_id_5', 'calibrator_name_5', 'calibrator_id_6', 'calibrator_name_6',
+            'calibrator_id_7', 'calibrator_name_7', 'calibrator_id_8', 'calibrator_name_8', 'calibrator_id_9', 'calibrator_name_9',
+            'calibrator_id_10', 'calibrator_name_10'
+        ];
+
         $fileHeaders = $headers->values()->toArray(); // Get all headers from the file
         $filteredHeaders = array_values(array_intersect($expectedHeaders, $fileHeaders));
-
         $missingHeaders = array_diff($expectedHeaders, $fileHeaders);
+
         if (!empty($missingHeaders)) {
             // Handle missing headers case
             throw ValidationException::withMessages([
-                'error' => 'Missing headers: '. implode(', ', $missingHeaders)
+                'error' => 'Missing headers: ' . implode(', ', $missingHeaders)
             ]);
         }
 
         // Check if the filtered headers match the expected headers in both content and order
         if ($filteredHeaders !== $expectedHeaders) {
             throw ValidationException::withMessages([
-                'error' => 'Invalid excel format. The header must contain employee_id, approver_id, layer_type, layer.'
+                'error' => 'Invalid excel format. The header must contain the following columns in the specified order: ' .
+                    implode(', ', $expectedHeaders)
             ]);
         }
 
-        foreach ($collection as $row) {
-            // Debug each row of data
-            $rowArray = $row->toArray();
-
-            $validate = Validator::make($rowArray, [
-                'employee_id' => 'digits:11', // Ensure employee_id is exactly 11 digits
-                'approver_id' => 'digits:11', // Ensure approver_id is exactly 11 digits
-                // 'layer_type' => 'required|string|in:manager,peers,subordinate,calibrator', // Validate layer_type
-                // 'layer' => 'required|integer|min:1|max:3', // Validate layer
-            ]);
-
-            $contributor = AppraisalContributor::where('employee_id', $row['employee_id'])
-                            ->where('status', 'Approved')
-                            ->where('period', $this->period)
-                            ->get();
-
-            if ($validate->fails()) {
-                // Collect the invalid rows and the error messages
-                $this->invalidEmployees[] = [
-                    'employee_id' => $row['employee_id'],
-                    'approver_id' => $row['approver_id'],
-                    'layer_type' => $row['layer_type'],
-                    'layer' => $row['layer'],
-                    'message' => 'employee_id or approver_id have invalid format ID.', // Get the first error message
-                    // 'message' => $validator->errors()->first(), // Get the first error message
-                ];
-                $this->invalidEmployeeIds[] = $row['employee_id']; // Store invalid employee_ids for reporting
-            }
-
-            if ($contributor->count() > 0) {
-                $this->invalidEmployees[] = [
-                    'employee_id' => $row['employee_id'],
-                    'approver_id' => $row['approver_id'],
-                    'layer_type' => $row['layer_type'],
-                    'layer' => $row['layer'],
-                    'message' => 'Layer update failed: Employee is already in the calibration process.'
-                ];
-                $this->invalidEmployeeIds[] = $row['employee_id']; // Track invalid employee_id
-            }
-
-            if (empty($row['approver_id'])) {
-                $this->invalidEmployees[] = [
-                    'employee_id' => $row['employee_id'],
-                    'approver_id' => $row['approver_id'],
-                    'layer_type' => $row['layer_type'],
-                    'layer' => $row['layer'],
-                    'message' => 'Approver ID is missing.'
-                ];
-                $this->invalidEmployeeIds[] = $row['employee_id']; // Track invalid employee_id
-            }
-        
-            if (empty($row['layer_type'])) {
-                $this->invalidEmployees[] = [
-                    'employee_id' => $row['employee_id'],
-                    'approver_id' => $row['approver_id'],
-                    'layer_type' => $row['layer_type'],
-                    'layer' => $row['layer'],
-                    'message' => 'Layer type is missing.'
-                ];
-                $this->invalidEmployeeIds[] = $row['employee_id']; // Track invalid employee_id
-            }
-        
-            $allowedLayerTypes = ['manager', 'peers', 'subordinate', 'calibrator'];
-            $employeeLayers = [];
-        
-            if ($row['layer_type'] && !in_array($row['layer_type'], $allowedLayerTypes)) {
-                $this->invalidEmployees[] = [
-                    'employee_id' => $row['employee_id'],
-                    'approver_id' => $row['approver_id'],
-                    'layer_type' => $row['layer_type'],
-                    'layer' => $row['layer'],
-                    'message' => 'Layer type is invalid.'
-                ];
-                $this->invalidEmployeeIds[] = $row['employee_id']; // Track invalid employee_id
-            }
-        
-            if (empty($row['layer'])) {
-                $this->invalidEmployees[] = [
-                    'employee_id' => $row['employee_id'],
-                    'approver_id' => $row['approver_id'],
-                    'layer_type' => $row['layer_type'],
-                    'layer' => $row['layer'],
-                    'message' => 'Layer is missing.'
-                ];
-                $this->invalidEmployeeIds[] = $row['employee_id']; // Track invalid employee_id
-            }
-
-            // Additional validation for layer_type = 'manager'
-            if (in_array($row['layer_type'], ['manager']) && $row['layer'] > 1) {
-                $this->invalidEmployees[] = [
-                    'employee_id' => $row['employee_id'],
-                    'approver_id' => $row['approver_id'],
-                    'layer_type' => $row['layer_type'],
-                    'layer' => $row['layer'],
-                    'message' => 'Manager cannot be more than 1 layer.'
-                ];
-                $this->invalidEmployeeIds[] = $row['employee_id']; // Track invalid employee_id
-            }
-
-            // Additional validation for layer_type = 'peers' or 'subordinate'
-            if (in_array($row['layer_type'], ['peers', 'subordinate']) && $row['layer'] > 3) {
-                $this->invalidEmployees[] = [
-                    'employee_id' => $row['employee_id'],
-                    'approver_id' => $row['approver_id'],
-                    'layer_type' => $row['layer_type'],
-                    'layer' => $row['layer'],
-                    'message' => 'Layer cannot be greater than 3.'
-                ];
-                $this->invalidEmployeeIds[] = $row['employee_id']; // Track invalid employee_id
-            }
-        
-            $employee = EmployeeAppraisal::where('employee_id', $row['employee_id'])->first();
-            if (!$employee) {
-                $this->invalidEmployees[] = [
-                    'employee_id' => $row['employee_id'],
-                    'approver_id' => $row['approver_id'],
-                    'layer_type' => $row['layer_type'],
-                    'layer' => $row['layer'],
-                    'message' => 'Employee ID does not exist.'
-                ];
-                $this->invalidEmployeeIds[] = $row['employee_id']; // Track invalid employee_id
-            }
-            
-            $approver = EmployeeAppraisal::where('employee_id', $row['approver_id'])->first();
-            if (!$approver) {
-                $this->invalidEmployees[] = [
-                    'employee_id' => $row['employee_id'],
-                    'approver_id' => $row['approver_id'],
-                    'layer_type' => $row['layer_type'],
-                    'layer' => $row['layer'],
-                    'message' => 'Approver ID does not exist.'
-                ];
-                $this->invalidEmployeeIds[] = $row['employee_id']; // Track invalid employee_id
-            }
-        
-            $combination = $row['employee_id'] . '-' . $row['layer_type'] . '-' . $row['layer'];
-            if (in_array($combination, $this->usedCombinations)) {
-                $this->invalidEmployees[] = [
-                    'employee_id' => $row['employee_id'],
-                    'approver_id' => $row['approver_id'],
-                    'layer_type' => $row['layer_type'],
-                    'layer' => $row['layer'],
-                    'message' => 'Conflict detected for this employee: Duplicate or conflicting entry'
-                ];
-                $this->invalidEmployeeIds[] = $row['employee_id']; // Track invalid employee_id
-            } else {
-                $this->usedCombinations[] = $combination; // Mark this combination as used
-            }
-            
-        }
-        
         // Remove duplicates from invalid employee IDs list
         $this->invalidEmployeeIds = array_unique($this->invalidEmployeeIds);
 
@@ -225,47 +79,133 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
 
         if (!in_array($row['employee_id'], $this->invalidEmployeeIds)) {
 
-            // Backup data sebelum menghapus
-            $appraisalLayersToDelete = ApprovalLayerAppraisal::whereIn('employee_id', $this->employeeIds)->get();
-
-            foreach ($appraisalLayersToDelete as $layer) {
-                ApprovalLayerAppraisalBackup::create([
-                    'employee_id' => $layer->employee_id,
-                    'approver_id' => $layer->approver_id,
-                    'layer_type' => $layer->layer_type,
-                    'layer' => $layer->layer,
-                    'created_by' => $layer->created_by ? $layer->created_by : 0,
-                    'created_at' => $layer->created_at,
-                ]);
-            }
-                
-            ApprovalLayerAppraisal::whereIn('employee_id', $this->employeeIds)->delete();
-
-            // Second pass to process and import data
             foreach ($collection as $row) {
-
-
-            // Skip rows with invalid employee_id
-                // Hapus data lama
+                // Skip rows with invalid employee_id
+                if (in_array($row['employee_id'], $this->invalidEmployeeIds)) {
+                    continue;
+                }
             
-                ApprovalLayerAppraisal::create([
-                    'employee_id' => $row['employee_id'],
-                    'approver_id' => $row['approver_id'],
-                    'layer_type' => $row['layer_type'],
-                    'layer' => $row['layer'],
-                    'created_by' => $this->userId,
-                ]);
+                // Backup data before deleting
+                $appraisalLayersToDelete = ApprovalLayerAppraisal::whereIn('employee_id', $this->employeeIds)->get();
+                foreach ($appraisalLayersToDelete as $layer) {
+                    ApprovalLayerAppraisalBackup::create([
+                        'employee_id' => $layer->employee_id,
+                        'approver_id' => $layer->approver_id,
+                        'layer_type' => $layer->layer_type,
+                        'layer' => $layer->layer,
+                        'created_by' => $layer->created_by ? $layer->created_by : 0,
+                        'created_at' => $layer->created_at,
+                    ]);
+                }
+            
+                ApprovalLayerAppraisal::whereIn('employee_id', $this->employeeIds)->delete();
+            
+                // Second pass to process and import data
+                foreach ($row as $header => $value) {
+                    // Match headers that end with '_id' but exclude 'employee_id'
+                    if (preg_match('/^(manager|peers|subordinate|calibrator)_id_(\d+)$/', $header, $matches)) {
+                        $layerType = $matches[1]; // e.g., 'manager', 'peers', etc.
+                        $layer = (int)$matches[2]; // e.g., 1, 2, 3, etc.
+                        $approverId = $value; // The value of the header (e.g., manager_id_1)
+            
+                        if(!empty($row['employee_id'])){
+                            // Validate employee_id existence in Employee model
+                            $employeeExists = Employee::where('employee_id', $row['employee_id'])->exists();
+                            if (!$employeeExists && strlen($row['employee_id']) !== 11) {
+                                $this->invalidEmployees[] = [
+                                    'employee_id' => $row['employee_id'],
+                                    'approver_id' => $approverId,
+                                    'layer_type' => $layerType,
+                                    'layer' => $layer,
+                                    'message' => "Employee ID {$row['employee_id']} does not exist.",
+                                ];
+                                $this->invalidEmployeeIds[] = $row['employee_id'];
+                                continue; // Skip further processing for this row
+                            }
+                        }
+
+                        if ($layerType === 'manager' && empty($approverId)) {
+                            $this->invalidEmployees[] = [
+                                'employee_id' => $row['employee_id'],
+                                'approver_id' => $approverId,
+                                'layer_type' => $layerType,
+                                'layer' => $layer,
+                                'message' => "Manager ID is mandatory for layer {$layer}.",
+                            ];
+                            $this->invalidEmployeeIds[] = $row['employee_id'];
+                            continue;
+                        }
+
+                        if ($layerType === 'calibrator' && $layer === 1 && empty($approverId)) {
+                            $this->invalidEmployees[] = [
+                                'employee_id' => $row['employee_id'],
+                                'approver_id' => $approverId,
+                                'layer_type' => $layerType,
+                                'layer' => $layer,
+                                'message' => "add at least one calibrator in layer 1.",
+                            ];
+                            $this->invalidEmployeeIds[] = $row['employee_id'];
+                            continue;
+                        }
+
+                        // Skip validation for peers and subordinate if approver_id is empty
+                        if (($layerType === 'peers' || $layerType === 'subordinate') && empty($approverId)) {
+                            continue; // Skip further processing for this row
+                        }
+
+                        // Validate approver_id existence in Employee model (only if employee_id exists)
+                        $approverExists = Employee::where('employee_id', $approverId)->exists();
+                        if (!empty($approverId)) {
+                            // Validate approver_id format (ensure it is exactly 11 digits)
+                            if (!is_numeric($approverId) || strlen($approverId) !== 11) {
+                                $this->invalidEmployees[] = [
+                                    'employee_id' => $row['employee_id'],
+                                    'approver_id' => $approverId,
+                                    'layer_type' => $layerType,
+                                    'layer' => $layer,
+                                    'message' => "Invalid approver_id must be 11 digits for {$header}.",
+                                ];
+                                $this->invalidEmployeeIds[] = $row['employee_id'];
+                                continue; // Skip further processing for this row
+                            }
+                        
+                            // Validate approver_id existence in Employee model
+                            $approverExists = Employee::where('employee_id', $approverId)->exists();
+                            if (!$approverExists) {
+                                $this->invalidEmployees[] = [
+                                    'employee_id' => $row['employee_id'],
+                                    'approver_id' => $approverId,
+                                    'layer_type' => $layerType,
+                                    'layer' => $layer,
+                                    'message' => "Approver ID {$approverId} does not exist.",
+                                ];
+                                $this->invalidEmployeeIds[] = $row['employee_id'];
+                                continue; // Skip further processing for this row
+                            }
+                        } else {
+                            // Skip empty approver_id values
+                            continue;
+                        }
+            
+                        // Create a new record in ApprovalLayerAppraisal
+                        ApprovalLayerAppraisal::create([
+                            'employee_id' => $row['employee_id'],
+                            'approver_id' => $approverId,
+                            'layer_type' => $layerType,
+                            'layer' => $layer,
+                            'created_by' => $this->userId,
+                        ]);
+                    }
+                }
             }
-            
         }
     }
-    
+
     public function exportInvalidEmployees()
     {
         if (!empty($this->invalidEmployees)) {
             // Export the invalid employees with error messages to an Excel file
             return Excel::download(new InvalidApprovalAppraisalImport($this->invalidEmployees), 'errors_layer_import.xlsx');
-
         }
         return null;
     }

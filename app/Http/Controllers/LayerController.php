@@ -277,6 +277,8 @@ class LayerController extends Controller
 
         $roles = Auth()->user()->roles;
 
+        $period = $this->appService->appraisalPeriod();
+
         $restrictionData = [];
         if(!is_null($roles)){
             $restrictionData = json_decode($roles->first()->restriction, true);
@@ -295,8 +297,8 @@ class LayerController extends Controller
         $parentLink = 'Settings';
         $link = 'Layers';
 
-        $query = EmployeeAppraisal::with(['calibration' => function($query) {
-            $query->where('status', 'Approved'); // Filter only 'Approved' calibrations
+        $query = EmployeeAppraisal::with(['calibration' => function($query) use ($period) {
+            $query->where('status', 'Approved')->where('period', $period); // Filter only 'Approved' calibrations
         }])
         ->select('fullname', 'employee_id', 'group_company', 'designation', 'company_name', 'contribution_level_code', 'work_area_code', 'office_area', 'unit');
 
