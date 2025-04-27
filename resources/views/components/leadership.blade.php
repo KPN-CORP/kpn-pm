@@ -37,7 +37,7 @@
                                             <select class="form-select" name="formData[{{ $formIndex }}][{{ $index }}][{{ $indexItem }}][score]" id="score" required>
                                                 <option value="">select</option>
                                                 @foreach ($ratings as $item) {{-- $isManager --}}
-                                                    <option value="{{ $item['value'] }}" {{ isset($dataItem['score'][$indexItem]) && $dataItem['score'][$indexItem] == $item['value']  && $viewCategory != 'Review' ? 'selected' : '' }}>{{ $item['value'] }}</option>
+                                                    <option value="{{ $item['value'] }}" {{ isset($dataItem['score'][$indexItem]) && $dataItem['score'][$indexItem] == $item['value']  ? 'selected' : '' }}>{{ $item['value'] }}</option>
                                                 @endforeach
                                             </select>
                                             <div class="text-danger error-message"></div>

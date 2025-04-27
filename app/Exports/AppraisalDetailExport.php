@@ -502,7 +502,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
                         if (isset($form[$index][$itemIndex])) {
                             $form[$index][$itemIndex] = [
                                 'formItem' => $item,
-                                'score' => $form[$index][$itemIndex]['score']
+                                'score' => round($form[$index][$itemIndex]['average'], 2)
                             ];
                         }
                     }
@@ -515,7 +515,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
                         if (isset($form[$index][$itemIndex])) {
                             $form[$index][$itemIndex] = [
                                 'formItem' => $item,
-                                'score' => $form[$index][$itemIndex]['score']
+                                'score' => round($form[$index][$itemIndex]['average'], 2)
                             ];
                         }
                     }

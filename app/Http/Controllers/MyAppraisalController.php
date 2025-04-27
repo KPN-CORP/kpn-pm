@@ -190,11 +190,10 @@ class MyAppraisalController extends Controller
             
             $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $datas->first()->period);
             
-            dd($formData);
             if (isset($formData['totalKpiScore'])) {
                 $appraisalData['kpiScore'] = round($formData['totalKpiScore'], 2);
-                $appraisalData['cultureScore'] = round($formData['cultureScore'], 2);
-                $appraisalData['leadershipScore'] = round($formData['leadershipScore'], 2);
+                $appraisalData['cultureScore'] = round($formData['totalCultureScore'], 2);
+                $appraisalData['leadershipScore'] = round($formData['totalLeadershipScore'], 2);
             }
             
             foreach ($formData['formData'] as &$form) {
@@ -204,7 +203,7 @@ class MyAppraisalController extends Controller
                             if (isset($form[$index][$itemIndex])) {
                                 $form[$index][$itemIndex] = [
                                     'formItem' => $item,
-                                    'score' => $form[$index][$itemIndex]['score']  * ($formData['cultureWeightage'] / 100)
+                                    'score' => $form[$index][$itemIndex]['score']
                                 ];
                             }
                         }
@@ -217,7 +216,7 @@ class MyAppraisalController extends Controller
                             if (isset($form[$index][$itemIndex])) {
                                 $form[$index][$itemIndex] = [
                                     'formItem' => $item,
-                                    'score' => $form[$index][$itemIndex]['score']  * ($formData['cultureWeightage'] / 100)
+                                    'score' => $form[$index][$itemIndex]['score']
                                 ];
                             }
                         }
@@ -268,8 +267,8 @@ class MyAppraisalController extends Controller
         $step = $request->input('step', 1);
 
         $period = $this->appService->appraisalPeriod();
-        $goalPeriod = $this->appService->goalPeriod();
-        $goalApproved = Goal::where('employee_id', $request->id)->where('form_status', 'Approved')->where('period', $period)->exists();
+
+        $goalChecked = Goal::where('employee_id', $request->id)->where('period', $period)->exists();
 
         $goal = Goal::where('employee_id', $request->id)->where('period', $period)->first();
 
@@ -283,7 +282,7 @@ class MyAppraisalController extends Controller
         }
 
         // check goals
-        if ($goalApproved || !$goalPeriod) {
+        if ($goalChecked) {
             $goalData = json_decode($goal->form_data, true);
         } else {
             Session::flash('error', "Your Goals for $period are not found or not fully Approved.");

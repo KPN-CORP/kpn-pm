@@ -41,13 +41,13 @@ class LayerController extends Controller
     public function __construct(AppService $appService)
     {
         $this->appService = $appService;
-        $this->user = Auth()->user()->employee_id;
+        $this->user = Auth::user()->employee_id;
         $this->category = 'Goals';
     }
 
     function layer() {
 
-        $roles = Auth()->user()->roles;
+        $roles = Auth::user()->roles;
 
         $restrictionData = [];
         if(!is_null($roles)){
@@ -275,7 +275,7 @@ class LayerController extends Controller
 
     function layerAppraisal() {
 
-        $roles = Auth()->user()->roles;
+        $roles = Auth::user()->roles;
 
         $period = $this->appService->appraisalPeriod();
 
@@ -321,7 +321,7 @@ class LayerController extends Controller
 
     function layerAppraisalEdit(Request $request) {
 
-        $roles = Auth()->user()->roles;
+        $roles = Auth::user()->roles;
 
         $restrictionData = [];
         if(!is_null($roles)){
@@ -443,7 +443,7 @@ class LayerController extends Controller
             // Check if a record was found, then update `approver_id` and `updated_by` fields
             if ($checkCalibration && $checkCalibration->approver_id != $firstNonNullCalibrator) {
                 $checkCalibration->approver_id = $firstNonNullCalibrator; // Assign the new approver ID
-                $checkCalibration->updated_by = auth()->id(); // Set the current authenticated user as `updated_by`
+                $checkCalibration->updated_by = Auth::id(); // Set the current authenticated user as `updated_by`
                 $checkCalibration->save(); // Save changes to the database
             }
         }

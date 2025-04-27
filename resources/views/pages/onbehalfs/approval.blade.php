@@ -69,7 +69,7 @@
                                         <div class="col-md">
                                             <div class="mb-3">
                                                 <label class="form-label text-primary" for="target">Target</label>
-                                                <input type="text" oninput="validateDigits(this, {{ $index }})" value="{{ number_format($data['target'], 0, '', ',') }}" class="form-control" readonly>
+                                                <input type="text" oninput="validateDigits(this, {{ $index }})" value="{{ $data['target'] }}" class="form-control" readonly>
                                                 <input type="hidden" name="target[]" id="target{{ $index }}" value="{{ $data['target'] }}">
                                             </div>
                                         </div>
