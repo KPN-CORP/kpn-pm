@@ -6,6 +6,7 @@ use App\Models\AppraisalContributor;
 use App\Models\ApprovalLayer;
 use App\Models\ApprovalLayerAppraisal;
 use App\Models\ApprovalLayerAppraisalBackup;
+use App\Models\Calibration;
 use App\Models\Employee;
 use App\Models\EmployeeAppraisal;
 use Illuminate\Support\Collection;
@@ -83,6 +84,21 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
                 // Skip rows with invalid employee_id
                 if (in_array($row['employee_id'], $this->invalidEmployeeIds)) {
                     continue;
+                }
+
+                if (Calibration::where('employee_id', $row['employee_id'])
+                    ->where('period', $this->period)
+                    ->where('status', 'Approved')
+                    ->exists()) {
+                    $this->invalidEmployees[] = [
+                        'employee_id' => $row['employee_id'],
+                        'approver_id' => '',
+                        'layer_type' => '',
+                        'layer' => '',
+                        'message' => "Cannot change layer. Employee ID {$row['employee_id']} is already under calibration process.",
+                    ];
+                    $this->invalidEmployeeIds[] = $row['employee_id'];
+                    continue; // Skip further processing for this row
                 }
             
                 // Backup data before deleting
@@ -186,7 +202,20 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
                             // Skip empty approver_id values
                             continue;
                         }
-            
+
+                        if ($layerType === 'calibrator' && $layer === 1 && !empty($approverId)) {
+                            $checkCalibration = Calibration::where('employee_id', $row['employee_id'])
+                                ->where('period', $this->period)
+                                ->where('status', 'Pending')
+                                ->first();
+
+                            if ($checkCalibration && $checkCalibration->approver_id != $approverId) {
+                                $checkCalibration->approver_id = $approverId; // Assign calibrator_id_1 as the new approver ID
+                                $checkCalibration->updated_by = $this->userId; // Set the current authenticated user as `updated_by`
+                                $checkCalibration->save(); // Save changes to the database
+                            }
+                        }
+
                         // Create a new record in ApprovalLayerAppraisal
                         ApprovalLayerAppraisal::create([
                             'employee_id' => $row['employee_id'],

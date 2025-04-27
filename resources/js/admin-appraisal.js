@@ -399,8 +399,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const contributorId = this.dataset.id;
                 const id = contributorId + "_" + appraisalId.value;
 
-                console.log(id);
-                
+                // console.log(id); (for debugging)
     
                 // Check if id is null or undefined
                 if (!contributorId) {

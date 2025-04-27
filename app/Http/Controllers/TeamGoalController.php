@@ -49,13 +49,17 @@ class TeamGoalController extends Controller
         // Retrieve the selected year from the request
         $filterYear = $request->input('filterYear');
         
-        $datas = ApprovalLayer::with(['employee','subordinates' => function ($query) use ($user){
+        $datas = ApprovalLayer::with(['employee','subordinates' => function ($query) use ($user, $filterYear){
             $query->with(['goal', 'updatedBy', 'approval' => function ($query) {
                 $query->with('approverName');
             }])->whereHas('goal', function ($query) {
                 $query->whereNull('deleted_at');
             })->whereHas('approvalLayer', function ($query) use ($user) {
                 $query->where('employee_id', $user)->orWhere('approver_id', $user);
+            })->when($filterYear, function ($query) use ($filterYear) {
+                $query->where('period', $filterYear);
+            }, function ($query) {
+                $query->where('period', $this->period);
             })->where('category', $this->category);
         }])->where('approver_id', $user)->get();
         
@@ -141,6 +145,12 @@ class TeamGoalController extends Controller
             // Format created_at
             $doj = Carbon::parse($item->employee->date_of_joining);
 
+            $isManager = ApprovalLayer::where('employee_id', $item->employee_id)
+                 ->where('approver_id', Auth::user()->employee_id)
+                 ->where('layer', 1)
+                 ->exists();
+
+            $item->isManager = $isManager;
             $item->formatted_doj = $doj->format('d M Y');
             
             return $item;
@@ -150,43 +160,44 @@ class TeamGoalController extends Controller
         $formData = [];
 
         foreach ($datas as $request) {
+
+            $dataItem = new stdClass();
+            $dataItem->request = $request;
+
             // Check if subordinates is not empty and has elements
             if ($request->subordinates->isNotEmpty()) {
-                $firstSubordinate = $request->subordinates->first();
+            $firstSubordinate = $request->subordinates->first();
         
-                // Check form status and created_by conditions
-                if ($firstSubordinate->created_by != Auth::user()->id) {
-                    
-                    // Check if approval relation exists and has elements
-                    if ($firstSubordinate->approval->isNotEmpty()) {
-                        $approverName = $firstSubordinate->approval->first();
-                        $dataApprover = $approverName->approverName->fullname;
-                    } else {
-                        $dataApprover = '';
-                    }
-        
-                    // Create object to store request and approver fullname
-                    $dataItem = new stdClass();
-                    $dataItem->request = $request;
-                    $dataItem->approver_name = $dataApprover;
-        
-                    // Add object to array $data
-                    $data[] = $dataItem;
-
-                    $formData = json_decode($firstSubordinate->goal->form_data, true);
+            // Check form status and created_by conditions
+            if ($firstSubordinate->created_by != Auth::user()->id) {
+                
+                // Check if approval relation exists and has elements
+                if ($firstSubordinate->approval->isNotEmpty()) {
+                $approverName = $firstSubordinate->approval->first();
+                $dataApprover = $approverName->approverName->fullname;
+                } else {
+                $dataApprover = '';
                 }
-            } else {
-                // Handle case when subordinates is empty
-                // Create object with empty or default values
-                $dataItem = new stdClass();
-                $dataItem->request = $request;
-                $dataItem->approver_name = ''; // or some default value
+        
+                // Create object to store request and approver fullname
+                $dataItem->approver_name = $dataApprover;
         
                 // Add object to array $data
-                $data[] = $dataItem;
-
-                $formData = '';
+                
+                $formData = json_decode($firstSubordinate->goal->form_data, true);
             }
+            } else {
+            // Handle case when subordinates is empty
+            // Create object with empty or default values
+            $dataItem->approver_name = ''; // or some default value
+            
+            // Add object to array $data
+            $data[] = $dataItem;
+            
+            $formData = '';
+            }
+
+            $data[] = $dataItem;
         }
         
         $path = base_path('resources/goal.json');

@@ -46,12 +46,11 @@
                 <div class="card shadow">
                     <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between pb-0">
                         <h4 class="m-0 font-weight-bold text-primary">{{ __('Goal') }} {{ $row->request->period }}</h4>
-                        @if ($period == $row->request->goal->period)
+                        @if ($period == $row->request->goal->period && !$row->request->appraisalCheck)
                             @if (Auth::user()->employee_id == $row->request->initiated->employee_id)
                                 @if (
                                     $row->request->goal->form_status != 'Draft' && 
-                                    $row->request->created_by == Auth::user()->id && 
-                                    !$row->request->appraisalCheck
+                                    $row->request->created_by == Auth::user()->id
                                 )
                                     <a class="btn btn-outline-warning fw-semibold" 
                                     href="{{ route('goals.edit', $row->request->goal->id) }}" 
@@ -96,7 +95,7 @@
                             <div class="col-lg col-sm-12 p-2">
                                 <h5>Status</h5>
                                 <div>
-                                    <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->request->goal->form_status == 'Draft' ? 'Draft' : ($row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : $row->name) }}" class="badge {{ $row->request->goal->form_status == 'Draft' || $row->request->sendback_to == $row->request->employee_id ? 'bg-secondary' : ($row->request->status === 'Approved' ? 'bg-success' : 'bg-warning')}} rounded-pill py-1 px-2">{{ $row->request->goal->form_status == 'Draft' ? 'Draft': ($row->request->status == 'Pending' ? __('Pending') : ($row->request->sendback_to == $row->request->employee_id ? 'Waiting For Revision' : $row->request->status)) }}</a>
+                                    <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->request->goal->form_status == 'Draft' ? 'Draft' : ($row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : $row->name) }}" class="badge {{ $row->request->goal->form_status == 'Draft' || $row->request->sendback_to == $row->request->employee_id ? 'bg-secondary' : ($row->request->status === 'Approved' || $row->request->appraisalCheck ? 'bg-success' : 'bg-warning')}} rounded-pill py-1 px-2">{{ $row->request->goal->form_status == 'Draft' ? 'Draft': ($row->request->status == 'Approved' || $row->request->appraisalCheck ? __('Approved') : ($row->request->sendback_to == $row->request->employee_id ? 'Waiting For Revision' : __($row->request->status))) }}</a>
                                 </div>
                             </div>
                         </div>

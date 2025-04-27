@@ -41,9 +41,9 @@ class AppraisalController extends Controller
     public function __construct(AppService $appService)
     {
         $this->appService = $appService;
-        $this->user = Auth()->user()->employee_id;
+        $this->user = Auth::user()->employee_id;
         $this->category = 'Appraisal';
-        $this->roles = Auth()->user()->roles;
+        $this->roles = Auth::user()->roles;
     }
 
     public function index(Request $request)
@@ -72,9 +72,9 @@ class AppraisalController extends Controller
         $maxCalibrator = $datas->pluck('approvalStatus.calibrator')->flatten()->count();
 
         $layerBody = $maxCalibrator > 0 
-            ? array_map(fn ($i) => ($i + 1), range(0, min($maxCalibrator - 1, 9))) 
-            : [];
-
+        ? array_map(fn ($i) => ($i + 1), range(0, min($maxCalibrator - 1, 9))) 
+        : [];
+        
         $parentLink = __('Reports');
         $link = __('Appraisal');
 
@@ -139,7 +139,6 @@ class AppraisalController extends Controller
             },
             'appraisal.formGroupAppraisal',
         ])
-        // }, 'appraisalLayer.approver', 'appraisalContributor', 'calibration', 'appraisal.formGroupAppraisal'])->where('employee_id', '01115080004')
         ->where(function ($query) use ($criteria) {
             foreach ($criteria as $key => $value) {
                 if (!empty($value)) {
@@ -338,22 +337,25 @@ class AppraisalController extends Controller
 
     public function detail(Request $request)
     {
-        $period = $this->appService->appraisalPeriod();
+        $id = explode('_', decrypt($request->id))[0];
+        $period = explode('_', decrypt($request->id))[1] ? explode('_', decrypt($request->id))[1] : $this->appService->appraisalPeriod();
+
         $data = EmployeeAppraisal::with(['appraisalLayer' => function ($query) {
             $query->where('layer_type', '!=', 'calibrator');
         }, 'appraisal' => function ($query) use ($period) {
             $query->where('period', $period);
-        }])->where('employee_id', $request->id)->get();
+        }])->where('employee_id', $id)->get();
+
 
         try {
             
-            $data->map(function($item) {
+            $data->map(function($item) use ($period) {
 
                 $appraisal_id = $item->appraisal->first()->id;
 
-                $item->appraisalLayer->map(function($subItem) use ($appraisal_id) {
+                $item->appraisalLayer->map(function($subItem) use ($appraisal_id, $period) {
                     
-                    $contributor = AppraisalContributor::select('id','appraisal_id','contributor_type','contributor_id')->where('contributor_type', $subItem->layer_type)->where('contributor_id', $subItem->approver_id)->where('appraisal_id', $appraisal_id)->first();
+                    $contributor = AppraisalContributor::select('id','appraisal_id','contributor_type','contributor_id')->where('contributor_type', $subItem->layer_type)->where('contributor_id', $subItem->approver_id)->where('appraisal_id', $appraisal_id)->where('period', $period)->first();
                     
                     $subItem->contributor = $contributor;
                     
@@ -540,12 +542,11 @@ class AppraisalController extends Controller
                 
                 $result = $this->appService->appraisalSummary($weightageContent, $formData, $employeeData->employee_id, $jobLevel);
 
-                // $formData = $this->appService->combineFormData($result['summary'], $goalData, $result['summary']['contributor_type'], $employeeData, $request->period);
-                
-                
+                // $formData = $this->appService->combineFormData($result['summary'], $goalData, $result['summary']['contributor_type'], $employeeData, $request->period);     
+                                
                 $formData = $this->appService->combineSummaryFormData($result, $goalData, $employeeData, $request->period);
 
-                if (isset($formData['totalKpiScore'])) {
+                if (isset($formData['kpiScore'])) {
                     $formData['kpiScore'] = round($formData['kpiScore'], 2);
                     $formData['cultureScore'] = round($formData['cultureScore'], 2);
                     $formData['leadershipScore'] = round($formData['leadershipScore'], 2);
@@ -558,7 +559,7 @@ class AppraisalController extends Controller
                                 if (isset($form[$index][$itemIndex])) {
                                     $form[$index][$itemIndex] = [
                                         'formItem' => $item,
-                                        'score' => $form[$index][$itemIndex]['score']
+                                        'score' => round($form[$index][$itemIndex]['average'], 2)
                                     ];
                                 }
                             }
@@ -572,7 +573,7 @@ class AppraisalController extends Controller
                                 if (isset($form[$index][$itemIndex])) {
                                     $form[$index][$itemIndex] = [
                                         'formItem' => $item,
-                                        'score' => $form[$index][$itemIndex]['score']
+                                        'score' => round($form[$index][$itemIndex]['average'], 2)
                                     ];
                                 }
                             }
@@ -640,9 +641,10 @@ class AppraisalController extends Controller
 
                 $result = $this->appService->appraisalSummary($weightageContent, $appraisalData, $employeeData->employee_id, $jobLevel);
 
-                $formData = $this->appService->combineFormData($result['calculated_data'][0], $goalData, 'employee', $employeeData, $datas->first()->period);
+                // $formData = $this->appService->combineFormData($result['calculated_data'][0], $goalData, 'employee', $employeeData, $datas->first()->period);
+                $formData = $this->appService->combineFormData($appraisalData[0], $goalData, 'employee', $employeeData, $datas->first()->period);
                 
-                if (isset($formData['totalKpiScore'])) {
+                if (isset($formData['kpiScore'])) {
                     $appraisalData['kpiScore'] = round($formData['kpiScore'], 2);
                     $appraisalData['cultureScore'] = round($formData['cultureScore'], 2);
                     $appraisalData['leadershipScore'] = round($formData['leadershipScore'], 2);
@@ -749,12 +751,12 @@ class AppraisalController extends Controller
                 
                 $result = $this->appService->appraisalSummary($weightageContent, $appraisalData, $employeeData->employee_id, $jobLevel);
 
-                $formData = $this->appService->combineFormData($result['calculated_data'][0], $goalData, $datas->first()->contributor_type, $employeeData, $datas->first()->period);
+                $formData = $this->appService->combineFormData($appraisalData[0], $goalData, $datas->first()->contributor_type, $employeeData, $datas->first()->period);
                 
                 if (isset($formData['totalKpiScore'])) {
                     $appraisalData['kpiScore'] = round($formData['totalKpiScore'], 2);
-                    $appraisalData['cultureScore'] = round($formData['cultureScore'], 2);
-                    $appraisalData['leadershipScore'] = round($formData['leadershipScore'], 2);
+                    $appraisalData['cultureScore'] = round($formData['totalCultureScore'], 2);
+                    $appraisalData['leadershipScore'] = round($formData['totalLeadershipScore'], 2);
                 }
                 
                 foreach ($formData['formData'] as &$form) {
@@ -831,7 +833,7 @@ class AppraisalController extends Controller
         $headers = $request->input('headers'); // Dynamic headers from the request
         $batchSize = $request->input('batchSize', 100);
         $period = $request->input('period');
-        $userID = Auth()->user()->id;
+        $userID = Auth::user()->id;
         
         $directory = 'exports';
         $temporary = 'temp';
@@ -861,7 +863,7 @@ class AppraisalController extends Controller
 
         $isZip = count($data) > $batchSize;
 
-        $job = ExportAppraisalDetails::dispatch($this->appService, $data, $headers, $userID, $batchSize, Auth()->user(), $period);
+        $job = ExportAppraisalDetails::dispatch($this->appService, $data, $headers, $userID, $batchSize, Auth::user(), $period);
 
         // Log::info('Dispatched job:', ['job' => $job]);
 
@@ -932,7 +934,7 @@ class AppraisalController extends Controller
 
         // Check if file exists and download
         if (Storage::disk('public')->exists($filePath)) {
-            return Storage::disk('public')->download($filePath);
+            return response()->download(storage_path('app/public/' . $filePath));
         } else {
             return response()->json(['message' => 'File not found.'], 404);
         }

@@ -149,14 +149,14 @@
                                                                         <a class="btn btn-sm btn-outline-warning me-1 fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Revise Goals') }}</a>
                                                                     @endif
                                                                     @if ($period == $goalPeriod && $task->employee->employee_id == Auth::user()->employee_id || !$subordinates->isNotEmpty() || $formStatus == 'Draft')
-                                                                        @if ($formStatus == 'submitted' || $formStatus == 'Approved')
+                                                                        @if ($formStatus == 'submitted' || $formStatus == 'Approved' || $appraisalCheck)
                                                                         <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                                         @endif
                                                                         <a class="btn btn-sm me-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Edit') }}</a>
                                                                     @else
                                                                         @if ($period == $goalPeriod && $approverId == Auth::user()->employee_id && $status === 'Pending' || $sendbackTo == Auth::user()->employee_id && $status === 'Sendback' || !$subordinates->isNotEmpty() || Auth::user()->employee_id == $firstSubordinate->initiated->employee_id && $status === 'Sendback' && $task->employee->employee_id != Auth::user()->employee_id)
                                                                             <a class="btn btn-sm me-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ $status === 'Sendback' ? __('Revise Goals') : __('Edit') }}</a>
-                                                                            @if ($status != 'Sendback')
+                                                                            @if ($status != 'Sendback' && !$appraisalCheck)
                                                                                 <a href="{{ route('team-goals.approval', $goalId) }}" class="btn btn-sm btn-outline-primary font-weight-medium" onclick="showLoader()">Act</a>
                                                                             @endif
                                                                         @else
@@ -185,7 +185,9 @@
                                                             </div>
                                                             <div class="col-md-3 p-2">
                                                                 <h5>Status</h5>
-                                                                <a href="javascript:void(0)" data-bs-id="{{ $task->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $formStatus == 'Draft' ? 'Draft' : ($approvalLayer ? 'Manager L'.$approvalLayer.' : '.$employeeName : $employeeName) }}" class="badge {{ $subordinates->isNotEmpty() ? ($formStatus == 'Draft' || $status == 'Sendback' ? 'bg-dark-subtle text-dark' : ($status === 'Approved' ? 'bg-success' : 'bg-warning')) : 'bg-dark-subtle text-secondary'}} rounded-pill py-1 px-2">{{ $formStatus == 'Draft' ? 'Draft': ($status == 'Pending' ? __('Pending') : ($subordinates->isNotEmpty() ? ($status == 'Sendback' ? __('Waiting For Revision') : __($status)) : 'No Data')) }}</a>
+                                                                <a href="javascript:void(0)" data-bs-id="{{ $task->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $formStatus == 'Draft' ? 'Draft' : ($approvalLayer ? 'Manager L'.$approvalLayer.' : '.$employeeName : $employeeName) }}" class="badge {{ $subordinates->isNotEmpty() ? ($formStatus == 'Draft' || $status == 'Sendback' ? 'bg-dark-subtle text-dark' : ($status === 'Approved' || $appraisalCheck ? 'bg-success' : 'bg-warning')) : 'bg-dark-subtle text-secondary'}} rounded-pill py-1 px-2">
+                                                                    {{ $appraisalCheck ? __('Approved') : ($formStatus == 'Draft' ? 'Draft': ($status == 'Pending' ? __('Pending') : ($subordinates->isNotEmpty() ? ($status == 'Sendback' ? __('Waiting For Revision') : __($status)) : 'No Data'))) }}
+                                                                </a>
                                                             </div>
                                                         </div>
                                                     </div>
@@ -195,7 +197,7 @@
                                                                 <a class="btn btn-sm btn-outline-warning me-1 fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Revise Goals') }}</a>
                                                             @endif
                                                             @if ($task->employee->employee_id == Auth::user()->employee_id || !$subordinates->isNotEmpty() || $formStatus == 'Draft')
-                                                                @if ($period == $goalPeriod && $formStatus == 'submitted' || $formStatus == 'Approved')
+                                                                @if ($period == $goalPeriod && $formStatus == 'submitted' || $formStatus == 'Approved' || $appraisalCheck)
                                                                 <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                                 @endif
                                                                 <a class="btn btn-sm me-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Edit') }}</a>
@@ -333,7 +335,7 @@
                                                             $goals = $accessMenu['goals'] ?? null;
                                                             $doj = $accessMenu['doj'] ?? null;
                                                         @endphp
-                                                        @if ((!$filterYear || $filterYear == $period) && $doj && $goals)
+                                                        @if ((!$filterYear || $filterYear == $period) && $doj && $goals && $notask->isManager)
                                                             <button data-id="{{ encrypt($notask->employee->employee_id) }}" id="initiateBtn{{ $index }}" class="btn btn-outline-primary btn-sm">{{ __('Initiate') }}</button>
                                                         @endif
                                                     </div>
