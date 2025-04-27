@@ -19,7 +19,7 @@ $(document).ready(function () {
         var index = $(this).data('index'); // Get the index from data-attribute
 
         Swal.fire({
-            title: 'Are you sure you want to initiate the goal setting?',
+            title: 'You want to initiate the goal setting for your team?',
             // text: 'This action cannot be undone.',
             icon: 'warning',
             showCancelButton: true,

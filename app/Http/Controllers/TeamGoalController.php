@@ -141,20 +141,22 @@ class TeamGoalController extends Controller
         })
         ->get();  
 
-        $notasks->map(function($item) {
+        $notasks = $notasks->map(function($item) {
             // Format created_at
             $doj = Carbon::parse($item->employee->date_of_joining);
 
             $isManager = ApprovalLayer::where('employee_id', $item->employee_id)
-                 ->where('approver_id', Auth::user()->employee_id)
-                 ->where('layer', 1)
-                 ->exists();
+             ->where('approver_id', Auth::user()->employee_id)
+             ->where('layer', 1)
+             ->exists();
 
             $item->isManager = $isManager;
             $item->formatted_doj = $doj->format('d M Y');
             
             return $item;
-        });
+        })->values(); // Reset the indexing after mapping
+
+        $notasks = $notasks->sortByDesc('isManager')->values(); // Reset the indexing after sorting
         
         $data = [];
         $formData = [];
