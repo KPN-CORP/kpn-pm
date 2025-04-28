@@ -292,7 +292,7 @@ class RatingController extends Controller
                 $countWithRequests = $group['with_requests']->count();
                 $countWithoutRequests = $group['without_requests']->count();
                 // $count = $countWithRequests + $countWithoutRequests;
-                $count = 5; // Test odd number
+                $count = 5; // Test number
 
                 $ratingResults = [];
                 $percentageResults = [];
@@ -306,15 +306,44 @@ class RatingController extends Controller
 
                 // Step 2: Check if the sum of $ratingResults matches $count
                 $totalRatingResults = array_sum($ratingResults);
-                if ($totalRatingResults < $count) {
-                    // Calculate the gap
-                    $gap = $count - $totalRatingResults;
+                $difference = abs($count - $totalRatingResults);
 
-                    // Find the key with the highest weight in $calibration
-                    $maxWeightKey = array_keys($calibration, max($calibration))[0];
+                if ($difference !== 0) {
+                    if ($totalRatingResults < $count) {
+                        // Normalize the calibration weights to redistribute the difference
+                        $totalWeight = array_sum($calibration);
+                        $normalizedWeights = array_map(fn($w) => $w / $totalWeight, $calibration);
 
-                    // Allocate the gap to the key with the highest weight
-                    $ratingResults[$maxWeightKey] += $gap;
+                        // Redistribute the difference proportionally based on normalized weights
+                        foreach ($normalizedWeights as $key => $normalizedWeight) {
+                            $adjustment = floor($difference * $normalizedWeight);
+                            $ratingResults[$key] += $adjustment;
+                        }
+
+                        // Recalculate the total after redistribution to ensure it matches $count
+                        $newTotal = array_sum($ratingResults);
+                        if ($newTotal !== $count) {
+                            // If there's still a small mismatch due to rounding, adjust the largest value
+                            $maxWeightKey = array_keys($calibration, max($calibration))[0];
+                            $ratingResults[$maxWeightKey] += ($count - $newTotal);
+                        }
+                    } elseif ($totalRatingResults > $count) {
+                        // Allocate the $difference to the lowest $percentageResults that have $ratingResults value >= 1
+                        while ($difference > 0) {
+                            $lowestKey = collect($percentageResults)
+                                ->filter(fn($percentage, $key) => $ratingResults[$key] >= 1)
+                                ->sort()
+                                ->keys()
+                                ->first();
+
+                            if ($lowestKey !== null) {
+                                $ratingResults[$lowestKey] -= 1;
+                                $difference -= 1;
+                            } else {
+                                break; // Exit if no valid key is found
+                            }
+                        }
+                    }
                 }
 
                 // Step 3: Process suggested ratings and combine results
