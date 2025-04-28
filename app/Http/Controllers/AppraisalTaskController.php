@@ -39,7 +39,7 @@ class AppraisalTaskController extends Controller
     public function __construct(AppService $appService)
     {
         $this->appService = $appService;
-        $this->user = Auth()->user()->employee_id;
+        $this->user = Auth::user()->employee_id;
         $this->category = 'Appraisal';
         $this->period = $this->appService->appraisalPeriod();
     }
@@ -341,7 +341,7 @@ class AppraisalTaskController extends Controller
 
         $employee = EmployeeAppraisal::where('employee_id', $id)->first();
 
-        $goal = Goal::with(['employee'])->where('employee_id', $id)->where('form_status', '!=', 'Draft')->where('period', $period)->first();
+        $goal = Goal::with(['employee'])->where('employee_id', $id)->where('period', $period)->first();
 
         $calibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $id)->value('approver_id');
 
@@ -353,7 +353,7 @@ class AppraisalTaskController extends Controller
         if ($goal) {
             $goalData = json_decode($goal->form_data, true);
         } else {
-            Session::flash('error', "Goals for $period not found or not fully Approved.");
+            Session::flash('error', "Goal for $period are not found.");
             return redirect()->back();
         }
 

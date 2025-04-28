@@ -268,7 +268,7 @@ class MyAppraisalController extends Controller
 
         $period = $this->appService->appraisalPeriod();
 
-        $goalChecked = Goal::where('employee_id', $request->id)->where('form_status', '!=', 'Draft')->where('period', $period)->exists();
+        $goalChecked = Goal::where('employee_id', $request->id)->where('period', $period)->exists();
 
         $goal = Goal::where('employee_id', $request->id)->where('period', $period)->first();
 
@@ -285,7 +285,7 @@ class MyAppraisalController extends Controller
         if ($goalChecked) {
             $goalData = json_decode($goal->form_data, true);
         } else {
-            Session::flash('error', "Your Goals for $period are not found or still in Draft.");
+            Session::flash('error', "Your Goal for $period are not found.");
             return redirect()->route('appraisals');
         }
 
