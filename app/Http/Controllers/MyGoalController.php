@@ -94,7 +94,7 @@ class MyGoalController extends Controller
             }
     
             // Format updated_at
-            $updatedDate = Carbon::parse($item->updated_at);
+            $updatedDate = !$item->updated_by ? Carbon::parse($item->goal->updated_at) : Carbon::parse($item->updated_at);
             if ($updatedDate->isToday()) {
                 $item->formatted_updated_at = 'Today ' . $updatedDate->format('g:i A');
             } else {
@@ -170,8 +170,10 @@ class MyGoalController extends Controller
             $req->year = Carbon::parse($req->created_at)->format('Y');
             return $req;
         });
+
+        $countDraft = Goal::where('employee_id', $user)->where('category', $this->category)->where('form_status', 'Draft')->count();
     
-        return view('pages.goals.my-goal', compact('data', 'link', 'parentLink', 'uomOption', 'typeOption', 'access', 'selectYear', 'adjustByManager', 'period'));
+        return view('pages.goals.my-goal', compact('data', 'link', 'parentLink', 'uomOption', 'typeOption', 'access', 'selectYear', 'adjustByManager', 'period', 'countDraft'));
     }
 
     function show($id) {
@@ -606,6 +608,7 @@ class MyGoalController extends Controller
             $approvalRequest->sendback_messages = null;
             $approvalRequest->sendback_to = null;
             $approvalRequest->updated_by = Auth::id();
+            $approvalRequest->updated_at = now(); // Explicitly set updated_at
             
             if (!$approvalRequest->save()) {
                 throw new Exception("Failed to update approval request");

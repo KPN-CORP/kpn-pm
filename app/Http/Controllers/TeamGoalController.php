@@ -65,32 +65,37 @@ class TeamGoalController extends Controller
         
         $tasks = ApprovalLayer::with(['employee', 'subordinates' => function ($query) use ($user, $filterYear) {
             $query->with(['goal', 'updatedBy', 'initiated', 'approval' => function ($query) {
-                $query->with('approverName');
+            $query->with('approverName');
             }])->whereHas('goal', function ($query) {
-                $query->whereNull('deleted_at');
+            $query->whereNull('deleted_at');
             })->whereHas('approvalLayer', function ($query) use ($user) {
-                $query->where('employee_id', $user)->orWhere('approver_id', $user);
+            $query->where('employee_id', $user)->orWhere('approver_id', $user);
             })->when($filterYear, function ($query) use ($filterYear) {
-                $query->where('period', $filterYear);
+            $query->where('period', $filterYear);
             }, function ($query) {
-                $query->where('period', $this->period);
+            $query->where('period', $this->period);
             });
         }])
         ->whereHas('subordinates', function ($query) use ($user, $filterYear) {
             $query->with(['goal', 'updatedBy', 'approval' => function ($query) {
-                $query->with('approverName');
+            $query->with('approverName');
             }])->whereHas('goal', function ($query) {
-                $query->whereNull('deleted_at');
+            $query->whereNull('deleted_at');
             })->whereHas('approvalLayer', function ($query) use ($user) {
-                $query->where('employee_id', $user)->orWhere('approver_id', $user);
+            $query->where('employee_id', $user)->orWhere('approver_id', $user);
             })->when($filterYear, function ($query) use ($filterYear) {
-                $query->where('period', $filterYear);
+            $query->where('period', $filterYear);
             }, function ($query) {
-                $query->where('period', $this->period);
+            $query->where('period', $this->period);
             });
         })
         ->where('approver_id', $user)
-        ->get();    
+        ->get()
+        ->groupBy('employee_id')
+        ->map(function ($groupedTasks) {
+            return $groupedTasks->sortByDesc('layer')->first();
+        })
+        ->values(); // Reset the indexing after grouping and sorting
         
         $tasks->each(function($item) {
             $item->subordinates->map(function($subordinate) {

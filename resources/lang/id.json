@@ -72,5 +72,6 @@
     "This field is mandatory": "Kolom wajib diisi",
     "Approval": "Persetujuan",
     "Not Initiated": "Belum Mengajukan",
-    "Note Import Goal Manager": "Template Import Goals bisa didapatkan pada : "
+    "Note Import Goal Manager": "Template Import Goals bisa didapatkan pada : ",
+    "Draft Goal Alert Message": "Anda masih memiliki Target berstatus Draft. Mohon submit sebelum periode input berakhir, karena Target dengan status Draft akan otomatis masuk tahap appraisal ketika periode berakhir."
 }

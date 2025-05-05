@@ -13,6 +13,16 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         </div>
+        <div id="alertDraft" class="alert alert-danger alert-dismissible {{ $countDraft ? '':'fade' }}" role="alert" {{ $countDraft ? '':'hidden' }}>
+            <div class="row text-primary fs-5 align-items-center">
+                <div class="col-auto my-auto">
+                    <i class="ri-error-warning-line h3 fw-light"></i>
+                </div>
+                <div class="col p-0">
+                    <strong>{{ __('Draft Goal Alert Message') }}</strong>
+                </div>
+            </div>
+        </div>
         <form id="formYearGoal" action="{{ route('goals') }}" method="GET">
             @php
                 $filterYear = request('filterYear');
@@ -46,7 +56,7 @@
                 <div class="card shadow">
                     <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between pb-0">
                         <h4 class="m-0 font-weight-bold text-primary">{{ __('Goal') }} {{ $row->request->period }}</h4>
-                        @if ($period == $row->request->goal->period && !$row->request->appraisalCheck)
+                        @if ($period == $row->request->goal->period && !$row->request->appraisalCheck && $access)
                             @if (Auth::user()->employee_id == $row->request->initiated->employee_id)
                                 @if (
                                     $row->request->goal->form_status != 'Draft' && 

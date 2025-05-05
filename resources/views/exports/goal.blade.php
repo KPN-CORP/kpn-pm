@@ -3,6 +3,8 @@
     <tr>
         <th>Employee ID</th>
         <th>Employee Name</th>
+        <th>Designation</th>
+        <th>Business Unit</th>
         <th>Category</th>
         <th>KPI</th>
         <th>Target</th>
@@ -29,6 +31,8 @@
                 <tr>
                     <td>{{ $row->employee_id }}</td>
                     <td>{{ $row->employee->fullname }}</td>
+                    <td>{{ $row->employee->designation_name }}</td>
+                    <td>{{ $row->employee->group_company }}</td>
                     <td>{{ $row->goal->category }}</td>
                     <td>{{ $item['kpi'] }}</td>
                     <td>{{ $item['target'] }}</td>
