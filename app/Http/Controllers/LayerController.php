@@ -81,15 +81,16 @@ class LayerController extends Controller
         ->selectRaw("GROUP_CONCAT(emp1.job_level ORDER BY al.layer ASC SEPARATOR '|') AS approver_job_levels")
         ->leftJoin('employees as emp', 'emp.employee_id', '=', 'al.employee_id')
         ->leftJoin('employees as emp1', 'emp1.employee_id', '=', 'al.approver_id')
+        ->whereNull('emp.deleted_at') // Add condition to check if deleted_at is null
         ->groupBy('al.employee_id', 'emp.fullname', 'emp.job_level', 'emp.contribution_level_code', 'emp.group_company', 'emp.office_area')
         ->orderBy('emp.fullname')
         ->when(!empty($criteria), function ($query) use ($criteria) {
             $query->where(function ($query) use ($criteria) {
-                foreach ($criteria as $key => $values) {
-                    if (!empty($values)) {
-                        $query->whereIn("emp.$key", $values);
-                    }
+            foreach ($criteria as $key => $values) {
+                if (!empty($values)) {
+                $query->whereIn("emp.$key", $values);
                 }
+            }
             });
         })
         ->get();
@@ -304,11 +305,13 @@ class LayerController extends Controller
 
         $query->where(function ($query) use ($criteria) {
             foreach ($criteria as $key => $value) {
-                if ($value !== null && !empty($value)) {
-                    $query->whereIn($key, $value);
-                }
+            if ($value !== null && !empty($value)) {
+                $query->whereIn($key, $value);
+            }
             }
         });
+
+        $query->whereNull('deleted_at'); // Add condition to check if deleted_at is null
 
         $datas = $query->get();
         

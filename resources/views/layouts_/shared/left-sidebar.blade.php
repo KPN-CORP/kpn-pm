@@ -116,45 +116,54 @@
                     </a>
                     <div class="collapse" id="sidebarSettings">
                         <ul class="side-nav-second-level">
-                            @can('mastercalibration')
-                            <li>
-                                <a href="{{ route('admcalibrations') }}">Calibration</a>
-                            </li>
-                            @endcan
-                            @can('viewlayer')
                             <li class="side-nav-item">
-                                <a data-bs-toggle="collapse" href="#sidebarLayer" aria-expanded="false" aria-controls="sidebarLayer">
-                                    <span> Layer </span>
+                                <a data-bs-toggle="collapse" href="#sidebarTS" aria-expanded="false" aria-controls="sidebarTS">
+                                    <span> Goal Setting </span>
                                     <span class="menu-arrow"></span>
                                 </a>
-                                <div class="collapse" id="sidebarLayer">
+                                <div class="collapse" id="sidebarTS">
                                     <ul class="side-nav-third-level">
-                                        
+                                        @can('viewlayer')
                                         <li>
-                                            <a href="{{ route('layer') }}">{{ __('Goal') }}</a>
-                                        </li>
-                                        @can('layerpa')
-                                        <li>
-                                            <a href="{{ route('layer-appraisal') }}">{{ __('Appraisal') }}</a>
+                                            <a href="{{ route('layer') }}">{{ 'Layer' }}</a>
                                         </li>
                                         @endcan
                                     </ul>
                                 </div>
                             </li>
-                            @endcan
-                            @can('masterrating')
-                            <li>
-                                <a href="{{ route('admratings') }}">Rating</a>
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarPA" aria-expanded="false" aria-controls="sidebarPA">
+                                    <span> PA Setting </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarPA">
+                                    <ul class="side-nav-third-level">
+                                        @can('layerpa')
+                                        <li>
+                                            <a href="{{ route('layer-appraisal') }}">{{ 'Layer' }}</a>
+                                        </li>
+                                        @endcan
+                                        @can('mastercalibration')
+                                        <li>
+                                            <a href="{{ route('admcalibrations') }}">Calibration</a>
+                                        </li>
+                                        @endcan
+                                        @can('masterrating')
+                                        <li>
+                                            <a href="{{ route('admratings') }}">Rating</a>
+                                        </li>
+                                        @endcan
+                                        @can('masterweightage')
+                                        <li>
+                                            <a href="{{ route('admin-weightage') }}">Weightage</a>
+                                        </li>
+                                        @endcan
+                                    </ul>
+                                </div>
                             </li>
-                            @endcan
-                            @can('masterweightage')
-                            <li>
-                                <a href="{{ route('admin-weightage') }}">Weightage</a>
-                            </li>
-                            @endcan
                             @can('viewrole')
                             <li>
-                                <a href="{{ route('roles') }}">Role</a>
+                                <a href="{{ route('roles') }}">Roles & Permissions</a>
                             </li>
                             @endcan
                             @can('viewschedule')

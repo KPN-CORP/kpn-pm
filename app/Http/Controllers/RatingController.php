@@ -291,8 +291,8 @@ class RatingController extends Controller
 
                 $countWithRequests = $group['with_requests']->count();
                 $countWithoutRequests = $group['without_requests']->count();
-                // $count = $countWithRequests + $countWithoutRequests;
-                $count = 5; // Test number
+                $count = $countWithRequests + $countWithoutRequests;
+                // $count = 12; // Test number
 
                 $ratingResults = [];
                 $percentageResults = [];

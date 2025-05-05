@@ -41,7 +41,7 @@ class OnBehalfController extends Controller
     {
         $this->category = 'Goals';
         $this->appService = $appService;
-        $this->roles = Auth()->user()->roles;
+        $this->roles = Auth::user()->roles;
         
         $restrictionData = [];
         if(!is_null($this->roles)){
