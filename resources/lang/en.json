@@ -73,5 +73,6 @@
     "Approval": "Approval",
     "Not Initiated": "Not Initiated",
     "Note Import Goal Manager": "Template Import Goals can use from : ",
-    "Draft Goal Alert Message": "You still have targets in Draft status. Please submit them before the input period closed, as Draft targets will automatically move to the appraisal stage once the period closed."
+    "Draft Goal Alert Message Open": "You still have targets in Draft status. Please submit them before the input period closed, as Draft targets will automatically move to the appraisal stage once the period closed.",
+    "Draft Goal Alert Message Closed": "Target setting is now closed. You cannot make further changes, and all data will be processed for appraisal."
 }

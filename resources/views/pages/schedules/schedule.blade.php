@@ -117,7 +117,7 @@
                                                         <a class="btn btn-sm btn-danger" title="Delete" onclick="confirmDelete({{ $schedule->id }})" data-id="{{ $schedule->id }}"><i class="ri-delete-bin-line"></i></a>
                                                     @endif
                                                 @elseif($schedule->event_type == 'goals')
-                                                    @if($schedulemastergoals && $schedulegoals->contains($schedule->id))
+                                                    @if($schedulemastergoals)
                                                         <a href="{{ route('edit-schedule', \Crypt::encrypt($schedule->id)) }}" class="btn btn-sm btn-outline-warning" title="Edit"><i class="ri-edit-box-line"></i></a>
                                                         <a class="btn btn-sm btn-danger" title="Delete" onclick="confirmDelete({{ $schedule->id }})" data-id="{{ $schedule->id }}"><i class="ri-delete-bin-line"></i></a>
                                                     @endif
