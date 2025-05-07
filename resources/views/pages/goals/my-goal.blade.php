@@ -13,16 +13,6 @@
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         </div>
-        <div id="alertDraft" class="alert alert-danger alert-dismissible {{ $countDraft ? '':'fade' }}" role="alert" {{ $countDraft ? '':'hidden' }}>
-            <div class="row text-primary fs-5 align-items-center">
-                <div class="col-auto my-auto">
-                    <i class="ri-error-warning-line h3 fw-light"></i>
-                </div>
-                <div class="col p-0">
-                    <strong>{{ __('Draft Goal Alert Message') }}</strong>
-                </div>
-            </div>
-        </div>
         <form id="formYearGoal" action="{{ route('goals') }}" method="GET">
             @php
                 $filterYear = request('filterYear');
@@ -85,6 +75,20 @@
                         @endif
                     </div>
                     <div class="card-body">
+                        <div class="row">
+                            <div class="col-lg col-sm-12">
+                                <div id="alertDraft" class="alert alert-danger alert-dismissible {{ $row->request->goal->form_status == 'Draft' ? '':'fade' }}" role="alert" {{ $row->request->goal->form_status == 'Draft' ? '':'hidden' }}>
+                                    <div class="row text-primary fs-5 align-items-center">
+                                        <div class="col-auto my-auto">
+                                            <i class="ri-error-warning-line h3 fw-light"></i>
+                                        </div>
+                                        <div class="col p-0">
+                                            <strong>{{ $period == $row->request->goal->period && !$row->request->appraisalCheck && $access ? __('Draft Goal Alert Message Open') : __('Draft Goal Alert Message Closed') }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="row px-2">
                             <div class="col-lg col-sm-12 p-2">
                                 <h5>{{ __('Initiated By') }}</h5>

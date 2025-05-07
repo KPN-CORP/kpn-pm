@@ -29,7 +29,7 @@ class ScheduleController extends Controller
     
     public function __construct()
     {
-        $this->roles = Auth()->user()->roles;
+        $this->roles = Auth::user()->roles;
         
         $restrictionData = [];
 
