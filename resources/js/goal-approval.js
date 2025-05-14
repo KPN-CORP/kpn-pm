@@ -47,7 +47,7 @@ function validate() {
     var weight = document.querySelectorAll('input[name="weightage[]"]');
     var sum = 0;
     for (var i = 0; i < weight.length; i++) {
-        sum += parseInt(weight[i].value) || 0; // Parse input value to integer, default to 0 if NaN
+        sum += parseFloat(weight[i].value) || 0; // Parse input value to float, default to 0 if NaN
     }
 
     if (sum != 100) {
