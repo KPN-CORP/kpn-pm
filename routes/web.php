@@ -53,6 +53,7 @@ Route::get('language/{locale}', [LanguageController::class, 'switchLanguage'])->
 
 Route::get('dbauth', [SsoController::class, 'dbauth']);
 Route::get('sourcermb/dbauth', [SsoController::class, 'dbauthReimburse']);
+Route::get('auth-service', [SsoController::class, 'handleJWTAuth']);
 
 Route::get('fetch-employees', [EmployeeController::class, 'fetchAndStoreEmployees']);
 Route::get('updmenu-employees', [EmployeeController::class, 'updateEmployeeAccessMenu']);

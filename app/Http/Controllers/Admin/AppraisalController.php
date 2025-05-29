@@ -106,12 +106,12 @@ class AppraisalController extends Controller
         }
 
         return [
-            'filter_year' => $request->input('filter_year', []),
+            'filter_year' => $request->input('filter_year', ''),
             'group_company' => $groupCompanyInput,
             'company' => $request->input('company', []),
             'location' => $request->input('location', []),
             'unit' => $request->input('unit', []),
-            'period' => $request->input('filter_year', []) ?: app('App\Services\AppService')->appraisalPeriod(),
+            'period' => $request->input('filter_year', '') ?: app('App\Services\AppService')->appraisalPeriod(),
         ];
     }
 
