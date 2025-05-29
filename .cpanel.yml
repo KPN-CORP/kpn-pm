@@ -17,7 +17,7 @@ deployment:
     - cd $DEPLOYPATH
 
     # Install production dependencies using Composer
-    - composer install --no-dev --optimize-autoloader
+    # - composer install --no-dev --optimize-autoloader
 
     # Run database migrations (for first deployment)
     # - php artisan migrate --force
