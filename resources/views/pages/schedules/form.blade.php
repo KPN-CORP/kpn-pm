@@ -111,14 +111,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="row my-2">
-                                    <div class="col-md-12">
-                                        <div class="mb-2">
-                                            <label class="form-label" for="start">Last Join Date</label>
-                                            <input type="date" name="last_join_date" id="last_join_date" class="form-control" id="start" placeholder="mm/dd/yyyy" required>
-                                        </div>
-                                    </div>
-                                </div>
+                                
                                 <div class="row my-2" id="check360" style="display:none">
                                     <div class="col-md-5">
                                         <div class="form-group">
@@ -127,6 +120,20 @@
                                                 <label class="form-label" class="custom-control-label" for="review_360">Ignore 360 Review</label>
                                             </div>
                                         </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="row my-2">
+                                <div class="col-md-6">
+                                    <div class="mb-2">
+                                        <label class="form-label" for="start_join_date">Start Join Date</label>
+                                        <input type="date" name="start_join_date" id="start_join_date" class="form-control" placeholder="mm/dd/yyyy">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-2">
+                                        <label class="form-label" for="last_join_date">Last Join Date</label>
+                                        <input type="date" name="last_join_date" id="last_join_date" class="form-control" placeholder="mm/dd/yyyy">
                                     </div>
                                 </div>
                             </div>
@@ -265,6 +272,8 @@
         var last_join_date = document.getElementById("last_join_date");
         const startInput = document.getElementById('start');
         const endInput = document.getElementById('end');
+        const startJoinInput = document.getElementById('start_join_date');
+        const endJoinInput = document.getElementById('last_join_date');
 
         if (startInput) {
             startInput.value = "";
@@ -282,7 +291,7 @@
             nonmaster1.style.display = "block";
             nonmaster2.style.display = "block";
             bisnis_unit.setAttribute("required", "required");
-            last_join_date.setAttribute("required", "required");
+            // last_join_date.setAttribute("required", "required");
         }
 
         if (event_type.value === 'schedulepa') {
@@ -293,6 +302,19 @@
             startInput.max = endDate;
             endInput.min = startDate;
             endInput.max = endDate;
+
+            const startJoinDateFromDB = "{{ optional($schedulemasterpa)->start_join_date ? \Carbon\Carbon::parse(optional($schedulemasterpa)->start_join_date)->format('Y-m-d') : '' }}";
+            const lastJoinDateFromDB = "{{ optional($schedulemasterpa)->last_join_date ? \Carbon\Carbon::parse(optional($schedulemasterpa)->last_join_date)->format('Y-m-d') : '' }}";
+
+            if (startJoinDateFromDB) {
+                startJoinInput.min = startJoinDateFromDB;
+                endJoinInput.min = startJoinDateFromDB;
+            }
+
+            if (lastJoinDateFromDB) {
+                startJoinInput.max = lastJoinDateFromDB;
+                endJoinInput.max = lastJoinDateFromDB;
+            }
             check360.style.display = "block";
         } else if (event_type.value === 'goals'){
             // Set min and max from the server-rendered values
@@ -302,6 +324,19 @@
             startInput.max = endDate;
             endInput.min = startDate;
             endInput.max = endDate;
+
+            const startJoinDateFromDB = "{{ optional($schedulemastergoals)->start_join_date ? \Carbon\Carbon::parse(optional($schedulemastergoals)->start_join_date)->format('Y-m-d') : '' }}";
+            const lastJoinDateFromDB = "{{ optional($schedulemastergoals)->last_join_date ? \Carbon\Carbon::parse(optional($schedulemastergoals)->last_join_date)->format('Y-m-d') : '' }}";
+
+            if (startJoinDateFromDB) {
+                startJoinInput.min = startJoinDateFromDB;
+                endJoinInput.min = startJoinDateFromDB;
+            }
+
+            if (lastJoinDateFromDB) {
+                startJoinInput.max = lastJoinDateFromDB;
+                endJoinInput.max = lastJoinDateFromDB;
+            }
             check360.style.display = "none";
         }else {
             // Clear min and max if event_type is not 'schedulepa'

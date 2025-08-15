@@ -87,14 +87,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="row my-2">
-                                    <div class="col-md-12">
-                                        <div class="mb-2">
-                                            <label class="form-label" for="start">Last Join Date</label>
-                                            <input type="date" name="last_join_date" class="form-control" value="{{ $model->last_join_date }}" placeholder="mm/dd/yyyy">
-                                        </div>
-                                    </div>
-                                </div>
+                                
                                 @if($schedulemasterpa)
                                 <div class="row my-2">
                                     <div class="col-md-5">
@@ -107,6 +100,20 @@
                                     </div>
                                 </div>
                                 @endif
+                            </div>
+                            <div class="row my-2">
+                                <div class="col-md-6">
+                                    <div class="mb-2">
+                                        <label class="form-label" for="start_join_date">Start Join Date</label>
+                                        <input type="date" name="start_join_date" id="start_join_date" class="form-control" value="{{ $model->start_join_date }}" onclick="toggleMaster()" placeholder="mm/dd/yyyy">
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="mb-2">
+                                        <label class="form-label" for="last_join_date">Last Join Date</label>
+                                        <input type="date" name="last_join_date" id="last_join_date" class="form-control" value="{{ $model->last_join_date }}" onclick="toggleMaster()" placeholder="mm/dd/yyyy">
+                                    </div>
+                                </div>
                             </div>
                             <div class="row my-2">
                                 <div class="col-md-6">
@@ -245,6 +252,9 @@
         var event_type = document.getElementById("event_type_s");
         const startInput = document.getElementById('start');
         const endInput = document.getElementById('end');
+        const startJoinInput = document.getElementById('start_join_date');
+        const endJoinInput = document.getElementById('last_join_date');
+        
         // console.log(startInput);
         if (event_type.value === 'schedulepa') {
             // Set min and max from the server-rendered values
@@ -254,6 +264,19 @@
             startInput.max = endDate;
             endInput.min = startDate;
             endInput.max = endDate;
+
+            const startJoinDateFromDB = "{{ optional($schedulemasterpa)->start_join_date ? \Carbon\Carbon::parse(optional($schedulemasterpa)->start_join_date)->format('Y-m-d') : '' }}";
+            const lastJoinDateFromDB = "{{ optional($schedulemasterpa)->last_join_date ? \Carbon\Carbon::parse(optional($schedulemasterpa)->last_join_date)->format('Y-m-d') : '' }}";
+
+            if (startJoinDateFromDB) {
+                startJoinInput.min = startJoinDateFromDB;
+                endJoinInput.min = startJoinDateFromDB;
+            }
+
+            if (lastJoinDateFromDB) {
+                startJoinInput.max = lastJoinDateFromDB;
+                endJoinInput.max = lastJoinDateFromDB;
+            }
         } else if (event_type.value === 'goals') {
             // Set min and max from the server-rendered values
             const startDate = "{{ optional($schedulemastergoals)->start_date ? \Carbon\Carbon::parse(optional($schedulemastergoals)->start_date)->format('Y-m-d') : '' }}";
@@ -262,6 +285,19 @@
             startInput.max = endDate;
             endInput.min = startDate;
             endInput.max = endDate;
+
+            const startJoinDateFromDB = "{{ optional($schedulemastergoals)->start_join_date ? \Carbon\Carbon::parse(optional($schedulemastergoals)->start_join_date)->format('Y-m-d') : '' }}";
+            const lastJoinDateFromDB = "{{ optional($schedulemastergoals)->last_join_date ? \Carbon\Carbon::parse(optional($schedulemastergoals)->last_join_date)->format('Y-m-d') : '' }}";
+
+            if (startJoinDateFromDB) {
+                startJoinInput.min = startJoinDateFromDB;
+                endJoinInput.min = startJoinDateFromDB;
+            }
+
+            if (lastJoinDateFromDB) {
+                startJoinInput.max = lastJoinDateFromDB;
+                endJoinInput.max = lastJoinDateFromDB;
+            }
         }else {
             // Clear min and max if event_type is not 'schedulepa'
             startInput.min = '';
