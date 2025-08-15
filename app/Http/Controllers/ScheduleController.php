@@ -158,6 +158,7 @@ class ScheduleController extends Controller
         $model->company_filter      = $req->input('company_filter') ? implode(',', $req->input('company_filter')) : '';
         $model->location_filter     = $req->input('location_filter') ? implode(',', $req->input('location_filter')) : '';
         $model->review_360          = $review360;
+        $model->start_join_date     = $req->start_join_date;
         $model->last_join_date      = $req->last_join_date;
         $model->start_date          = $req->start_date;
         $model->end_date            = $req->end_date;
@@ -278,10 +279,14 @@ class ScheduleController extends Controller
             }
 
             foreach ($employeesToUpdate as $employee) {
-                if($employee->date_of_joining <= $model->last_join_date){
-                    $doj=1;
-                }else{
-                    $doj=0;
+                $doj = 1;
+
+                if (!empty($model->start_join_date) && !empty($model->last_join_date)) {
+                    $doj = ($employee->date_of_joining >= $model->start_join_date && $employee->date_of_joining <= $model->last_join_date) ? 1 : 0;
+                } elseif (!empty($model->start_join_date)) {
+                    $doj = ($employee->date_of_joining >= $model->start_join_date) ? 1 : 0;
+                } elseif (!empty($model->last_join_date)) {
+                    $doj = ($employee->date_of_joining <= $model->last_join_date) ? 1 : 0;
                 }
 
                 $accessMenuJson = json_decode($employee->access_menu, true);
@@ -297,10 +302,14 @@ class ScheduleController extends Controller
                 $employee->save();
             }
             foreach ($employeesPAToUpdate as $employee) {
-                if($employee->date_of_joining <= $model->last_join_date){
-                    $createpa=1;
-                }else{
-                    $createpa=0;
+                $createpa = 1;
+
+                if (!empty($model->start_join_date) && !empty($model->last_join_date)) {
+                    $createpa = ($employee->date_of_joining >= $model->start_join_date && $employee->date_of_joining <= $model->last_join_date) ? 1 : 0;
+                } elseif (!empty($model->start_join_date)) {
+                    $createpa = ($employee->date_of_joining >= $model->start_join_date) ? 1 : 0;
+                } elseif (!empty($model->last_join_date)) {
+                    $createpa = ($employee->date_of_joining <= $model->last_join_date) ? 1 : 0;
                 }
 
                 $accessMenuJson = json_decode($employee->access_menu, true);
@@ -371,6 +380,7 @@ class ScheduleController extends Controller
         $model->location_filter     = !empty($req->location_filter) ? $req->location_filter : '';
         $model->schedule_periode    = $req->schedule_periode;
         $model->review_360          = $review360;
+        $model->start_join_date     = $req->start_join_date;
         $model->last_join_date      = $req->last_join_date;
         $model->start_date          = $req->start_date;
         $model->end_date            = $req->end_date;
@@ -472,10 +482,12 @@ class ScheduleController extends Controller
             }
 
             foreach ($employeesToUpdate as $employee) {
-                if($employee->date_of_joining <= $model->last_join_date){
-                    $doj=1;
-                }else{
-                    $doj=0;
+                if (!empty($model->start_join_date) && !empty($model->last_join_date)) {
+                    $doj = ($employee->date_of_joining >= $model->start_join_date && $employee->date_of_joining <= $model->last_join_date) ? 1 : 0;
+                } elseif (!empty($model->start_join_date)) {
+                    $doj = ($employee->date_of_joining >= $model->start_join_date) ? 1 : 0;
+                } elseif (!empty($model->last_join_date)) {
+                    $doj = ($employee->date_of_joining <= $model->last_join_date) ? 1 : 0;
                 }
 
                 $accessMenuJson = json_decode($employee->access_menu, true);
@@ -491,10 +503,12 @@ class ScheduleController extends Controller
                 $employee->save();
             }
             foreach ($employeesPAToUpdate as $employee) {
-                if($employee->date_of_joining <= $model->last_join_date){
-                    $createpa=1;
-                }else{
-                    $createpa=0;
+                if (!empty($model->start_join_date) && !empty($model->last_join_date)) {
+                    $createpa = ($employee->date_of_joining >= $model->start_join_date && $employee->date_of_joining <= $model->last_join_date) ? 1 : 0;
+                } elseif (!empty($model->start_join_date)) {
+                    $createpa = ($employee->date_of_joining >= $model->start_join_date) ? 1 : 0;
+                } elseif (!empty($model->last_join_date)) {
+                    $createpa = ($employee->date_of_joining <= $model->last_join_date) ? 1 : 0;
                 }
 
                 $accessMenuJson = json_decode($employee->access_menu, true);
@@ -575,8 +589,28 @@ class ScheduleController extends Controller
                     $querypa->whereIn('employee_type', explode(',', $schedule->employee_type));
                 }
 
-                $employeesToUpdate = $query->where('date_of_joining', '<=', $schedule->last_join_date)->get();
-                $employeesPAToUpdate = $querypa->where('date_of_joining', '<=', $schedule->last_join_date)->get();
+                $query = $query; // pastikan ini query builder awal
+                if (!empty($schedule->start_join_date) && !empty($schedule->last_join_date)) {
+                    $query->whereBetween('date_of_joining', [$schedule->start_join_date, $schedule->last_join_date]);
+                } elseif (!empty($schedule->start_join_date)) {
+                    $query->where('date_of_joining', '>=', $schedule->start_join_date);
+                } elseif (!empty($schedule->last_join_date)) {
+                    $query->where('date_of_joining', '<=', $schedule->last_join_date);
+                }
+
+                $employeesToUpdate = $query->get();
+
+                // Untuk employeesPA
+                $querypa = $querypa; // query builder awal
+                if (!empty($schedule->start_join_date) && !empty($schedule->last_join_date)) {
+                    $querypa->whereBetween('date_of_joining', [$schedule->start_join_date, $schedule->last_join_date]);
+                } elseif (!empty($schedule->start_join_date)) {
+                    $querypa->where('date_of_joining', '>=', $schedule->start_join_date);
+                } elseif (!empty($schedule->last_join_date)) {
+                    $querypa->where('date_of_joining', '<=', $schedule->last_join_date);
+                }
+
+                $employeesPAToUpdate = $querypa->get();
 
                 foreach ($employeesToUpdate as $employee) {
                     $accessMenuJson = json_decode($employee->access_menu, true);
