@@ -108,7 +108,7 @@
                                           <div class="col-md">
                                               <div class="mb-3">
                                                   <label class="form-label text-primary" for="target">Target</label>
-                                                  <input type="text" oninput="validateDigits(this, {{ $index }})" value="{{ number_format($data['target'], 0, '', ',') }}" class="form-control" readonly>
+                                                  <input type="text" oninput="validateDigits(this, {{ $index }})" value="{{ $data['target'] }}" class="form-control" readonly>
                                                   <input type="hidden" name="target[]" id="target{{ $index }}" value="{{ $data['target'] }}">
                                               </div>
                                           </div>
@@ -128,7 +128,7 @@
                                               <div class="mb-3">
                                                   <label class="form-label text-primary" for="weightage">{{ __('Weightage') }}</label>
                                                   <div class="input-group flex-nowrap ">
-                                                      <input type="number" min="5" max="100" class="form-control text-center" name="weightage[]" value="{{ $data['weightage'] }}" readonly>
+                                                      <input type="number" min="5" max="100" step="0.1" class="form-control text-center" name="weightage[]" value="{{ $data['weightage'] }}" readonly>
                                                       <div class="input-group-append">
                                                           <span class="input-group-text">%</span>
                                                       </div>
@@ -182,7 +182,9 @@
                                         <a class="btn btn-warning rounded px-2 me-2 dropdown-toggle" href="javascript:void(0)" role="button" aria-haspopup="true" data-bs-toggle="dropdown" data-bs-offset="0,10" aria-expanded="false">{{ __('Send Back') }}</a>
                                             <div class="dropdown-menu shadow-sm">
                                                 <h6 class="dropdown-header dark">Select person below :</h6>
-                                                <a class="dropdown-item" href="javascript:void(0)" onclick="sendBack('{{ $row->request->id }}','{{ $row->request->employee->employee_id }}','{{ $row->request->employee->fullname }}')">{{ $row->request->employee->fullname .' '.$row->request->employee->employee_id }}</a>
+                                                @if ($row->request->created_by == $row->request->employee->id)
+                                                    <a class="dropdown-item" href="javascript:void(0)" onclick="sendBack('{{ $row->request->id }}','{{ $row->request->employee->employee_id }}','{{ $row->request->employee->fullname }}')">{{ $row->request->employee->fullname .' '.$row->request->employee->employee_id }}</a>
+                                                @endif
                                                 @foreach ($row->request->approval as $item)
                                                     <a class="dropdown-item" href="javascript:void(0)" onclick="sendBack('{{ $item->request_id }}','{{ $item->approver_id }}','{{ $item->approverName->fullname }}')">{{ $item->approverName->fullname.' '.$item->approver_id }}</a>
                                                 @endforeach

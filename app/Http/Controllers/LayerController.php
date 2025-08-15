@@ -41,13 +41,13 @@ class LayerController extends Controller
     public function __construct(AppService $appService)
     {
         $this->appService = $appService;
-        $this->user = Auth()->user()->employee_id;
+        $this->user = Auth::user()->employee_id;
         $this->category = 'Goals';
     }
 
     function layer() {
 
-        $roles = Auth()->user()->roles;
+        $roles = Auth::user()->roles;
 
         $restrictionData = [];
         if(!is_null($roles)){
@@ -81,15 +81,16 @@ class LayerController extends Controller
         ->selectRaw("GROUP_CONCAT(emp1.job_level ORDER BY al.layer ASC SEPARATOR '|') AS approver_job_levels")
         ->leftJoin('employees as emp', 'emp.employee_id', '=', 'al.employee_id')
         ->leftJoin('employees as emp1', 'emp1.employee_id', '=', 'al.approver_id')
+        ->whereNull('emp.deleted_at') // Add condition to check if deleted_at is null
         ->groupBy('al.employee_id', 'emp.fullname', 'emp.job_level', 'emp.contribution_level_code', 'emp.group_company', 'emp.office_area')
         ->orderBy('emp.fullname')
         ->when(!empty($criteria), function ($query) use ($criteria) {
             $query->where(function ($query) use ($criteria) {
-                foreach ($criteria as $key => $values) {
-                    if (!empty($values)) {
-                        $query->whereIn("emp.$key", $values);
-                    }
+            foreach ($criteria as $key => $values) {
+                if (!empty($values)) {
+                $query->whereIn("emp.$key", $values);
                 }
+            }
             });
         })
         ->get();
@@ -275,7 +276,9 @@ class LayerController extends Controller
 
     function layerAppraisal() {
 
-        $roles = Auth()->user()->roles;
+        $roles = Auth::user()->roles;
+
+        $period = $this->appService->appraisalPeriod();
 
         $restrictionData = [];
         if(!is_null($roles)){
@@ -295,18 +298,20 @@ class LayerController extends Controller
         $parentLink = 'Settings';
         $link = 'Layers';
 
-        $query = EmployeeAppraisal::with(['calibration' => function($query) {
-            $query->where('status', 'Approved'); // Filter only 'Approved' calibrations
+        $query = EmployeeAppraisal::with(['calibration' => function($query) use ($period) {
+            $query->where('status', 'Approved')->where('period', $period); // Filter only 'Approved' calibrations
         }])
         ->select('fullname', 'employee_id', 'group_company', 'designation', 'company_name', 'contribution_level_code', 'work_area_code', 'office_area', 'unit');
 
         $query->where(function ($query) use ($criteria) {
             foreach ($criteria as $key => $value) {
-                if ($value !== null && !empty($value)) {
-                    $query->whereIn($key, $value);
-                }
+            if ($value !== null && !empty($value)) {
+                $query->whereIn($key, $value);
+            }
             }
         });
+
+        $query->whereNull('deleted_at'); // Add condition to check if deleted_at is null
 
         $datas = $query->get();
         
@@ -319,7 +324,7 @@ class LayerController extends Controller
 
     function layerAppraisalEdit(Request $request) {
 
-        $roles = Auth()->user()->roles;
+        $roles = Auth::user()->roles;
 
         $restrictionData = [];
         if(!is_null($roles)){
@@ -441,7 +446,7 @@ class LayerController extends Controller
             // Check if a record was found, then update `approver_id` and `updated_by` fields
             if ($checkCalibration && $checkCalibration->approver_id != $firstNonNullCalibrator) {
                 $checkCalibration->approver_id = $firstNonNullCalibrator; // Assign the new approver ID
-                $checkCalibration->updated_by = auth()->id(); // Set the current authenticated user as `updated_by`
+                $checkCalibration->updated_by = Auth::id(); // Set the current authenticated user as `updated_by`
                 $checkCalibration->save(); // Save changes to the database
             }
         }

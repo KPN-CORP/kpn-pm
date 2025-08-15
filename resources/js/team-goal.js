@@ -19,7 +19,7 @@ $(document).ready(function () {
         var index = $(this).data('index'); // Get the index from data-attribute
 
         Swal.fire({
-            title: 'Are you sure you want to initiate the goal setting?',
+            title: 'You want to initiate the goal setting for your team?',
             // text: 'This action cannot be undone.',
             icon: 'warning',
             showCancelButton: true,
@@ -90,5 +90,30 @@ document.addEventListener("DOMContentLoaded", function() {
             const noDataMessage = document.getElementById("no-data-2");
             const visibleCards = document.querySelectorAll(".task-card[style='display: block;']");
         });
+    }
+});
+
+$('#importGoalsButton').on('click', function(e) {
+    e.preventDefault();
+    const form = $('#importGoal').get(0);
+    const submitButton = $(this);
+    const spinner = submitButton.find(".spinner-border");
+
+    if (form.checkValidity()) {
+    // Disable submit button
+    submitButton.prop('disabled', true);
+    submitButton.addClass("disabled");
+
+    // Remove d-none class from spinner if it exists
+    if (spinner.length) {
+        spinner.removeClass("d-none");
+    }
+
+    // Submit form
+    form.submit();
+    
+    } else {
+        // If the form is not valid, trigger HTML5 validation messages
+        form.reportValidity();
     }
 });

@@ -15,6 +15,7 @@ use App\Models\EmployeeAppraisal;
 use App\Models\Goal;
 use App\Models\Location;
 use App\Models\Report;
+use App\Models\Schedule;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -37,7 +38,7 @@ class ReportController extends Controller
     public function __construct()
     {
         $this->category = 'Goals';
-        $this->roles = Auth()->user()->roles;
+        $this->roles = Auth::user()->roles;
         
         $restrictionData = [];
         if(!is_null($this->roles)){
@@ -92,18 +93,15 @@ class ReportController extends Controller
         ->pluck('company_name');
         $companies = Company::select('contribution_level', 'contribution_level_code')->orderBy('contribution_level_code')->get();
 
-        $selectYear = ApprovalRequest::select(DB::raw('YEAR(created_at) as year'))
-        ->distinct()
-        ->orderBy('year')
-        ->where('category', $this->category)
+        $period = date('Y');
+
+        $selectYear = Schedule::withTrashed()
+        ->where('schedule_periode', '!=', $period)
+        ->selectRaw('DISTINCT schedule_periode as period')
+        ->orderBy('period', 'ASC')
         ->get();
 
-        $selectYear->transform(function ($req) {
-            $req->year = Carbon::parse($req->created_at)->format('Y');
-            return $req;
-        });
-
-        return view('reports-admin.app', compact('locations', 'companies', 'groupCompanies', 'link', 'parentLink', 'selectYear'));
+        return view('reports-admin.app', compact('locations', 'companies', 'groupCompanies', 'link', 'parentLink', 'selectYear', 'period'));
     }
 
     public function changesGroupCompany(Request $request)
@@ -133,6 +131,7 @@ class ReportController extends Controller
         $user = Auth::user();
         $employeeId = $user->employee_id;
         $report_type = $request->report_type;
+        $period = $request->input('filterYear');
         $group_company = $request->input('group_company', []);
         $location = $request->input('location', []);
         $company = $request->input('company', []);
@@ -140,7 +139,7 @@ class ReportController extends Controller
         $permissionCompanies = $this->permissionCompanies;
         $permissionGroupCompanies = $this->permissionGroupCompanies;
 
-        $filters = compact('report_type', 'group_company', 'location', 'company');
+        $filters = compact('period', 'report_type', 'group_company', 'location', 'company');
 
         // Start building the query
         if ($report_type === 'Goal') {
@@ -176,6 +175,11 @@ class ReportController extends Controller
                 $query->whereHas('employee', function ($query) use ($company) {
                     $query->whereIn('contribution_level_code', $company);
                 });
+            }
+            if (!empty($period)) {
+                $query->where('period', $period);
+            } else {
+                $query->where('period', date('Y'));
             }
 
             // Apply employee filters
@@ -310,6 +314,7 @@ class ReportController extends Controller
         $groupCompany = $request->export_group_company;
         $company = $request->export_company;
         $location = $request->export_location;
+        $period = $request->export_period;
         $permissionLocations = $this->permissionLocations;
         $permissionCompanies = $this->permissionCompanies;
         $permissionGroupCompanies = $this->permissionGroupCompanies;
@@ -321,7 +326,7 @@ class ReportController extends Controller
         $fileName = $reportType.'_'.$date.'.xlsx'; // Nama file yang akan disimpan
 
         if($reportType==='Goal'){
-            $export = new GoalExport($groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
+            $export = new GoalExport($period, $groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
             $fileContent = Excel::download($export, $fileName)->getFile();
         }
         return false;
@@ -342,40 +347,6 @@ class ReportController extends Controller
         $report->save();
 
         return redirect()->back()->with('success', 'Report berhasil di-generate dan disimpan.');
-    }
-
-    public function goalsRevoke(Request $request)
-    {
-        $goalId = $request->input('id');
-
-        // Find the approval request record
-        $approvalRequest = ApprovalRequest::where('form_id', $goalId)->first();
-        $goals = Goal::where('id', $goalId)->first();
-        $firstApprover = ApprovalLayer::where('employee_id', $approvalRequest->employee_id)->orderBy('layer', 'asc')
-        ->value('approver_id');
-        
-        if (!$approvalRequest || !$goals) {
-            return response()->json(['success' => false, 'message' => 'Goals not found.']);
-        }
-
-        try {
-            // Process the revoke logic here
-            $approvalRequest->sendback_to = $approvalRequest->employee_id;
-            $approvalRequest->current_approval_id = $firstApprover;
-            $approvalRequest->status = 'Sendback';
-            $approvalRequest->save();
-
-            $goals->form_status = 'Submitted';
-            $goals->save();
-
-            if ($goals) {
-                Approval::where('request_id', $approvalRequest->id)->delete();
-            }
-
-            return response()->json(['success' => true, 'message' => 'Goal revoked successfully.']);
-        } catch (\Exception $e) {
-            return response()->json(['success' => false, 'message' => 'Failed to revoke goal.']);
-        }
     }
 
 }

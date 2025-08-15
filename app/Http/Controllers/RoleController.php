@@ -12,6 +12,7 @@ use App\Models\RoleHasPermission;
 use App\Models\User;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use PhpParser\Node\Stmt\TryCatch;
 use Spatie\Permission\PermissionRegistrar;
@@ -24,8 +25,8 @@ class RoleController extends Controller
 
     function __construct()
     {
-        $this->link = 'Roles';
-        $this->userId = Auth()->user()->id;
+        $this->link = 'Roles & Permissions';
+        $this->userId = Auth::user()->id;
     }
 
     function index() {
@@ -39,7 +40,7 @@ class RoleController extends Controller
     function assign() {
         $roles = Role::all();
 
-        if (Auth()->user()->roles->first()->name != 'superadmin') {
+        if (Auth::user()->roles->first()->name != 'superadmin') {
             $roles = $roles->where('name', '!=', 'superadmin');
         }
         
@@ -70,7 +71,7 @@ class RoleController extends Controller
 
         $roles = Role::all();
 
-        if (Auth()->user()->roles->first()->name != 'superadmin') {
+        if (Auth::user()->roles->first()->name != 'superadmin') {
             $roles = $roles->where('name', '!=', 'superadmin');
         }
         

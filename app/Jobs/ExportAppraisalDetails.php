@@ -25,10 +25,11 @@ class ExportAppraisalDetails implements ShouldQueue
     protected int $batchSize;
     protected string $jobTrackingId;
     protected $user;
+    protected $period;
 
     public $timeout = 3600;
 
-    public function __construct(AppService $appService, array $data, array $headers, int $userId, int $batchSize = 100, $user)
+    public function __construct(AppService $appService, array $data, array $headers, int $userId, int $batchSize = 100, $user, $period)
     {
         $this->data = $data;
         $this->headers = $headers;
@@ -37,6 +38,7 @@ class ExportAppraisalDetails implements ShouldQueue
         $this->batchSize = $batchSize;
         $this->jobTrackingId = 'export_appraisal_reports_' . $userId;
         $this->user = $user;
+        $this->period = $period;
     }
 
     public function handle()
@@ -48,6 +50,8 @@ class ExportAppraisalDetails implements ShouldQueue
             $temporary = 'temp';
             $filePrefix = 'appraisal_details_' . $this->userId;
             $tempFilePrefix = $this->userId . '_batch';
+
+            $period = $this->period ?? $this->appService->appraisalPeriod();
     
             // List all files in the directory
             $files = Storage::disk('public')->files($directory);
@@ -60,7 +64,7 @@ class ExportAppraisalDetails implements ShouldQueue
                 
                 Log::info($this->userId . ' Creating single Excel file: ' . $fileName);
     
-                $export = new AppraisalDetailExport($this->appService, $this->data, $this->headers, $this->user);
+                $export = new AppraisalDetailExport($this->appService, $this->data, $this->headers, $this->user, $period);
     
                 // Log details of the export object
                 Log::info('AppraisalDetailExport instance created', [
@@ -93,7 +97,7 @@ class ExportAppraisalDetails implements ShouldQueue
     
                 Log::info($this->userId . ' Processing batch ' . $batchNumber);
     
-                $export = new AppraisalDetailExport($this->appService, $batchData, $this->headers, $user);
+                $export = new AppraisalDetailExport($this->appService, $batchData, $this->headers, $this->user, $period);
                 Excel::store($export, $tempFileName, 'public');
             }
     
@@ -109,7 +113,7 @@ class ExportAppraisalDetails implements ShouldQueue
             $rowStart = 1;
             $headerAdded = false;
 
-            foreach ($files as $fileIndex => $file) {
+            foreach ($files as $file) {
                 // Open the Excel file
                 $excel = Excel::toArray([], $file);
             
@@ -127,7 +131,7 @@ class ExportAppraisalDetails implements ShouldQueue
                         array_shift($data);
                     }
             
-                    // Append data rows
+                    // Append data rows starting from the first column
                     foreach ($data as $row) {
                         $sheet->fromArray($row, null, 'A' . $rowStart);
                         $rowStart++;

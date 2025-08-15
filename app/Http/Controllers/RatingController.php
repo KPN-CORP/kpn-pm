@@ -33,7 +33,7 @@ class RatingController extends Controller
 
     public function __construct(AppService $appService)
     {
-        $this->user = Auth()->user()->employee_id;
+        $this->user = Auth::user()->employee_id;
         $this->appService = $appService;
         $this->category = 'Appraisal';
         $this->period = $this->appService->appraisalPeriod();
@@ -47,6 +47,7 @@ class RatingController extends Controller
             ini_set('max_execution_time', $amountOfTime);
             $user = $this->user;
             $period = $this->appService->appraisalPeriod();
+
             $filterYear = $request->input('filterYear');
 
             Log::info('Fetching KPI unit and calibration percentage.', ['user' => $user, 'period' => $period]);
@@ -91,6 +92,7 @@ class RatingController extends Controller
                 ->where('approval_layer_appraisals.approver_id', $user)
                 ->where('approval_layer_appraisals.layer_type', 'calibrator')
                 ->where('approval_requests.category', $this->category)
+                ->where('approval_requests.period', $this->period) // Apply $this->period to the relation
                 ->whereNull('approval_requests.deleted_at')
                 ->select('approval_layer_appraisals.*')
                 ->get()
@@ -115,10 +117,11 @@ class RatingController extends Controller
                 Log::info('Processing group.', ['groupSize' => $group->count()]);
 
                 // Fetch `withRequests` based on the user's criteria
-                $withRequests = ApprovalLayerAppraisal::with(['approvalRequest.appraisal'])->join('approval_requests', 'approval_requests.employee_id', '=', 'approval_layer_appraisals.employee_id')
+                $withRequests = ApprovalLayerAppraisal::join('approval_requests', 'approval_requests.employee_id', '=', 'approval_layer_appraisals.employee_id')
                     ->where('approval_layer_appraisals.approver_id', $user)
                     ->where('approval_layer_appraisals.layer_type', 'calibrator')
                     ->where('approval_requests.category', $this->category)
+                    ->where('approval_requests.period', $this->period) // Apply $this->period to the relation
                     ->whereNull('approval_requests.deleted_at')
                     ->whereIn('approval_layer_appraisals.id', $group->pluck('id'))
                     ->select('approval_layer_appraisals.*', 'approval_requests.*')
@@ -148,11 +151,11 @@ class RatingController extends Controller
             Log::info('Grouped and processed data.', ['groupedDataCount' => $datas->count()]);
 
             // Process rating data
-            $ratingDatas = $datas->map(function ($group) use ($user, $period) {
+            $ratingDatas = $datas->map(function ($group) use ($user) {
                 Log::info('Processing rating data for group.', ['groupSize' => $group['with_requests']->count() + $group['without_requests']->count()]);
 
                 // Preload all calibration data in bulk
-                $calibration = Calibration::with(['approver'])->where('period', $period)
+                $calibration = Calibration::with(['approver'])->where('period', $this->period)
                 ->whereIn('employee_id', $group['with_requests']->pluck('employee_id'))
                 ->whereIn('appraisal_id', $group['with_requests']->pluck('approvalRequest')->flatten()->pluck('form_id'))
                 ->whereIn('status', ['Pending', 'Approved'])
@@ -165,7 +168,7 @@ class RatingController extends Controller
                 $ratingValues = [];
                 foreach ($group['with_requests'] as $data) {
                 $employeeId = $data->employee->employee_id;
-                $formId = $data->approvalRequest->first()->form_id;
+                $formId = $formId = $data->approvalRequest->where('period', $this->period)->first()->form_id;
 
                 // Cache suggested ratings
                 if (!isset($suggestedRatings[$employeeId][$formId])) {
@@ -183,7 +186,7 @@ class RatingController extends Controller
                     Log::info('Processing withRequests item.', ['itemId' => $data->id]);
 
                     $employeeId = $data->employee->employee_id;
-                    $formId = $data->approvalRequest->first()->form_id;
+                    $formId = $data->approvalRequest->where('period', $this->period)->first()->form_id;
 
                     // Fetch calibration data for the current employee and appraisal
                     $calibrationData = $calibration[$employeeId][$formId] ?? collect();
@@ -224,6 +227,7 @@ class RatingController extends Controller
 
                     // Count incomplete ratings
                     $data->rating_incomplete = $calibrationData->whereNull('rating')->whereNull('deleted_at')->count();
+                    $data->calibrationData = $calibrationData;
 
                     // Set rating status and approved date
                     $userCalibration = $calibrationData->first();
@@ -231,6 +235,8 @@ class RatingController extends Controller
                         $data->rating_status = $calibrationData->where('approver_id', $user)->first() ? $calibrationData->where('approver_id', $user)->first()->status : null;
                         $data->rating_approved_date = Carbon::parse($userCalibration->updated_at)->format('d M Y');
                     }
+
+                    $data->onCalibratorPending = $calibrationData->where('approver_id', $user)->where('status', 'Pending')->count();
 
                     // Assign Pending and Approved Calibrators
                     $pendingCalibrator = $calibrationData->where('status', 'Pending')->first();
@@ -241,7 +247,7 @@ class RatingController extends Controller
                         : false;
                     $data->approver_name = $approvedCalibrator && $approvedCalibrator->approver
                         ? $approvedCalibrator->approver->fullname . ' (' . $approvedCalibrator->approver->employee_id . ')'
-                        : false;
+                        : ($data->status == 'Pending' ? $data->approval_requests->approver->fullname : false);
 
                     return $data;
                 });
@@ -277,22 +283,70 @@ class RatingController extends Controller
             Log::info('Processed all rating data.', ['ratingDatasCount' => $ratingDatas->count()]);
 
             // Get calibration results
-            $calibrations = $datas->map(function ($group) use ($calibration) {
+            $calibrations = $datas->map(function ($group) use ($calibration, $user) {
                 Log::info('Processing calibration results for group.', ['groupSize' => $group['with_requests']->count() + $group['without_requests']->count()]);
+
+                // $onCalibratorPending = $group['with_requests']->where('approver_id', $user)->where('status', 'Pending')->count();
+                $calibratorPendingCount = $group['with_requests']->where('onCalibratorPending', '>', 0)->count();
 
                 $countWithRequests = $group['with_requests']->count();
                 $countWithoutRequests = $group['without_requests']->count();
                 $count = $countWithRequests + $countWithoutRequests;
+                // $count = 12; // Test number
 
                 $ratingResults = [];
                 $percentageResults = [];
                 $calibration = json_decode($calibration, true);
 
+                // Step 1: Calculate initial rating results and percentage results
                 foreach ($calibration as $key => $weight) {
                     $ratingResults[$key] = round($count * $weight);
                     $percentageResults[$key] = round(100 * $weight);
                 }
 
+                // Step 2: Check if the sum of $ratingResults matches $count
+                $totalRatingResults = array_sum($ratingResults);
+                $difference = abs($count - $totalRatingResults);
+
+                if ($difference !== 0) {
+                    if ($totalRatingResults < $count) {
+                        // Normalize the calibration weights to redistribute the difference
+                        $totalWeight = array_sum($calibration);
+                        $normalizedWeights = array_map(fn($w) => $w / $totalWeight, $calibration);
+
+                        // Redistribute the difference proportionally based on normalized weights
+                        foreach ($normalizedWeights as $key => $normalizedWeight) {
+                            $adjustment = floor($difference * $normalizedWeight);
+                            $ratingResults[$key] += $adjustment;
+                        }
+
+                        // Recalculate the total after redistribution to ensure it matches $count
+                        $newTotal = array_sum($ratingResults);
+                        if ($newTotal !== $count) {
+                            // If there's still a small mismatch due to rounding, adjust the largest value
+                            $maxWeightKey = array_keys($calibration, max($calibration))[0];
+                            $ratingResults[$maxWeightKey] += ($count - $newTotal);
+                        }
+                    } elseif ($totalRatingResults > $count) {
+                        // Allocate the $difference to the lowest $percentageResults that have $ratingResults value >= 1
+                        while ($difference > 0) {
+                            $lowestKey = collect($percentageResults)
+                                ->filter(fn($percentage, $key) => $ratingResults[$key] >= 1)
+                                ->sort()
+                                ->keys()
+                                ->first();
+
+                            if ($lowestKey !== null) {
+                                $ratingResults[$lowestKey] -= 1;
+                                $difference -= 1;
+                            } else {
+                                break; // Exit if no valid key is found
+                            }
+                        }
+                    }
+                }
+
+                // Step 3: Process suggested ratings and combine results
                 $suggestedRatingCounts = $group['with_requests']->pluck('suggested_rating')->countBy();
                 $totalSuggestedRatings = $suggestedRatingCounts->sum();
 
@@ -315,6 +369,7 @@ class RatingController extends Controller
 
                 return [
                     'count' => $count,
+                    'calibratorPendingCount' => $calibratorPendingCount,
                     'combined' => $combinedResults,
                 ];
             });
@@ -387,27 +442,35 @@ class RatingController extends Controller
                 ->update([
                     'rating' => $rating['rating'],
                     'status' => $status,
-                    'updated_by' => Auth()->user()->id
+                    'updated_by' => Auth::user()->id
                 ]);
                 
             // Optionally, check if update was successful
             if ($updated) {
                 if ($rating['approver']) {
-                    # code...
-                    $calibration = new Calibration();
-                    $calibration->id_calibration_group = $id_calibration_group;
-                    $calibration->appraisal_id = $rating['appraisal_id'];
-                    $calibration->employee_id = $rating['employee_id'];
-                    $calibration->approver_id = $rating['approver']['next_approver_id'];
-                    $calibration->period = $this->period;
-                    $calibration->created_by = Auth()->user()->id;
-                    $calibration->save();
-                }else{
+                    // Check if a calibration record already exists to avoid duplicates
+                    $existingCalibration = Calibration::where('approver_id', $rating['approver']['next_approver_id'])
+                        ->where('employee_id', $rating['employee_id'])
+                        ->where('appraisal_id', $rating['appraisal_id'])
+                        ->where('period', $this->period)
+                        ->first();
+
+                    if (!$existingCalibration) {
+                        $calibration = new Calibration();
+                        $calibration->id_calibration_group = $id_calibration_group;
+                        $calibration->appraisal_id = $rating['appraisal_id'];
+                        $calibration->employee_id = $rating['employee_id'];
+                        $calibration->approver_id = $rating['approver']['next_approver_id'];
+                        $calibration->period = $this->period;
+                        $calibration->created_by = Auth::user()->id;
+                        $calibration->save();
+                    }
+                } else {
                     Appraisal::where('id', $rating['appraisal_id'])
                         ->update([
                             'rating' => $rating['rating'],
                             'form_status' => 'Approved',
-                            'updated_by' => Auth()->user()->id
+                            'updated_by' => Auth::user()->id
                     ]);
                 }
             }else{
@@ -523,7 +586,7 @@ class RatingController extends Controller
 
                 foreach ($group['with_requests'] as $data) {
                     $employeeId = $data->employee->employee_id;
-                    $formId = $data->approvalRequest->first()->form_id;
+                    $formId = $data->approvalRequest->where('period', $this->period)->first()->form_id;
 
                     if (!isset($suggestedRatings[$employeeId][$formId])) {
                         $suggestedRatings[$employeeId][$formId] = $this->appService->suggestedRating($employeeId, $formId);
@@ -537,7 +600,7 @@ class RatingController extends Controller
                 // Process `with_requests`
                 $withRequests = $group['with_requests']->map(function ($data) use ($user, $calibration, $suggestedRatings, $ratingValues) {
                     $employeeId = $data->employee->employee_id;
-                    $formId = $data->approvalRequest->first()->form_id;
+                    $formId = $data->approvalRequest->where('period', $this->period)->first()->form_id;
 
                     $calibrationData = $calibration[$employeeId][$formId] ?? collect();
 

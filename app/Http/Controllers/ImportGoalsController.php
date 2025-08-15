@@ -29,9 +29,9 @@ class ImportGoalsController extends Controller
         //                     ->whereDate('end_date', '>=', $today)
         //                     ->orderBy('created_at')
         //                     ->first();
-        $goals_imports = GoalsImportTransaction::where('submit_by',$userId)->orderBy('created_at')->get();
+        $goals_imports = GoalsImportTransaction::where('submit_by',$userId)->orderBy('created_at', 'desc')->get();
                             
-        return view('pages.goals-admin.import-goals', [
+        return view('pages.imports.import-goals', [
             'link' => $link,
             'parentLink' => $parentLink,
             'userId' => $userId,
@@ -71,7 +71,7 @@ class ImportGoalsController extends Controller
             return back()->with('error', "Import failed 2: " . $e->getMessage());
         }
         $queries = DB::getQueryLog();
-        Log::info("Executed queries: ", $queries);
+        Log::info("Executed queries import goals admin: ", $queries);
         // Redirect dengan pesan sukses
         return redirect()->back()->with('success', 'Goals imported successfully!');
     }

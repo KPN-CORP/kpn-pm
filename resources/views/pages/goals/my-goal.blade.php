@@ -9,7 +9,7 @@
         <!-- Page Heading -->
         <div class="mandatory-field">
             <div id="alertField" class="alert alert-danger alert-dismissible {{ Session::has('error') ? '':'fade' }}" role="alert" {{ Session::has('error') ? '':'hidden' }}>
-                <strong>{{ Session::get('error') }}</strong>
+                <strong>{{ Session::get('error')['message'] ?? null }}</strong>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
         </div>
@@ -31,7 +31,7 @@
                 </div>
                 <div class="col">
                     <div class="mb-3 text-end">
-                        <a href="{{ $goals ? route('goals.form', Auth::user()->employee_id) : '#' }}" onclick="showLoader()" class="btn {{ $goals ? 'btn-primary shadow' : 'btn-secondary-subtle disabled' }}">{{ __('Create Goal') }}</a>
+                        <a href="{{ $access ? route('goals.form', encrypt(Auth::user()->employee_id)) : '#' }}" onclick="showLoader()" class="btn {{ $access ? 'btn-primary shadow' : 'btn-secondary-subtle disabled' }}">{{ __('Create Goal') }}</a>
                     </div>
                 </div>
             </div>
@@ -46,11 +46,49 @@
                 <div class="card shadow">
                     <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between pb-0">
                         <h4 class="m-0 font-weight-bold text-primary">{{ __('Goal') }} {{ $row->request->period }}</h4>
-                        @if ($row->request->status == 'Pending' && count($row->request->approval) == 0 || $row->request->sendback_to == $row->request->employee_id)
-                            <a class="btn btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $row->request->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('goals.edit', $row->request->goal->id) }}" onclick="showLoader()">{{ __('Edit') }}</a>
+                        @if ($period == $row->request->goal->period && !$row->request->appraisalCheck && $access)
+                            @if (Auth::user()->employee_id == $row->request->initiated->employee_id)
+                                @if (
+                                    $row->request->goal->form_status != 'Draft' && 
+                                    $row->request->created_by == Auth::user()->id
+                                )
+                                    <a class="btn btn-outline-warning fw-semibold" 
+                                    href="{{ route('goals.edit', $row->request->goal->id) }}" 
+                                    onclick="showLoader()">
+                                    {{ __('Revise Goals') }}
+                                    </a>
+                                @elseif (
+                                    $row->request->goal->form_status == 'Draft' || 
+                                    ($row->request->status == 'Pending' && count($row->request->approval) == 0) || 
+                                    $row->request->sendback_to == $row->request->employee_id
+                                )
+                                    <a class="btn btn-outline-warning fw-semibold" 
+                                    href="{{ route('goals.edit', $row->request->goal->id) }}" 
+                                    onclick="showLoader()">
+                                    {{ $row->request->status === 'Sendback' ? __('Revise Goals') : __('Edit') }}
+                                    </a>
+                                @endif
+                            @else
+                                <!-- Hide the button if the current user is not the initiated employee -->
+                                <span class="d-none"></span>
+                            @endif
                         @endif
                     </div>
                     <div class="card-body">
+                        <div class="row">
+                            <div class="col-lg col-sm-12">
+                                <div id="alertDraft" class="alert alert-danger alert-dismissible {{ $row->request->goal->form_status == 'Draft' ? '':'fade' }}" role="alert" {{ $row->request->goal->form_status == 'Draft' ? '':'hidden' }}>
+                                    <div class="row text-primary fs-5 align-items-center">
+                                        <div class="col-auto my-auto">
+                                            <i class="ri-error-warning-line h3 fw-light"></i>
+                                        </div>
+                                        <div class="col p-0">
+                                            <strong>{{ $period == $row->request->goal->period && !$row->request->appraisalCheck && $access ? __('Draft Goal Alert Message Open') : __('Draft Goal Alert Message Closed') }}</strong>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         <div class="row px-2">
                             <div class="col-lg col-sm-12 p-2">
                                 <h5>{{ __('Initiated By') }}</h5>
@@ -66,15 +104,26 @@
                             </div>
                             <div class="col-lg col-sm-12 p-2">
                                 <h5>{{ __('Adjusted By') }}</h5>
-                                <p class="mt-2 mb-0 text-muted">{{ $row->request->updatedBy ? $row->request->updatedBy->name.' '.$row->request->updatedBy->employee_id : '-' }}{{ $row->request->adjustedBy && empty($adjustByManager) ? ' (Admin)': '' }}</p>
+                                <p class="mt-2 mb-0 text-muted">{{ $row->request->updatedBy ? $row->request->updatedBy->name.' '.$row->request->updatedBy->employee_id : '-' }}{{ $row->request->updated_by != auth()->user()->id && empty($adjustByManager) && auth()->check() && auth()->user()->roles->isNotEmpty() && $period == $row->request->goal->period && $row->request->initiated->employee_id != $row->request->employee_id ? ' (Admin)': '' }}</p>
                             </div>
                             <div class="col-lg col-sm-12 p-2">
                                 <h5>Status</h5>
                                 <div>
-                                    <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->request->goal->form_status == 'Draft' ? 'Draft' : ($row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : $row->name) }}" class="badge {{ $row->request->goal->form_status == 'Draft' || $row->request->sendback_to == $row->request->employee_id ? 'bg-secondary' : ($row->request->status === 'Approved' ? 'bg-success' : 'bg-warning')}} rounded-pill py-1 px-2">{{ $row->request->goal->form_status == 'Draft' ? 'Draft': ($row->request->status == 'Pending' ? __('Pending') : ($row->request->sendback_to == $row->request->employee_id ? 'Waiting For Revision' : $row->request->status)) }}</a>
+                                    <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->request->goal->form_status == 'Draft' ? 'Draft' : ($row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : $row->name) }}" class="badge {{ $row->request->goal->form_status == 'Draft' || $row->request->sendback_to == $row->request->employee_id ? 'bg-secondary' : ($row->request->status === 'Approved' || $row->request->appraisalCheck ? 'bg-success' : 'bg-warning')}} rounded-pill py-1 px-2">{{ $row->request->goal->form_status == 'Draft' ? 'Draft': ($row->request->status == 'Approved' || $row->request->appraisalCheck ? __('Approved') : ($row->request->sendback_to == $row->request->employee_id ? 'Waiting For Revision' : __($row->request->status))) }}</a>
                                 </div>
                             </div>
                         </div>
+                        @if ($row->request->sendback_messages && $row->request->sendback_to == $row->request->employee_id)
+                            <hr class="mt-2 mb-2">
+                            <div class="row p-2">
+                                <div class="col-lg col-sm-12 px-2">
+                                    <div class="form-group">
+                                        <h5>Revision Notes :</h5>
+                                        <p class="mt-1 mb-0 text-muted">{{ $row->request->sendback_messages }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        @endif
                         <div class="row">
                             <div class="col text-end">
                                 <a data-bs-toggle="collapse" href="#collapse{{ $goalIndex }}" aria-expanded="true" aria-controls="collapse{{ $goalIndex }}">
@@ -84,18 +133,6 @@
                         </div>
                     </div>
                     <div class="collapse" id="collapse{{ $goalIndex }}" style="">
-                        @if ($row->request->sendback_messages && $row->request->sendback_to == $row->request->employee_id)
-                        <div class="card-header" style="background-color: lightyellow">
-                            <div class="row p-2">
-                                <div class="col-lg col-sm-12 px-2">
-                                    <div class="form-group">
-                                        <h5>Revision Notes :</h5>
-                                        <p class="mt-1 mb-0 text-muted">{{ $row->request->sendback_messages }}</p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        @endif
                         <div class="card-body p-0">
                             <table class="table table-striped table-bordered m-0">
                                 <tbody>
@@ -184,8 +221,8 @@
             document.addEventListener('DOMContentLoaded', function () {                
                 Swal.fire({
                     icon: "error",
-                    title: "Cannot create goals",
-                    text: '{{ Session::get('error') }}',
+                    title: "{{ Session::get('error')['title'] }}",
+                    text: "{{ Session::get('error')['message'] }}",
                     confirmButtonText: "OK",
                 });
             });            

@@ -35,8 +35,8 @@
                         </ul>
                         <div class="tab-content">
                             @foreach ($calibrations as $level => $data)
-                                <div class="tab-pane {{ $activeLevel == $level ? 'show active' : '' }}" id="{{ strtolower($level) }}">
-                                    @php
+                            <div class="tab-pane {{ $activeLevel == $level ? 'show active' : '' }}" id="{{ strtolower($level) }}">
+                                @php
                                         // Count items where 'is_calibrator' is true in $ratingDatas[$level]
                                         $calibratorCount = collect($ratingDatas[$level])->where('is_calibrator', false)->count();
                                         $rating_incomplete = collect($ratingDatas[$level])->where('rating_incomplete', '!=', 0)->count();
@@ -157,9 +157,13 @@
                                         <div id="employeeList-{{ $level }}">
                                             <form id="formRating{{ $level }}" action="{{ route('rating.submit') }}" method="post">
                                                 @csrf
+                                                <input type="hidden" name="calibrator_pending_count" value="{{ $calibrations[$level]['calibratorPendingCount'] }}">
                                                 <input type="hidden" name="id_calibration_group" value="{{ $id_calibration_group }}">
                                                 <input type="hidden" name="approver_id" value="{{ Auth::user()->employee_id }}">
                                                 @forelse ($ratingDatas[$level] as $index => $item)
+                                                @php
+                                                 $suggestRating = $item->previous_rating ?? $item->suggested_rating;
+                                                @endphp
                                                 <input type="hidden" name="employee_id[]" value="{{ $item->employee->employee_id }}">
                                                     <input type="hidden" name="appraisal_id[]" value="{{ $item->form_id }}">
                                                     <div class="row employee-row">
@@ -190,7 +194,7 @@
                                                                                             @if ($item->current_calibrator)
                                                                                                 <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="360 Review incomplete" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending 360</a>
                                                                                             @else
-                                                                                                <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="Waiting for Manager Review" class="badge bg-warning rounded-pill py-1 px-2 mt-1">On Manager Review</a>
+                                                                                                <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="Waiting Review: {{ $item->approver_name.' ('.$item->current_approval_id.')' }}" class="badge bg-warning rounded-pill py-1 px-2 mt-1">On Manager Review</a>
                                                                                             @endif
                                                                                         @endif
                                                                                     @else
@@ -215,10 +219,13 @@
                                                                         </div>
                                                                         <div class="col rating-field">
                                                                             <span class="text-muted">Your Rating</span>
-                                                                            <select name="rating[]" id="rating{{ $level }}-{{ $index }}" data-id="{{ $level }}" class="form-select form-select-sm rating-select" {{ $item->is_calibrator && $item->rating_allowed['status'] && $item->status == 'Approved' ? '' : 'disabled' }} @required(true)>
+                                                                            <select name="rating[]" id="rating{{ $level }}-{{ $index }}" data-id="{{ $level }}" class="form-select form-select-sm rating-select" {{ $item->is_calibrator && $item->rating_allowed['status'] && $item->status == 'Approved' || $calibrations[$level]['calibratorPendingCount'] ? '' : 'disabled' }} @required(true)>
                                                                                 <option value="">-</option>
                                                                                 @foreach ($masterRating as $rating)
-                                                                                    <option value="{{ $rating->value }}" {{ $item->rating_value == $rating->value ? 'selected' : '' }}>{{ $rating->parameter }}</option>
+                                                                                    <option value="{{ $rating->value }}" 
+                                                                                        {{ $item->rating_value ? ($item->rating_value == $rating->value ? 'selected' : '') : ($suggestRating == $rating->parameter ? 'selected' : '') }}>
+                                                                                        {{ $rating->parameter }}
+                                                                                    </option>
                                                                                 @endforeach
                                                                             </select>
                                                                         </div>

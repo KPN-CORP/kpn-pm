@@ -95,7 +95,7 @@ $(document).ready(function() {
             { data: 'employee.office_area' },
             { data: 'employee.group_company' },
             { data: 'approval_date',  className: 'text-end' },
-            { data: 'action', className: 'sorting_1 text-center' }
+            { data: 'action', className: 'sorting_1' }
         ]
     });
 
@@ -200,7 +200,7 @@ $(document).ready(function() {
             { data: 'employee.group_company' },
             { data: 'approval_date', className: 'text-end' },
             { data: 'employee.category' },
-            { data: 'action', className: 'sorting_1 text-center' }
+            { data: 'action', className: 'sorting_1' }
         ]
     });
     

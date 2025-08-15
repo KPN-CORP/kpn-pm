@@ -3,12 +3,15 @@
     <tr>
         <th>Employee ID</th>
         <th>Employee Name</th>
+        <th>Designation</th>
+        <th>Business Unit</th>
         <th>Category</th>
         <th>KPI</th>
         <th>Target</th>
         <th>Uom</th>
         <th>Weightage</th>
         <th>Type</th>
+        <th>Description</th>
         <th>Form Status</th>
         <th>Approval Status</th>
         <th>Current Approver</th>
@@ -28,16 +31,19 @@
                 <tr>
                     <td>{{ $row->employee_id }}</td>
                     <td>{{ $row->employee->fullname }}</td>
+                    <td>{{ $row->employee->designation_name }}</td>
+                    <td>{{ $row->employee->group_company }}</td>
                     <td>{{ $row->goal->category }}</td>
                     <td>{{ $item['kpi'] }}</td>
                     <td>{{ $item['target'] }}</td>
                     <td>{{ $item['uom']==='Other' ? $item['custom_uom'] : $item['uom'] }}</td>
-                    <td>{{ $item['weightage'] }}</td>
+                    <td>{{ $item['weightage'] / 100 }}</td>
                     <td>{{ $item['type'] }}</td>
+                    <td>{{ $item['description'] ?? "-" }}</td>
                     <td>{{ $row->goal->form_status }}</td>
                     <td>{{ $row->status=='Pending'? ($row->sendback_to ? 'Waiting For Revision' : ($row->goal->form_status=='Draft'?'Not Started':'Waiting For Approval')) : $row->status }}</td>
-                    <td>{{ $row->status=='Sendback' && $row->sendback_to == $row->employee_id || $row->goal->form_status=='Draft' ? '-' : $row->manager->fullname }}</td>
-                    <td>{{ $row->manager->employee_id }}</td>
+                    <td>{{ $row->status=='Sendback' && $row->sendback_to == $row->employee_id || $row->goal->form_status=='Draft' ? '-' : $row->manager->fullname ?? '-' }}</td>
+                    <td>{{ $row->status=='Sendback' && $row->sendback_to == $row->employee_id || $row->goal->form_status=='Draft' ? '-' : $row->manager->employee_id ?? '-' }}</td>
                         <td>{{ $row->initiated ? $row->initiated->name : $row->employee->fullname }}</td>
                     <td>{{ $row->initiated ? $row->initiated->employee_id : $row->employee->employee_id }}</td>
                     <td>{{ $row->goal->period }}</td>

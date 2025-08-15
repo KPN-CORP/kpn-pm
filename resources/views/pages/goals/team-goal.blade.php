@@ -6,24 +6,41 @@
 @section('content')
     <!-- Begin Page Content -->
             <div class="container-fluid">
-                <ul class="nav nav-pills my-3 justify-content-md-start justify-content-center" id="myTab" role="tablist">
-                    <li class="nav-item">
-                      <button class="btn btn-outline-primary position-relative active me-2" id="initiated-tab" data-bs-toggle="tab" data-bs-target="#initiated" type="button" role="tab" aria-controls="initiated" aria-selected="true">
-                        {{ __('Approval') }}
-                        <span class="position-absolute top-0 start-100 translate-middle badge bg-danger {{ $notificationGoal ? '' : 'd-none' }}">
-                            {{ $notificationGoal }}
-                        </span>
-                      </button>
-                    </li>
-                    <li class="nav-item">
-                      <button class="btn btn-outline-secondary position-relative" id="not-initiated-tab" data-bs-toggle="tab" data-bs-target="#not-initiated" type="button" role="tab" aria-controls="not-initiated" aria-selected="false">
-                        {{ __('Not Initiated') }}
-                        <span class="position-absolute top-0 start-100 translate-middle badge bg-danger {{ count($notasks) ? '' : 'd-none' }}">
-                            {{ count($notasks) }}
-                        </span>
-                      </button>
-                    </li>
-                </ul>  
+                @if (session('success'))
+                    <div class="alert alert-success mt-3">
+                        {!! session('success') !!}
+                    </div>
+                @endif
+                @if (session('error'))
+                    <div class="alert alert-danger mt-3">
+                        {!! session('error')['message'] !!}
+                    </div>
+                @endif
+                <div class="row my-3">
+                    <div class="col-md">
+                        <ul class="nav nav-pills justify-content-md-start justify-content-center" id="myTab" role="tablist">
+                            <li class="nav-item">
+                              <button class="btn btn-outline-primary position-relative active me-2 mb-3" id="initiated-tab" data-bs-toggle="tab" data-bs-target="#initiated" type="button" role="tab" aria-controls="initiated" aria-selected="true">
+                                {{ __('Approval') }}
+                                <span class="position-absolute top-0 start-100 translate-middle badge bg-danger {{ $notificationGoal ? '' : 'd-none' }}">
+                                    {{ $notificationGoal }}
+                                </span>
+                              </button>
+                            </li>
+                            <li class="nav-item">
+                              <button class="btn btn-outline-secondary position-relative mb-3" id="not-initiated-tab" data-bs-toggle="tab" data-bs-target="#not-initiated" type="button" role="tab" aria-controls="not-initiated" aria-selected="false">
+                                {{ __('Not Initiated') }}
+                                <span class="position-absolute top-0 start-100 translate-middle badge bg-danger {{ count($notasks) ? '' : 'd-none' }}">
+                                    {{ count($notasks) }}
+                                </span>
+                              </button>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="col-md-auto">
+                        <button type="button" class="btn btn-primary shadow" data-bs-toggle="modal" data-bs-target="#importModal">Import Goals</button>
+                    </div>
+                </div>
                 <div class="tab-content">
                     <div class="tab-pane active show" id="initiated" role="tabpanel">
                         <div class="row rounded mb-2">
@@ -46,7 +63,9 @@
                                     <div class="mb-2">
                                         <label class="form-label" for="filterYear">{{ __('Year') }}</label>
                                         <select name="filterYear" id="filterYear" onchange="yearGoal(this)" class="form-select">
-                                            <option value="{{ $period }}" {{ $period == $filterYear ? 'selected' : '' }}>{{ $period }}</option>
+                                            @if ($period)
+                                                <option value="{{ $period }}" {{ $period == $filterYear ? 'selected' : '' }}>{{ $period }}</option>  
+                                            @endif
                                             @foreach ($selectYear as $year)
                                                 <option value="{{ $year->period }}" {{ $year->period == $filterYear ? 'selected' : '' }}>{{ $year->period }}</option>
                                             @endforeach
@@ -101,6 +120,8 @@
                                                     $firstSubordinate = $subordinates->isNotEmpty() ? $subordinates->first() : null;
                                                     $formStatus = $firstSubordinate ? $firstSubordinate->goal->form_status : null;
                                                     $goalId = $firstSubordinate ? $firstSubordinate->goal->id : null;
+                                                    $appraisalCheck = $firstSubordinate ? $firstSubordinate->appraisalCheck : null;
+                                                    $goalPeriod = $firstSubordinate ? $firstSubordinate->goal->period : null;
                                                     $goalData = $firstSubordinate ? $firstSubordinate->goal['form_data'] : null;
                                                     $createdAt = $firstSubordinate ? $firstSubordinate->formatted_created_at : null;
                                                     $updatedAt = $firstSubordinate ? $firstSubordinate->formatted_updated_at : null;
@@ -109,9 +130,12 @@
                                                     $approverId = $firstSubordinate ? $firstSubordinate->current_approval_id : null;
                                                     $sendbackTo = $firstSubordinate ? $firstSubordinate->sendback_to : null;
                                                     $employeeId = $firstSubordinate ? $firstSubordinate->employee_id : null;
-                                                    $sendbackTo = $firstSubordinate ? $firstSubordinate->sendback_to : null;
+                                                    $sendbackMessages = $firstSubordinate ? $firstSubordinate->sendback_messages : null;
                                                     $employeeName = $firstSubordinate ? $firstSubordinate->name : null;
                                                     $approvalLayer = $firstSubordinate ? $firstSubordinate->approvalLayer : null;
+                                                    $accessMenu = json_decode($firstSubordinate->employee->access_menu, true);
+                                                    $goals = $accessMenu['goals'] ?? null;
+                                                    $doj = $accessMenu['doj'] ?? null;
                                                 @endphp
                                                 <div class="row mt-2 mb-2 task-card" data-status="{{ $formStatus == 'Draft' ? 'draft' : ($status == 'Pending' ? __('Pending') : ($subordinates->isNotEmpty() ? ($status == 'Sendback' ? __('Waiting For Revision') : __($status)) : 'no data')) }}">
                                                     <div class="col">
@@ -124,15 +148,20 @@
                                                             </div> <!-- end col -->
                                                             <div class="col-auto p-2 d-none d-md-block text-end">
                                                                 <div class="mb-2">
-                                                                    @if ($task->employee->employee_id == Auth::user()->employee_id || !$subordinates->isNotEmpty() || $formStatus == 'Draft')
-                                                                        @if ($formStatus == 'submitted' || $formStatus == 'Approved')
+                                                                    @if ($period == $goalPeriod && $formStatus != 'Draft' && $status != 'Sendback' && !$appraisalCheck && $goals)
+                                                                        <a class="btn btn-sm btn-outline-warning me-1 fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Revise Goals') }}</a>
+                                                                    @endif
+                                                                    @if ($period == $goalPeriod && $task->employee->employee_id == Auth::user()->employee_id || !$subordinates->isNotEmpty() || $formStatus == 'Draft')
+                                                                        @if ($formStatus == 'submitted' || $formStatus == 'Approved' || $appraisalCheck)
                                                                         <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                                         @endif
                                                                         <a class="btn btn-sm me-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Edit') }}</a>
                                                                     @else
-                                                                        @if ($approverId == Auth::user()->employee_id && $status === 'Pending' || $sendbackTo == Auth::user()->employee_id && $status === 'Sendback' || !$subordinates->isNotEmpty())
-                                                                            <a class="btn btn-sm me-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Edit') }}</a>
-                                                                            <a href="{{ route('team-goals.approval', $goalId) }}" class="btn btn-sm btn-outline-primary font-weight-medium" onclick="showLoader()">Act</a>
+                                                                        @if ($period == $goalPeriod && $approverId == Auth::user()->employee_id && $status === 'Pending' || $sendbackTo == Auth::user()->employee_id && $status === 'Sendback' || !$subordinates->isNotEmpty() || Auth::user()->employee_id == $firstSubordinate->initiated->employee_id && $status === 'Sendback' && $task->employee->employee_id != Auth::user()->employee_id)
+                                                                            <a class="btn btn-sm me-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ $status === 'Sendback' ? __('Revise Goals') : __('Edit') }}</a>
+                                                                            @if ($status != 'Sendback' && Auth::user()->employee_id != $firstSubordinate->initiated->employee_id && !$appraisalCheck)
+                                                                                <a href="{{ route('team-goals.approval', $goalId) }}" class="btn btn-sm btn-outline-primary font-weight-medium" onclick="showLoader()">Act</a>
+                                                                            @endif
                                                                         @else
                                                                             <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                                         @endif
@@ -159,21 +188,28 @@
                                                             </div>
                                                             <div class="col-md-3 p-2">
                                                                 <h5>Status</h5>
-                                                                <a href="javascript:void(0)" data-bs-id="{{ $task->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $formStatus == 'Draft' ? 'Draft' : ($approvalLayer ? 'Manager L'.$approvalLayer.' : '.$employeeName : $employeeName) }}" class="badge {{ $subordinates->isNotEmpty() ? ($formStatus == 'Draft' || $status == 'Sendback' ? 'bg-dark-subtle text-dark' : ($status === 'Approved' ? 'bg-success' : 'bg-warning')) : 'bg-dark-subtle text-secondary'}} rounded-pill py-1 px-2">{{ $formStatus == 'Draft' ? 'Draft': ($status == 'Pending' ? __('Pending') : ($subordinates->isNotEmpty() ? ($status == 'Sendback' ? __('Waiting For Revision') : __($status)) : 'No Data')) }}</a>
+                                                                <a href="javascript:void(0)" data-bs-id="{{ $task->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $formStatus == 'Draft' ? 'Draft' : ($approvalLayer ? 'Manager L'.$approvalLayer.' : '.$employeeName : $employeeName) }}" class="badge {{ $subordinates->isNotEmpty() ? ($formStatus == 'Draft' || $status == 'Sendback' ? 'bg-dark-subtle text-dark' : ($status === 'Approved' || $appraisalCheck ? 'bg-success' : 'bg-warning')) : 'bg-dark-subtle text-secondary'}} rounded-pill py-1 px-2">
+                                                                    {{ $appraisalCheck ? __('Approved') : ($formStatus == 'Draft' ? 'Draft': ($status == 'Pending' ? __('Pending') : ($subordinates->isNotEmpty() ? ($status == 'Sendback' ? __('Waiting For Revision') : __($status)) : 'No Data'))) }}
+                                                                </a>
                                                             </div>
                                                         </div>
                                                     </div>
                                                     <div class="col-md-auto d-md-none d-block">
                                                         <div class="align-items-center text-end py-2">
+                                                            @if ($period == $goalPeriod && $formStatus != 'Draft' && $status != 'Sendback' && !$appraisalCheck && $goals)
+                                                                <a class="btn btn-sm btn-outline-warning me-1 fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Revise Goals') }}</a>
+                                                            @endif
                                                             @if ($task->employee->employee_id == Auth::user()->employee_id || !$subordinates->isNotEmpty() || $formStatus == 'Draft')
-                                                                @if ($formStatus == 'submitted' || $formStatus == 'Approved')
+                                                                @if ($period == $goalPeriod && $formStatus == 'submitted' || $formStatus == 'Approved' || $appraisalCheck)
                                                                 <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                                 @endif
                                                                 <a class="btn btn-sm me-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Edit') }}</a>
                                                             @else
-                                                                @if ($approverId == Auth::user()->employee_id && $status === 'Pending' || $sendbackTo == Auth::user()->employee_id && $status === 'Sendback' || !$subordinates->isNotEmpty())
-                                                                    <a class="btn btn-sm me-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Edit') }}</a>
-                                                                    <a href="{{ route('team-goals.approval', $goalId) }}" class="btn btn-sm btn-outline-primary font-weight-medium" onclick="showLoader()">Act</a>
+                                                                @if ($period == $goalPeriod && $approverId == Auth::user()->employee_id && $status === 'Pending' || $sendbackTo == Auth::user()->employee_id && $status === 'Sendback' || !$subordinates->isNotEmpty())
+                                                                    <a class="btn btn-sm me-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ $status === 'Sendback' ? __('Revise Goals') : __('Edit') }}</a>
+                                                                    @if ($status != 'Sendback' && Auth::user()->employee_id != $firstSubordinate->initiated->employee_id && !$appraisalCheck)
+                                                                        <a href="{{ route('team-goals.approval', $goalId) }}" class="btn btn-sm btn-outline-primary font-weight-medium" onclick="showLoader()">Act</a>
+                                                                    @endif
                                                                 @else
                                                                     <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                                 @endif
@@ -188,8 +224,10 @@
                                                     @include('pages.goals.detail')
                                                 {{-- @endif --}}
                                                 @empty
-                                                <div id="no-data-1" class="text-center">
-                                                    <h5 class="text-muted">No Data</h5>
+                                                <div class="p-3">
+                                                    <div id="no-data-1" class="text-center">
+                                                        <h5 class="text-muted">No Data</h5>
+                                                    </div>
                                                 </div>
                                                 @endforelse
                                                 <!-- end task -->
@@ -211,7 +249,9 @@
                                     <div class="mb-2">
                                         <label class="form-label" for="filterYear">{{ __('Year') }}</label>
                                         <select name="filterYear" id="filterYear" onchange="yearGoal(this)" class="form-select">
-                                            <option value="{{ $period }}" {{ $period == $filterYear ? 'selected' : '' }}>{{ $period }}</option>
+                                            @if ($period)
+                                                <option value="{{ $period }}" {{ $period == $filterYear ? 'selected' : '' }}>{{ $period }}</option>  
+                                            @endif
                                             @foreach ($selectYear as $year)
                                                 <option value="{{ $year->period }}" {{ $year->period == $filterYear ? 'selected' : '' }}>{{ $year->period }}</option>
                                             @endforeach
@@ -250,7 +290,7 @@
                                                 @csrf
                                                 <input type="hidden" name="employee_id" id="employee_id" value="{{ Auth()->user()->employee_id }}">
                                                 @if (count($notasks))
-                                                    <button id="report-button" type="submit" class="btn btn-sm btn-success float-end"><i class="ri-download-cloud-2-line me-1"></i><span>{{ __('Download') }}</span></button>
+                                                    <button id="report-button" type="submit" class="btn btn-sm btn-success float-end"><i class="ri-download-cloud-2-line me-1"></i><span>{{ __('Download Template') }}</span></button>
                                                 @endif
                                             </form>
                                         </div>
@@ -284,7 +324,7 @@
                                                         </div>
                                                     </div>
                                                     <div class="col-sm-12 col-md mb-2">
-                                                        <label class="form-label">DOJ</label>
+                                                        <label class="form-label">Date of Joining</label>
                                                         <span class="d-flex align-items-center text-muted">{{ $notask->formatted_doj }}</span>
                                                     </div>
                                                     <div class="col-sm-12 col-md mb-2">
@@ -300,8 +340,8 @@
                                                             $goals = $accessMenu['goals'] ?? null;
                                                             $doj = $accessMenu['doj'] ?? null;
                                                         @endphp
-                                                        @if ($doj && $goals)
-                                                            <button data-id="{{ $notask->employee->employee_id }}" id="initiateBtn{{ $index }}" class="btn btn-outline-primary btn-sm">{{ __('Initiate') }}</button>
+                                                        @if ((!$filterYear || $filterYear == $period) && $doj && $goals && $notask->isManager)
+                                                            <button data-id="{{ encrypt($notask->employee->employee_id) }}" id="initiateBtn{{ $index }}" class="btn btn-outline-primary btn-sm">{{ __('Initiate') }}</button>
                                                         @endif
                                                     </div>
                                                 </div>
@@ -325,5 +365,43 @@
                     </div>
                 </div> 
                 
+    </div>
+    <!-- Modal Pop-Up -->
+    <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="importModalLabel">Import Goals</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                
+                <form id="importGoal" action="{{ route('importgoalsmanager') }}" method="POST" enctype="multipart/form-data">
+                    @csrf
+                    <div class="modal-body">
+                        <div class="row">
+                            <div class="col">
+                                <div class="alert alert-info">
+                                    <strong>Notes:</strong>
+                                    <ul class="mb-0">
+                                        <li>{{ __('Note Import Goal Manager') }}<strong><br> > Tab "{{ __('Not Initiated') }}" -> {{ __('Download') }}</strong></li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label for="file">Upload File</label>
+                            <input type="file" name="file" id="file" class="form-control" required>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="submit" id="importGoalsButton" class="btn btn-primary">
+                            <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
+                            Import
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
     </div>
 @endsection

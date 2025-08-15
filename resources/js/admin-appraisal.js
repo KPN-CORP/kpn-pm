@@ -12,8 +12,6 @@ $(document).ready(function () {
     const reportFileDates = window.reportFileDate || null;
     const jobs = window.jobs || null;
 
-    console.log(`report available. ${reportFiles}`);
-
     function getCurrentDateTime() {
         const now = new Date();
         const weekday = now.toLocaleString("en-US", { weekday: "long" });
@@ -103,6 +101,7 @@ $(document).ready(function () {
                     
                     let groupCompany = document.getElementById("group_company");                    
                     let filter = document.getElementById("filter");                    
+                    let filterYear = document.getElementById("filter_year").value;                    
 
                     if(groupCompany.value){
                         if (combinedData.length > 0) {                        
@@ -143,6 +142,7 @@ $(document).ready(function () {
                                     headers: headers,
                                     data: combinedData,
                                     batchSize: BATCH_SIZE,
+                                    period: filterYear,
                                 }),
                             })
                                 .then((response) => response.json())
@@ -289,27 +289,29 @@ $(document).ready(function () {
     let reportDetailButton = document.querySelector(".report-detail-btn");
 
     // Check if reportFiles has value
-    if (reportFiles && reportFiles.length > 0) {
-        
-        downloadDetailButton.classList.remove("disabled"); // Remove 'disabled' class
-        downloadDetailButton.innerHTML = `
-            <i class="ri-download-cloud-2-line fs-16 me-1 download-detail-icon"></i>
-            <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
-            Reports last generated on ${reportFileDates}
-        `;
-    } else if (jobs && jobs.length > 0) {
-        downloadDetailButton.innerHTML = `
-                            <i class="ri-loop-right-line fs-16 me-1 download-detail-icon"></i>
-                            <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
-                            Generating Reports
-                        `;
-        reportDetailButton.classList.add("disabled");
-    }else {
-        downloadDetailButton.innerHTML = `
-            <i class="ri-download-cloud-2-line fs-16 me-1 download-detail-icon"></i>
-            <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
-            No Reports
-        `;
+    if (downloadDetailButton && window.jobs) {
+        if (reportFiles && reportFiles.length > 0) {
+            
+            downloadDetailButton.classList.remove("disabled"); // Remove 'disabled' class
+            downloadDetailButton.innerHTML = `
+                <i class="ri-download-cloud-2-line fs-16 me-1 download-detail-icon"></i>
+                <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
+                Reports last generated on ${reportFileDates}
+            `;
+        } else if (jobs && jobs.length > 0) {
+            downloadDetailButton.innerHTML = `
+                                <i class="ri-loop-right-line fs-16 me-1 download-detail-icon"></i>
+                                <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
+                                Generating Reports
+                            `;
+            reportDetailButton.classList.add("disabled");
+        }else {
+            downloadDetailButton.innerHTML = `
+                <i class="ri-download-cloud-2-line fs-16 me-1 download-detail-icon"></i>
+                <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
+                No Reports
+            `;
+        }
     }
 
     intervalCheckFile();
@@ -320,40 +322,44 @@ $(document).ready(function () {
 let intervalId; // Store the interval ID globally
 
 function intervalCheckFile(status) {
-    if ((jobs && jobs.length > 0) || status) {
-        intervalId = setInterval(() => {
-            checkFileAvailability(status);
-        }, 60000); // Execute every 60 seconds
-    } else {
-        console.log("Jobs variable is empty. Skipping check.");
+    if (window.jobs){
+        if ((jobs && jobs.length > 0) || status) {
+            intervalId = setInterval(() => {
+                checkFileAvailability(status);
+            }, 60000); // Execute every 60 seconds
+        } else {
+            console.log("Jobs is empty. Skipping check.");
+        }
     }
 }
 
 function checkFileAvailability(status) {
-    if ((jobs && jobs.length > 0) || status) {
-        console.log(`Checking reports.`);
-        const baseFileName = `appraisal_details_${userId}`;
-        fetch("/check-file", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-TOKEN": document
-                    .querySelector('meta[name="csrf-token"]')
-                    .getAttribute("content"),
-            },
-            body: JSON.stringify({ file: baseFileName }),
-        })
-            .then((response) => response.json())
-            .then((data) => {
-                if (data.exists) {
-                    console.log("File found. Reloading the page.");
-                    clearInterval(intervalId); // Kill the interval
-                    location.reload(); // Reload the page
-                }
+    if(window.jobs){
+        if ((jobs && jobs.length > 0) || status) {
+            console.log(`Checking reports.`);
+            const baseFileName = `appraisal_details_${userId}`;
+            fetch("/check-file", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-CSRF-TOKEN": document
+                        .querySelector('meta[name="csrf-token"]')
+                        .getAttribute("content"),
+                },
+                body: JSON.stringify({ file: baseFileName }),
             })
-            .catch((error) => console.error("Error checking file:", error));
-    } else {
-        console.log("No report processing.");
+                .then((response) => response.json())
+                .then((data) => {
+                    if (data.exists) {
+                        console.log("File found. Reloading the page.");
+                        clearInterval(intervalId); // Kill the interval
+                        location.reload(); // Reload the page
+                    }
+                })
+                .catch((error) => console.error("Error checking file:", error));
+        } else {
+            console.log("No report processing.");
+        }
     }
 }
 
@@ -393,8 +399,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 const contributorId = this.dataset.id;
                 const id = contributorId + "_" + appraisalId.value;
 
-                console.log(id);
-                
+                // console.log(id); (for debugging)
     
                 // Check if id is null or undefined
                 if (!contributorId) {
