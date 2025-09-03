@@ -50,8 +50,6 @@ class RatingController extends Controller
 
             $filterYear = $request->input('filterYear');
 
-            Log::info('Fetching KPI unit and calibration percentage.', ['user' => $user, 'period' => $period]);
-
             // Get the KPI unit and calibration percentage
             $kpiUnit = KpiUnits::with(['masterCalibration' => function($query) {
                 $query->where('period', $this->period);
@@ -63,7 +61,7 @@ class RatingController extends Controller
                 Session::flash('errorTitle', "Cannot Initiate Rating");
             }
 
-            Log::info('Fetched KPI Unit and calibration percentage.', ['kpiUnit' => $kpiUnit]);
+            Log::info('Fetching KPI unit and calibration percentage.', ['user' => $user, 'period' => $period, 'kpiUnit' => $kpiUnit]);
 
             $calibration = $kpiUnit->masterCalibration->percentage;
             $masterRating = MasterRating::select('id_rating_group', 'parameter', 'value', 'min_range', 'max_range')
@@ -168,7 +166,7 @@ class RatingController extends Controller
                 $ratingValues = [];
                 foreach ($group['with_requests'] as $data) {
                 $employeeId = $data->employee->employee_id;
-                $formId = $formId = $data->approvalRequest->where('period', $this->period)->first()->form_id;
+                $formId = $data->approvalRequest->where('category', 'Appraisal')->where('period', $this->period)->first()->form_id;
 
                 // Cache suggested ratings
                 if (!isset($suggestedRatings[$employeeId][$formId])) {
@@ -186,7 +184,7 @@ class RatingController extends Controller
                     Log::info('Processing withRequests item.', ['itemId' => $data->id]);
 
                     $employeeId = $data->employee->employee_id;
-                    $formId = $data->approvalRequest->where('period', $this->period)->first()->form_id;
+                    $formId = $data->approvalRequest->where('category', 'Appraisal')->where('period', $this->period)->first()->form_id;
 
                     // Fetch calibration data for the current employee and appraisal
                     $calibrationData = $calibration[$employeeId][$formId] ?? collect();
@@ -444,7 +442,7 @@ class RatingController extends Controller
                     'status' => $status,
                     'updated_by' => Auth::user()->id
                 ]);
-                
+
             // Optionally, check if update was successful
             if ($updated) {
                 if ($rating['approver']) {
@@ -473,12 +471,13 @@ class RatingController extends Controller
                             'updated_by' => Auth::user()->id
                     ]);
                 }
-            }else{
-                return redirect('rating')->with('error', 'No record found for employee ' . $rating['employee_id'] . ' in period '.$this->period.'.');
+            } else {
+                return back()->with('error', 'No record found for employee ' . $rating['employee_id'] . ' in period '.$this->period.'.');
             }
         }
 
-        return redirect('rating')->with('success', 'Ratings submitted successfully.');
+        return back()->with('success', 'Ratings submitted successfully.');
+
     }
 
     public function exportToExcel($level)
@@ -522,6 +521,7 @@ class RatingController extends Controller
                 ->where('approval_layer_appraisals.approver_id', $user)
                 ->where('approval_layer_appraisals.layer_type', 'calibrator')
                 ->where('approval_requests.category', $this->category)
+                ->where('approval_requests.period', $this->period)
                 ->whereNull('approval_requests.deleted_at')
                 ->select('approval_layer_appraisals.*')
                 ->get()
@@ -547,6 +547,7 @@ class RatingController extends Controller
                     ->where('approval_layer_appraisals.approver_id', $user)
                     ->where('approval_layer_appraisals.layer_type', 'calibrator')
                     ->where('approval_requests.category', $this->category)
+                    ->where('approval_requests.period', $this->period)
                     ->whereNull('approval_requests.deleted_at')
                     ->whereIn('approval_layer_appraisals.id', $group->pluck('id'))
                     ->select('approval_layer_appraisals.*', 'approval_requests.*')

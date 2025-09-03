@@ -1,0 +1,40 @@
+services:
+  app:
+    build: .
+    container_name: kpn_pm_app
+    volumes:
+      - .:/var/www
+    networks:
+      - laravel
+
+  web:
+    image: nginx:latest
+    container_name: kpn_pm_web
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - .:/var/www
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+    depends_on:
+      - app
+    networks:
+      - laravel
+
+  db:
+    image: mysql:8.0
+    container_name: kpn_pm_db
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: hcispanel_hc
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_USER: root
+      MYSQL_PASSWORD: 
+    ports:
+      - "3306:3306"
+    networks:
+      - laravel
+
+networks:
+  laravel:
+    driver: bridge

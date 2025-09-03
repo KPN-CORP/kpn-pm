@@ -45,7 +45,7 @@ $(document).ready(function() {
         let isValid = true;
         let firstInvalidElement = null;
     
-        $(`.form-step[data-step="${step}"] .form-select, .form-step[data-step="${step}"] .form-control`).each(function() {
+        $(`.form-step[data-step="${step}"] .form-select, .form-step[data-step="${step}"] .achievement`).each(function() {
             if (!$(this).val()) {
                 $(this).siblings('.error-message').text(errorMessages);
                 $(this).addClass('border-danger');
@@ -126,6 +126,38 @@ $(document).ready(function() {
     
             return false; // Prevent default form submission
         }
+    });
+
+    $('.submit-draft').click(function () {
+        let submitType = $(this).data('id');
+        let title;
+        const spinner = $(this).find(".spinner-border");
+
+        document.getElementById("submitType").value = submitType; 
+
+        if (submitType === "submit_draft") {
+            title = "Draft saved";
+
+            $(this).prop("disabled", true);
+            $(this).addClass("disabled");
+
+            // Show spinner if it exists
+            if (spinner.length) {
+                spinner.removeClass("d-none");
+            }
+
+            document.getElementById("formAppraisalUser").submit();
+
+            // Show success message
+            Swal.fire({
+                title: title,
+                icon: "success",
+                showConfirmButton: false,
+                timer: 2000, // Optional: Auto close the success message after 2 seconds
+            });
+        }
+
+        return false; // Prevent default form submission
     });
 
     $('.prev-btn').click(function() {

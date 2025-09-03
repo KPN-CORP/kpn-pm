@@ -4,6 +4,8 @@ import numeral from 'numeral';
 
 import bootstrap from "bootstrap/dist/js/bootstrap.bundle.min.js";
 
+import { GoogleGenAI } from "@google/genai";
+
 import select2 from "select2"
 select2(); 
 
@@ -60,27 +62,20 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // Function to fetch UoM data and populate select element
-function populateUoMSelect(select) {
-    fetch("/units-of-measurement")
-        .then((response) => response.json())
-        .then((data) => {
-            Object.keys(data.UoM).forEach((category) => {
-                const optgroup = $("<optgroup></optgroup>").attr(
-                    "label",
-                    category
-                );
-                data.UoM[category].forEach((unit) => {
-                    var option = $("<option></option>")
-                        .attr("value", unit)
-                        .text(unit);
-                    optgroup.append(option);
-                });
-                $(select).append(optgroup);
-            });
-        })
-        .catch((error) => {
-            console.error("Error fetching units of measurement:", error);
+function populateUoMSelect(select, callback) {
+  fetch("/units-of-measurement")
+    .then(r => r.json())
+    .then(data => {
+      Object.keys(data.UoM).forEach(category => {
+        const optgroup = $("<optgroup></optgroup>").attr("label", category);
+        data.UoM[category].forEach(unit => {
+          optgroup.append($("<option></option>").attr("value", unit).text(unit));
         });
+        $(select).append(optgroup);
+      });
+    })
+    .then(() => { if(typeof callback==="function") callback(); })
+    .catch(err => console.error("Error fetching units of measurement:", err));
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -98,7 +93,7 @@ document.addEventListener("DOMContentLoaded", function () {
             index++; // text box increment
 
             $(wrapper).append(
-                '<div class="card border-primary border col-md-12 mb-3 bg-primary-subtle">' +
+                '<div class="card border-primary border col-md-12 m-0 mt-3 bg-primary-subtle">' +
                     "<div class='card-body'><div class='row align-items-end'><div class='col'><h5 class='card-title fs-16 mb-0 text-primary'>Goal " +
                     (index ? index : x) +
                     "</h5></div>" +
@@ -171,7 +166,9 @@ document.addEventListener("DOMContentLoaded", function () {
 
             // Populate UoM select for the newly added field
             var newSelect = $("#uom" + index); // Assuming your select has an ID like "uom1", "uom2", ...
-            populateUoMSelect(newSelect);
+            populateUoMSelect(newSelect, function () {
+                newSelect.val(goal.uom ?? "").trigger("change");
+            });
 
             $('.select-uom').select2({
                 theme: "bootstrap-5",
@@ -516,6 +513,208 @@ function initializeTextareaEvents() {
         adjustHeight();
     });
 };
+
+$(document).on('click', '#getLatestGoal', function(){
+    const btn = this;
+    const period = document.getElementById('period').value;
+    toggleLoading(btn, true);
+    showSectionLoader('.container-fluid.p-0');
+
+    fetch('/goals/latest')
+        .then(r => r.json())
+        .then(async res => { // Add async here to use await
+            if(!res.success){ 
+                Swal.fire("Data not found","Sorry, I cannot find your latest goals","info"); 
+                return;
+            }
+
+            let goals = res.data;
+            if(typeof goals === "string"){ 
+                try{ goals = JSON.parse(goals); }catch(e){ goals = []; } 
+            }
+
+            if(!Array.isArray(goals) || goals.length===0){
+                Swal.fire("Data not found","","info"); 
+                return;
+            }
+
+            const wrapper = $(".container-card"); 
+            wrapper.html(''); 
+            $("#count").val(goals.length);
+
+            // Use Promise.all to optimize all texts concurrently
+            const optimizedGoals = await Promise.all(goals.map(async (g) => {
+                // const optimizedKPI = g.kpi;
+                // const optimizedDescription = g.description;
+                const optimizedKPI = await optimizeText('', g.kpi, period);
+                const optimizedDescription = await optimizeText(g.kpi, g.description, period);
+                return { ...g, kpi: optimizedKPI, description: optimizedDescription };
+            }));
+
+            optimizedGoals.forEach((g, i) => {
+                const index = i + 1;
+                wrapper.append(`
+                  <div class="card border-primary border col-md-12 m-0 mt-3 bg-primary-subtle">
+                    <div class="card-body">
+                      <div class="row align-items-end">
+                        <div class="col"><h5 class="card-title fs-16 mb-0 text-primary">Goal ${index}</h5></div>
+                        <div class="col-auto"><a class="btn-close btn-sm remove_field" type="button"></a></div>
+                      </div>
+                      <div class="row mt-2">
+                        <div class="col-md">
+                          <div class="mb-3 position-relative">
+                          <textarea name="kpi[]" class="form-control overflow-hidden kpi-textarea" required>${g.kpi??''}</textarea>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="row"><div class="col-md">
+                        <label class="form-label text-primary">Goal Descriptions</label>
+                        <div class="mb-3 position-relative">
+                        <textarea name="description[]" class="form-control overflow-hidden kpi-descriptions" rows="2">${g.description??''}</textarea>
+                        </div>
+                      </div></div>
+                      <div class="row">
+                        <div class="col-md mb-3">
+                          <label class="form-label text-primary">Target</label>
+                          <input type="text" oninput="validateDigits(this, ${index})" class="form-control" required value="${g.target??''}">
+                          <input type="hidden" name="target[]" id="target${index}" value="${g.target??''}">
+                        </div>
+                        <div class="col-md mb-3">
+                          <label class="form-label text-primary">UoM</label>
+                          <select class="form-select select2 select-uom" name="uom[]" id="uom${index}" data-id="${index}" required>
+                            <option value="">- Select -</option>
+                          </select>
+                          <input type="text" name="custom_uom[]" id="custom_uom${index}" class="form-control mt-2" placeholder="Enter UoM" style="display:none" value="${g.custom_uom??''}">
+                        </div>
+                        <div class="col-md mb-3">
+                          <label class="form-label text-primary">Type</label>
+                          <select class="form-select select-type" name="type[]" id="type${index}" required>
+                            <option value="">- Select -</option>
+                            <option value="Higher Better" ${(g.type==="Higher Better")?"selected":""}>Higher Better</option>
+                            <option value="Lower Better" ${(g.type==="Lower Better")?"selected":""}>Lower Better</option>
+                            <option value="Exact Value" ${(g.type==="Exact Value")?"selected":""}>Exact Value</option>
+                          </select>
+                        </div>
+                        <div class="col-6 col-md-2 mb-3">
+                          <label class="form-label text-primary">Weightage</label>
+                          <div class="input-group">
+                            <input type="number" min="5" max="100" step="0.1" class="form-control" name="weightage[]" required value="${g.weightage??''}">
+                            <span class="input-group-text">%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                `);
+
+                const $sel = $("#uom" + index);
+                populateUoMSelect($sel, function () {
+                    $sel.val(g.uom ?? "").trigger("change");
+                });
+            });
+
+            $('.select-uom').select2({ theme: "bootstrap-5" });
+            initializeTextareaEvents();
+            updateWeightageSummary();
+
+        })
+        .catch(err => {
+            console.error(err);
+            Swal.fire("Error", "Gagal generate data", "error");
+        })
+        .finally(() => {
+            toggleLoading(btn, false);
+            const $btn = $(btn);
+            $btn.removeClass("btn-outline-info").addClass("btn-outline-secondary");
+
+            hideSectionLoader('.container-fluid.p-0');
+
+        });
+});
+
+// Get API Key and Endpoint from environment variables
+const GEMINI_API_KEY = import.meta.env.VITE_GOOGLE_GENAI_API_KEY;
+const GEMINI_API_ENDPOINT = import.meta.env.VITE_GOOGLE_GENAI_API_ENDPOINT;
+
+async function optimizeText(kpi, text, period) {
+    if (!text) return '';    
+
+    // Validate if the necessary variables are present
+    if (!GEMINI_API_KEY || !GEMINI_API_ENDPOINT) {
+        console.error("API Key or Endpoint is not configured.");
+        return text;
+    }
+    
+    
+    const genAI = new GoogleGenAI({
+        apiKey: GEMINI_API_KEY,
+        baseUrl: GEMINI_API_ENDPOINT,
+    });    
+
+    const promptKpi = `Improve this KPI text: "${text}". Make it concise, clear, and impactful. If the text contains a year, update it to ${period}. Adjust to the language used in the original text. Maintain a professional tone and provide only the improved text.`;
+    
+    const promptDesc = `Improve this description text: "${text}". The description is for a goal with the KPI "${kpi}". Make the text concise, clear, and easy to understand. If the text contains a year, update it to ${period}. Adjust to the language used in the original text. Maintain a professional tone and provide only the improved text.`;
+    
+    // Define the prompt for text optimization
+    const prompt = !kpi ? promptKpi : promptDesc;
+    
+    try {
+
+        const response = await genAI.models.generateContent({
+            model: 'gemini-1.5-flash-latest',
+            contents: prompt,
+        });
+
+        // The API response might have leading/trailing whitespace, trim it.
+        return response.text;
+    } catch (error) {
+        console.error("Error optimizing text with Gemini:", error);
+        return text; // Return original text in case of an error
+    }
+}
+
+// (async () => {
+//   const result = await optimizeText("Single-Sign On (SSO) Darwinbox - May 2024: Create HCIS x Darwinbox API.", 2025);
+//   console.log("Hasil:", result);
+// })();
+
+function toggleLoading(btn, on){
+  const $btn = $(btn);
+  $btn.prop("disabled", true).toggleClass("disabled", true);
+  $btn.find(".label").toggleClass("d-none", on).text("Goals Generated");
+  $btn.find(".loading").toggleClass("d-none", !on);
+}
+
+function showSectionLoader(selector){
+  const $host = $(selector);
+  if (!$host.length) return;
+
+  // jika belum ada overlay, buat
+  if ($host.find('.section-loader').length === 0) {
+    $host.append(`
+      <div class="section-loader">
+        <div class="section-loader__inner">
+          <span><i class="ri-bard-fill me-1"></i>Generating...</span>
+        </div>
+      </div>
+    `);
+  } else {
+    $host.find('.section-loader').removeClass('d-none is-fading').css('opacity', 1);
+  }
+}
+
+function hideSectionLoader(selector, opts){
+  const $ov = $(selector).find('.section-loader');
+  if(!$ov.length) return;
+
+  const { fade=true, delay=380, remove=true } = opts || {};
+  if(!fade){
+    remove ? $ov.remove() : $ov.addClass('d-none');
+    return;
+  }
+  $ov.addClass('is-fading');
+  setTimeout(()=> { remove ? $ov.remove() : $ov.addClass('d-none').removeClass('is-fading'); }, delay);
+}
 
 // Run initialization when page loads
 document.addEventListener("DOMContentLoaded", initializeTextareaEvents);

@@ -22,7 +22,8 @@
                   <select name="category" id="category" onchange="changeCategory(this.value)" class="form-select border-dark-subtle" @style('width: 120px')>
                       <option value="">- select -</option>
                       <option value="Goals">Goals</option>
-                      {{-- <option value="Performance">Performance</option> --}}
+                      <option value="Appraisal">Appraisal</option>
+                      <option value="Rating">Rating</option>
                   </select>
                 </div>
               </div>
@@ -71,7 +72,7 @@
         <div class="offcanvas-body">
           <form id="onbehalf_filter" action="{{ route('admin.onbehalf.content') }}" method="POST">
             @csrf
-            <input type="hidden" id="filter_category" name="filter_category">
+            <input type="text" id="filter_category" name="filter_category">
                 <div class="row">
                     <div class="col">
                         <div class="mb-3">

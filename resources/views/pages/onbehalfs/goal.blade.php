@@ -40,7 +40,7 @@
                       <td class="text-center">{{ $row->formatted_updated_at }}</td>
                       <td>{{ $row->updatedBy ? $row->updatedBy->name.' ('.$row->updatedBy->employee_id.')' : '-' }}</td>
                       @if ($data)
-                      @include('pages.onbehalfs.detail')
+                      @include('pages.onbehalfs.goal_detail')
                       @endif
                       <td class="text-center sorting_1 px-1">
                         @can('approvalonbehalf')

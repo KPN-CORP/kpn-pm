@@ -299,80 +299,85 @@ for (var i = 0; i < weightageInputs.length; i++) {
 }
 
 function changeCategory(val) {
+    // Set filter category berdasarkan dropdown
     $("#filter_category").val(val);
 
     const form = $("#onbehalf_filter");
     const contentOnBehalf = $("#contentOnBehalf");
     const customsearch = $("#customsearch");
     const formData = form.serialize();
-    
+
     function initializePopovers() {
-        // Initialize all popovers on the page
         const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-        const popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-            return new bootstrap.Popover(popoverTriggerEl);
+        popoverTriggerList.map(function (el) {
+            return new bootstrap.Popover(el);
         });
     }
 
     showLoader();
 
-    $.ajax({
-        url: "/admin/onbehalf/content", // Endpoint URL to fetch report content
-        method: "POST",
-        data: formData, // Send serialized form data
-        success: function (data) {
-            //alert(data);
-            contentOnBehalf.html(data); // Update report content
+    // Set CSRF token jika diperlukan
+    $.ajaxSetup({
+        headers: {
+            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
+        },
+    });
 
+    $.ajax({
+        url: "/admin/onbehalf/content",
+        method: "POST",
+        data: formData,
+        success: function (data) {
+            contentOnBehalf.html(data);
+
+            // Hapus instance sebelumnya jika ada
+            if ($.fn.DataTable.isDataTable("#onBehalfTable")) {
+                $("#onBehalfTable").DataTable().destroy();
+            }
+
+            // Inisialisasi ulang DataTable
             const onBehalfTable = $("#onBehalfTable").DataTable({
                 dom: "lrtip",
                 stateSave: true,
                 fixedColumns: {
                     leftColumns: 0,
-                    rightColumns: 1
+                    rightColumns: 1,
                 },
                 scrollCollapse: true,
                 scrollX: true,
                 pageLength: 25,
                 columnDefs: [
-                    { targets: [0], orderable: false }, // Disable sorting for the first column
-                  ],
+                    { targets: [0], orderable: false },
+                ],
             });
-            
-            onBehalfTable.on('draw', function () {
-                    initializePopovers();
-                });
-                
-            customsearch.keyup(function () {
+
+            // Re-init popover setiap table draw
+            onBehalfTable.on("draw", initializePopovers);
+            initializePopovers();
+
+            // Event search custom
+            customsearch.off("keyup").on("keyup", function () {
                 onBehalfTable.search($(this).val()).draw();
             });
 
-            $(".filter-btn").on("click", function () {
+            // Event filter button
+            $(".filter-btn").off("click").on("click", function () {
                 const filterValue = $(this).data("id");
-
-                if (filterValue === "all") {
-                    onBehalfTable.search("").draw(); // Clear the search for 'All Task'
-                } else {
-                    onBehalfTable.search(filterValue).draw();
-                }
+                onBehalfTable.search(filterValue === "all" ? "" : filterValue).draw();
             });
-
-            initializePopovers();
 
             hideLoader();
         },
         error: function (xhr, status, error) {
             console.error("Error fetching report content:", error);
-                // Optionally display an error message to the user
-            contentOnBehalf.html(
-                "Error fetching report content. Please try again."
-            );
+            contentOnBehalf.html("Error fetching report content. Please try again.");
+            hideLoader();
         },
     });
-    return; // Prevent default form submission
 }
 
 window.changeCategory = changeCategory;
+
 
 document.addEventListener("DOMContentLoaded", function () {
     const form = $("#onbehalf_filter");

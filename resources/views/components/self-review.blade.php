@@ -1,4 +1,4 @@
-<div class="form-group mb-3">
+<div class="form-group mb-2">
     <h4 class="mb-3">
         Objektif Kerja
     </h4>
@@ -38,7 +38,7 @@
                     <div class="col-lg-2 mb-3">
                         <div class="form-group">
                             <label class="form-label" for="target">{{ __('Achievement In') }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</label>
-                            <input type="text" id="achievement-{{ $index + 1 }}" name="formData[{{ $formIndex }}][{{ $index }}][achievement]" placeholder="{{ __('Enter Achievement') }}.." value="{{ isset($data['actual']) ? $data['actual'] : "" }}" class="form-control mt-1" />
+                            <input type="text" id="achievement-{{ $index + 1 }}" name="formData[{{ $formIndex }}][{{ $index }}][achievement]" placeholder="{{ __('Enter Achievement') }}.." value="{{ isset($data['actual']) ? $data['actual'] : "" }}" class="form-control achievement mt-1" />
                             <div class="text-danger error-message"></div>
                         </div>
                     </div>

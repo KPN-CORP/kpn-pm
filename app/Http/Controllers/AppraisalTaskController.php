@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Achievements;
 use App\Models\Appraisal;
 use App\Models\AppraisalContributor;
 use App\Models\Approval;
@@ -66,6 +67,9 @@ class AppraisalTaskController extends Controller
                     $q->whereRaw('json_valid(access_menu)')
                       ->whereJsonContains('access_menu', ['createpa' => 1]);
                 });
+            })
+            ->whereDoesntHave('appraisal', function ($query) {
+                $query->where('form_status', 'Draft');
             })
             ->get();
     
@@ -134,12 +138,15 @@ class AppraisalTaskController extends Controller
             $query->where('period', $period);
         }, 'approvalRequest' => function($query) use ($period, $user) {
             $query->where('category', 'Appraisal')->where('period', $period)->where('current_approval_id', $user);
-        }])
+        }, 'appraisal'])
         ->whereHas('employee', function ($query) {
             $query->where(function ($q) {
                 $q->whereRaw('json_valid(access_menu)')
                   ->whereJsonContains('access_menu', ['createpa' => 1]);
             });
+        })
+        ->whereDoesntHave('appraisal', function ($query) {
+            $query->where('form_status', 'Draft');
         })
         ->where('approver_id', $user)
         ->where('layer_type', 'manager')
@@ -214,7 +221,7 @@ class AppraisalTaskController extends Controller
                     'leadership_score' => $team->leadership_score ?? '-',
                 ],
                 'calibrationCheck' => $team->calibrationCheck ?? false,
-                'approval_date' => $approvalRequest ? $this->appService->formatDate($approvalRequest->created_at) : '-', // Check if approvalRequest exists
+                'approval_date' => $team->contributors->isNotEmpty() ? $this->appService->formatDate($team->contributors->first()->created_at): ($team->approvalRequest->first() ? $this->appService->formatDate($team->approvalRequest->first()->created_at) : '-'), // Check if approvalRequest exists
                 'action' => view('components.action-buttons', ['team' => $team])->render(), // Render action buttons
             ];
         }
@@ -305,6 +312,7 @@ class AppraisalTaskController extends Controller
                     'office_area' => $team->employee->office_area,
                     'group_company' => $team->employee->group_company,
                     'category' => $team->layer_type,
+                    'status' => $team->contributors->isNotEmpty() ? $team->contributors->first()->status : '-',
                 ],
                 'kpi' => [
                     'kpi_status' => $team->contributors->isNotEmpty(),
@@ -313,7 +321,7 @@ class AppraisalTaskController extends Controller
                     'leadership_score' => $team->leadership_score, // leadership Score
                 ],
                 'calibrationCheck' => $team->calibrationCheck ?? false,
-                'approval_date' => $team->approvalRequest->first() ? $this->appService->formatDate($team->approvalRequest->first()->created_at) : '-',
+                'approval_date' => $team->contributors->isNotEmpty() ? $this->appService->formatDate($team->contributors->first()->created_at) : '-',
                 'action' => view('components.action-buttons', ['team' => $team])->render(), // Render action buttons
             ];
         }
@@ -343,6 +351,8 @@ class AppraisalTaskController extends Controller
 
         $goal = Goal::with(['employee'])->where('employee_id', $id)->where('period', $period)->first();
 
+        $achievement = Achievements::where('employee_id', $id)->where('period', $period)->get();
+
         $calibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $id)->value('approver_id');
 
         if (!$calibrator) {
@@ -359,34 +369,29 @@ class AppraisalTaskController extends Controller
 
         $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $id)->value('approver_id');
 
-        $kpiUnit = KpiUnits::with(['masterCalibration'])->where('employee_id', $firstCalibrator)->where('status_aktif', 'T')->where('periode', $this->period)->first();
+        // Get form group appraisal
+        $formGroupData = $this->appService->formGroupAppraisal($id, 'Appraisal Form');                
+        
+        $formTypes = $formGroupData['data']['form_names'] ?? [];
+        $formDatas = $formGroupData['data']['form_appraisals'] ?? [];
+                
+        $filteredFormData = array_filter($formDatas, function($form) use ($formTypes) {
+            return in_array($form['name'], $formTypes);
+        });
 
-        if ($kpiUnit && $kpiUnit->masterCalibration) {
-            // Get form group appraisal
-            $formGroupData = $this->appService->formGroupAppraisal($id, 'Appraisal Form');                
-            
-            $formTypes = $formGroupData['data']['form_names'] ?? [];
-            $formDatas = $formGroupData['data']['form_appraisals'] ?? [];
-                    
-            $filteredFormData = array_filter($formDatas, function($form) use ($formTypes) {
-                return in_array($form['name'], $formTypes);
-            });
+        $ratings = $formGroupData['data']['rating'];
 
-            $ratings = $formGroupData['data']['rating'];
+        $filteredFormDatas = [
+            'viewCategory' => 'initiate',
+            'filteredFormData' => $filteredFormData,
+        ];
+        
+        $parentLink = __('Appraisal');
+        $link = 'Initiate Appraisal';
 
-            $filteredFormDatas = [
-                'viewCategory' => 'initiate',
-                'filteredFormData' => $filteredFormData,
-            ];
-            
-            $parentLink = __('Appraisal');
-            $link = 'Initiate Appraisal';
+        // Pass the data to the view
+        return view('pages.appraisals-task.initiate', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'approval', 'goalData', 'user', 'ratings', 'employee', 'achievement'));
 
-            // Pass the data to the view
-            return view('pages.appraisals-task.initiate', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'approval', 'goalData', 'user', 'ratings', 'employee'));
-        }else{
-            return redirect('appraisals-task')->with('error', 'Calibration KPI information not found.');
-        }
     }
 
     public function approval(Request $request)
@@ -434,29 +439,35 @@ class AppraisalTaskController extends Controller
     {
         $user = $this->user;
         $period = $this->appService->appraisalPeriod();
-        $id = decrypt($request->id);
+        $id = decrypt($request->id);   
+        
+        $type = $request->type;
 
         $step = $request->input('step', 1);
         
         $goals = Goal::with(['employee'])->where('employee_id', $id)->where('period', $period)->first();
+
+        $achievements = Achievements::where('employee_id', $id)->where('period', $period)->get();
         
         $appraisal = Appraisal::with(['employee', 'approvalRequest' => function($query) use ($period) {
             $query->where('category', 'Appraisal')->where('period', $period);
         }])->where('employee_id', $id)->where('period', $period)->first();
 
-        $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $appraisal->employee_id)->value('approver_id');
+        $approverId = ($type === 'onbehalf')
+            ? $appraisal->approvalRequest->current_approval_id
+            : Auth::user()->employee_id;
 
-        $manager = ApprovalLayerAppraisal::where('employee_id', $appraisal->employee_id)->where('approver_id', Auth::user()->employee_id )->where('layer_type', 'manager')->first();
+        $contributorCheck = AppraisalContributor::where('employee_id', $id)->where('period', $period)->first();
+
+        $appraisalContributor = AppraisalContributor::where('employee_id', $id)->where('contributor_id', $approverId)->where('period', $period)->first();
         
-        $approval = ApprovalLayerAppraisal::where('employee_id', $appraisal->employee_id)->where('approver_id', Auth::user()->employee_id )->where('layer_type', '!=', 'calibrator')->first();
+        $manager = ApprovalLayerAppraisal::where('employee_id', $id)->where('approver_id', $approverId )->where('layer_type', 'manager')->first();    
 
-        $appraisalId = $appraisal->id;
-        
-        $data = json_decode($appraisal['form_data'], true);
+        $approval = ApprovalLayerAppraisal::with('approver')->where('employee_id', $id)->where('approver_id', $approverId )->where('layer_type', '!=', 'calibrator')->first();
 
-        $achievement = array_filter($data['formData'], function ($form) {
-            return $form['formName'] === 'KPI';
-        });
+        $achievement = [];
+        $goal['actual'] = [];
+        $appraisalId = $contributorCheck->appraisal_id ?? null;
 
         if ($goals) {
             $goalData = json_decode($goals->form_data, true);
@@ -464,80 +475,121 @@ class AppraisalTaskController extends Controller
             Session::flash('error', "Goals for not found.");
             return redirect()->back();
         }
+
+        if ($appraisal) {
+    
+            $manager = ApprovalLayerAppraisal::where('employee_id', $appraisal->employee_id)->where('approver_id', $approverId )->where('layer_type', 'manager')->first();
             
-        foreach ($achievement[0] as $key => $formItem) {
-            if (isset($goalData[$key])) {
-                $combinedData[$key] = array_merge($formItem, $goalData[$key]);
-            } else {
-                $combinedData[$key] = $formItem;
+            $approval = ApprovalLayerAppraisal::where('employee_id', $appraisal->employee_id)->where('approver_id', $approverId )->where('layer_type', '!=', 'calibrator')->first();
+
+            $appraisalId = $appraisal->id;
+            
+            $data = json_decode($appraisal['form_data'], true);
+    
+            $achievement = array_filter($data['formData'], function ($form) {
+                return $form['formName'] === 'KPI';
+            });
+                
+            foreach ($achievement[0] as $key => $formItem) {
+                if (isset($goalData[$key])) {
+                    $combinedData[$key] = array_merge($formItem, $goalData[$key]);
+                } else {
+                    $combinedData[$key] = $formItem;
+                }
+            }
+
+            // Read the contents of the JSON file
+            $formData = json_decode($appraisal->form_data, true);
+            
+            $selfReviewData = [];
+            foreach ($formData['formData'] as $item) {
+                if ($item['formName'] === 'KPI') {
+                    $selfReviewData = array_slice($item, 1);
+                    break;
+                }
+            }
+            
+            // Add the achievements to the goalData
+            foreach ($goalData as $index => &$goal) {
+                if (isset($selfReviewData[$index])) {
+                    $goal['actual'] = $selfReviewData[$index]['achievement'];
+                }
+            }
+
+            foreach ($formData['formData'] as &$form) {                
+                if ($form['formName'] === 'Culture') {
+                    foreach ($form as $key => &$value) {
+                        if (is_numeric($key)) {
+                            $scores = [];
+                            foreach ($value as $score) {
+                                $scores[] = $score['score'];
+                            }
+                            $value = ['score' => $scores];
+                        }
+                    }
+                }
+                if ($form['formName'] === 'Leadership') {
+                    foreach ($form as $key => &$value) {
+                        if (is_numeric($key)) {
+                            $scores = [];
+                            foreach ($value as $score) {
+                                $scores[] = $score['score'];
+                            }
+                            $value = ['score' => $scores];
+                        }
+                    }
+                }
+            }
+        }
+
+        if($appraisalContributor){
+
+            $formData = json_decode($appraisalContributor->form_data, true);
+
+
+            foreach ($formData['formData'] as &$form) {                
+                if ($form['formName'] === 'Culture') {
+                    foreach ($form as $key => &$value) {
+                        if (is_numeric($key)) {
+                            $scores = [];
+                            foreach ($value as $score) {
+                                $scores[] = $score['score'];
+                            }
+                            $value = ['score' => $scores];
+                        }
+                    }
+                }
+                if ($form['formName'] === 'Leadership') {
+                    foreach ($form as $key => &$value) {
+                        if (is_numeric($key)) {
+                            $scores = [];
+                            foreach ($value as $score) {
+                                $scores[] = $score['score'];
+                            }
+                            $value = ['score' => $scores];
+                        }
+                    }
+                }
             }
         }
 
         $form_name = $manager ? 'Appraisal Form Review' : 'Appraisal Form 360' ;
 
         $formGroupData = $this->appService->formGroupAppraisal($id, $form_name);   
-            
+
+        
         $formTypes = $formGroupData['data']['form_names'] ?? [];
         $formDatas = $formGroupData['data']['form_appraisals'] ?? [];
-        
         
         $filteredFormData = array_filter($formDatas, function($form) use ($formTypes) {
             return in_array($form['name'], $formTypes);
         });
         
-        // Read the contents of the JSON file
-        $formData = json_decode($appraisal->form_data, true);
-        
-        $formCount = count($formData);
-        
-        $data = json_decode($appraisal->form_data, true);
-
-        
-        $selfReviewData = [];
-        foreach ($formData['formData'] as $item) {
-            if ($item['formName'] === 'KPI') {
-                $selfReviewData = array_slice($item, 1);
-                break;
-            }
-        }
-        
-        // Add the achievements to the goalData
-        foreach ($goalData as $index => &$goal) {
-            if (isset($selfReviewData[$index])) {
-                $goal['actual'] = $selfReviewData[$index]['achievement'];
-            } else {
-                $goal['actual'] = [];
-            }
-        }
-        
-        foreach ($formData['formData'] as &$form) {                
-            if ($form['formName'] === 'Culture') {
-                foreach ($form as $key => &$value) {
-                    if (is_numeric($key)) {
-                        $scores = [];
-                        foreach ($value as $score) {
-                            $scores[] = $score['score'];
-                        }
-                        $value = ['score' => $scores];
-                    }
-                }
-            }
-            if ($form['formName'] === 'Leadership') {
-                foreach ($form as $key => &$value) {
-                    if (is_numeric($key)) {
-                        $scores = [];
-                        foreach ($value as $score) {
-                            $scores[] = $score['score'];
-                        }
-                        $value = ['score' => $scores];
-                    }
-                }
-            }
-        }
-
         // Merge the scores
-        $filteredFormData = $this->appService->mergeScores($formData, $filteredFormData);
-
+        if ($appraisal || $appraisalContributor) {
+            $filteredFormData = $this->appService->mergeScores($formData, $filteredFormData);
+        }
+        
         $filteredFormDatas = [
             'viewCategory' => 'Review',
             'filteredFormData' => $filteredFormData,
@@ -549,7 +601,7 @@ class AppraisalTaskController extends Controller
         $link = 'Review Appraisal';
 
         // Pass the data to the view
-        return view('pages.appraisals-task.review', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'goals', 'approval', 'goalData', 'user', 'achievement', 'appraisalId', 'ratings', 'appraisal'));
+        return view('pages.appraisals-task.review', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'goals', 'approval', 'goalData', 'user', 'achievement', 'appraisalId', 'ratings', 'appraisal', 'type', 'achievements'));
 
     }
 
@@ -560,10 +612,12 @@ class AppraisalTaskController extends Controller
             $filterYear = $request->input('filterYear');
             $contributorId = decrypt($request->id);
 
-            $datasQuery = AppraisalContributor::with(['employee'])->where('id', $contributorId);
-
-            $datas = $datasQuery->get();
+            $datasQuery = AppraisalContributor::with(['employee', 'goal' => function($query) {
+                $query->where('period', $this->period);
+            }])->where('id', $contributorId);
             
+            $datas = $datasQuery->get();
+                        
             $formattedData = $datas->map(function($item) {
                 $item->formatted_created_at = $this->appService->formatDate($item->created_at);
 
@@ -571,17 +625,17 @@ class AppraisalTaskController extends Controller
                 
                 return $item;
             });
-
+            
             $data = [];
             foreach ($formattedData as $request) {
                 $dataItem = new stdClass();
                 $dataItem->request = $request;
                 $dataItem->name = $request->name;
-                $dataItem->goal = $request->appraisal->goal;
+                $dataItem->goal = $request->goal;
                 $data[] = $dataItem;
             }
 
-            $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->appraisal->goal->form_data, true) : [];
+            $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->goal->form_data, true) : [];
             $appraisalData = $datas->isNotEmpty() ? json_decode($datas->first()->form_data, true) : [];
 
             if (!Empty($appraisalData)) {
@@ -589,7 +643,6 @@ class AppraisalTaskController extends Controller
             } else {
                 $period = $this->appService->appraisalPeriod();
             }
-            
 
             $employeeData = $datas->first()->employee;
 
@@ -674,19 +727,8 @@ class AppraisalTaskController extends Controller
 
         } catch (Exception $e) {
             Log::error('Error in index method: ' . $e->getMessage());
-
+            return redirect('appraisals-task')->with('error', 'Appraisal not found');
             // Return empty data to be consumed in the Blade template
-            return view('pages.appraisals-task.detail', [
-                'data' => [],
-                'link' => 'My Appraisal',
-                'parentLink' => 'Appraisal',
-                'formData' => ['formData' => []],
-                'uomOption' => [],
-                'typeOption' => [],
-                'goals' => null,
-                'selectYear' => [],
-                'appraisalData' => []
-            ]);
         }
     }
 
@@ -711,6 +753,7 @@ class AppraisalTaskController extends Controller
             'approver_id' => 'required|string|size:11',
             'formGroupName' => 'required|string|min:5|max:100',
             'formData' => 'required|array',
+            'attachment'    => 'nullable|file|mimes:pdf|max:10240',
         ]);
 
         DB::beginTransaction(); // Start the database transaction
@@ -736,6 +779,28 @@ class AppraisalTaskController extends Controller
 
             $masterCalibration = MasterCalibration::where('period', $period)->first();
 
+            $fullPath = null;
+
+            if ($request->hasFile('attachment')) {
+                $file = $request->file('attachment');
+            
+                $employeeId = $validatedData['employee_id'];
+                $timestamp = Carbon::now()->format('Ymd_His');
+                $filename = "{$employeeId}_{$period}_{$timestamp}.pdf";
+            
+                $destinationPath = storage_path('app/public/files/appraisals');
+            
+                if (!file_exists($destinationPath)) {
+                    mkdir($destinationPath, 0755, true);
+                }
+            
+                // Pindahkan file ke folder tujuan
+                $file->move($destinationPath, $filename);
+            
+                // Simpan path ke DB
+                $fullPath = 'storage/files/appraisals/' . $filename; // agar bisa diakses via browser
+            }
+
                 // Create a new Appraisal instance and save the data
                 $appraisal = new Appraisal;
                 $appraisal->id = Str::uuid();
@@ -746,6 +811,7 @@ class AppraisalTaskController extends Controller
                 $appraisal->form_data = json_encode($datas); // Store the form data as JSON
                 $appraisal->form_status = $submit_status;
                 $appraisal->period = $period;
+                $appraisal->file = $fullPath;
                 $appraisal->created_by = Auth::user()->id;
                 
                 $appraisal->save();
@@ -812,20 +878,25 @@ class AppraisalTaskController extends Controller
     {
         try {
             $period = $this->appService->appraisalPeriod();
+            $submit_status = $request->submit_type == 'submit_draft' ? 'Draft' : 'Approved';
+            $messages = $request->submit_type == 'submit_draft' ? 'Draft saved successfully.' : 'Appraisal submitted successfully.';
+            $type = $request->type;
+
+            $onbehalfMessages = $type === 'onbehalf' ? 'Approved by admin ' . Auth::user()->id : null;
 
             // Validate the request data
             $validatedData = $request->validate([
                 'employee_id' => 'required|string|size:11',
                 'approver_id' => 'required|string|size:11',
-                'appraisal_id' => 'required|string',
                 'formGroupName' => 'required|string|min:5|max:100',
                 'formData' => 'required|array',
+                'attachment'    => 'nullable|file|mimes:pdf|max:10240',
             ]);
 
             DB::beginTransaction(); // Start the database transaction
 
             $contributorData = ApprovalLayerAppraisal::select('approver_id', 'layer_type')
-                ->where('approver_id', Auth::user()->employee_id)
+                ->where('approver_id', $validatedData['approver_id'])
                 ->where('layer_type', '!=', 'calibrator')
                 ->where('employee_id', $validatedData['employee_id'])
                 ->first();
@@ -854,30 +925,34 @@ class AppraisalTaskController extends Controller
                 ->where('employee_id', $validatedData['employee_id'])
                 ->value('approver_id');
 
+            // Ambil appraisal_id dari request atau generate baru
+            $appraisalId = $request->appraisal_id ?? Str::uuid();
 
+            // Simpan atau update AppraisalContributor
             AppraisalContributor::updateOrCreate(
                 [
-                    'appraisal_id' => $validatedData['appraisal_id'],
+                    'appraisal_id' => $request->appraisal_id, // tetap pakai original request untuk pencarian
                     'employee_id' => $validatedData['employee_id'],
                     'contributor_id' => $contributorData->approver_id,
                     'period' => $period,
                 ],
                 [
+                    'appraisal_id' => $appraisalId, // yang disimpan, bisa UUID baru
                     'contributor_type' => $contributorData->layer_type,
                     'form_data' => json_encode($datas),
                     'rating' => $formDatas['contributorRating'],
-                    'status' => 'Approved',
-                    'created_by' => Auth::user()->id
+                    'status' => $submit_status,
+                    'created_by' => $request->userid
                 ]
             );
 
+            // Simpan ApprovalSnapshot menggunakan appraisalId yang pasti
             $snapshot = new ApprovalSnapshots();
             $snapshot->id = Str::uuid();
-            $snapshot->form_id = $validatedData['appraisal_id'];
+            $snapshot->form_id = $appraisalId;
             $snapshot->form_data = json_encode($datas);
             $snapshot->employee_id = $validatedData['employee_id'];
-            $snapshot->created_by = Auth::user()->id;
-
+            $snapshot->created_by = $request->userid;
             $snapshot->save();
 
             if ($contributorData->layer_type == 'manager') {
@@ -913,38 +988,61 @@ class AppraisalTaskController extends Controller
 
                 $calibration = Calibration::updateOrCreate(
                     [
-                        'appraisal_id' => $validatedData['appraisal_id'],
                         'id_calibration_group' => $calibrationGroupID,
+                        'appraisal_id' => $appraisalId,
                         'employee_id' => $validatedData['employee_id'],
                         'approver_id' => $firstCalibrator,
                         'period' => $period,
                     ],
                     [
-                        'created_by' => Auth::user()->id,
+                        'created_by' => $request->userid,
                     ]
                 );
 
                 if ($calibration) {
-                    Appraisal::where('id', $validatedData['appraisal_id'])
-                        ->update([
-                            'form_data' => json_encode($datas),
-                            'form_status' => $statusForm,
-                        ]);
+                    $appraisal = Appraisal::where('id', $calibration->appraisal_id)->first();
 
-                    ApprovalRequest::where('form_id', $validatedData['appraisal_id'])
+                    // Lanjutkan proses update file, validasi, dll...
+                    $fullPath = $appraisal->file;
+
+                    if ($request->hasFile('attachment')) {
+                        if ($appraisal->file && File::exists(public_path($appraisal->file))) {
+                            File::delete(public_path($appraisal->file));
+                        }
+
+                        $file = $request->file('attachment');
+                        $employeeId = $validatedData['employee_id'];
+                        $timestamp = Carbon::now()->format('Ymd_His');
+                        $filename = "{$employeeId}_{$period}_{$timestamp}.pdf";
+
+                        $relativePath = 'files/appraisals/' . $filename;
+                        $file->storeAs('public/' . dirname($relativePath), basename($relativePath));
+
+                        $fullPath = 'storage/' . $relativePath;
+                    }
+
+                    $appraisal->update([
+                        'form_data' => json_encode($datas),
+                        'form_status' => $statusForm,
+                        'updated_by' => $request->userid,
+                        'file' => $fullPath,
+                    ]);
+
+                    ApprovalRequest::where('form_id', $calibration->appraisal_id)
                         ->update([
                             'current_approval_id' => $approver,
                             'status' => $statusRequest,
-                            'updated_by' => Auth::user()->id,
+                            'updated_by' => $request->userid,
+                            'messages' => $onbehalfMessages,
                         ]);
 
                     Approval::updateOrCreate(
                         [
-                            'request_id' => ApprovalRequest::where('form_id', $validatedData['appraisal_id'])->value('id'),
-                            'approver_id' => Auth::user()->employee_id,
+                            'request_id' => ApprovalRequest::where('form_id', $calibration->appraisal_id)->value('id'),
+                            'approver_id' => $validatedData['approver_id'],
                         ],
                         [
-                            'created_by' => Auth::user()->id,
+                            'created_by' => $request->userid,
                             'status' => 'Approved',
                         ]
                     );
@@ -954,10 +1052,18 @@ class AppraisalTaskController extends Controller
             DB::commit(); // Commit the transaction
 
             // Return a response, such as a redirect or a JSON response
-            return redirect('appraisals-task')->with('success', 'Appraisal submitted successfully.');
+            if ($type === 'onbehalf') {
+                return redirect()->route('onbehalf');
+            }
+
+            return redirect('appraisals-task')->with('success', $messages);
+
         } catch (Exception $e) {
             DB::rollBack(); // Rollback the transaction in case of an error
             Log::error('Error in storeReview method: ' . $e->getMessage());
+            if ($type === 'onbehalf') {
+                return redirect()->route('onbehalf')->with('error', 'An error occurred while submitting the appraisal.');
+            }
             return redirect('appraisals-task')->with('error', 'An error occurred while submitting the appraisal.');
         }
     }
