@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\UserExport;
+use App\Models\Achievements;
 use App\Models\Appraisal;
 use App\Models\AppraisalContributor;
 use App\Models\ApprovalLayerAppraisal;
@@ -27,7 +28,10 @@ use Maatwebsite\Excel\Facades\Excel;
 use RealRashid\SweetAlert\Facades\Alert;
 use stdClass;
 use App\Services\AppService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Validation\ValidationException;
 
 class MyAppraisalController extends Controller
 {
@@ -72,7 +76,9 @@ class MyAppraisalController extends Controller
 
             // Retrieve approval requests
             $datasQuery = ApprovalRequest::with([
-                'employee', 'appraisal.goal', 'appraisal.approvalSnapshots' => function ($query) {
+                'employee', 'appraisal.goal' => function ($query) use ($period) {
+                    $query->where('period', $period);
+                }, 'appraisal.approvalSnapshots' => function ($query) {
                     $query->where('created_by', Auth::user()->id);
                 }, 'updatedBy', 'adjustedBy', 'initiated', 'manager', 'contributor',
                 'approval' => function ($query) {
@@ -91,9 +97,9 @@ class MyAppraisalController extends Controller
             $datas = $datasQuery->get();
 
             $formattedData = $datas->map(function($item) {
-                $item->formatted_created_at = $this->appService->formatDate($item->created_at);
+                $item->formatted_created_at = $this->appService->formatDate($item->appraisal->created_at);
 
-                $item->formatted_updated_at = $this->appService->formatDate($item->updated_at);
+                $item->formatted_updated_at = $this->appService->formatDate($item->appraisal->updated_at);
 
                 if ($item->sendback_to == $item->employee->employee_id) {
                     $item->name = $item->employee->fullname . ' (' . $item->employee->employee_id . ')';
@@ -240,7 +246,9 @@ class MyAppraisalController extends Controller
 
             $selectYear = ApprovalRequest::where('id', $datas->first()->id)->select('period')->get();
 
-            return view('pages.appraisals.my-appraisal', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'accessMenu', 'selectYear', 'adjustByManager', 'appraisalData'));
+            $achievements = Achievements::where('employee_id', $user)->where('period', $period)->get();
+
+            return view('pages.appraisals.my-appraisal', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'accessMenu', 'selectYear', 'adjustByManager', 'appraisalData', 'achievements'));
 
         } catch (Exception $e) {
             Log::error('Error in index method: ' . $e->getMessage());
@@ -257,7 +265,8 @@ class MyAppraisalController extends Controller
                 'selectYear' => [],
                 'adjustByManager' => null,
                 'appraisalData' => [],
-                'accessMenu' => $accessMenu
+                'accessMenu' => $accessMenu,
+                'achievements' => [],
             ]);
         }
     }
@@ -327,75 +336,122 @@ class MyAppraisalController extends Controller
 
         $ratings = $formGroupData['data']['rating'];
 
+        $achievements = Achievements::where('employee_id', $request->id)->where('period', $period)->get();
+
         $parentLink = __('Appraisal');
         $link = 'Initiate Appraisal';
 
         // Pass the data to the view
-        return view('pages/appraisals/create', compact('step', 'parentLink', 'link', 'filteredFormData', 'formGroupData', 'goalData', 'goal', 'approval', 'ratings'));
+        return view('pages/appraisals/create', compact('step', 'parentLink', 'link', 'filteredFormData', 'formGroupData', 'goalData', 'goal', 'approval', 'ratings', 'appraisal', 'achievements'));
     }
 
     public function store(Request $request)
     {
-        $submit_status = 'Submitted';
-        $period = $this->appService->appraisalPeriod();
+        try {
+            $submit_status = $request->submit_type == 'submit_draft' ? 'Draft' : 'Submitted';
+            $messages = $request->submit_type == 'submit_draft' ? 'Draft saved successfully.' : 'Appraisal submitted successfully.';
+            $period = $this->appService->appraisalPeriod();
 
-        // Validate the request data
-        $validatedData = $request->validate([
-            'form_group_id' => 'required|string',
-            'employee_id' => 'required|string|size:11',
-            'approver_id' => 'required|string|size:11',
-            'formGroupName' => 'required|string|min:5|max:100',
-            'formData' => 'required|array',
-        ]);
+            // Validasi data
+            $validatedData = $request->validate([
+                'form_group_id' => 'required|string',
+                'employee_id'   => 'required|string|size:11',
+                'approver_id'   => 'required|string|size:11',
+                'formGroupName' => 'required|string|min:5|max:100',
+                'formData'      => 'required|array',
+                'attachment'    => 'nullable|file|mimes:pdf|max:10240', // file
+            ]);
 
-        // Extract formGroupName
-        $formGroupName = $validatedData['formGroupName'];
-        $formData = $validatedData['formData'];
+            $formGroupName = $validatedData['formGroupName'];
+            $formData = $validatedData['formData'];
 
-        $goals = Goal::with(['employee'])->where('employee_id', $validatedData['employee_id'])->where('period', $period)->first();
+            $goals = Goal::with(['employee'])
+                ->where('employee_id', $validatedData['employee_id'])
+                ->where('period', $period)
+                ->first();
 
-        // Create the array structure
-        $datas = [
-            'formGroupName' => $formGroupName,
-            'formData' => $formData,
-        ];
+            if (!$goals) {
+                return back()->withErrors(['message' => 'Goal not found for selected employee and period.']);
+            }
 
-        // Create a new Appraisal instance and save the data
-        $appraisal = new Appraisal;
-        $appraisal->id = Str::uuid();
-        $appraisal->goals_id = $goals->id;
-        $appraisal->employee_id = $validatedData['employee_id'];
-        $appraisal->form_group_id = $validatedData['form_group_id'];
-        $appraisal->category = $this->category;
-        $appraisal->form_data = json_encode($datas); // Store the form data as JSON
-        $appraisal->form_status = $submit_status;
-        $appraisal->period = $period;
-        $appraisal->created_by = Auth::user()->id;
-        
-        $appraisal->save();
-        
-        $snapshot =  new ApprovalSnapshots;
-        $snapshot->id = Str::uuid();
-        $snapshot->form_id = $appraisal->id;
-        $snapshot->form_data = json_encode($datas);
-        $snapshot->employee_id = $validatedData['employee_id'];
-        $snapshot->created_by = Auth::user()->id;
-        
-        $snapshot->save();
+            $datas = [
+                'formGroupName' => $formGroupName,
+                'formData' => $formData,
+            ];
 
-        $approval = new ApprovalRequest();
-        $approval->form_id = $appraisal->id;
-        $approval->category = $this->category;
-        $approval->period = $period;
-        $approval->employee_id = $validatedData['employee_id'];
-        $approval->current_approval_id = $validatedData['approver_id'];
-        $approval->created_by = Auth::user()->id;
-        // Set other attributes as needed
-        $approval->save();
+            $contributorCheck = AppraisalContributor::select('appraisal_id')
+                ->where('employee_id', $validatedData['employee_id'])
+                ->where('period', $period)
+                ->first();
 
-        // Return a response, such as a redirect or a JSON response
-        return redirect('appraisals')->with('success', 'Appraisal submitted successfully.');
+            // File handling
+            $fullPath = null;
+
+            if ($request->hasFile('attachment')) {
+                $file = $request->file('attachment');
+            
+                $employeeId = $validatedData['employee_id'];
+                $timestamp = Carbon::now()->format('Ymd_His');
+                $filename = "{$employeeId}_{$period}_{$timestamp}.pdf";
+            
+                $destinationPath = storage_path('app/public/files/appraisals');
+            
+                if (!file_exists($destinationPath)) {
+                    mkdir($destinationPath, 0755, true);
+                }
+            
+                // Pindahkan file ke folder tujuan
+                $file->move($destinationPath, $filename);
+            
+                // Simpan path ke DB
+                $fullPath = 'storage/files/appraisals/' . $filename; // agar bisa diakses via browser
+            }
+            
+
+            // Simpan appraisal
+            $appraisal = new Appraisal;
+            $appraisal->id = $contributorCheck->appraisal_id ?? Str::uuid();
+            $appraisal->goals_id = $goals->id;
+            $appraisal->employee_id = $validatedData['employee_id'];
+            $appraisal->form_group_id = $validatedData['form_group_id'];
+            $appraisal->category = $this->category;
+            $appraisal->form_data = json_encode($datas);
+            $appraisal->form_status = $submit_status;
+            $appraisal->period = $period;
+            $appraisal->created_by = Auth::user()->id;
+            $appraisal->file = $fullPath;
+            $appraisal->save();
+
+            // Simpan snapshot
+            $snapshot = new ApprovalSnapshots;
+            $snapshot->id = Str::uuid();
+            $snapshot->form_id = $appraisal->id;
+            $snapshot->form_data = json_encode($datas);
+            $snapshot->employee_id = $validatedData['employee_id'];
+            $snapshot->created_by = Auth::user()->id;
+            $snapshot->save();
+
+            // Simpan approval request
+            $approval = new ApprovalRequest();
+            $approval->form_id = $appraisal->id;
+            $approval->category = $this->category;
+            $approval->period = $period;
+            $approval->employee_id = $validatedData['employee_id'];
+            $approval->current_approval_id = $validatedData['approver_id'];
+            $approval->created_by = Auth::user()->id;
+            $approval->save();
+
+            return redirect('appraisals')->with('success', $messages);
+
+        } catch (ValidationException $e) {
+            // Kembalikan ke form dengan error validasi
+            return back()->withErrors($e->validator)->withInput();
+        } catch (\Exception $e) {
+            // Tangani error umum lainnya
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage())->withInput();
+        }
     }
+
 
     private function getDataByName($data, $name) {
         foreach ($data as $item) {
@@ -569,21 +625,27 @@ class MyAppraisalController extends Controller
             // Merge the scores
             $filteredFormData = mergeScores($formData, $filteredFormData);
 
+            $achievements = Achievements::where('employee_id', $appraisal->employee_id)->where('period', $period)->get();
+
             $viewCategory = 'Edit';
 
-            return view('pages.appraisals.edit', compact('step', 'goal', 'appraisal', 'goalData', 'formCount', 'filteredFormData', 'link', 'data', 'approvalRequest', 'parentLink', 'approval', 'formGroupData', 'ratings', 'viewCategory'));
+            return view('pages.appraisals.edit', compact('step', 'goal', 'appraisal', 'goalData', 'formCount', 'filteredFormData', 'link', 'data', 'approvalRequest', 'parentLink', 'approval', 'formGroupData', 'ratings', 'viewCategory', 'achievements'));
         }
 
     }
 
     function update(Request $request) {
+
+        $submit_status = $request->submit_type == 'submit_draft' ? 'Draft' : 'Submitted';
+        $messages = $request->submit_type == 'submit_draft' ? 'Draft saved successfully.' : 'Appraisal updated successfully.';
         $period = $this->appService->appraisalPeriod();
         // Validate the request data
         $validatedData = $request->validate([
-            'id' => 'required|uuid',
-            'employee_id' => 'required|string|size:11',
+            'id'            => 'required|uuid',
+            'employee_id'   => 'required|string|size:11',
             'formGroupName' => 'required|string|min:5|max:100',
-            'formData' => 'required|array',
+            'formData'      => 'required|array',
+            'attachment'    => 'nullable|file|mimes:pdf|max:10240',
         ]);
     
         // Extract formGroupName
@@ -625,29 +687,89 @@ class MyAppraisalController extends Controller
                 }
             }
         }
+
+        $appraisal = Appraisal::where('id', $validatedData['id'])->first();
     
         // Create the array structure
         $datas = [
             'formGroupName' => $formGroupName,
             'formData' => $formData,
         ];
+
+        $fullPath = $appraisal->file;
+
+        if ($request->hasFile('attachment')) {
+
+            if ($appraisal->file && File::exists($appraisal->file)) {
+                File::delete($appraisal->file);
+            }
+
+            $file = $request->file('attachment');
+        
+            $employeeId = $validatedData['employee_id'];
+            $timestamp = Carbon::now()->format('Ymd_His');
+            $filename = "{$employeeId}_{$period}_{$timestamp}.pdf";
+        
+            $destinationPath = storage_path('app/public/files/appraisals');
+        
+            if (!file_exists($destinationPath)) {
+                mkdir($destinationPath, 0755, true);
+            }
+        
+            // Pindahkan file ke folder tujuan
+            $file->move($destinationPath, $filename);
+        
+            // Simpan path ke DB
+            $fullPath = 'storage/files/appraisals/' . $filename; // agar bisa diakses via browser
+        }
     
         // Create a new Appraisal instance and save the data
-        $appraisal = Appraisal::where('id', $validatedData['id'])->first();
         $appraisal->form_data = json_encode($datas); // Store the form data as JSON
+        $appraisal->form_status = $submit_status;
         $appraisal->updated_by = Auth::user()->id;
+        $appraisal->file = $fullPath;
         
         $appraisal->save();
         
-        $snapshot = ApprovalSnapshots::where('form_id', $appraisal->id)->where('employee_id', $appraisal->employee_id)->first();
+        $snapshot = ApprovalSnapshots::where('form_id', $appraisal->id)->where('employee_id', $appraisal->employee_id)->where('created_by', Auth::user()->id)->first();
         $snapshot->form_data = json_encode($datas);
         $snapshot->updated_by = Auth::user()->id;
         
         $snapshot->save();
     
         // Return a response, such as a redirect or a JSON response
-        return redirect('appraisals')->with('success', 'Appraisal updated successfully.');
+        return redirect('appraisals')->with('success', $messages);
     }
     
+    public function destroy($id): RedirectResponse
+
+    {
+
+        $appraisal = Appraisal::where('id', $id)->first();
+
+        if (!$appraisal) {
+            return redirect()->route('appraisals')->with('error', 'Appraisal not found.');
+        }
+    
+        if ($appraisal->file) {
+            // Dapatkan path absolut dari file
+            $filePath = storage_path('app/public/' . str_replace('storage/', '', $appraisal->file));
+    
+            // Cek dan hapus file jika ada
+            if (File::exists($filePath)) {
+                File::delete($filePath);
+            }
+    
+            // Hapus path dari database
+            $appraisal->file = null;
+            $appraisal->updated_by = Auth::user()->id;
+            $appraisal->save();
+    
+            return redirect()->route('appraisals')->with('success', 'File deleted successfully!');
+        }
+    
+        return redirect()->route('appraisals')->with('error', 'No file to delete.');
+
+    }
 
 }

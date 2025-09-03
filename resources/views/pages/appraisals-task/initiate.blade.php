@@ -60,6 +60,57 @@
                 </div>
             </div>
         </div>
+        {{-- @if ($row->request->employee->group_company == 'Cement') --}}
+        <div class="card-body m-0 py-2">
+            @php
+                $achievement = [
+                    ["month" => "January", "value" => "-"],
+                    ["month" => "February", "value" => "-"],
+                    ["month" => "March", "value" => "-"],
+                    ["month" => "April", "value" => "-"],
+                    ["month" => "May", "value" => "-"],
+                    ["month" => "June", "value" => "-"],
+                    ["month" => "July", "value" => "-"],
+                    ["month" => "August", "value" => "-"],
+                    ["month" => "September", "value" => "-"],
+                    ["month" => "October", "value" => "-"],
+                    ["month" => "November", "value" => "-"],
+                    ["month" => "December", "value" => "-"],
+                ];
+                if ($achievements && $achievements->isNotEmpty()) {
+                    $achievement = json_decode($achievements->first()->data, true);
+                }
+            @endphp
+
+            <div class="rounded mb-2 p-3 bg-white text-primary align-items-center">
+                <div class="row mb-2">
+                    <span class="fs-16 mx-1">
+                        Achievements
+                    </span>      
+                </div>                         
+                <div class="row">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm mb-0 text-center align-middle">
+                            <thead class="bg-primary-subtle">
+                                <tr>
+                                    @foreach ($achievement as $item)
+                                        <th>{{ substr($item['month'], 0, 3) }}</th>
+                                    @endforeach
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white">
+                                <tr>
+                                    @foreach ($achievement as $item)
+                                        <td>{{ $item['value'] }}</td>
+                                    @endforeach
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{-- @endif --}}
         <div class="step" data-step="{{ $step }}"></div>
         <div class="row justify-content-center">
             <div class="col">
@@ -83,7 +134,7 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <form id="appraisalForm" action="{{ route('appraisals-task.submit') }}" method="POST">
+                        <form id="appraisalForm" action="{{ route('appraisals-task.submit') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="employee_id" value="{{ $goal->employee_id }}">
                         <input type="hidden" name="form_group_id" value="{{ $formGroupData['data']['id'] }}">
@@ -102,6 +153,19 @@
                             </div>
                             @endforeach
                             <input type="hidden" name="submit_type" id="submitType" value="">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="mb-3">
+                                        <label for="attachment" class="form-label">Supporting documents for achievement result</label>
+                                        <div class="d-flex align-items-center gap-2">
+                                            <input class="form-control form-control-sm" id="attachment" name="attachment" type="file" accept=".pdf">
+                                        </div>
+                                        <small class="text-muted d-block mt-1">
+                                            Maximum file size: 10MB. Only PDF files are allowed.
+                                        </small>
+                                    </div>                                    
+                                </div>
+                            </div>
                             <div class="d-flex justify-content-center py-2">
                                 <a type="button" class="btn btn-light border me-3 prev-btn" style="display: none;"><i class="ri-arrow-left-line"></i>{{ __('Prev') }}</a>
                                 <a type="button" class="btn btn-primary next-btn">{{ __('Next') }} <i class="ri-arrow-right-line"></i></a>

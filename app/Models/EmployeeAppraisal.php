@@ -84,4 +84,9 @@ class EmployeeAppraisal extends Model
     {
         return $this->hasMany(Appraisal::class, 'employee_id', 'employee_id');
     }
+
+    public function kpiUnit()
+    {
+        return $this->hasMany(KpiUnits::class, 'employee_id', 'employee_id');
+    }
 }

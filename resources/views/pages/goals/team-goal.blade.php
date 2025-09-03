@@ -111,7 +111,7 @@
                                         </div>
                                     </div>
                                     <div class="collapse show" id="dataTasks">
-                                        <div class="card mb-0 mt-2 border border-primary">
+                                        <div class="card mb-0 mt-2">
                                             <div class="card-body py-1" id="task-container-1">
                                                 <!-- task -->
                                                 @forelse ($tasks as $index => $task)

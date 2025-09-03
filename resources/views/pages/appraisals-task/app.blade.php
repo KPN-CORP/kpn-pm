@@ -77,7 +77,7 @@
                                                 <th>Office</th>
                                                 <th>Business Unit</th>
                                                 <th>{{ __('Initiated Date') }}</th>
-                                                <th>Category</th>
+                                                <th>Status</th>
                                                 <th class="">Action</th>
                                             </tr>
                                         </thead>

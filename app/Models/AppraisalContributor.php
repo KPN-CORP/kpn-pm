@@ -31,6 +31,10 @@ class AppraisalContributor extends Model
     {
         return $this->belongsTo(Appraisal::class, 'appraisal_id', 'id');
     }
+    public function goal()
+    {
+        return $this->belongsTo(Goal::class, 'employee_id', 'employee_id');
+    }
     public function employee()
     {
         return $this->belongsTo(EmployeeAppraisal::class, 'employee_id', 'employee_id');

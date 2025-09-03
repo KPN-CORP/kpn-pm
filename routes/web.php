@@ -5,9 +5,13 @@ use App\Http\Controllers\Admin\OnBehalfController as AdminOnBehalfController;
 use App\Http\Controllers\Admin\ReportController as AdminReportController;
 use App\Http\Controllers\Admin\SendbackController as AdminSendbackController;
 use App\Http\Controllers\AdminImportController;
+use App\Http\Controllers\AdminTasksController;
 use App\Http\Controllers\Appraisal360;
 use App\Http\Controllers\AppraisalTaskController;
 use App\Http\Controllers\ApprovalController;
+use App\Http\Controllers\ApprovalFlowController;
+use App\Http\Controllers\AssignmentController;
+use App\Http\Controllers\AuditTrailController;
 use App\Http\Controllers\ImportGoalsController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
@@ -37,8 +41,11 @@ use App\Http\Controllers\MyGoalController;
 use App\Http\Controllers\RatingAdminController;
 use App\Http\Controllers\CalibrationController;
 use App\Http\Controllers\EmployeePAController;
+use App\Http\Controllers\FlowController;
 use App\Http\Controllers\FormAppraisalController;
 use App\Http\Controllers\FormGroupAppraisalController;
+use App\Http\Controllers\Proposed360;
+use App\Http\Controllers\Proposed360Controller;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\TeamAppraisalController;
 use App\Http\Controllers\TeamGoalController;
@@ -48,17 +55,19 @@ use App\Imports\ApprovalLayerAppraisalImport;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\NotificationMiddleware;
 
-
 Route::get('language/{locale}', [LanguageController::class, 'switchLanguage'])->name('language.switch');
 
 Route::get('dbauth', [SsoController::class, 'dbauth']);
 Route::get('sourcermb/dbauth', [SsoController::class, 'dbauthReimburse']);
+Route::get('facecard/dbauth', [SsoController::class, 'dbauthFacecard']);
 Route::get('auth-service', [SsoController::class, 'handleJWTAuth']);
 
 Route::get('fetch-employees', [EmployeeController::class, 'fetchAndStoreEmployees']);
 Route::get('updmenu-employees', [EmployeeController::class, 'updateEmployeeAccessMenu']);
 Route::get('daily-schedules', [ScheduleController::class, 'reminderDailySchedules']);
 Route::get('schedule-PA', [ScheduleController::class, 'DailyUpdateSchedulePA']);
+
+Route::get('wa-employee/{id}', [EmployeeController::class, 'getEmployeeFromWA']);
 
 Route::get('/test-email', function () {
     $messages = '<p>This is a test message with <strong>bold</strong> text.</p>';
@@ -119,6 +128,9 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::post('/goals/submit', [MyGoalController::class, 'store'])->name('goals.submit');
     Route::get('/goals/edit/{id}', [MyGoalController::class, 'edit'])->name('goals.edit');
     Route::post('/goals/update', [MyGoalController::class, 'update'])->name('goals.update');
+    // routes/web.php
+    Route::get('/goals/latest', [MyGoalController::class, 'latest'])->name('goals.latest');
+
 
     // Team Goals
     Route::get('/team-goals', [TeamGoalController::class, 'index'])->name('team-goals');
@@ -140,6 +152,8 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::get('/appraisals/edit/{id}', [MyAppraisalController::class, 'edit'])->name('edit.appraisal');
     Route::post('/appraisals/submit', [MyAppraisalController::class, 'store'])->name('appraisal.submit');
     Route::post('/appraisals/update', [MyAppraisalController::class, 'update'])->name('appraisal.update');
+    Route::post('/appraisals/update', [MyAppraisalController::class, 'update'])->name('appraisal.update');
+    Route::delete('/appraisals/{id}', [MyAppraisalController::class, 'destroy'])->name('delete.attachment');
     
     // Team Appraisal
     Route::get('/appraisals-task', [AppraisalTaskController::class, 'index'])->name('appraisals-task');
@@ -154,7 +168,6 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     
     // Appraisal 360
     Route::get('/appraisals-task/review/{id}', [AppraisalTaskController::class, 'review'])->name('appraisals-360.review');
-    Route::get('/appraisals-task/submit360', [AppraisalTaskController::class, 'store360'])->name('appraisals-360.submit');
     
     // Rating | Calibration
     Route::get('/rating', [RatingController::class, 'index'])->name('rating');
@@ -215,6 +228,18 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::get('/guides', [GuideController::class, 'index'])->name('guides');
     Route::post('/guides', [GuideController::class, 'store'])->name('upload.guide');
     Route::delete('/guides-delete/{id}', [GuideController::class, 'destroy'])->name('delete.guide');
+
+    // Proposed 360
+    Route::middleware(['flow_access:Propose 360'])->group(function () {
+        Route::get('/proposed360', [Proposed360Controller::class, 'index'])->name('proposed360');
+        Route::post('/proposed360', [Proposed360Controller::class, 'store'])->name('proposed360.store');
+        Route::post('/proposed360/resubmit', [Proposed360Controller::class, 'resubmit'])->name('proposed360.resubmit');
+        Route::post('/proposed360/action', [Proposed360Controller::class, 'action'])->name('proposed360.action');
+    });
+    
+    Route::post('/approval/{approvalRequest}/action', [ApprovalController::class, 'processAction'])->name('approval.action');
+    
+    
     
     // ============================ Administrator ===================================
 
@@ -284,6 +309,13 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::post('/layer-appraisal/update', [LayerController::class, 'layerAppraisalUpdate'])->name('layer-appraisal.update');
         Route::get('/export-invalid-layer-appraisal', [LayerController::class, 'exportInvalidLayerAppraisal'])->name('export.invalid.layer.appraisal');
         Route::get('/employee-layer-appraisal/details/{employeeId}', [LayerController::class, 'getEmployeeLayerDetails']);
+        
+        // Admin Tasks
+        Route::get('admin-tasks', [AdminTasksController::class, 'index'])->name('admin-tasks');
+        Route::get('admin-tasks/detail/{id}', [AdminTasksController::class, 'detail'])->name('admin-tasks.detail');
+        Route::post('admin-tasks/{id}', [AdminTasksController::class, 'action'])->name('admin-tasks.action');
+
+        Route::get('audit-trail', [AuditTrailController::class, 'index'])->name('audit-trail');
 
     });
     
@@ -325,9 +357,13 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         // Approval-Admin
         Route::post('/admin/approval/goal', [AdminOnBehalfController::class, 'store'])->name('admin.approval.goal');
         Route::get('/admin/approval/goal/{id}', [AdminOnBehalfController::class, 'create'])->name('admin.create.approval.goal');
+        Route::get('/admin/appraisal/{id}/{type}', [AppraisalTaskController::class, 'review'])->name('admin.create.approval.appraisal');
+
         // Goals - Admin
         Route::get('/onbehalf', [AdminOnBehalfController::class, 'index'])->name('onbehalf');
         Route::post('/admin/onbehalf/content', [AdminOnBehalfController::class, 'getOnBehalfContent'])->name('admin.onbehalf.content');
+        Route::get('/admin/rating/{id}', [AdminOnBehalfController::class, 'rating'])->name('admin.onbehalfs.rating');
+        // Route::get('/admin/onbehalf/{id}', [AdminOnBehalfController::class, 'getOnBehalfContent'])->name('admin.onbehalf.content');
         Route::post('/admin/goal-content', [AdminOnBehalfController::class, 'getGoalContent']);
         // Sendback
         Route::post('/admin/sendback/goal', [AdminSendbackController::class, 'store'])->name('admin.sendback.goal');
@@ -345,6 +381,35 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         //Employee
         Route::get('/employees', [EmployeeController::class, 'employee'])->name('employees');
         Route::get('/employee/filter', [EmployeeController::class, 'filterEmployees'])->name('employee.filter');
+    });
+
+    Route::middleware(['permission:viewflowsetting'])->group(function () {
+        // Approval Flow
+        Route::get('/approval-flow', [ApprovalFlowController::class, 'index'])->name('approval-flow.index');
+        Route::get('/approval-flow-data', [ApprovalFlowController::class, 'data'])->name('approval-flow.data');
+        Route::get('/approval-flow/create/{id}', [ApprovalFlowController::class, 'create'])->name('approval-flow.create');
+        Route::post('/approval-flow', [ApprovalFlowController::class, 'store'])->name('approval-flow.store');
+        Route::get('/approval-flow/edit/{id}', [ApprovalFlowController::class, 'edit'])->name('approval-flow.edit');
+        Route::put('/approval-flow/{id}', [ApprovalFlowController::class, 'update'])->name('approval-flow.update');
+        Route::delete('/approval-flow/{id}', [ApprovalFlowController::class, 'destroy'])->name('approval-flow.destroy');
+        
+        // Flow
+        Route::get('/flows', [FlowController::class, 'index'])->name('flows.index');
+        Route::get('/flows-data', [FlowController::class, 'data'])->name('flows.data');
+        Route::get('/flows/create/{id}', [FlowController::class, 'create'])->name('flows.create');
+        Route::post('/flows', [FlowController::class, 'store'])->name('flows.store');
+        Route::get('/flows/edit/{id}', [FlowController::class, 'edit'])->name('flows.edit');
+        Route::put('/flows/{id}', [FlowController::class, 'update'])->name('flows.update');
+        Route::delete('/flows/{id}', [FlowController::class, 'destroy'])->name('flows.destroy');
+        
+        // Assignment
+        Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
+        Route::get('/assignments-data', [AssignmentController::class, 'data'])->name('assignments.data');
+        Route::get('/assignments/create/{id}', [AssignmentController::class, 'create'])->name('assignments.create');
+        Route::get('/assignments/edit/{id}', [AssignmentController::class, 'edit'])->name('assignments.edit');
+        Route::post('/assignments', [AssignmentController::class, 'store'])->name('assignments.store');
+        Route::put('/assignments/{id}', [AssignmentController::class, 'update'])->name('assignments.update');
+        Route::delete('/assignments/{id}', [AssignmentController::class, 'destroy'])->name('assignments.destroy');
     });
     
     Route::middleware(['permission:viewimport', 'role:superadmin'])->group(function () {

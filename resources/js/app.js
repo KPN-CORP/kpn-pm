@@ -5,6 +5,8 @@ import $ from 'jquery';
 import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
 window.bootstrap = bootstrap;
 
+import * as XLSX from 'xlsx';
+window.XLSX = XLSX;
 
 // import bootstrap from "bootstrap/dist/js/bootstrap.min";
 // window.bootstrap = bootstrap;
@@ -48,6 +50,10 @@ import './role.js';
 import './layer.js';
 import './admin-appraisal.js';
 import './weightage.js';
+import './assignment.js';
+import './approval-flow.js';
+import './flows.js';
+import './proposed360.js';
 
 function googleTranslateElementInit() {
     new google.translate.TranslateElement({
