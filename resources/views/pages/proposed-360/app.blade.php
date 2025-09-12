@@ -345,6 +345,7 @@
         </div>
     </div>
     @endforeach
+    @if (!$datas->isEmpty())
     <div class="row px-2">
         <div class="col-lg-12 p-0">
             <div class="mt-3 p-2 bg-primary-subtle rounded shadow">       
@@ -651,5 +652,6 @@
             </div>
         </div>
     </div>
+    @endif
 </div>
 @endsection
