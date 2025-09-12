@@ -651,9 +651,21 @@ async function optimizeText(kpi, text, period) {
         baseUrl: GEMINI_API_ENDPOINT,
     });    
 
-    const promptKpi = `Improve this KPI text: "${text}". Make it concise, clear, and impactful. If the text contains a year, replace it with ${period}; if no year exists, do not add one. Adjust to the language used in the original text. Do not add extra symbols, punctuation, or formatting beyond what is needed for clarity. Maintain a professional tone and return only the improved text without any introduction or explanation.`;
+    const promptKpi = `Improve this KPI text: "${text}". Make it concise, clear, and impactful. 
+    If the text contains any year, always replace it with ${period}. 
+    If no year exists, do not add one. 
+    Adjust to the language used in the original text. 
+    Do not add extra symbols, punctuation, or formatting beyond what is needed for clarity. 
+    Maintain a professional tone and return only the improved text without any introduction or explanation.`;
 
-    const promptDesc = `Improve this description text: "${text}". The description is for a goal with the KPI "${kpi}". Make it concise, clear, and easy to understand. If the text contains a year, replace it with ${period}; if no year exists, do not add one. Adjust to the language used in the original text. Do not add extra symbols, punctuation, or formatting beyond what is needed for clarity. Maintain a professional tone and return only the improved text without any introduction or explanation.`;
+    const promptDesc = `Improve this description text: "${text}". The description is for a goal with the KPI "${kpi}". 
+    Make it concise, clear, and easy to understand. 
+    If the text contains any year, always replace it with ${period}. 
+    If no year exists, do not add one. 
+    Adjust to the language used in the original text. 
+    Do not add extra symbols, punctuation, or formatting beyond what is needed for clarity. 
+    Maintain a professional tone and return only the improved text without any introduction or explanation.`;
+
 
     
     // Define the prompt for text optimization
