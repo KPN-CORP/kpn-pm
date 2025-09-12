@@ -478,7 +478,7 @@ class ApprovalEngine
             'action'              => strtoupper($payload['action'] ?? 'UNKNOWN'),
             'comments'            => $payload['comments'] ?? null,
             'acted_at'            => now(),
-            'module'              => $payload['module'] ?? 'approval_request',
+            'module'              => $payload['module'] ?? 'Proposed360',
             'loggable_id'         => $payload['loggable_id'] ?? null,
             'loggable_type'       => $payload['loggable_type'] ?? null,
             'flow_id'             => $payload['flow_id'] ?? null,
