@@ -32,7 +32,7 @@ deployment:
     # Copy essential Laravel application directories to deployment path
     - /bin/cp -r app bootstrap config database routes resources $DEPLOYPATH
     
-    # - /bin/cp -r public/build $DEPLOYPATH/public
+    - /bin/cp -r public/build $DEPLOYPATH/public
 
     # Copy public assets to the public_html directory
     - /bin/cp -r public/css public/img public/images public/js public/scss /home/hcis8257/public_html/kpnpm.hcis.dev
