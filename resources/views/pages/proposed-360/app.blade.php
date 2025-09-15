@@ -345,7 +345,7 @@
         </div>
     </div>
     @endforeach
-    @if (!$datas->isEmpty() && !$peers->isNotEmpty())
+    @if (!$datas->isEmpty() && !$peers->isNotEmpty()) {{-- Cek jika ada data peers dan team/subordinate dari user --}}
     <div class="row px-2">
         <div class="col-lg-12 p-0">
             <div class="mt-3 p-2 bg-primary-subtle rounded shadow">       

@@ -517,10 +517,11 @@ function initializeTextareaEvents() {
 $(document).on('click', '#getLatestGoal', function(){
     const btn = this;
     const period = document.getElementById('period').value;
+    const employeeId = document.getElementById('employee_id').value;
     toggleLoading(btn, true);
     showSectionLoader('.container-fluid.p-0');
 
-    fetch('/goals/latest')
+    fetch(`/goals/latest/${employeeId}`)
         .then(r => r.json())
         .then(async res => { // Add async here to use await
             if(!res.success){ 
