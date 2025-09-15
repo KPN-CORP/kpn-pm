@@ -1,6 +1,7 @@
 import $ from 'jquery';
 
 function yearGoal(button) {
+    showLoader();
     // Get the form
     var form = $(button).closest('form');
     
