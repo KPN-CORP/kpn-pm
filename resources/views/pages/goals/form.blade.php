@@ -123,7 +123,7 @@
           @foreach ($datas as $index => $data)
           <input type="hidden" class="form-control" name="users_id" value="{{ Auth::user()->id }}">
           <input type="hidden" class="form-control" name="approver_id" value="{{ $data->approver_id }}">
-          <input type="hidden" class="form-control" name="employee_id" value="{{ $data->employee_id }}">
+          <input type="hidden" class="form-control" name="employee_id" id="employee_id" value="{{ $data->employee_id }}">
           <input type="hidden" class="form-control" name="category" value="Goals">
           <input type="hidden" class="form-control" id="period" value="{{ $period }}">
           @endforeach
