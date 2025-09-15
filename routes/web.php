@@ -129,7 +129,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::get('/goals/edit/{id}', [MyGoalController::class, 'edit'])->name('goals.edit');
     Route::post('/goals/update', [MyGoalController::class, 'update'])->name('goals.update');
     // routes/web.php
-    Route::get('/goals/latest', [MyGoalController::class, 'latest'])->name('goals.latest');
+    Route::get('/goals/latest/{id}', [MyGoalController::class, 'latest'])->name('goals.latest');
 
 
     // Team Goals

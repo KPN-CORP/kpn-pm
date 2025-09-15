@@ -673,11 +673,10 @@ class MyGoalController extends Controller
     }
 
     // GoalController.php
-    public function latest(Request $request)
+    public function latest($id)
     {
-        $employeeId = Auth::user()->employee_id;
         
-        $latest = Goal::where('employee_id', $employeeId)->orderByDesc('period')->first();
+        $latest = Goal::where('employee_id', $id)->orderByDesc('period')->first();
 
         $data = [];
         if ($latest) {
