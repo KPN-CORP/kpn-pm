@@ -368,7 +368,7 @@
                 @forelse ($datas as $id => $row)
                 @php
                     $approval = $row->approval_request;
-                    $appraisalYear = $period ?? now()->year;
+                    $appraisalYear = $period;
                     $submittedAt = $approval ? \Illuminate\Support\Carbon::parse($approval->created_at)->format('d M Y') : '-';
                     $statusClass = $approval ? ($approval->status==='APPROVED'?'success':($approval->status==='REJECTED'?'danger':'warning')) : 'secondary';
                     $statusText = $approval ? strtolower($approval->status) : 'draft';
