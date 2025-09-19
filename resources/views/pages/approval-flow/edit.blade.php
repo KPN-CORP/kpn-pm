@@ -127,7 +127,8 @@
                                                             class="form-control form-control-sm">
                                                     </td>
                                                     <td class="text-center">
-                                                        <button type="button" class="btn btn-sm btn-light rounded additional-settings-btn"
+                                                        {{-- Modal button additional setting --}}
+                                                        <button type="button" class="btn btn-sm btn-light rounded additional-settings-btn d-none"
                                                             data-toggle="modal" data-target="#additionalSettingsModal"
                                                             data-step-index="{{ $index }}">
                                                             <i class="ri-more-2-fill"></i>

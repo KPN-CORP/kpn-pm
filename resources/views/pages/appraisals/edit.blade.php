@@ -28,7 +28,7 @@
                                               
                         </div>
                     </div>
-                    {{-- @if ($row->request->employee->group_company == 'Cement') --}}
+                    @if ($viewAchievement)
                     <div class="card-body m-0 py-2">
                         @php
                             $achievement = [
@@ -80,7 +80,7 @@
                             </div>
                         </div>
                     </div>
-                    {{-- @endif --}}
+                    @endif
                     <div class="card-body">
                         <form id="formAppraisalUser" action="{{ route('appraisal.update') }}" enctype="multipart/form-data" method="POST">
                         @csrf

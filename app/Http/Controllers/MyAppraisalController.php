@@ -248,7 +248,10 @@ class MyAppraisalController extends Controller
 
             $achievements = Achievements::where('employee_id', $user)->where('period', $period)->get();
 
-            return view('pages.appraisals.my-appraisal', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'accessMenu', 'selectYear', 'adjustByManager', 'appraisalData', 'achievements'));
+            // View Cement only //
+            $viewAchievement = $employeeData->group_company == 'Cement' ? true : false;
+
+            return view('pages.appraisals.my-appraisal', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'accessMenu', 'selectYear', 'adjustByManager', 'appraisalData', 'achievements', 'viewAchievement'));
 
         } catch (Exception $e) {
             Log::error('Error in index method: ' . $e->getMessage());
@@ -341,8 +344,11 @@ class MyAppraisalController extends Controller
         $parentLink = __('Appraisal');
         $link = 'Initiate Appraisal';
 
+        // View Cement only //
+        $viewAchievement = $employee->group_company == 'Cement' ? true : false;
+
         // Pass the data to the view
-        return view('pages/appraisals/create', compact('step', 'parentLink', 'link', 'filteredFormData', 'formGroupData', 'goalData', 'goal', 'approval', 'ratings', 'appraisal', 'achievements'));
+        return view('pages/appraisals/create', compact('step', 'parentLink', 'link', 'filteredFormData', 'formGroupData', 'goalData', 'goal', 'approval', 'ratings', 'appraisal', 'achievements', 'viewAchievement'));
     }
 
     public function store(Request $request)
@@ -627,9 +633,14 @@ class MyAppraisalController extends Controller
 
             $achievements = Achievements::where('employee_id', $appraisal->employee_id)->where('period', $period)->get();
 
+            $employee = EmployeeAppraisal::where('employee_id', $this->user)->first();
+
+            // View Cement only //
+            $viewAchievement = $employee->group_company == 'Cement' ? true : false;
+
             $viewCategory = 'Edit';
 
-            return view('pages.appraisals.edit', compact('step', 'goal', 'appraisal', 'goalData', 'formCount', 'filteredFormData', 'link', 'data', 'approvalRequest', 'parentLink', 'approval', 'formGroupData', 'ratings', 'viewCategory', 'achievements'));
+            return view('pages.appraisals.edit', compact('step', 'goal', 'appraisal', 'goalData', 'formCount', 'filteredFormData', 'link', 'data', 'approvalRequest', 'parentLink', 'approval', 'formGroupData', 'ratings', 'viewCategory', 'achievements', 'viewAchievement'));
         }
 
     }

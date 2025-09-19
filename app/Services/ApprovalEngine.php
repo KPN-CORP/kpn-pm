@@ -255,7 +255,7 @@ class ApprovalEngine
                 'current_step'        => $step ? (int) $step->step_number : (int) $req->current_step,
                 'current_approval_id' => isset($nextApprover) ? (string) $nextApprover : null, // bisa employee_id atau role name
                 'messages'            => $message,
-                'updated_by'          => (string) $actorEmpId,
+                'updated_by'          => Auth::id(),
                 'sendback_to'         => null, // clear pointer
             ]);
 
