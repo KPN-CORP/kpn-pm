@@ -207,10 +207,10 @@
                                     </ul>
                                 </div>
                             </li>
-                            @endcan
                             <li class="side-nav-item">
                                 <a href="{{ route('assignments.index') }}">Assignments</a>
                             </li>
+                            @endcan
                         </ul>
                     </div>
                 </li>

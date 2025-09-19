@@ -689,7 +689,7 @@ ${em(this.code(t,r))}
             <td class="approvers-cell">
                 <div class="form-group mb-2">
                     <label for="steps-${f}-approver_role" class="form-label">Select Approvers</label>
-                    <select multiple name="steps[${f}][approver_role][]" class="form-select form-select-sm mb-1 select360" id="steps-${f}-approver_role" data-placeholder="Select approver">
+                    <select multiple name="steps[${f}][approver_role][]" class="form-select form-select-sm mb-1 select360" id="steps-${f}-approver_role" required data-placeholder="Select approver">
                         ${p}
                     </select>
                 </div>
@@ -704,7 +704,7 @@ ${em(this.code(t,r))}
                 <input type="number" name="steps[${f}][allotted_time]" class="form-control form-control-sm">
             </td>
             <td class="text-center">
-                <button type="button" class="btn btn-sm btn-light rounded py-1 px-2 m-1 fs-14 additional-settings-btn" data-bs-toggle="modal" data-bs-target="#additionalSettingsModal" data-step-index="${f}">
+                <button type="button" class="btn btn-sm btn-light d-none rounded py-1 px-2 m-1 fs-14 additional-settings-btn" data-bs-toggle="modal" data-bs-target="#additionalSettingsModal" data-step-index="${f}">
                     <i class="ri-more-2-fill"></i>
                 </button>
                 <button type="button" class="btn btn-sm btn-light rounded py-1 px-2 fs-14 remove-step"><i class="ri-delete-bin-line"></i></button>

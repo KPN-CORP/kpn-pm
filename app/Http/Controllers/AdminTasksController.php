@@ -74,7 +74,7 @@ class AdminTasksController extends Controller
             ->where('employee_id', $req->employee_id)->first();
 
         $initiator = EmployeeAppraisal::select('employee_id','fullname')
-            ->where('employee_id', $req->created_by)->first();
+            ->where('id', $req->created_by)->first();
 
         $formDetail = null;
         if ($req->category === 'Proposed360') {
@@ -121,12 +121,12 @@ class AdminTasksController extends Controller
             if ($request->action === 'APPROVE') {
                 $engine->approve((string)$req->form_id, $actorEmpId);
                 DB::commit();
-                return redirect()->route('admin-tasks')->with('success','Task berhasil di-approve.');
+                return redirect()->route('admin-tasks')->with('success','Task Approved Succesfully');
             }
             // REJECT
             $engine->reject((string)$req->form_id, $actorEmpId, null, $request->message);
             DB::commit();
-            return redirect()->route('admin-tasks')->with('success','Task berhasil di-reject.');
+            return redirect()->route('admin-tasks')->with('success','Task has been Sendbacked.');
         } catch (\Throwable $e) {
             DB::rollBack();
             report($e);

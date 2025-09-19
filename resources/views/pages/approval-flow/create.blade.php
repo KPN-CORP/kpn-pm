@@ -141,7 +141,7 @@
                                                     <td class="approvers-cell">
                                                         <div class="form-group mb-2">
                                                             <label class="form-label" for="steps-0-approver_role">Select Approvers</label>
-                                                            <select multiple name="steps[0][approver_role][]" class="form-select form-select-sm mb-1 select360" id="steps-0-approver_role" data-placeholder="Select approver">
+                                                            <select multiple name="steps[0][approver_role][]" class="form-select form-select-sm mb-1 select360" id="steps-0-approver_role" required data-placeholder="Select approver">
                                                                 @foreach($approverRoles as $key => $value)
                                                                     <option value="{{ $value }}" {{ old("steps.0.approver_role") == $value ? 'selected' : '' }}>{{ $value }}</option>
                                                                 @endforeach

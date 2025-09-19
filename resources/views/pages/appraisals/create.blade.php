@@ -51,12 +51,13 @@
                             }
                         @endphp
 
+                        @if ($viewAchievement)
                         <div class="rounded mb-2 p-3 bg-white text-primary align-items-center">
                             <div class="row mb-2">
                                 <span class="fs-16 mx-1">
                                     Achievements
                                 </span>      
-                            </div>                         
+                            </div>   
                             <div class="row">
                                 <div class="table-responsive">
                                     <table class="table table-bordered table-sm mb-0 text-center align-middle">
@@ -80,6 +81,7 @@
                                 </div>
                             </div>
                         </div>
+                        @endif                    
                     </div>
                     {{-- @endif --}}
                     <div class="card-body">

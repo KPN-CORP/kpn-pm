@@ -71,6 +71,11 @@ class Proposed360Controller extends Controller
                         }
                     })
                     ->get();
+
+                $subordinates = EmployeeAppraisal::select('id','employee_id','fullname','designation_name','manager_l1_id')
+                    ->with(['appraisalLayer' => fn($q) => $q->whereIn('layer_type',['peers','subordinate'])])
+                    ->where('manager_l1_id',$authEmpId)
+                    ->get();
             } else {
                 // Tidak ada assignments → tidak ada DATA TEAM (sesuai requirement)
                 $datas = collect();
@@ -78,22 +83,21 @@ class Proposed360Controller extends Controller
 
             $teamIds = $datas->pluck('employee_id')->all();
 
-            // anak dari tiap team member
-            $children = $teamIds
-                ? EmployeeAppraisal::select('id','employee_id','fullname','designation_name','manager_l1_id')
-                    ->whereIn('manager_l1_id',$teamIds)->get()->groupBy('manager_l1_id')
-                : collect()->groupBy('manager_l1_id'); // empty
+            $childrenRaw = EmployeeAppraisal::select('id','employee_id','fullname','designation_name','manager_l1_id')
+                ->whereIn('manager_l1_id', $teamIds)
+                ->get();
+
+            $children = $childrenRaw->groupBy('manager_l1_id');
 
             $datas->transform(function ($emp) use ($children) {
-                $emp->peers = $emp->appraisalLayer->where('layer_type','peers')->values();
                 $emp->subordinates = $children->get($emp->employee_id, collect());
                 return $emp;
             });
 
+
             // SELF section tetap tampil; subordinates untuk SELF = datas (yang sudah ter-restrict)
             $selfRow->subordinates = $datas;
             $self = collect([$selfRow]);
-            $peers = $datas;
 
             // peers utk SELF (rekan 1 atasan)
             if ($selfRow->manager_l1_id) {
@@ -101,9 +105,12 @@ class Proposed360Controller extends Controller
                     ->where('manager_l1_id',$selfRow->manager_l1_id)
                     ->where('employee_id','!=',$authEmpId)
                     ->get();
+                    
+                $peers = EmployeeAppraisal::select('id','employee_id','fullname','designation_name','manager_l1_id')
+                    ->where('manager_l1_id',$authEmpId)
+                    ->get();
             }
 
-            $subordinates = $children->flatten(1);
         }
 
         // === 4) ApprovalRequest Proposed360 periode berjalan (SELF + TEAM yang tampil) ===
@@ -112,8 +119,8 @@ class Proposed360Controller extends Controller
         if (!empty($teamIds)) $employeeKeys = array_merge($employeeKeys, array_map('strval',$teamIds));
         $employeeKeys = array_values(array_unique($employeeKeys));
 
-        $approvals = ApprovalRequest::with(['manager'])
-            ->select('id','form_id','current_approval_id','employee_id','status','created_at','category','period', 'sendback_messages')
+        $approvals = ApprovalRequest::with(['manager', 'initiated'])
+            ->select('id','form_id','current_approval_id','employee_id','status', 'created_by','created_at','category','period', 'sendback_messages')
             ->when(!empty($employeeKeys), fn($q) => $q->whereIn('employee_id',$employeeKeys))
             ->where('category','Proposed360')
             ->where('period',$period)

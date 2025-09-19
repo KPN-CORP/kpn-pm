@@ -60,15 +60,22 @@
             $waitingFor = $mgr?->employee_id ? ($mgr->fullname.' ('.$mgr->employee_id.')') : ($cur ?: null);
         }
 
+        $initiator = '';
+        $initiatorClass = 'select360';
+
         $tooltip = null;
         if ($hasApproval) {
             $tooltip = match ($statusText) {
                 'pending'  => $waitingFor,
                 'approved' => "Approved — diajukan {$submittedAt}",
                 'rejected' => "Ditolak — diajukan {$submittedAt}",
-                default    => $submittedAt ? "Diajukan {$submittedAt}" : null,
+                'sendback' => "Waiting for Revision - {$row->approval_request->initiated->name} ({$row->approval_request->initiated->employee_id})",
+                default    => $submittedAt ? "Diajukan {$submittedAt} by {$row->approval_request->initiated->name} ({$row->approval_request->initiated->employee_id})" : null,
             };
+            $initiator = Auth::id() == $row->approval_request?->created_by ? '' : 'disabled';
+            $initiatorClass = Auth::id() == $row->approval_request?->created_by ? 'select360' : '';
         }
+
     @endphp
     <div class="row px-2">
         <div class="col-lg-12 p-0">
@@ -82,7 +89,7 @@
                         </h5>
                     </div>
                 </div>
-                @if ($approval && $approval->sendback_messages && $approval->status == 'Sendback')
+                @if ($approval && $approval->sendback_messages && $row->approval_request->created_by == Auth::id() && $approval->status == 'Sendback')
                 <div class="row">
                     <div class="col">
                         <div class="card bg-warning bg-opacity-10 border border-warning mb-2">
@@ -163,10 +170,10 @@
                                             $isSendback = $approval && strtoupper($approval->status) === 'SENDBACK'; 
                                         @endphp
                                         @if($approval)
-                                            @if ($approval->employee_id == Auth::user()->employee_id && strtoupper($approval->status)==='SENDBACK')
+                                            @if ($approval->created_by == Auth::id() && strtoupper($approval->status)==='SENDBACK')
                                                 <button type="submit"
                                                     form="form-propose-self-{{ $row->employee_id }}"
-                                                    class="btn btn-sm btn-primary"
+                                                    class="btn btn-sm btn-warning"
                                                     data-submit>
                                                     <span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>
                                                     {{ __('Revise') }}
@@ -209,7 +216,7 @@
                                                                 $pref = old('peers.0')
                                                                     ?? ($approval ? data_get($row, 'selected_peers.0') : data_get($selectedLayer, 'approver_id'));
                                                             @endphp
-                                                            <select name="peers[]" id="peer1" class="form-select select360" required>
+                                                            <select name="peers[]" id="peer1" class="form-select {{ $initiatorClass }}" required {{ $initiator }}>
                                                                 <option value="">- Please Select -</option>
                                                                 @foreach ($selfPeers as $item)
                                                                     @continue($item->employee_id == $row->employee_id) {{-- jangan pilih diri sendiri --}}
@@ -229,7 +236,7 @@
                                                                 $pref = old('peers.1')
                                                                     ?? ($approval ? data_get($row, 'selected_peers.1') : data_get($selectedLayer, 'approver_id'));
                                                             @endphp
-                                                            <select name="peers[]" id="peer2" class="form-select select360">
+                                                            <select name="peers[]" id="peer2" class="form-select {{ $initiatorClass }}" {{ $initiator }}>
                                                                 <option value="">- Please Select -</option>
                                                                 @foreach ($selfPeers as $item)
                                                                     @continue($item->employee_id == $row->employee_id) {{-- jangan pilih diri sendiri --}}
@@ -249,7 +256,7 @@
                                                                 $pref = old('peers.2')
                                                                     ?? ($approval ? data_get($row, 'selected_peers.2') : data_get($selectedLayer, 'approver_id'));
                                                             @endphp
-                                                            <select name="peers[]" id="peer3" class="form-select select360">
+                                                            <select name="peers[]" id="peer3" class="form-select {{ $initiatorClass }}" {{ $initiator }}>
                                                                 <option value="">- Please Select -</option>
                                                                 @foreach ($selfPeers as $item)
                                                                     @continue($item->employee_id == $row->employee_id) {{-- jangan pilih diri sendiri --}}
@@ -266,7 +273,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                @if ( !empty($row->subordinates->first()) )
+                                @if ( !empty($subordinates->first()) )
                                 <div class="row">
                                     <div class="col">
                                         <div class="card bg-light-subtle border border-light shadow-none mb-0">
@@ -280,9 +287,9 @@
                                                                 $pref = old('subordinates.0')
                                                                     ?? ($approval ? data_get($row, 'selected_subordinates.0') : data_get($selectedLayer, 'approver_id'));
                                                             @endphp
-                                                            <select name="subordinates[]" id="sub1" class="form-select select360" required>
+                                                            <select name="subordinates[]" id="sub1" class="form-select {{ $initiatorClass }}" required {{ $initiator }}>
                                                                 <option value="">- Please Select -</option>
-                                                                @foreach ($row->subordinates as $item)
+                                                                @foreach ($subordinates as $item)
                                                                     <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
                                                                         {{ $item->fullname }} {{ $item->employee_id }}
                                                                     </option>
@@ -299,9 +306,9 @@
                                                                 $pref = old('subordinates.1')
                                                                     ?? ($approval ? data_get($row, 'selected_subordinates.1') : data_get($selectedLayer, 'approver_id'));
                                                             @endphp
-                                                            <select name="subordinates[]" id="sub2" class="form-select select360">
+                                                            <select name="subordinates[]" id="sub2" class="form-select {{ $initiatorClass }}" {{ $initiator }}>
                                                                 <option value="">- Please Select -</option>
-                                                                @foreach ($row->subordinates as $item)
+                                                                @foreach ($subordinates as $item)
                                                                     <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
                                                                         {{ $item->fullname }} {{ $item->employee_id }}
                                                                     </option>
@@ -319,9 +326,9 @@
                                                                 $pref = old('subordinates.2')
                                                                     ?? ($approval ? data_get($row, 'selected_subordinates.2') : data_get($selectedLayer, 'approver_id'));
                                                             @endphp
-                                                            <select name="subordinates[]" id="sub3" class="form-select select360">
+                                                            <select name="subordinates[]" id="sub3" class="form-select {{ $initiatorClass }}" {{ $initiator }}>
                                                                 <option value="">- Please Select -</option>
-                                                                @foreach ($row->subordinates as $item)
+                                                                @foreach ($subordinates as $item)
                                                                     <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
                                                                         {{ $item->fullname }} {{ $item->employee_id }}
                                                                     </option>
@@ -345,7 +352,7 @@
         </div>
     </div>
     @endforeach
-    @if (!$datas->isEmpty() && !$peers->isNotEmpty()) {{-- Cek jika ada data peers dan team/subordinate dari user --}}
+    @if (!$datas->isEmpty()) {{-- Cek jika ada data peers dan team/subordinate dari user --}}
     <div class="row px-2">
         <div class="col-lg-12 p-0">
             <div class="mt-3 p-2 bg-primary-subtle rounded shadow">       
@@ -398,14 +405,32 @@
                             'pending'  => $waitingFor,
                             'approved' => "Approved — diajukan {$submittedAt}",
                             'rejected' => "Ditolak — diajukan {$submittedAt}",
+                            'sendback' => "Waiting for Revision - {$row->approval_request->initiated->name} ({$row->approval_request->initiated->employee_id})",
                             default    => $submittedAt ? "Diajukan {$submittedAt}" : null,
                         };
                     }
+
                 @endphp
                 <div class="row mt-3">
                     <div class="col">
                         <div class="card mb-0">
                             <div class="card-body p-1 p-md-2 d-flex flex-column gap-2">
+                                @if ($approval && $approval->sendback_messages && $row->approval_request->created_by == Auth::id() && $approval->status == 'Sendback')
+                                <div class="row">
+                                    <div class="col">
+                                        <div class="card bg-warning bg-opacity-10 border border-warning mb-2">
+                                            <div class="row p-2">
+                                                <div class="col-lg col-sm-12 px-2">
+                                                    <div class="form-group">
+                                                        <p class="fw-bold mb-0">Revision Notes :</p>
+                                                        <p class="mt-1 mb-0">{{ $approval->sendback_messages }}</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                @endif
                                 <div class="row">
                                     <div class="col-md-4 me-2">
                                         <div class="row">
@@ -462,10 +487,10 @@
                                                         <button class="btn btn-sm btn-primary">{{ __('Approve') }}</button>
                                                     </form>                                                    
                                                 @endif
-                                                @if ($approval->employee_id == Auth::user()->employee_id && strtoupper($approval->status)==='SENDBACK')
+                                                @if ($approval->created_by == Auth::id() && strtoupper($approval->status)==='SENDBACK')
                                                     <button type="submit"
                                                         form="form-propose-team-{{ $row->employee_id }}"
-                                                        class="btn btn-sm btn-primary"
+                                                        class="btn btn-sm btn-warning"
                                                         data-submit>
                                                         <span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>
                                                         {{ __('Revise') }}
@@ -484,22 +509,6 @@
                                         </div>
                                     </div>
                                 </div>
-                                @if ($approval && $approval->sendback_messages && $approval->status == 'Pending')
-                                <div class="row">
-                                    <div class="col">
-                                        <div class="card bg-warning bg-opacity-10 mb-2 shadow-none">
-                                            <div class="row p-2">
-                                                <div class="col-lg col-sm-12 px-2">
-                                                    <div class="form-group">
-                                                        <p class="fw-bold mb-0">Your Notes :</p>
-                                                        <p class="mt-1 mb-0">{{ $approval->sendback_messages }}</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                                @endif
                                 <form id="form-propose-team-{{ $row->employee_id }}" method="POST" action="{{ ($approval && strtoupper($approval->status)==='SENDBACK')
                     ? route('proposed360.resubmit')
                     : route('proposed360.store') }}">
@@ -577,7 +586,6 @@
                                         </div>
                                     </div>
                                 </div>
-
                                 @if (!empty($row->subordinates->first()))
                                 <div class="row">
                                     <div class="col">

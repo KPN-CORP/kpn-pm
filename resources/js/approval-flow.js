@@ -189,7 +189,7 @@ document.addEventListener("DOMContentLoaded", function () {
             <td class="approvers-cell">
                 <div class="form-group mb-2">
                     <label for="steps-${newIndex}-approver_role" class="form-label">Select Approvers</label>
-                    <select multiple name="steps[${newIndex}][approver_role][]" class="form-select form-select-sm mb-1 select360" id="steps-${newIndex}-approver_role" data-placeholder="Select approver">
+                    <select multiple name="steps[${newIndex}][approver_role][]" class="form-select form-select-sm mb-1 select360" id="steps-${newIndex}-approver_role" required data-placeholder="Select approver">
                         ${approverOptionsHtml}
                     </select>
                 </div>
@@ -204,7 +204,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 <input type="number" name="steps[${newIndex}][allotted_time]" class="form-control form-control-sm">
             </td>
             <td class="text-center">
-                <button type="button" class="btn btn-sm btn-light rounded py-1 px-2 m-1 fs-14 additional-settings-btn" data-bs-toggle="modal" data-bs-target="#additionalSettingsModal" data-step-index="${newIndex}">
+                <button type="button" class="btn btn-sm btn-light d-none rounded py-1 px-2 m-1 fs-14 additional-settings-btn" data-bs-toggle="modal" data-bs-target="#additionalSettingsModal" data-step-index="${newIndex}">
                     <i class="ri-more-2-fill"></i>
                 </button>
                 <button type="button" class="btn btn-sm btn-light rounded py-1 px-2 fs-14 remove-step"><i class="ri-delete-bin-line"></i></button>

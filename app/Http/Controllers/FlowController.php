@@ -59,7 +59,7 @@ class FlowController extends Controller
         $approverRoles = Role::where('name', '!=', 'superadmin')->pluck('name', 'id')->toArray();
 
         $approverRoles = [
-            // 'Self' => 'Self',
+            'self' => 'Self',
             // 'superadmin' => 'Admin',
             'manager_l1_id' => 'L1 Manager',
             'manager_l2_id' => 'L2 Manager',
@@ -102,13 +102,13 @@ class FlowController extends Controller
     {
         $validated = $request->validate([
             'module_transaction'              => 'required',
-            'flow_name'                        => 'required|string|max:255',
+            'flow_name'                        => 'required|string|max:255|unique:flows,flow_name',
             'description'                      => 'nullable|string',
             'assignments'                      => 'required|array|min:1',
             'assignments.*'                    => 'exists:assignments,id',
             'initiator'                         => 'required|array|min:1',
-            'initiator.*.role'         => 'required',
-            'initiator.*.approval_flow'     => 'required|exists:approval_flows,id',
+            'initiator.*.role'                  => 'required',
+            'initiator.*.approval_flow'         => 'required|exists:approval_flows,id',
         ]);
 
         try {

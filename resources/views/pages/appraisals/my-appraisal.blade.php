@@ -100,7 +100,7 @@
                                 $achievement = json_decode($achievements->first()->data, true);
                             }
                         @endphp
-                        {{-- @if ($row->request->employee->group_company == 'Cement') --}}
+                        @if ($viewAchievement)
                         <div class="card-body m-0 py-2">
                             <div class="rounded mb-2 p-3 bg-secondary-subtle bg-opacity-10 text-primary align-items-center">
                                 <div class="row mb-2">
@@ -132,7 +132,7 @@
                                 </div>
                             </div>
                         </div>
-                        {{-- @endif --}}
+                        @endif
                         @if ($row->request->created_by == $row->request->employee->id)
                         @if($row->request->appraisal?->file)
                         <div class="card-body m-0 py-2">

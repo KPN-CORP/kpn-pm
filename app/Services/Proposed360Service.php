@@ -187,7 +187,7 @@ class Proposed360Service
             // tulis ke approval_layer_appraisals per baris (manager/peers/subordinate, layer 1..3)
             $this->syncRows($empId, 'peers',       $peers, $actorEmpId);
             $this->syncRows($empId, 'subordinate', $subs,  $actorEmpId);
-            $this->syncRows($empId, 'manager',     $mgrs,  $actorEmpId);
+            // $this->syncRows($empId, 'manager',     $mgrs,  $actorEmpId);
 
             // tandai transaksi
             $trx->update(['status' => 'APPROVED', 'updated_by' => (string)$actorEmpId]);

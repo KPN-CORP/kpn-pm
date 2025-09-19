@@ -107,6 +107,18 @@
       @endif
 
       <hr>
+      @if ($req->sendback_messages)
+      <div class="card bg-warning bg-opacity-10 border border-warning mb-2">
+        <div class="row p-2">
+            <div class="col-lg col-sm-12 px-2">
+                <div class="form-group">
+                    <p class="fw-bold mb-0">Revision Notes :</p>
+                    <p class="mt-1 mb-0">{{ $req->sendback_messages }}</p>
+                </div>
+            </div>
+        </div>
+      </div>
+      @endif
       <form class="d-inline" method="POST" action="{{ route('admin-tasks.action', $req->id) }}">
         @csrf
         <input type="hidden" name="action" value="REJECT">
