@@ -188,7 +188,7 @@ class Proposed360Controller extends Controller
         $parentLink = __('Propose 360');
         $link       = __('Propose List');
 
-        return view('pages.proposed-360.app', compact('parentLink','link','datas','peers','subordinates','self','selfPeers'));
+        return view('pages.proposed-360.app', compact('parentLink','link','datas','peers','subordinates','self','selfPeers', 'period'));
     }
 
     /* ===================== HELPERS ===================== */
@@ -444,7 +444,7 @@ class Proposed360Controller extends Controller
             $trx = $service->submit($data,$engine);
             DB::commit();
             Log::info('proposed360.store.success', ['trace'=>$trace,'form_id'=>$trx->id,'status'=>$trx->status]);
-            return redirect()->route('proposed360.index')->with('success','Pengajuan 360 dikirim');
+            return redirect()->route('proposed360')->with('success','Pengajuan 360 dikirim');
         } catch (Throwable $e) {
             DB::rollBack();
             Log::error('proposed360.store.error', ['trace'=>$trace,'message'=>$e->getMessage(),'code'=>$e->getCode(),'line'=>$e->getLine()]);
@@ -471,7 +471,7 @@ class Proposed360Controller extends Controller
             }
             DB::commit();
             Log::info('proposed360.action.success', ['trace'=>$trace,'form_id'=>$data['form_id'],'action'=>$data['action']]);
-            return redirect()->route('proposed360.index')->with('success','Tindakan tersimpan');
+            return redirect()->route('proposed360')->with('success','Tindakan tersimpan');
         } catch (Throwable $e) {
             DB::rollBack();
             Log::error('proposed360.action.error', ['trace'=>$trace,'form_id'=>$data['form_id'],'action'=>$data['action'],'message'=>$e->getMessage(),'code'=>$e->getCode(),'line'=>$e->getLine()]);
