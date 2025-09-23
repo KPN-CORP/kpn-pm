@@ -459,23 +459,25 @@ class Proposed360Controller extends Controller
             'action'=>['required','in:APPROVE,REJECT'],
             'sendback_to'=>['nullable','string','max:50'],
         ]);
+
         $message  = (string) $request->input('sendback_message', '');
         $trace = (string) Str::uuid();
         Log::info('proposed360.action.start', ['trace'=>$trace,'actor'=>Auth::user()->employee_id,'form_id'=>$data['form_id'],'action'=>$data['action']]);
         DB::beginTransaction();
         try {
             if ($data['action']==='APPROVE') {
-                $service->approve($data['form_id'],$engine);
+                // APPROVE dengan overwrite pilihan terbaru dari form:
+                $service->approve($data['form_id'], $engine, $request->input('peers'), $request->input('subordinates'));
             } else {
                 $service->reject($data['form_id'], $engine, $data['sendback_to'] ?? null, $message);
             }
             DB::commit();
             Log::info('proposed360.action.success', ['trace'=>$trace,'form_id'=>$data['form_id'],'action'=>$data['action']]);
-            return redirect()->route('proposed360')->with('success','Tindakan tersimpan');
+            return redirect()->route('proposed360')->with('success','Approval processed successfully');
         } catch (Throwable $e) {
             DB::rollBack();
             Log::error('proposed360.action.error', ['trace'=>$trace,'form_id'=>$data['form_id'],'action'=>$data['action'],'message'=>$e->getMessage(),'code'=>$e->getCode(),'line'=>$e->getLine()]);
-            return back()->withErrors(['error'=>'Gagal memproses tindakan']);
+            return back()->withErrors(['error'=>'Gagal memproses approval']);
         }
     }
 

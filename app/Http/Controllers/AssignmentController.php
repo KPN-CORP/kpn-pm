@@ -72,7 +72,7 @@ class AssignmentController extends Controller
             'Company Name'    => $companies->toArray(),
             'Job Level'       => $jobLevels->toArray(),
             'Employee Type'   => $employeeTypes->toArray(),
-            'Employee Name'   => $employeeNames->toArray()
+            'Employee'   => $employeeNames->toArray()
         ];
 
 

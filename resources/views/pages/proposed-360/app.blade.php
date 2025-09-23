@@ -480,12 +480,22 @@
                                                         </button>
                                                     </form>
 
-                                                    <form method="POST" action="{{ route('proposed360.action') }}" class="d-inline">
-                                                        @csrf
+                                                    <form method="POST" action="{{ route('proposed360.action') }}" class="d-inline js-approve-form">
+                                                    @csrf
                                                         <input type="hidden" name="form_id" value="{{ $approval->form_id }}">
                                                         <input type="hidden" name="action" value="APPROVE">
-                                                        <button class="btn btn-sm btn-primary">{{ __('Approve') }}</button>
-                                                    </form>                                                    
+
+                                                        {{-- Hidden holder tempat inject peers[] & subordinates[] sebelum submit --}}
+                                                        <span class="js-clone-area"></span>
+
+                                                        <button type="button"
+                                                                class="btn btn-sm btn-primary btn-approve"
+                                                                data-source-form="form-propose-team-{{ $row->employee_id }}">
+                                                            <span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>
+                                                            {{ __('Approve') }}
+                                                        </button>
+                                                    </form>
+                                                    
                                                 @endif
                                                 @if ($approval->created_by == Auth::id() && strtoupper($approval->status)==='SENDBACK')
                                                     <button type="submit"
