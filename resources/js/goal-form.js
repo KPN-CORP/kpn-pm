@@ -453,21 +453,31 @@ for (var i = 0; i < weightageInputs.length; i++) {
 }
 
 function validateDigits(input, index) {
-    // Remove non-digit characters to get the plain number string
+    // Ambil angka + titik
     let numericValue = input.value.replace(/[^0-9.]/g, '');
 
-    // If the input length exceeds 20 digits, truncate it
+    // Hanya izinkan 1 titik desimal
+    const parts = numericValue.split('.');
+    if (parts.length > 2) {
+        // Gabungkan semua bagian setelah titik pertama
+        numericValue = parts[0] + '.' + parts.slice(1).join('');
+    }
+
+    // Batasi maksimum 20 karakter
     if (numericValue.length > 20) {
         numericValue = numericValue.slice(0, 20);
     }
 
-    // Store the plain numeric value in the hidden input field
-    document.getElementById('target'+index).value = numericValue;    
+    // Simpan ke hidden input
+    document.getElementById('target' + index).value = numericValue;
 
-    if (numericValue.indexOf('.') == -1) {
-        input.value = numeral(numericValue).format('0,0'); // Format with commas
+    // Set kembali value input dengan hasil bersih
+    input.value = numericValue;
+
+    // Format angka hanya jika tidak ada titik desimal
+    if (!numericValue.includes('.') && numericValue !== '') {
+        input.value = numeral(numericValue).format('0,0');
     }
-    // Format the numeric value with Numeral.js for display
 }
 
 window.validateDigits = validateDigits;
