@@ -11,7 +11,9 @@ use App\Models\Proposed360;
 use App\Models\Role;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 
 class Proposed360Service
@@ -152,14 +154,81 @@ class Proposed360Service
         return false;
     }
 
+    // Old approve method
+    // public function approve(string $formId, ApprovalEngine $engine): void
+    // {
+    //     DB::transaction(function () use ($formId,$engine) {
+    //         $actor = Auth::user()->employee_id;
+    //         $engine->approve($formId,$actor);
+    //     });
+    // }
 
-    public function approve(string $formId, ApprovalEngine $engine): void
-    {
-        DB::transaction(function () use ($formId,$engine) {
-            $actor = Auth::user()->employee_id;
-            $engine->approve($formId,$actor);
+    public function approve(
+        string $formId,
+        ApprovalEngine $engine,
+        ?array $peers = null,
+        ?array $subordinates = null
+    ): void {
+        DB::transaction(function () use ($formId, $engine, $peers, $subordinates) {
+            $actorEmpId = (string) Auth::user()->employee_id;
+
+            // --- Normalisasi input (hanya jika parameter dikirim) ---
+            $norm = function (?array $arr): array {
+                if (!is_array($arr)) return [];
+                return collect($arr)
+                    ->map(fn($v) => is_null($v) || $v === '' ? null : (string) $v)
+                    ->filter()
+                    ->unique()
+                    ->values()
+                    ->take(3)
+                    ->all();
+            };
+
+            $peersNorm = $norm($peers);
+            $subsNorm  = $norm($subordinates);
+
+            // --- Validasi (wajib layer-1 hanya jika field dikirim ke service) ---
+            if (is_array($peers) || is_array($subordinates)) {
+                Validator::make(
+                    ['peers' => $peersNorm, 'subordinates' => $subsNorm],
+                    [
+                        'peers'               => ['array','max:3'],
+                        'peers.0'             => ['required'],   // layer-1 wajib jika peers dikirim
+                        'peers.*'             => ['distinct'],
+                        'subordinates'        => ['array','max:3'],
+                        'subordinates.0'      => ['required'],   // layer-1 wajib jika subordinates dikirim
+                        'subordinates.*'      => ['distinct'],
+                    ],
+                    [
+                        'peers.0.required'        => 'Peers layer 1 wajib diisi.',
+                        'subordinates.0.required' => 'Subordinate layer 1 wajib diisi.',
+                    ]
+                )->validate();
+            }
+
+            // --- Update transaksi bila ada input baru ---
+            if (is_array($peers) || is_array($subordinates)) {
+                $trx = \App\Models\Proposed360::lockForUpdate()->findOrFail($formId);
+                $payload = [];
+                if (is_array($peers))        $payload['peers'] = $peersNorm;
+                if (is_array($subordinates)) $payload['subordinates'] = $subsNorm;
+
+                if (!empty($payload)) {
+                    // Catatan: asumsikan casts JSON di model; jika tidak, json_encode terlebih dulu.
+                    $payload['updated_by'] = $actorEmpId;
+                    $trx->update($payload);
+                    Log::info('proposed360.approve.update', [
+                        'form_id' => $formId,
+                        'update'  => array_keys($payload),
+                    ]);
+                }
+            }
+
+            // --- Lanjut approve via engine (akan trigger finalize di engine) ---
+            $engine->approve($formId, $actorEmpId);
         });
     }
+
 
     public function reject(string $formId, ApprovalEngine $engine, ?string $sendbackTo=null, ?string $message=null): void
     {

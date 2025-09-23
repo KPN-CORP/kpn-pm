@@ -5,6 +5,63 @@ import Swal from "sweetalert2";
 import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 (function(){
+  function pickValues(form, selector){
+    return Array.from(form.querySelectorAll(selector))
+      .map(el => el && el.value ? String(el.value) : null)
+      .filter(Boolean)
+      .filter((v,i,a) => a.indexOf(v) === i)
+      .slice(0,3);
+  }
+
+  // ⬇️ APPEND (tanpa clear)
+  function appendHiddenList(container, name, values){
+    values.forEach(v => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = name + '[]';
+      input.value = v;
+      container.appendChild(input);
+    });
+  }
+
+  function validateFirstLayer(peers, subs, employeeLabel){
+    if (!peers[0] || !subs[0]) {
+      const who = employeeLabel ? ` untuk ${employeeLabel}` : '';
+      if (window.Swal) Swal.fire({icon:'error',title:'Validasi',text:'Minimal pilih Peers 1 dan Subordinate 1' + who + '.'});
+      else alert('Minimal pilih Peers 1 dan Subordinate 1' + who + '.');
+      return false;
+    }
+    return true;
+  }
+
+  document.querySelectorAll('.btn-approve').forEach(btn => {
+    btn.addEventListener('click', function(e){
+      const approveForm = e.currentTarget.closest('form');
+      const cloneArea   = approveForm.querySelector('.js-clone-area');
+      const sourceForm  = document.getElementById(e.currentTarget.getAttribute('data-source-form'));
+      if (!sourceForm || !cloneArea) { approveForm.submit(); return; }
+
+      const cardBody = e.currentTarget.closest('.card-body');
+      const employeeLabel = cardBody?.querySelector('[data-employee-label]')?.textContent?.trim() ?? '';
+
+      const peers = pickValues(sourceForm, 'select[name="peers[]"]');
+      const subs  = pickValues(sourceForm, 'select[name="subordinates[]"]');
+
+      if (!validateFirstLayer(peers, subs, employeeLabel)) return;
+
+      // ⬇️ Clear SEKALI, lalu APPEND dua-duanya
+      cloneArea.innerHTML = '';
+      appendHiddenList(cloneArea, 'peers', peers);
+      appendHiddenList(cloneArea, 'subordinates', subs);
+
+      const sp = e.currentTarget.querySelector('.spinner-border'); if (sp) sp.classList.remove('d-none');
+      e.currentTarget.disabled = true;
+      approveForm.submit();
+    });
+  });
+})();
+
+(function(){
   const alertEl = document.getElementById('alertField');
 
   function showAlert(msg){
