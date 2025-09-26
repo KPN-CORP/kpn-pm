@@ -108,7 +108,7 @@
                                   <div class="col-md">
                                       <div class="mb-3">
                                           <label class="form-label text-primary" for="target">Target</label>
-                                          <input  type="text" oninput="validateDigits(this, {{ $index }})" value="{{ old('target.0') ? number_format(old('target.0'), 0, '', ',') : '' }}" class="form-control" required>
+                                          <input  type="text" oninput="validateDigits(this, {{ $index }})" value="{{ old('target.0') ? old('target.0') : '' }}" class="form-control" required>
                                           <input type="hidden" name="target[]" id="target{{ $index }}" value="{{ old('target.0') }}">
                                           <div class="invalid-feedback">
                                             {{ __('This field is mandatory') }}
@@ -154,7 +154,7 @@
                                       <div class="mb-3">
                                           <label class="form-label text-primary" for="weightage">{{ __('Weightage') }}</label>
                                           <div class="input-group">
-                                              <input type="number" min="5" max="100" class="form-control" name="weightage[]" value="{{ old('weightage.0') }}" required>
+                                              <input type="number" min="5" max="100" step="0.1" class="form-control" name="weightage[]" value="{{ old('weightage.0') }}" required>
                                               <span class="input-group-text">%</span>
                                                 <div class="invalid-feedback">
                                                     {{ __('This field is mandatory') }}

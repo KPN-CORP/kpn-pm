@@ -78,7 +78,7 @@
                         <div class="row">
                             <div class="col">
                                 <div class="mb-2 text-primary fw-semibold fs-16 {{ $formData['kpiScore'] ? '' : 'd-none'}}">
-                                    Total Score : {{ round($formData['selfTotalScore'], 2) }}
+                                    Total Score : {{ round($formData['totalScore'], 2) }}
                                 </div>
                             </div>
                         </div>
@@ -206,7 +206,7 @@
                                                         <p class="mt-1 mb-0 text-muted">{{ $data['achievement'] }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</p>
                                                     </td>
                                                     <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
-                                                        <p class="mt-1 mb-0 text-muted">{{ round($data['percentage']) }}%</p>
+                                                        <p class="mt-1 mb-0 text-muted">{{ isset($data['percentage']) ? round($data['percentage']) . '%' : '0%' }}</p>
                                                     </td>
                                                 </tr>
                                                 @endif

@@ -25,7 +25,7 @@
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label" for="type">Event Type </label>
                                     <select name="event_type" id="event_type" class="form-select" onchange="toggleMaster()" required>
-                                        <option value="">-</option>
+                                        <option value="">- select type -</option>
                                         @if(auth()->check())
                                             @can('schedulepa')
                                                 @if($schedulemasterpa)
@@ -48,12 +48,14 @@
                                 </div>
                             </div>
                             <div class="row my-2">
-                                <div class="col-md-12">
+                                <div class="col-md-3">
                                     <div class="mb-2">
-                                        <label class="form-label" for="type">Schedule Periode</label>
-                                        <select name="schedule_periode" class="form-select">
-                                            @for($year = 2024; $year <= now()->year + 1; $year++)
-                                                <option value="{{ $year }}" {{ $year == now()->year ? 'selected' : '' }}>{{ $year }}</option>
+                                        <label class="form-label" for="type">Schedule Period</label>
+                                        <input name="schedule_periode" id="schedule_periode" type="text" class="form-control" placeholder="-" readonly>
+                                        <select id="schedule_periode_master" onchange="changePeriod()" class="form-select d-none" class="form-select">
+                                            <option value="">-</option>
+                                            @for($year = now()->year; $year <= now()->year + 1; $year++)
+                                                <option value="{{ $year }}">{{ $year }}</option>
                                             @endfor
                                         </select>
                                     </div>
@@ -263,11 +265,19 @@
         }
     }
 
+    function changePeriod() {
+        var schedulePeriode = document.getElementById("schedule_periode");
+        var schedulePeriodeMaster = document.getElementById("schedule_periode_master");
+        schedulePeriode.value = schedulePeriodeMaster.value;
+    }
+
     function toggleMaster() {
         var event_type = document.getElementById("event_type");
         var nonmaster1 = document.getElementById("nonmaster1");
         var nonmaster2 = document.getElementById("nonmaster2");
         var check360 = document.getElementById("check360");
+        var schedulePeriode = document.getElementById("schedule_periode");
+        var schedulePeriodeMaster = document.getElementById("schedule_periode_master");
         var bisnis_unit = document.getElementById("bisnis_unit");
         var last_join_date = document.getElementById("last_join_date");
         const startInput = document.getElementById('start');
@@ -287,11 +297,20 @@
             nonmaster2.style.display = "none";
             bisnis_unit.removeAttribute("required");
             last_join_date.removeAttribute("required");
+            schedulePeriode.classList.add("d-none");
+            schedulePeriodeMaster.classList.remove("d-none");
+            schedulePeriodeMaster.setAttribute("required", "required");
         } else {
+            event_type.value === "schedulepa" ? schedulePeriode.value = "{{ $schedulemasterpa->schedule_periode ?? "" }}" : schedulePeriode.value = "{{ $schedulemastergoals->schedule_periode ?? "" }}";
             nonmaster1.style.display = "block";
             nonmaster2.style.display = "block";
             bisnis_unit.setAttribute("required", "required");
+
             // last_join_date.setAttribute("required", "required");
+            schedulePeriode.classList.remove("d-none");
+            schedulePeriodeMaster.classList.add("d-none");
+            schedulePeriodeMaster.removeAttribute("required");
+
         }
 
         if (event_type.value === 'schedulepa') {

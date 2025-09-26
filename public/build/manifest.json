@@ -8,22 +8,22 @@
     "src": "public/images/bg-auth.jpg"
   },
   "resources/css/nucleo-icons.css": {
-    "file": "assets/nucleo-icons-TmTXO36u.css",
+    "file": "assets/nucleo-icons-CGVdfBrl.css",
     "src": "resources/css/nucleo-icons.css",
     "isEntry": true
   },
   "resources/css/nucleo-svg.css": {
-    "file": "assets/nucleo-svg-zkig0geZ.css",
+    "file": "assets/nucleo-svg-tL-0vjKJ.css",
     "src": "resources/css/nucleo-svg.css",
     "isEntry": true
   },
   "resources/css/perfect-scrollbar.css": {
-    "file": "assets/perfect-scrollbar-SvkcpJEK.css",
+    "file": "assets/perfect-scrollbar-DALuiRUK.css",
     "src": "resources/css/perfect-scrollbar.css",
     "isEntry": true
   },
   "resources/css/soft-ui-dashboard-tailwind.min.css": {
-    "file": "assets/soft-ui-dashboard-tailwind-G4ShmOP9.css",
+    "file": "assets/soft-ui-dashboard-tailwind-CychsPc1.css",
     "src": "resources/css/soft-ui-dashboard-tailwind.min.css",
     "isEntry": true
   },
@@ -76,7 +76,7 @@
     "src": "resources/fonts/remixicon.woff2"
   },
   "resources/js/app.js": {
-    "file": "assets/app-Dl0qBHZh.js",
+    "file": "assets/app-uYo_yPcP.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -84,11 +84,11 @@
       "_jquery-BT3bhPE2.js"
     ],
     "css": [
-      "assets/app-B-UcSYg4.css"
+      "assets/app-DVNhP-d0.css"
     ]
   },
   "resources/js/guide.js": {
-    "file": "assets/guide-96oRPA33.js",
+    "file": "assets/guide-1rJ1ta4m.js",
     "name": "guide",
     "src": "resources/js/guide.js",
     "isEntry": true,
@@ -109,13 +109,13 @@
     "isEntry": true
   },
   "resources/js/pages/demo.form-wizard.js": {
-    "file": "assets/demo.form-wizard-CYyLlAJd.js",
+    "file": "assets/demo.form-wizard-4_wmxnu9.js",
     "name": "demo.form-wizard",
     "src": "resources/js/pages/demo.form-wizard.js",
     "isEntry": true
   },
   "resources/js/plugins/perfect-scrollbar.min.js": {
-    "file": "assets/perfect-scrollbar.min-C8iGYwXP.js",
+    "file": "assets/perfect-scrollbar.min-OuGPMkV6.js",
     "name": "perfect-scrollbar.min",
     "src": "resources/js/plugins/perfect-scrollbar.min.js",
     "isEntry": true
@@ -133,7 +133,7 @@
     "isEntry": true
   },
   "resources/js/team-goal.js": {
-    "file": "assets/team-goal-CteASkZw.js",
+    "file": "assets/team-goal-BqcoH6rZ.js",
     "name": "team-goal",
     "src": "resources/js/team-goal.js",
     "isEntry": true,
@@ -142,18 +142,18 @@
     ]
   },
   "resources/js/tippy.min.js": {
-    "file": "assets/tippy.min-DL7Fija6.js",
+    "file": "assets/tippy.min-BuohCTpJ.js",
     "name": "tippy.min",
     "src": "resources/js/tippy.min.js",
     "isEntry": true
   },
   "resources/scss/app.scss": {
-    "file": "assets/app-Bg89N_-L.css",
+    "file": "assets/app-D00rJ0iD.css",
     "src": "resources/scss/app.scss",
     "isEntry": true
   },
   "resources/scss/icons.scss": {
-    "file": "assets/icons-uStCfKcy.css",
+    "file": "assets/icons-C3ys2IxD.css",
     "src": "resources/scss/icons.scss",
     "isEntry": true
   }

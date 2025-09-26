@@ -58,7 +58,7 @@
                         @endcan
                         <div class="row">
                             @if (!$datas->isEmpty())
-                                @foreach ($dataUser as $user)
+                                @foreach ($dataUser as $item)
                                 <div class="card mb-1 shadow-none border">
                                     <div class="p-2">
                                         <div class="row align-items-center">
@@ -70,20 +70,22 @@
                                                 </div>
                                             </div>
                                             <div class="col ps-0">
-                                                <a href="{{ asset('storage/' . $user->file_path) }}" class="text-muted fw-bold">{{ $user->name }}</a>
-                                                <a href="javascript:void(0)" data-bs-id="{{ $user->id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $user->description ? $user->description : 'no description.' }}" class="text-muted fs-16"><i class="ri-information-line"></i></a>
-                                                <p class="mb-0">{{ number_format($user->file_size / 1048576, 2) }} MB</p>
+                                                <a href="{{ asset('storage/' . $item->file_path) }}" class="text-muted fw-bold">{{ $item->name }}</a>
+                                                <a href="javascript:void(0)" data-bs-id="{{ $item->id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $item->description ? $item->description : 'no description.' }}" class="text-muted fs-16"><i class="ri-information-line"></i></a>
+                                                <p class="mb-0">{{ number_format($item->file_size / 1048576, 2) }} MB</p>
                                             </div>
                                             <div class="col-auto">
                                                 <!-- Button -->
-                                                <a href="{{ asset('storage/' . $user->file_path) }}" class="btn btn-link fs-16 text-muted">
+                                                <a href="{{ asset('storage/' . $item->file_path) }}" class="btn btn-link fs-16 text-muted">
                                                     <i class="ri-download-line"></i>
                                                 </a>
-                                                <form id="delete-form-{{ $user->id }}" class="d-inline" action="{{ route('delete.guide', $user->id) }}" method="POST">
+                                                @can('removeguide')
+                                                <form id="delete-form-{{ $item->id }}" class="d-inline disabled" action="{{ route('delete.guide', $item->id) }}" method="POST">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit" class="btn btn-link text-danger fs-16 pop deleteBtn"><i class="ri-delete-bin-line"></i></button>
                                                 </form>
+                                                @endcan
                                             </div>
                                         </div>
                                     </div>
@@ -111,11 +113,13 @@
                                                 <a href="{{ asset('storage/' . $admin->file_path) }}" class="btn btn-link fs-16 text-muted">
                                                     <i class="ri-download-line"></i>
                                                 </a>
+                                                @can('removeguide')
                                                 <form id="delete-form-{{ $admin->id }}" class="d-inline" action="{{ route('delete.guide', $admin->id) }}" method="POST">
                                                     @csrf
                                                     @method('DELETE')
-                                                    <button type="submit" class="btn btn-link text-danger fs-16 pop deleteBtn"><i class="ri-delete-bin-line"></i></button>
+                                                    <button type="submit" class="btn btn-link text-danger fs-16 pop disabled d-none deleteBtn"><i class="ri-delete-bin-line"></i></button>
                                                 </form>
+                                                @endcan
                                             </div>
                                         </div>
                                     </div>
@@ -213,4 +217,6 @@
         </div><!-- /.modal-dialog -->
     </div>
 @endsection
-@vite('resources/js/guide.js')
+@push('scripts')
+    @vite('resources/js/guide.js')
+@endpush

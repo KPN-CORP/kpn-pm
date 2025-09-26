@@ -116,13 +116,13 @@ class EmployeeController extends Controller
         $schedules = DB::table('schedules')
             ->where(function($query) use ($today) {
                 $query->where('start_date', $today)
-                      //->orWhere('end_date', $today);
                       ->orWhere(DB::raw('DATE_ADD(end_date, INTERVAL 1 DAY)'), $today);
             })
             ->whereNull('deleted_at')
             ->get();
-            // dd($schedules);
 
+            Log::info('Schedules fetched', ['count' => $schedules]);
+            Log::info('Today', ['date' => $today]);
             foreach ($schedules as $schedule) {
                 if($schedule->event_type<>'masterschedulepa'){
                     if ($schedule->start_date == $today) {
@@ -188,6 +188,8 @@ class EmployeeController extends Controller
                         'access_menu' => json_encode($accessMenuJson),
                         'updated_at' => Carbon::now()  // Update the updated_at column
                     ]);
+
+                Log::info('Scheduled access_menu employees table updated.');
             }
         }else if($schedule->event_type=='schedulepa'){
             foreach ($employeePA as $employee) {
@@ -204,6 +206,8 @@ class EmployeeController extends Controller
                         'access_menu' => json_encode($accessMenuJson),
                         'updated_at' => Carbon::now()  // Update the updated_at column
                     ]);
+
+                Log::info('Scheduled access_menu employees_pa table updated.');
             }
         }
     }

@@ -54,6 +54,7 @@ Route::get('language/{locale}', [LanguageController::class, 'switchLanguage'])->
 
 Route::get('dbauth', [SsoController::class, 'dbauth']);
 Route::get('sourcermb/dbauth', [SsoController::class, 'dbauthReimburse']);
+Route::get('auth-service', [SsoController::class, 'handleJWTAuth']);
 
 Route::get('fetch-employees', [EmployeeController::class, 'fetchAndStoreEmployees']);
 Route::get('updmenu-employees', [EmployeeController::class, 'updateEmployeeAccessMenu']);
@@ -129,6 +130,9 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::get('/team-goals/approval/{id}', [TeamGoalController::class, 'approval'])->name('team-goals.approval');
     Route::get('/get-tooltip-content', [TeamGoalController::class, 'getTooltipContent']);
     Route::get('/units-of-measurement', [TeamGoalController::class, 'unitOfMeasurement']);
+    Route::post('/import-goals-manager', [TeamGoalController::class, 'import'])->name('importgoalsmanager');
+    Route::get('/export-invalid-goal', [TeamGoalController::class, 'exportInvalidGoal'])->name('export.invalid.goal');
+
 
     // My Appraisal
     Route::get('/appraisals', [MyAppraisalController::class, 'index'])->name('appraisals');
@@ -341,6 +345,8 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::post('/admin/goal-content', [AdminOnBehalfController::class, 'getGoalContent']);
         // Sendback
         Route::post('/admin/sendback/goal', [AdminSendbackController::class, 'store'])->name('admin.sendback.goal');
+        // Revoke
+        Route::post('/admin/goals-revoke', [AdminOnBehalfController::class, 'goalsRevoke'])->name('admin.goals.revoke');
     });
     
     Route::middleware(['permission:viewreport'])->group(function () {
@@ -350,7 +356,6 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::post('/admin/get-report-content', [AdminReportController::class, 'getReportContent']);
         Route::get('/admin/changes-group-company', [AdminReportController::class, 'changesGroupCompany']);
         Route::get('/admin/changes-company', [AdminReportController::class, 'changesCompany']);
-        Route::post('/admin/goals-revoke', [AdminReportController::class, 'goalsRevoke'])->name('admin.goals.revoke');
         //Employee
         Route::get('/employees', [EmployeeController::class, 'employee'])->name('employees');
         Route::get('/employee/filter', [EmployeeController::class, 'filterEmployees'])->name('employee.filter');

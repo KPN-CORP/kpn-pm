@@ -182,7 +182,7 @@
                             <td class="sorting_1 text-center {{ auth()->user()->can('reportpadetail') ? '' : 'd-none' }}">
                                 @can('reportpadetail')
                                     @if ($employee['appraisalStatus'] && count(collect($employee['approvalStatus'])) != 0)
-                                        <a href="{{ route('admin.appraisal.details', $employee['id']) }}" class="btn btn-sm btn-outline-info"><i class="ri-eye-line"></i></a>
+                                        <a href="{{ route('admin.appraisal.details', encrypt($employee['id'].'_'.$filterInputs['filter_year'])) }}" class="btn btn-sm btn-outline-info"><i class="ri-eye-line"></i></a>
                                     @else
                                         <a class="btn btn-sm btn-outline-secondary" onclick="alert('no data appraisal or pending reviewer')"><i class="ri-eye-line"></i></a>
                                     @endif
@@ -282,6 +282,6 @@
     window.userID = {!! json_encode(auth()->user()->id) !!};
     window.reportFile = {!! json_encode($reportFiles['name'] ?? null) !!};
     window.reportFileDate = {!! json_encode($reportFiles['last_modified'] ?? null) !!};
-    window.jobs = {!! json_encode($jobs) !!};
+    window.jobs = {!! json_encode($jobs ?? []) !!};
 </script>
 @endpush

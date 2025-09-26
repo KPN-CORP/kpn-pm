@@ -35,7 +35,7 @@
                 </div>
                 <div class="col-auto">
                     <div class="mb-3 mt-3">
-                        <a href="{{ route('form.appraisal', Auth::user()->employee_id) }}" class="btn {{ isset($accessMenu) && $accessMenu['createpa'] ? 'btn-primary shadow' : 'btn-outline-secondary disabled' }}" onclick="showLoader()">{{ __('Initiate Appraisal') }}</a>
+                        <a href="{{ route('form.appraisal', Auth::user()->employee_id) }}" class="btn {{ isset($accessMenu) && isset($accessMenu['createpa']) && $accessMenu['createpa'] ? 'btn-primary shadow' : 'btn-outline-secondary disabled' }}" onclick="showLoader()">{{ __('Initiate Appraisal') }}</a>
                     </div>
                 </div>
             </div>
@@ -85,7 +85,7 @@
                             <div class="row">
                                 <div class="col">
                                     <div class="mb-2 text-primary fw-semibold fs-16">
-                                        Total Score : {{ round($formData['selfTotalScore'], 2) }}
+                                        Total Score : {{ round($formData['totalScore'], 2) }}
                                     </div>
                                 </div>
                             </div>
@@ -213,7 +213,7 @@
                                                             <p class="mt-1 mb-0 text-muted">{{ $data['achievement'] }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</p>
                                                         </td>
                                                         <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
-                                                            <p class="mt-1 mb-0 text-muted">{{ round($data['percentage']) }}%</p>
+                                                            <p class="mt-1 mb-0 text-muted">{{ isset($data['percentage']) ? round($data['percentage']) . '%' : '0%' }}</p>
                                                         </td>
                                                     </tr>
                                                     @endif

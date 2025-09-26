@@ -143,12 +143,40 @@ document.addEventListener("DOMContentLoaded", function () {
         },
         pageLength: 50,
         scrollCollapse: true,
+        scrollX: true,
+        columnDefs: [
+            // Target the last column (fixed right column)
+            {
+                targets: -1, // -1 refers to the last column
+                className: 'sorting_1 text-center'
+            }
+        ]
+    });
+
+    const inactiveScheduleTable = $("#inactiveScheduleTable").DataTable({
+        dom: "lrtip",
+        stateSave: true,
+        pageLength: 50,
+        scrollCollapse: true,
         scrollX: true
     });
 
     $("#customsearch").on("keyup", function () {
         scheduleTable.search($(this).val()).draw();
+        inactiveScheduleTable.search($(this).val()).draw();
     });
+
+    const triggerTabList = document.querySelectorAll('#tablist a')
+    triggerTabList.forEach(triggerEl => {
+        const tabTrigger = new bootstrap.Tab(triggerEl)
+
+        triggerEl.addEventListener('click', event => {
+            event.preventDefault()
+            tabTrigger.show()
+            scheduleTable.draw();
+            inactiveScheduleTable.draw();
+        })
+    })
 
 });
 

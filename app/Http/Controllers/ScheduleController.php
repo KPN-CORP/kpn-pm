@@ -29,7 +29,7 @@ class ScheduleController extends Controller
     
     public function __construct()
     {
-        $this->roles = Auth()->user()->roles;
+        $this->roles = Auth::user()->roles;
         
         $restrictionData = [];
 
@@ -48,7 +48,8 @@ class ScheduleController extends Controller
         $parentLink = 'Settings';
         $link = 'Schedule';
         $today = Carbon::today();
-        $schedules = Schedule::with('createdBy')->get();
+        $schedules = Schedule::with('createdBy')->orderBy('created_at', 'desc')->get();
+        $inactiveSchedules = Schedule::onlyTrashed()->with('createdBy')->orderBy('deleted_at', 'asc')->orderBy('created_at', 'desc')->get();
         $schedulemasterpa = schedule::where('event_type','masterschedulepa')
                             ->whereDate('start_date', '<=', $today)
                             ->whereDate('end_date', '>=', $today)
@@ -59,6 +60,7 @@ class ScheduleController extends Controller
                             ->whereDate('end_date', '>=', $today)
                             ->orderBy('created_at')
                             ->first();
+                            
         $schedulegoals = collect([]); // Default: koleksi kosong jika $schedulemastergoals null
 
         if ($schedulemastergoals) {
@@ -76,6 +78,7 @@ class ScheduleController extends Controller
             'link' => $link,
             'parentLink' => $parentLink,
             'schedules' => $schedules,
+            'inactiveSchedules' => $inactiveSchedules,
             'userId' => $userId,
             'schedulemasterpa' => $schedulemasterpa,
             'schedulemastergoals' => $schedulemastergoals,
@@ -133,12 +136,19 @@ class ScheduleController extends Controller
     }
     function save(Request $req) {
         $link = 'schedule';
-        //dd($req);
-        //$model = schedule::find($req->id);
         $today = date('Y-m-d');
-        $model = new schedule;
         $userId = Auth::id();
         $review360 = isset($req->review_360) ? $req->review_360 : 0;
+        // Delete previous same event_type if it exists
+        if ($req->event_type == 'masterschedulepa' || $req->event_type == 'masterschedulegoals') {
+            Schedule::where('event_type', $req->event_type)->delete();
+        } else {
+            Schedule::where('event_type', $req->event_type)
+                ->where('created_by', $userId)
+                ->delete();
+        }
+
+        $model = new schedule;
 
         $model->schedule_name       = $req->schedule_name;
         $model->event_type          = $req->event_type;
@@ -160,11 +170,11 @@ class ScheduleController extends Controller
             $model->inputState = $req->inputState;
             
             if ($req->inputState == 'repeaton') {
-                $model->repeat_days = $req->repeat_days_selected;
-                $model->before_end_date = null;
+            $model->repeat_days = $req->repeat_days_selected;
+            $model->before_end_date = null;
             } elseif ($req->inputState == 'beforeenddate') {
-                $model->repeat_days = null;
-                $model->before_end_date = $req->before_end_date;
+            $model->repeat_days = null;
+            $model->before_end_date = $req->before_end_date;
             }
             
             $model->messages = $req->messages;

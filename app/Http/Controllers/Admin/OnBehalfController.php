@@ -13,6 +13,7 @@ use App\Models\Employee;
 use App\Models\Goal;
 use App\Models\Location;
 use App\Models\User;
+use App\Services\AppService;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -34,11 +35,13 @@ class OnBehalfController extends Controller
     protected $permissionLocations;
     protected $roles;
     protected $category;
+    protected $appService;
     
-    public function __construct()
+    public function __construct(AppService $appService)
     {
         $this->category = 'Goals';
-        $this->roles = Auth()->user()->roles;
+        $this->appService = $appService;
+        $this->roles = Auth::user()->roles;
         
         $restrictionData = [];
         if(!is_null($this->roles)){
@@ -51,32 +54,12 @@ class OnBehalfController extends Controller
 
         $groupCompanyCodes = $restrictionData['group_company'] ?? [];
 
-        // $this->groupCompanies = Location::select('company_name')
-        //     ->when(!empty($groupCompanyCodes), function ($query) use ($groupCompanyCodes) {
-        //         return $query->whereIn('company_name', $groupCompanyCodes);
-        //     })
-        //     ->orderBy('company_name')->distinct()->pluck('company_name');
-
         $this->groupCompanies = Employee::select('group_company')
             ->when(!empty($groupCompanyCodes), function ($query) use ($groupCompanyCodes) {
                 return $query->whereIn('group_company', $groupCompanyCodes);
             })->orderBy('group_company')->distinct()->pluck('group_company');
 
         $workAreaCodes = $restrictionData['work_area_code'] ?? [];
-
-        // $this->locations = Location::select('company_name', 'area', 'work_area')
-        //     ->when(!empty($workAreaCodes) || !empty($groupCompanyCodes), function ($query) use ($workAreaCodes, $groupCompanyCodes) {
-        //         return $query->where(function ($query) use ($workAreaCodes, $groupCompanyCodes) {
-        //             if (!empty($workAreaCodes)) {
-        //                 $query->whereIn('work_area', $workAreaCodes);
-        //             }
-        //             if (!empty($groupCompanyCodes)) {
-        //                 $query->orWhereIn('company_name', $groupCompanyCodes);
-        //             }
-        //         });
-        //     })
-        //     ->orderBy('area')
-        //     ->get();
 
         $this->locations = Employee::select('office_area', 'work_area_code', 'group_company')
             ->when(!empty($workAreaCodes) || !empty($groupCompanyCodes), function ($query) use ($workAreaCodes, $groupCompanyCodes) {
@@ -135,10 +118,13 @@ class OnBehalfController extends Controller
         $data = [];
         
         if ($category == 'Goals' || $filterCategory == 'Goals') {
+
+            $period = $this->appService->goalPeriod();
+
             // Mengambil data pengajuan berdasarkan employee_id atau manager_id
-            $datas = ApprovalRequest::with(['employee', 'goal', 'updatedBy', 'approval' => function ($query) {
+            $datas = ApprovalRequest::with(['employee', 'goal', 'updatedBy', 'initiated', 'approval' => function ($query) {
                 $query->with('approverName'); // Load nested relationship
-            }])->where('category', $this->category)->whereHas('employee')->whereHas('manager');
+            }])->where('category', $this->category)->where('period', $period)->whereHas('employee')->whereHas('manager');
             
             $criteria = [
                 'work_area_code' => $permissionLocations,
@@ -199,6 +185,11 @@ class OnBehalfController extends Controller
                                                         ->value('layer');
                 }
 
+                $access_menu = json_decode($item->employee->access_menu, true);
+                $access = $access_menu['goals'] && $access_menu['doj'] ?? null;
+
+                $item->access = $access;
+
                 return $item;
 
                 });
@@ -221,14 +212,12 @@ class OnBehalfController extends Controller
                     
                 }
             }
-        }
-        
+        }        
         
         $locations = $this->locations;
         $companies = $this->companies;
         $groupCompanies = $this->groupCompanies;
         
-
         if ($category == 'Goals' || $filterCategory == 'Goals') {
             return view('pages.onbehalfs.goal', compact('data', 'link', 'parentLink', 'locations', 'companies', 'groupCompanies'));
         } elseif ($category == 'Performance' || $filterCategory == 'Performance') {
@@ -273,7 +262,7 @@ class OnBehalfController extends Controller
         
         $formData = [];
         if($datas->isNotEmpty()){
-            $formData = json_decode($datas->first()->appraisal->goal->form_data, true);
+            $formData = json_decode($datas->first()->goal->form_data, true);
         }
 
         $path = base_path('resources/goal.json');
@@ -326,6 +315,7 @@ class OnBehalfController extends Controller
         $targets = $request->input('target', []);
         $uoms = $request->input('uom', []);
         $weightages = $request->input('weightage', []);
+        $descriptions = $request->input('description', []);
         $types = $request->input('type', []);
         $custom_uoms = $request->input('custom_uom', []);
 
@@ -377,6 +367,7 @@ class OnBehalfController extends Controller
                     'target' => $targets[$index],
                     'uom' => $uoms[$index],
                     'weightage' => $weightages[$index],
+                    'description' => $descriptions[$index],
                     'type' => $types[$index],
                     'custom_uom' => $customuom
                 ];
@@ -536,6 +527,40 @@ class OnBehalfController extends Controller
         // Determine the report type and return the appropriate view
             return view('pages.onbehalfs.goal', compact('data', 'uomOption', 'typeOption'));
         
+    }
+
+    public function goalsRevoke(Request $request)
+    {
+        $goalId = $request->input('id');
+
+        // Find the approval request record
+        $approvalRequest = ApprovalRequest::where('form_id', $goalId)->first();
+        $goals = Goal::where('id', $goalId)->first();
+        $firstApprover = ApprovalLayer::where('employee_id', $approvalRequest->employee_id)->orderBy('layer', 'asc')
+        ->value('approver_id');
+        
+        if (!$approvalRequest || !$goals) {
+            return response()->json(['success' => false, 'message' => 'Goals not found.']);
+        }
+
+        try {
+            // Process the revoke logic here
+            $approvalRequest->sendback_to = $approvalRequest->employee_id;
+            $approvalRequest->current_approval_id = $firstApprover;
+            $approvalRequest->status = 'Sendback';
+            $approvalRequest->save();
+
+            $goals->form_status = 'Submitted';
+            $goals->save();
+
+            if ($goals) {
+                Approval::where('request_id', $approvalRequest->id)->delete();
+            }
+
+            return response()->json(['success' => true, 'message' => 'Goal revoked successfully.']);
+        } catch (\Exception $e) {
+            return response()->json(['success' => false, 'message' => 'Failed to revoke goal.']);
+        }
     }
 
 }

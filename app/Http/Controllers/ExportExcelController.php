@@ -10,6 +10,8 @@ use App\Exports\NotInitiatedExport;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\EmployeepaExport;
+use App\Services\AppService;
+use Illuminate\Support\Facades\Auth;
 
 class ExportExcelController extends Controller
 {
@@ -17,10 +19,12 @@ class ExportExcelController extends Controller
     protected $permissionCompanies;
     protected $permissionLocations;
     protected $roles;
+    protected $appService;
     
-    public function __construct()
+    public function __construct(AppService $appService)
     {
-        $this->roles = Auth()->user()->roles;
+        $this->roles = Auth::user()->roles;
+        $this->appService = $appService;
         
         $restrictionData = [];
 
@@ -40,6 +44,7 @@ class ExportExcelController extends Controller
         $groupCompany = $request->export_group_company;
         $company = $request->export_company;
         $location = $request->export_location;
+        $period = $request->export_period;
 
         $permissionGroupCompanies = $this->permissionGroupCompanies;
         $permissionCompanies = $this->permissionCompanies;
@@ -48,7 +53,7 @@ class ExportExcelController extends Controller
         $admin = 0;
 
         if($reportType==='Goal'){
-            $goal = new GoalExport($groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
+            $goal = new GoalExport($period, $groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
             return Excel::download($goal, 'goals.xlsx');
         }
         if($reportType==='Employee'){
@@ -65,6 +70,7 @@ class ExportExcelController extends Controller
         $groupCompany = $request->export_group_company;
         $company = $request->export_company;
         $location = $request->export_location;
+        $period = $request->export_period;
 
         $permissionGroupCompanies = $this->permissionGroupCompanies;
         $permissionCompanies = $this->permissionCompanies;
@@ -73,7 +79,7 @@ class ExportExcelController extends Controller
         $admin = 1;
 
         if($reportType==='Goal'){
-            $goal = new GoalExport($groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
+            $goal = new GoalExport($period, $groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
             return Excel::download($goal, 'goals.xlsx');
         }
         if($reportType==='Employee'){
@@ -92,8 +98,8 @@ class ExportExcelController extends Controller
     {
         $employee_id = $request->employee_id;
 
-        $data = new NotInitiatedExport($employee_id);
-        return Excel::download($data, 'employee_not_initiated_goals.xlsx');
+        $data = new NotInitiatedExport($employee_id, $this->appService);
+        return Excel::download($data, 'import_team_goals.xlsx');
 
     }
 

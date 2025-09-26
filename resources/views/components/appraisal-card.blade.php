@@ -1,6 +1,6 @@
 <div class="row">
     <div class="col">
-        <div class="mb-2 text-primary fw-semibold fs-16 {{ $formData['kpiScore'] ? '' : 'd-none'}}">
+        <div class="mb-2 text-primary fw-semibold fs-16 {{ $formData['totalKpiScore'] ? '' : 'd-none'}}">
             Total Score : {{ $formData['totalScore'] }}
         </div>
     </div>

@@ -30,6 +30,7 @@
     "All Task": "Semua Tugas",
     "Waiting For Revision": "Menunggu Revisi",
     "Download": "Unduh",
+    "Download Template": "Unduh Template",
     "Actual": "Aktual",
     "Achievement": "Pencapaian",
     "My Team": "Tim Saya",
@@ -39,6 +40,7 @@
     "Initiate": "Ajukan",
     "Review": "Tinjau",
     "Target In": "Target dalam",
+    "Target In UoM": "Target dalam satuan",
     "Achievement In": "Pencapaian dalam",
     "Enter Achievement": "Masukkan pencapaian",
     "Empty Messages": "Kolom ini wajib diisi.",
@@ -69,5 +71,8 @@
     "Description": "Deskripsi",
     "This field is mandatory": "Kolom wajib diisi",
     "Approval": "Persetujuan",
-    "Not Initiated": "Belum Mengajukan"
+    "Not Initiated": "Belum Mengajukan",
+    "Note Import Goal Manager": "Template Import Goals bisa didapatkan pada : ",
+    "Draft Goal Alert Message Open": "Anda masih memiliki Target berstatus Draft. Mohon submit sebelum periode input berakhir, karena Target dengan status Draft akan otomatis masuk tahap appraisal ketika periode berakhir.",
+    "Draft Goal Alert Message Closed": "Periode setting target sudah ditutup. Perubahan tidak dapat dilakukan, dan semua data akan masuk ke tahap appraisal."
 }

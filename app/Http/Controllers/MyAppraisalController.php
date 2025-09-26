@@ -38,7 +38,7 @@ class MyAppraisalController extends Controller
 
     public function __construct(AppService $appService)
     {
-        $this->user = Auth()->user()->employee_id;
+        $this->user = Auth::user()->employee_id;
         $this->appService = $appService;
         $this->category = 'Appraisal';
     }
@@ -184,16 +184,16 @@ class MyAppraisalController extends Controller
 
             // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
             $formGroupData = $this->appService->formGroupAppraisal($user, 'Appraisal Form');
-
+            
             $cultureData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Culture') ?? [];
             $leadershipData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership') ?? [];
-
+            
             $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $datas->first()->period);
-
+            
             if (isset($formData['totalKpiScore'])) {
                 $appraisalData['kpiScore'] = round($formData['totalKpiScore'], 2);
-                $appraisalData['cultureScore'] = round($formData['cultureScore'], 2);
-                $appraisalData['leadershipScore'] = round($formData['leadershipScore'], 2);
+                $appraisalData['cultureScore'] = round($formData['totalCultureScore'], 2);
+                $appraisalData['leadershipScore'] = round($formData['totalLeadershipScore'], 2);
             }
             
             foreach ($formData['formData'] as &$form) {
@@ -203,7 +203,7 @@ class MyAppraisalController extends Controller
                             if (isset($form[$index][$itemIndex])) {
                                 $form[$index][$itemIndex] = [
                                     'formItem' => $item,
-                                    'score' => $form[$index][$itemIndex]['score']  * ($formData['cultureWeightage'] / 100)
+                                    'score' => $form[$index][$itemIndex]['score']
                                 ];
                             }
                         }
@@ -216,7 +216,7 @@ class MyAppraisalController extends Controller
                             if (isset($form[$index][$itemIndex])) {
                                 $form[$index][$itemIndex] = [
                                     'formItem' => $item,
-                                    'score' => $form[$index][$itemIndex]['score']  * ($formData['cultureWeightage'] / 100)
+                                    'score' => $form[$index][$itemIndex]['score']
                                 ];
                             }
                         }
@@ -268,7 +268,9 @@ class MyAppraisalController extends Controller
 
         $period = $this->appService->appraisalPeriod();
 
-        $goal = Goal::where('employee_id', $request->id)->where('form_status', 'Approved')->where('period', $period)->first();
+        $goalChecked = Goal::where('employee_id', $request->id)->where('period', $period)->exists();
+
+        $goal = Goal::where('employee_id', $request->id)->where('period', $period)->first();
 
         $appraisal = Appraisal::where('employee_id', $request->id)->where('period', $period)->first();
 
@@ -280,14 +282,14 @@ class MyAppraisalController extends Controller
         }
 
         // check goals
-        if ($goal) {
+        if ($goalChecked) {
             $goalData = json_decode($goal->form_data, true);
         } else {
-            Session::flash('error', "Your Goals for $period are not found or not fully Approved.");
+            Session::flash('error', "Your Goal for $period are not found.");
             return redirect()->route('appraisals');
         }
 
-        if (!$accessMenu['createpa']) {
+        if (!$accessMenu['createpa'] && !$accessMenu['accesspa']) {
             Session::flash('error', "You are not eligible to create Appraisal $period.");
             return redirect()->route('appraisals');
         }

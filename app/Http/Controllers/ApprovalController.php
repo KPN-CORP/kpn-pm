@@ -11,150 +11,147 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Exception;
 
 class ApprovalController extends Controller
 {
 
     public function store(Request $request): RedirectResponse
-
     {
-        // Inisialisasi array untuk menyimpan pesan validasi kustom
+        DB::beginTransaction();
+        try {
+            // Determine next approver and status
+            $currentLayer = ApprovalLayer::where('approver_id', $request->current_approver_id)
+                ->where('employee_id', $request->employee_id)
+                ->value('layer');
 
-        $nextLayer = ApprovalLayer::where('approver_id', $request->current_approver_id)
-                                    ->where('employee_id', $request->employee_id)->max('layer');
+            $nextLayer = $currentLayer ? $currentLayer + 1 : 1;
+            $nextApprover = ApprovalLayer::where('employee_id', $request->employee_id)
+                ->where('layer', $nextLayer)
+                ->value('approver_id');
 
-        // Cari approver_id pada layer selanjutnya
-        $nextApprover = ApprovalLayer::where('layer', $nextLayer + 1)->where('employee_id', $request->employee_id)->value('approver_id');
+            $statusRequest = $nextApprover ? 'Pending' : 'Approved';
+            $statusForm = $nextApprover ? 'Submitted' : 'Approved';
 
-        if (!$nextApprover) {
-            $approver = $request->current_approver_id;
-            $statusRequest = 'Approved';
-            $statusForm = 'Approved';
-        }else{
-            $approver = $nextApprover;
-            $statusRequest = 'Pending';
-            $statusForm = 'Submitted';
-        }
-
-        $status = 'Approved';
-
-        $customMessages = [];
-
-        $kpis = $request->input('kpi', []);
-        $targets = $request->input('target', []);
-        $uoms = $request->input('uom', []);
-        $weightages = $request->input('weightage', []);
-        $types = $request->input('type', []);
-        $custom_uoms = $request->input('custom_uom', []);
-
-        // Menyiapkan aturan validasi
-        $rules = [
-            'kpi.*' => 'required|string',
-            'target.*' => 'required|string',
-            'uom.*' => 'required|string',
-            'weightage.*' => 'required|integer|min:5|max:100',
-            'type.*' => 'required|string',
-        ];
-
-        // Pesan validasi kustom
-        $customMessages = [
-            'weightage.*.integer' => 'Weightage harus berupa angka.',
-            'weightage.*.min' => 'Weightage harus lebih besar atau sama dengan :min %.',
-            'weightage.*.max' => 'Weightage harus kurang dari atau sama dengan :max %.',
-        ];
-
-        // Membuat Validator instance
-        if ($request->submit_type === 'submit_form') {
-            $validator = Validator::make($request->all(), $rules, $customMessages);
-    
-            // Jika validasi gagal
-            if ($validator->fails()) {
-                return back()->withErrors($validator)->withInput();
-            }
-        }
-
-        // Inisialisasi array untuk menyimpan data KPI
-        
-        $kpiData = [];
-        // Reset nomor indeks untuk penggunaan berikutnya
-        $index = 1;
-
-        // Iterasi melalui input untuk mendapatkan data KPI
-        foreach ($kpis as $index => $kpi) {
-            // Memastikan ada nilai untuk semua input terkait
-            if (isset($targets[$index], $uoms[$index], $weightages[$index], $types[$index])) {
-                // Simpan data KPI ke dalam array dengan nomor indeks sebagai kunci
-                if($custom_uoms){
-                    $customuom = $custom_uoms[$index];
-                }else{
-                    $customuom = null;
-                }
-
-                $kpiData[$index] = [
-                    'kpi' => $kpi,
-                    'target' => $targets[$index],
-                    'uom' => $uoms[$index],
-                    'weightage' => $weightages[$index],
-                    'type' => $types[$index],
-                    'custom_uom' => $customuom
+            // Validate form submission
+            if ($request->submit_type === 'submit_form') {
+                $rules = [
+                    'kpi.*' => 'required|string',
+                    'target.*' => 'required|string',
+                    'uom.*' => 'required|string',
+                    'weightage.*' => 'required|integer|min:5|max:100',
+                    'type.*' => 'required|string',
                 ];
 
-                $index++;
+                $validator = Validator::make($request->all(), $rules, [
+                    'weightage.*.integer' => 'Weightage harus berupa angka.',
+                    'weightage.*.min' => 'Weightage minimal :min%.',
+                    'weightage.*.max' => 'Weightage maksimal :max%.',
+                ]);
+
+                if ($validator->fails()) {
+                    return back()->withErrors($validator)->withInput();
+                }
             }
-        }
-        // Simpan data KPI ke dalam file JSON
-        $jsonData = json_encode($kpiData);
 
-        $checkApprovalSnapshots = ApprovalSnapshots::where('form_id', $request->id)->where('employee_id', $request->current_approver_id)->first();
+            // Prepare KPI data
+            $kpiData = [];
+            foreach ($request->input('kpi', []) as $index => $kpi) {
+                $kpiData[$index] = [
+                    'kpi' => $kpi,
+                    'target' => $request->target[$index],
+                    'uom' => $request->uom[$index],
+                    'weightage' => $request->weightage[$index],
+                    'type' => $request->type[$index],
+                    'custom_uom' => $request->custom_uom[$index] ?? null,
+                ];
+            }
 
-        if ($checkApprovalSnapshots) {
-            $snapshot = ApprovalSnapshots::find($checkApprovalSnapshots->id);
+            $jsonData = json_encode($kpiData);
+
+            // Get the current approver's ID from the request
+            $approverId = $request->current_approver_id;
+
+            // Use firstOrNew to handle both cases (existing/new)
+            $snapshot = ApprovalSnapshots::firstOrNew([
+                'form_id' => $request->id,
+                'employee_id' => $approverId,
+            ]);
+
+            // For new records, set required fields
+            if (!$snapshot->exists) {
+                $snapshot->id = Str::uuid(); // Remove if using model UUID generation
+                $snapshot->form_id = $request->id;
+                $snapshot->employee_id = $approverId;
+                $snapshot->created_by = Auth::user()->id;
+            }
+
+            // Update common fields for both cases
             $snapshot->form_data = $jsonData;
             $snapshot->updated_by = Auth::user()->id;
-        } else {
-            $snapshot = new ApprovalSnapshots;
-            $snapshot->id = Str::uuid();
-            $snapshot->form_data = $jsonData;
-            $snapshot->form_id = $request->id;
-            $snapshot->employee_id = Auth::user()->employee_id;
-            $snapshot->created_by = Auth::user()->id;
 
-        }
-        $snapshot->save();
+            // Save the record
+            $snapshot->save();
 
-        $model = Goal::find($request->id);
-        $model->form_status = $statusForm;
-        
-        $model->save();
+            if (!$snapshot->save()) {
+                throw new Exception('Gagal menyimpan snapshot persetujuan');
+            }
 
-        $approvalRequest = ApprovalRequest::where('form_id', $request->id)->first();
-        $approvalRequest->current_approval_id = $approver;
-        $approvalRequest->status = $statusRequest;
-        $approvalRequest->updated_by = Auth::user()->id;
-        $approvalRequest->messages = $request->messages;
-        $approvalRequest->sendback_messages = null;
-        $approvalRequest->sendback_to = null;
-        // Set other attributes as needed
-        $approvalRequest->save();
+            // Update goal status
+            $goal = Goal::findOrFail($request->id);
+            $goal->form_status = $statusForm;
 
-        $checkApproval = Approval::where('request_id', $approvalRequest->id)->where('approver_id', $request->current_approver_id)->first();
+            if (!$goal->save()) {
+                throw new Exception('Gagal memperbarui status goal');
+            }
 
-        if ($checkApproval) {
-            $approval = $checkApproval;
+            // Update approval request
+            $approvalRequest = ApprovalRequest::where('form_id', $request->id)
+                ->firstOrFail();
+                
+            $approvalRequest->current_approval_id = $nextApprover ?? $request->current_approver_id;
+            $approvalRequest->status = $statusRequest;
+            $approvalRequest->updated_by = Auth::id();
+            $approvalRequest->messages = $request->messages;
+            $approvalRequest->sendback_messages = null;
+            $approvalRequest->sendback_to = null;
+
+            if (!$approvalRequest->save()) {
+                throw new Exception('Gagal memperbarui permintaan persetujuan');
+            }
+
+            // Update/create approval record
+            $approval = Approval::firstOrNew([
+                'request_id' => $approvalRequest->id,
+                'approver_id' => $request->current_approver_id,
+            ]);
+
             $approval->messages = $request->messages;
+            $approval->status = 'Approved';
+            $approval->created_by = Auth::id();
 
-        } else {
-            $approval = new Approval;
-            $approval->request_id = $approvalRequest->id;
-            $approval->approver_id = Auth::user()->employee_id;
-            $approval->created_by = Auth::user()->id;
-            $approval->status = $status;
-            $approval->messages = $request->messages;
-            // Set other attributes as needed
+            if (!$approval->save()) {
+                throw new Exception('Gagal menyimpan catatan persetujuan');
+            }
+
+            DB::commit();
+            return redirect()->route('team-goals')->with('success', 'Data berhasil disimpan');
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            Log::error('Approval process failed', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+                'user' => Auth::id(),
+                'goal_id' => $request->id ?? 'N/A',
+            ]);
+
+            return back()
+                ->withInput()
+                ->withErrors(['error' => 'Terjadi kesalahan: ' . $e->getMessage()]);
         }
-        $approval->save();
-            
-        return redirect()->route('team-goals');
     }
 }

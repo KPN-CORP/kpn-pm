@@ -2,6 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\InvalidGoalImport;
+use App\Imports\GoalsDataImportManager;
+use App\Models\Appraisal;
 use App\Models\ApprovalLayer;
 use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
@@ -13,10 +16,13 @@ use App\Services\AppService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Facades\Excel;
 use RealRashid\SweetAlert\Facades\Alert;
 use stdClass;
@@ -43,44 +49,53 @@ class TeamGoalController extends Controller
         // Retrieve the selected year from the request
         $filterYear = $request->input('filterYear');
         
-        $datas = ApprovalLayer::with(['employee','subordinates' => function ($query) use ($user){
+        $datas = ApprovalLayer::with(['employee','subordinates' => function ($query) use ($user, $filterYear){
             $query->with(['goal', 'updatedBy', 'approval' => function ($query) {
                 $query->with('approverName');
             }])->whereHas('goal', function ($query) {
                 $query->whereNull('deleted_at');
             })->whereHas('approvalLayer', function ($query) use ($user) {
                 $query->where('employee_id', $user)->orWhere('approver_id', $user);
+            })->when($filterYear, function ($query) use ($filterYear) {
+                $query->where('period', $filterYear);
+            }, function ($query) {
+                $query->where('period', $this->period);
             })->where('category', $this->category);
         }])->where('approver_id', $user)->get();
         
         $tasks = ApprovalLayer::with(['employee', 'subordinates' => function ($query) use ($user, $filterYear) {
             $query->with(['goal', 'updatedBy', 'initiated', 'approval' => function ($query) {
-                $query->with('approverName');
+            $query->with('approverName');
             }])->whereHas('goal', function ($query) {
-                $query->whereNull('deleted_at');
+            $query->whereNull('deleted_at');
             })->whereHas('approvalLayer', function ($query) use ($user) {
-                $query->where('employee_id', $user)->orWhere('approver_id', $user);
+            $query->where('employee_id', $user)->orWhere('approver_id', $user);
             })->when($filterYear, function ($query) use ($filterYear) {
-                $query->where('period', $filterYear);
+            $query->where('period', $filterYear);
             }, function ($query) {
-                $query->where('period', $this->period);
+            $query->where('period', $this->period);
             });
         }])
         ->whereHas('subordinates', function ($query) use ($user, $filterYear) {
             $query->with(['goal', 'updatedBy', 'approval' => function ($query) {
-                $query->with('approverName');
+            $query->with('approverName');
             }])->whereHas('goal', function ($query) {
-                $query->whereNull('deleted_at');
+            $query->whereNull('deleted_at');
             })->whereHas('approvalLayer', function ($query) use ($user) {
-                $query->where('employee_id', $user)->orWhere('approver_id', $user);
+            $query->where('employee_id', $user)->orWhere('approver_id', $user);
             })->when($filterYear, function ($query) use ($filterYear) {
-                $query->where('period', $filterYear);
+            $query->where('period', $filterYear);
             }, function ($query) {
-                $query->where('period', $this->period);
+            $query->where('period', $this->period);
             });
         })
         ->where('approver_id', $user)
-        ->get();    
+        ->get()
+        ->groupBy('employee_id')
+        ->map(function ($groupedTasks) {
+            return $groupedTasks->sortByDesc('layer')->first();
+        })
+        ->values(); // Reset the indexing after grouping and sorting
         
         $tasks->each(function($item) {
             $item->subordinates->map(function($subordinate) {
@@ -111,6 +126,10 @@ class TeamGoalController extends Controller
                                                             ->value('layer');
                 }
 
+                $appraisalCheck = Appraisal::where('goals_id', $subordinate->goal->id)->exists();
+
+                $subordinate->appraisalCheck = $appraisalCheck;
+
                 return $subordinate;
             });
         });
@@ -127,56 +146,65 @@ class TeamGoalController extends Controller
         })
         ->get();  
 
-        $notasks->map(function($item) {
+        $notasks = $notasks->map(function($item) {
             // Format created_at
             $doj = Carbon::parse($item->employee->date_of_joining);
 
-                $item->formatted_doj = $doj->format('d M Y');
-                
+            $isManager = ApprovalLayer::where('employee_id', $item->employee_id)
+             ->where('approver_id', Auth::user()->employee_id)
+             ->where('layer', 1)
+             ->exists();
+
+            $item->isManager = $isManager;
+            $item->formatted_doj = $doj->format('d M Y');
+            
             return $item;
-        });
+        })->values(); // Reset the indexing after mapping
+
+        $notasks = $notasks->sortByDesc('isManager')->values(); // Reset the indexing after sorting
         
         $data = [];
         $formData = [];
 
         foreach ($datas as $request) {
+
+            $dataItem = new stdClass();
+            $dataItem->request = $request;
+
             // Check if subordinates is not empty and has elements
             if ($request->subordinates->isNotEmpty()) {
-                $firstSubordinate = $request->subordinates->first();
+            $firstSubordinate = $request->subordinates->first();
         
-                // Check form status and created_by conditions
-                if ($firstSubordinate->created_by != Auth::user()->id) {
-                    
-                    // Check if approval relation exists and has elements
-                    if ($firstSubordinate->approval->isNotEmpty()) {
-                        $approverName = $firstSubordinate->approval->first();
-                        $dataApprover = $approverName->approverName->fullname;
-                    } else {
-                        $dataApprover = '';
-                    }
-        
-                    // Create object to store request and approver fullname
-                    $dataItem = new stdClass();
-                    $dataItem->request = $request;
-                    $dataItem->approver_name = $dataApprover;
-        
-                    // Add object to array $data
-                    $data[] = $dataItem;
-
-                    $formData = json_decode($firstSubordinate->goal->form_data, true);
+            // Check form status and created_by conditions
+            if ($firstSubordinate->created_by != Auth::user()->id) {
+                
+                // Check if approval relation exists and has elements
+                if ($firstSubordinate->approval->isNotEmpty()) {
+                $approverName = $firstSubordinate->approval->first();
+                $dataApprover = $approverName->approverName->fullname;
+                } else {
+                $dataApprover = '';
                 }
-            } else {
-                // Handle case when subordinates is empty
-                // Create object with empty or default values
-                $dataItem = new stdClass();
-                $dataItem->request = $request;
-                $dataItem->approver_name = ''; // or some default value
+        
+                // Create object to store request and approver fullname
+                $dataItem->approver_name = $dataApprover;
         
                 // Add object to array $data
-                $data[] = $dataItem;
-
-                $formData = '';
+                
+                $formData = json_decode($firstSubordinate->goal->form_data, true);
             }
+            } else {
+            // Handle case when subordinates is empty
+            // Create object with empty or default values
+            $dataItem->approver_name = ''; // or some default value
+            
+            // Add object to array $data
+            $data[] = $dataItem;
+            
+            $formData = '';
+            }
+
+            $data[] = $dataItem;
         }
         
         $path = base_path('resources/goal.json');
@@ -210,12 +238,38 @@ class TeamGoalController extends Controller
     
     function create($id) {
 
+        $id = decrypt($id);
+
         $period = $this->appService->goalPeriod();
+        $employee = Employee::where('employee_id', $id)->first();
+        $access_menu = json_decode($employee->access_menu, true);
+        $goal_access = $access_menu['goals'] ?? null;
+        $doj_access = $access_menu['doj'] ?? null;
+
+        if (!$goal_access || !$doj_access) {
+            // User ID doesn't match the condition, show error message
+            if ($this->user != $id) {
+                Session::flash('error', [
+                    'title' => 'Cannot create goal',
+                    'message' => "This employee not granted access to initiate Goals"
+                ]);
+                return redirect('team-goals');
+            } else {
+                Session::flash('error', [
+                    'title' => 'Cannot create goal',
+                    'message' => "You are not granted access to initiate Goals."
+                ]);
+            }
+            return redirect('goals');
+        }
 
         $goal = Goal::where('employee_id', $id)->where('period', $period)->get();
         if ($goal->isNotEmpty()) {
             // User ID doesn't match the condition, show error message
-            Session::flash('error', "You already initiated Goals for $period.");
+            Session::flash('error', [
+                'title' => 'Cannot create goal',
+                'message' => "You already initiated Goals for $period."
+            ]);
 
             return redirect('team-goals');
 
@@ -223,7 +277,10 @@ class TeamGoalController extends Controller
 
         $datas = ApprovalLayer::with(['employee'])->where('employee_id', $id)->where('layer', 1)->get();  
         if (!$datas->first()) {
-            Session::flash('error', "Theres no direct manager assigned in your position!");
+            Session::flash('error', [
+                'title' => 'Cannot create goal',
+                'message' => "There is no direct manager assigned in employee position!"
+            ]);
 
             return redirect('team-goals');
         }
@@ -250,27 +307,49 @@ class TeamGoalController extends Controller
 
     function edit($id) {
 
-        $goals = Goal::with(['approvalRequest'])->where('id', $id)->get();
-        $goal =  $goals->first();
+        $period = $this->appService->goalPeriod();
 
-        $approvalRequest = ApprovalRequest::with(['employee' => function($q) {
-            $q->select('id', 'fullname', 'employee_id', 'designation_name', 'job_level', 'group_company', 'unit');
-        }])->where('form_id', $goal->id)->first();
+        $goalsQuery = Goal::with(['approvalRequest' => function ($query) {
+            $query->where('created_by', Auth::user()->id);
+        }])->where('id', $id);
+        $goal =  $goalsQuery->first();
+        $goalsCheck = $goalsQuery->where('period', $period)->get();
 
         $parentLink = __('Goal');
         $link = __('Edit');
 
         $path = base_path('resources/goal.json');
 
-        // Check if the JSON file exists
-        if (!File::exists($path)) {
-            // Handle the situation where the JSON file doesn't exist
-            abort(500, 'JSON file does not exist.');
-        }
-
         if(!$goal){
+            Session::flash('error', [
+                'title' => 'Cannot update goal',
+                'message' => "Goal data not found."
+            ]);
             return redirect()->route('team-goals');
         }else{
+
+            if ($goalsCheck->isEmpty() || $goalsCheck->first()->approvalRequest == null) {
+                // User ID doesn't match the condition, show error message
+                Session::flash('error', [
+                    'title' => 'Permission Denied',
+                    'message' => "You do not have permission to edit this goal."
+                ]);
+    
+                if ($this->user != $goal->employee_id) {
+                    return redirect('team-goals');
+                }
+                return redirect('goals');
+            }
+
+            // Check if the JSON file exists
+            if (!File::exists($path)) {
+                // Handle the situation where the JSON file doesn't exist
+                abort(500, 'JSON file does not exist.');
+            }
+
+            $approvalRequest = ApprovalRequest::with(['employee' => function($q) {
+                $q->select('id', 'fullname', 'employee_id', 'designation_name', 'job_level', 'group_company', 'unit');
+            }])->where('form_id', $goal->id)->first();
             // Read the contents of the JSON file
             $formData = json_decode($goal->form_data, true);
 
@@ -282,14 +361,14 @@ class TeamGoalController extends Controller
 
             $selectedUoM = [];
             $selectedType = [];
-            $weigthage = [];
+            $weightage = [];
             $totalWeightages = 0;
             
             foreach ($formData as $index => $row) {
                 $selectedUoM[$index] = $row['uom'] ?? '';
                 $selectedType[$index] = $row['type'] ?? '';
-                $weigthage[$index] = $row['weightage'] ?? '';
-                $totalWeightages += (int)$weigthage[$index];
+                $weightage[$index] = $row['weightage'] ?? '';
+                $totalWeightages += (float)$weightage[$index];
             }
 
             $data = json_decode($goal->form_data, true);
@@ -358,213 +437,6 @@ class TeamGoalController extends Controller
 
     }
 
-    function store(Request $request)
-    {
-        if ($request->submit_type === 'save_draft') {
-            // Tangani logika penyimpanan sebagai draft
-            $submit_status = 'Draft';
-        } else {
-            $submit_status = 'Submitted';
-        }
-        // Inisialisasi array untuk menyimpan pesan validasi kustom
-        $customMessages = [];
-
-        $kpis = $request->input('kpi', []);
-        $descriptions = $request->input('description', []);
-        $targets = $request->input('target', []);
-        $uoms = $request->input('uom', []);
-        $weightages = $request->input('weightage', []);
-        $types = $request->input('type', []);
-        $status = $submit_status;
-        $custom_uoms = $request->input('custom_uom', []);
-        
-        // Menyiapkan aturan validasi
-        $rules = [
-            'kpi.*' => 'required|string',
-            'description.*' => 'string',
-            'target.*' => 'required|numeric',
-            'uom.*' => 'required|string',
-            'weightage.*' => 'required|integer|min:5|max:100',
-            'type.*' => 'required|string',
-        ];
-
-        // Pesan validasi kustom
-        $customMessages = [
-            'weightage.*.integer' => 'Weightage harus berupa angka.',
-            'weightage.*.min' => 'Weightage harus lebih besar atau sama dengan :min %.',
-            'weightage.*.max' => 'Weightage harus kurang dari atau sama dengan :max %.',
-        ];
-
-        // Membuat Validator instance
-        if ($request->submit_type === 'submit_form') {
-            $validator = Validator::make($request->all(), $rules, $customMessages);
-    
-            // Jika validasi gagal
-            if ($validator->fails()) {
-                return back()->withErrors($validator)->withInput();
-            }
-        }
-
-        // Inisialisasi array untuk menyimpan data KPI
-        
-        $kpiData = [];
-        // Reset nomor indeks untuk penggunaan berikutnya
-        $index = 1;
-
-        // Iterasi melalui input untuk mendapatkan data KPI
-        foreach ($kpis as $index => $kpi) {
-            // Memastikan ada nilai untuk semua input terkait
-            if ($submit_status=='Draft' || isset($targets[$index], $uoms[$index], $weightages[$index], $types[$index])) {
-                // Simpan data KPI ke dalam array dengan nomor indeks sebagai kunci
-                if($custom_uoms[$index]){
-                    $customuom = $custom_uoms[$index];
-                }else{
-                    $customuom = null;
-                }
-
-                $kpiData[$index] = [
-                    'kpi' => $kpi,
-                    'description' => $descriptions[$index],
-                    'target' => $targets[$index],
-                    'uom' => $uoms[$index],
-                    'weightage' => $weightages[$index],
-                    'type' => $types[$index],
-                    'custom_uom' => $customuom
-                ];
-
-                $index++;
-            }
-        }
-
-        // Simpan data KPI ke dalam file JSON
-        $jsonData = json_encode($kpiData);
-
-        $model =  new Goal;
-        $model->id = Str::uuid();
-        $model->employee_id = $request->employee_id;
-        $model->category = $request->category;
-        $model->form_data = $jsonData;
-        $model->form_status = $status;
-        
-        $model->save();
-
-        $snapshot =  new ApprovalSnapshots;
-        $snapshot->id = Str::uuid();
-        $snapshot->form_id = $model->id;
-        $snapshot->form_data = $jsonData;
-        $snapshot->employee_id = $request->employee_id;
-        $snapshot->created_by = Auth::user()->id;
-        
-        $snapshot->save();
-
-        $approval = new ApprovalRequest();
-        $approval->form_id = $model->id;
-        $approval->category = $this->category;
-        $approval->employee_id = $request->employee_id;
-        $approval->current_approval_id = $request->approver_id;
-        $approval->created_by = Auth::user()->id;
-        // Set other attributes as needed
-        $approval->save();
-
-        // Beri respon bahwa data berhasil disimpan
-        // return response()->json(['message' => 'Data saved successfully'], 200);
-            return redirect('team-goals');
-    }
-
-    function update(Request $request) {
-
-        if ($request->submit_type === 'save_draft') {
-            // Tangani logika penyimpanan sebagai draft
-            $submit_status = 'Draft';
-        } else {
-            $submit_status = 'Submitted';
-        }
-        // Inisialisasi array untuk menyimpan pesan validasi kustom
-        $customMessages = [];
-
-        $kpis = $request->input('kpi', []);
-        $descriptions = $request->input('description', []);
-        $targets = $request->input('target', []);
-        $uoms = $request->input('uom', []);
-        $weightages = $request->input('weightage', []);
-        $types = $request->input('type', []);
-        $status = $submit_status;
-        $custom_uoms = $request->input('custom_uom', []);
-
-        // Menyiapkan aturan validasi
-        $rules = [
-            'kpi.*' => 'required|string',
-            'description.*' => 'string',
-            'target.*' => 'required|numeric',
-            'uom.*' => 'required|string',
-            'weightage.*' => 'required|integer|min:5|max:100',
-            'type.*' => 'required|string',
-        ];
-
-        // Pesan validasi kustom
-        $customMessages = [
-            'weightage.*.integer' => 'Weightage harus berupa angka.',
-            'weightage.*.min' => 'Weightage harus lebih besar atau sama dengan :min %.',
-            'weightage.*.max' => 'Weightage harus kurang dari atau sama dengan :max %.',
-        ];
-
-        // Membuat Validator instance
-        if ($request->submit_type === 'submit_form') {
-            $validator = Validator::make($request->all(), $rules, $customMessages);
-    
-            // Jika validasi gagal
-            if ($validator->fails()) {
-                return back()->withErrors($validator)->withInput();
-            }
-        }
-
-        $kpiData = [];
-        // Reset nomor indeks untuk penggunaan berikutnya
-        $index = 1;
-
-        // Iterasi melalui input untuk mendapatkan data KPI
-        foreach ($kpis as $index => $kpi) {
-            // Memastikan ada nilai untuk semua input terkait
-            if ($submit_status=='Draft' || isset($targets[$index], $uoms[$index], $weightages[$index], $types[$index])) {
-                // Simpan data KPI ke dalam array dengan nomor indeks sebagai kunci
-                if($custom_uoms[$index]){
-                    $customuom = $custom_uoms[$index];
-                }else{
-                    $customuom = null;
-                }
-
-                $kpiData[$index] = [
-                    'kpi' => $kpi,
-                    'description' => $descriptions[$index],
-                    'target' => $targets[$index],
-                    'uom' => $uoms[$index],
-                    'weightage' => $weightages[$index],
-                    'type' => $types[$index],
-                    'custom_uom' => $customuom
-                ];
-
-                $index++;
-            }
-        }
-
-        // Simpan data KPI ke dalam file JSON
-        $jsonData = json_encode($kpiData);
-        
-        $goal = Goal::find($request->id);
-        $goal->form_data = $jsonData;
-        $goal->form_status = $status;
-        
-        $goal->save();
-
-        $snapshot =  ApprovalSnapshots::where('form_id', $request->id)->where('employee_id', $request->employee_id)->first();
-        $snapshot->form_data = $jsonData;
-        $snapshot->updated_by = Auth::user()->id;
-        
-        $snapshot->save();
-
-            return redirect('team-goals');
-
-    }
 
     public function getTooltipContent(Request $request)
     {
@@ -587,6 +459,73 @@ class TeamGoalController extends Controller
     {
         $uom = file_get_contents(base_path('resources/goal.json'));
         return response()->json(json_decode($uom, true));
+    }
+
+    public function import(Request $request)
+    {
+        // Validasi file
+        $request->validate([
+            'file' => 'required|file|mimes:xlsx,csv,xls',
+        ]);
+
+        // Pastikan file terupload
+        if ($request->hasFile('file')) {
+            $filePath = $request->file('file')->store($path='public/uploads');
+            Log::info("File uploaded successfully: " . $filePath);
+        } else {
+            Log::error("File upload failed."); 
+            return back()->with('error', "File upload failed.");
+        }
+        DB::enableQueryLog();
+        // Jalankan proses impor
+        try {
+            
+            $import = new GoalsDataImportManager($filePath, $this->user, $this->period);
+            Excel::import($import, $filePath);
+
+            // Simpan data ke database setelah semua baris diproses
+            $import->saveToDatabase();
+            
+            // Simpan transaksi
+            $import->saveTransaction();
+
+            $invalidEmployees = $import->getInvalidEmployees();
+    
+            $message = 'Data imported successfully.';
+
+            if (!empty($invalidEmployees)) {
+                session()->put('invalid_employees', $invalidEmployees);
+                $message = 'Some of import data failed! <a href="' . route('export.invalid.goal') . '"><u>Click here to download the list of errors.</u></a>';
+                return redirect()->back()->with('error', $message);
+            }
+            return redirect()->back()->with('success', $message);
+            Log::info(Auth::id() ." Goal import : Data imported successfully.");
+            
+        } catch (ValidationException $e) {
+            // Catch the validation exception and redirect back with a custom error message
+            return redirect()->back()->with('error', $e->errors()['error'][0]);
+        } catch (\Exception $e) {
+            $errorMessage = "Import failed: " . $e->getMessage(); // Define a variable
+            Log::error(Auth::id() . " " . $errorMessage);
+            return back()->with('error', $errorMessage);
+        }
+        $queries = DB::getQueryLog();
+        Log::info(Auth::id() ." Executed queries import goals manager: ", $queries);
+        // Redirect dengan pesan sukses
+        return redirect()->back()->with('success', 'Goals imported successfully!');
+    }
+
+    public function exportInvalidGoal()
+    {
+        // Retrieve the invalid employees from the session or another source
+        $invalidEmployees = session('invalid_employees');
+
+        if (empty($invalidEmployees)) {
+            return redirect()->back()->with('success', 'No invalid employees to export.');
+        }
+
+        // Export the invalid employees to an Excel file
+        return Excel::download(new InvalidGoalImport($invalidEmployees), 'errors_goal_import.xlsx');
     }
 
 }
