@@ -328,11 +328,15 @@
             if (startJoinDateFromDB) {
                 startJoinInput.min = startJoinDateFromDB;
                 endJoinInput.min = startJoinDateFromDB;
+                startJoinInput.value = startJoinDateFromDB;
+                startJoinInput.setAttribute("required", true);
             }
 
             if (lastJoinDateFromDB) {
                 startJoinInput.max = lastJoinDateFromDB;
                 endJoinInput.max = lastJoinDateFromDB;
+                endJoinInput.value = lastJoinDateFromDB;
+                endJoinInput.setAttribute("required", true);
             }
             check360.style.display = "block";
         } else if (event_type.value === 'goals'){
@@ -350,11 +354,15 @@
             if (startJoinDateFromDB) {
                 startJoinInput.min = startJoinDateFromDB;
                 endJoinInput.min = startJoinDateFromDB;
+                startJoinInput.value = startJoinDateFromDB;
+                startJoinInput.setAttribute("required", true);
             }
 
             if (lastJoinDateFromDB) {
                 startJoinInput.max = lastJoinDateFromDB;
                 endJoinInput.max = lastJoinDateFromDB;
+                endJoinInput.value = lastJoinDateFromDB;
+                endJoinInput.setAttribute("required", true);
             }
             check360.style.display = "none";
         }else {
@@ -363,6 +371,8 @@
             startInput.max = '';
             endInput.min = '';
             endInput.max = '';
+            startJoinInput.removeAttribute("required");
+            endJoinInput.removeAttribute("required");
             check360.style.display = "none";
         }
     }

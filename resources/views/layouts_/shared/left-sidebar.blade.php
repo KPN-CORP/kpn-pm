@@ -190,6 +190,22 @@
                                 <a href="{{ route('schedules') }}">Schedule</a>
                             </li>
                             @endcan
+
+                            @can('importgoals')
+                            <li>
+                                <a href="{{ route('importg') }}">Import Goals</a>
+                            </li>
+                            @endcan
+                            @can('importkpi')
+                            <li>
+                                <a href="{{ route('importkpi') }}">Import KPI</a>
+                            </li>
+                            @endcan
+                            @can('reminderpa')
+                            <li>
+                                <a href="{{ route('reminderpaindex') }}">Reminder PA</a>
+                            </li>
+                            @endcan
                             @can('viewflowsetting')
                             <li class="side-nav-item">
                                 <a data-bs-toggle="collapse" href="#sidebarFlow" aria-expanded="false" aria-controls="sidebarFlow">
@@ -209,6 +225,7 @@
                             </li>
                             <li class="side-nav-item">
                                 <a href="{{ route('assignments.index') }}">Assignments</a>
+
                             </li>
                             @endcan
                         </ul>
