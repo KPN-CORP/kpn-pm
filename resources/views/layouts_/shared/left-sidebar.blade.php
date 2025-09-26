@@ -167,6 +167,16 @@
                                 <a href="{{ route('importg') }}">Import Goals</a>
                             </li>
                             @endcan
+                            @can('importkpi')
+                            <li>
+                                <a href="{{ route('importkpi') }}">Import KPI</a>
+                            </li>
+                            @endcan
+                            @can('reminderpa')
+                            <li>
+                                <a href="{{ route('reminderpaindex') }}">Reminder PA</a>
+                            </li>
+                            @endcan
                         </ul>
                     </div>
                 </li>

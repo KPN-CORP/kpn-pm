@@ -58,6 +58,14 @@ class Employee extends Model
             ->distinct()
             ->pluck('group_company');
     }
+    public static function getUniqueJobLevel()
+    {
+        return self::select('job_level')
+            ->distinct()
+            ->where('job_level', '!=', '1A')
+            ->orderBy('job_level', 'asc')
+            ->pluck('job_level');
+    }
 
     public function appraisalLayer()
     {

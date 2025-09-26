@@ -9,6 +9,7 @@ use App\Http\Controllers\Appraisal360;
 use App\Http\Controllers\AppraisalTaskController;
 use App\Http\Controllers\ApprovalController;
 use App\Http\Controllers\ImportGoalsController;
+use App\Http\Controllers\ImportKpiController;
 use App\Http\Controllers\Auth\AuthenticatedSessionController;
 use App\Http\Controllers\Auth\ConfirmablePasswordController;
 use App\Http\Controllers\Auth\EmailVerificationNotificationController;
@@ -39,6 +40,7 @@ use App\Http\Controllers\CalibrationController;
 use App\Http\Controllers\EmployeePAController;
 use App\Http\Controllers\FormAppraisalController;
 use App\Http\Controllers\FormGroupAppraisalController;
+use App\Http\Controllers\PaReminderController;
 use App\Http\Controllers\RatingController;
 use App\Http\Controllers\TeamAppraisalController;
 use App\Http\Controllers\TeamGoalController;
@@ -47,7 +49,6 @@ use App\Http\Controllers\WeightageController;
 use App\Imports\ApprovalLayerAppraisalImport;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\NotificationMiddleware;
-
 
 Route::get('language/{locale}', [LanguageController::class, 'switchLanguage'])->name('language.switch');
 
@@ -303,6 +304,19 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::get('/download-excel/{file}', [ImportGoalsController::class, 'downloadExcel'])->name('downloadExcel');
     });
 
+    Route::middleware(['permission:importkpi'])->group(function () {
+        Route::get('/import-kpi', [ImportKpiController::class, 'showImportKpiForm'])->name('importkpi');
+        Route::post('/import-kpi/submit', [ImportKpiController::class, 'importKpi'])->name('importkpisubmit');
+        Route::delete('/achievements/{id}', [ImportKpiController::class, 'destroy'])->name('achievements.destroy');
+    });
+
+    Route::middleware(['permission:reminderpa'])->group(function () {
+        // Route::resource('pa-reminders', PaReminderController::class);
+        Route::get('/reminder-pa', [PaReminderController::class, 'index'])->name('reminderpaindex');
+        Route::get('/remindersCreate', [PaReminderController::class, 'create'])->name('prcreate');
+        Route::post('/remindersStore', [PaReminderController::class, 'store'])->name('prstore');
+    });
+    
     Route::middleware(['permission:reportpa'])->group(function () {
         Route::get('/admin-appraisal', [AdminAppraisalController::class, 'index'])->name('admin.appraisal');
         Route::get('/admin-appraisal/details/{id}', [AdminAppraisalController::class, 'detail'])->name('admin.appraisal.details');
