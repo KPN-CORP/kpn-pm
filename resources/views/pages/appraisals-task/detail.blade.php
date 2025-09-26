@@ -71,9 +71,72 @@
                 </div>
             </div>
         </div>
+        {{-- @if ($row->request->employee->group_company == 'Cement') --}}
+        <div class="card-body m-0 py-2">
+            @php
+                // Contoh data bulanan
+                $achievements = [
+                    ["month" => "January", "value" => "B"],
+                    ["month" => "February", "value" => "B"],
+                    ["month" => "March", "value" => "A"],
+                    ["month" => "April", "value" => "A"],
+                    ["month" => "May", "value" => "B"],
+                    ["month" => "June", "value" => "B"],
+                    ["month" => "July", "value" => "C"],
+                    ["month" => "August", "value" => "C"],
+                    ["month" => "September", "value" => "B"],
+                    ["month" => "October", "value" => "A"],
+                    ["month" => "November", "value" => "B"],
+                    ["month" => "December", "value" => "A"],
+                ];
+            @endphp
+
+            <div class="rounded mb-2 p-3 bg-white text-primary align-items-center">
+                <div class="row mb-2">
+                    <span class="fs-16 mx-1">
+                        Achievements
+                    </span>      
+                </div>                         
+                <div class="row">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-sm mb-0 text-center align-middle">
+                            <thead class="bg-primary-subtle">
+                                <tr>
+                                    @foreach ($achievements as $item)
+                                        <th>{{ substr($item['month'], 0, 3) }}</th>
+                                    @endforeach
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white">
+                                <tr>
+                                    @foreach ($achievements as $item)
+                                        <td>{{ $item['value'] }}</td>
+                                    @endforeach
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{-- @endif --}}
         <div class="row">
             <div class="col">
                 <div class="card">
+                    @if($datas->first()->appraisal?->file && $formData['formGroupName'] != "Appraisal Form 360")
+                    <div class="card-body m-0 py-3">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <label for="attachment" class="form-label">Supporting documents :</label>
+                                <div class="d-flex align-items-center gap-1">
+                                    <a href="{{ asset($datas->first()->appraisal->file) }}" target="_blank" class="badge rounded-pill text-bg-warning px-2 py-1" style="font-size: 0.75rem">
+                                        attachment <i class="ri-file-text-line"></i>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    @endif
                     <div class="card-body">
                         <div class="row">
                             <div class="col">
@@ -229,7 +292,6 @@
                     </div> <!-- end card-body-->
                 </div>
             </div>
-        </div>
         </div>
     </div>
 @endsection

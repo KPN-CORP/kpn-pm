@@ -33,7 +33,6 @@
 
     <!-- Sidebar -left -->
     <div class="h-100" id="leftside-menu-container" data-simplebar>
-
         <!--- Sidemenu -->
         <ul class="side-nav">
 
@@ -80,13 +79,22 @@
                         </ul>
                     </div>
                 </li>
-                @if(auth()->user()->isCalibrator() && auth()->user()->kpiUnits())
+                @if(auth()->user()->isCalibrator() && $userRatingAccess())
                 <li class="side-nav-item">
                     <a href="{{ route('rating') }}" onclick="showLoader()" class="side-nav-link">
                         <i class="ri-star-line"></i>
                         <span> Rating </span>
                     </a>
                 </li>
+                @endif
+                @if($flowAccess('Propose 360'))
+                    <li class="side-nav-item">
+                        <a href="{{ route('proposed360') }}" onclick="showLoader()" class="side-nav-link">
+                            <i class="ri-team-line"></i>
+                            <span> {{ __('Propose 360') }} </span>
+                            {{-- <span class="badge bg-danger float-end">{{ $notificationProposed360 }}</span>     --}}
+                        </a>
+                    </li>
                 @endif
             @endif
             @if (auth()->user()->isApprover())
@@ -107,6 +115,12 @@
             @if(auth()->check())
                 @can('adminmenu')
                 <li class="side-nav-title">Admin</li>
+                <li class="side-nav-item">
+                    <a href="{{ route('admin-tasks') }}" class="side-nav-link">
+                        <i class="ri-task-line"></i>
+                        <span> Admin Tasks </span>
+                    </a>
+                </li>
                 @can('viewsetting')
                 <li class="side-nav-item">
                     <a data-bs-toggle="collapse" href="#sidebarSettings" aria-expanded="false" aria-controls="sidebarSettings" class="side-nav-link">
@@ -118,7 +132,7 @@
                         <ul class="side-nav-second-level">
                             <li class="side-nav-item">
                                 <a data-bs-toggle="collapse" href="#sidebarTS" aria-expanded="false" aria-controls="sidebarTS">
-                                    <span> Goal Setting </span>
+                                    <span> Target Setting </span>
                                     <span class="menu-arrow"></span>
                                 </a>
                                 <div class="collapse" id="sidebarTS">
@@ -133,7 +147,7 @@
                             </li>
                             <li class="side-nav-item">
                                 <a data-bs-toggle="collapse" href="#sidebarPA" aria-expanded="false" aria-controls="sidebarPA">
-                                    <span> PA Setting </span>
+                                    <span> Performance Appraisal </span>
                                     <span class="menu-arrow"></span>
                                 </a>
                                 <div class="collapse" id="sidebarPA">
@@ -158,6 +172,11 @@
                                             <a href="{{ route('admin-weightage') }}">Weightage</a>
                                         </li>
                                         @endcan
+                                        @can('master360')
+                                        <li>
+                                            <a href="{{ route('admin-master360') }}">Master 360</a>
+                                        </li>
+                                        @endcan
                                     </ul>
                                 </div>
                             </li>
@@ -171,6 +190,7 @@
                                 <a href="{{ route('schedules') }}">Schedule</a>
                             </li>
                             @endcan
+
                             @can('importgoals')
                             <li>
                                 <a href="{{ route('importg') }}">Import Goals</a>
@@ -184,6 +204,28 @@
                             @can('reminderpa')
                             <li>
                                 <a href="{{ route('reminderpaindex') }}">Reminder PA</a>
+                            </li>
+                            @endcan
+                            @can('viewflowsetting')
+                            <li class="side-nav-item">
+                                <a data-bs-toggle="collapse" href="#sidebarFlow" aria-expanded="false" aria-controls="sidebarFlow">
+                                    <span> Flow Builder </span>
+                                    <span class="menu-arrow"></span>
+                                </a>
+                                <div class="collapse" id="sidebarFlow">
+                                    <ul class="side-nav-third-level">
+                                        <li>
+                                            <a href="{{ route('flows.index') }}">Flows</a>
+                                        </li>
+                                        <li>
+                                            <a href="{{ route('approval-flow.index') }}">Approval Flow</a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            </li>
+                            <li class="side-nav-item">
+                                <a href="{{ route('assignments.index') }}">Assignments</a>
+
                             </li>
                             @endcan
                         </ul>
@@ -202,7 +244,7 @@
                 <li class="side-nav-item">
                     <a data-bs-toggle="collapse" href="#sidebarReports" aria-expanded="false" aria-controls="sidebarReports" class="side-nav-link">
                         <i class="ri-file-chart-line"></i>
-                        <span> Reports </span>
+                        <span> {{ __('Report') }} </span>
                         <span class="menu-arrow"></span>
                     </a>
                     <div class="collapse" id="sidebarReports">
@@ -219,29 +261,35 @@
                     </div>
                 </li>
                 @endcan
-                    @can('viewimport')
-                    <li class="side-nav-item">
-                        <a data-bs-toggle="collapse" href="#sidebarImports" aria-expanded="false" aria-controls="sidebarImports" class="side-nav-link">
-                            <i class="ri-file-chart-line"></i>
-                            <span> Imports </span>
-                            <span class="menu-arrow"></span>
-                        </a>
-                        <div class="collapse" id="sidebarImports">
-                            <ul class="side-nav-second-level">
-                                @can('importgoals')
-                                <li>
-                                    <a href="{{ route('importg') }}">{{ __('Import Goals') }}</a>
-                                </li>
-                                @endcan
-                                @if (auth()->user()->hasRole('superadmin'))
-                                <li>
-                                    <a href="{{ route('importRating') }}">{{ __('Import Rating') }}</a>
-                                </li>
-                                @endif
-                            </ul>
-                        </div>
-                    </li>
-                    @endcan
+                @can('viewimport')
+                <li class="side-nav-item">
+                    <a data-bs-toggle="collapse" href="#sidebarImports" aria-expanded="false" aria-controls="sidebarImports" class="side-nav-link">
+                        <i class="ri-file-chart-line"></i>
+                        <span> Imports </span>
+                        <span class="menu-arrow"></span>
+                    </a>
+                    <div class="collapse" id="sidebarImports">
+                        <ul class="side-nav-second-level">
+                            @can('importgoals')
+                            <li>
+                                <a href="{{ route('importg') }}">{{ __('Import Goals') }}</a>
+                            </li>
+                            @endcan
+                            @if (auth()->user()->hasRole('superadmin'))
+                            <li>
+                                <a href="{{ route('importRating') }}">{{ __('Import Rating') }}</a>
+                            </li>
+                            @endif
+                        </ul>
+                    </div>
+                </li>
+                @endcan
+                <li class="side-nav-item">
+                    <a href="{{ route('audit-trail') }}" class="side-nav-link">
+                        <i class="ri-list-check-2"></i>
+                        <span> Audit Trail </span>
+                    </a>
+                </li>
                 @endcan
             @endif
 

@@ -135,7 +135,8 @@ class TeamGoalController extends Controller
         });
 
         $notasks = ApprovalLayer::with([
-            'employee'
+            'employee',
+            'employee.managerL1',
         ])
         ->where('approver_id', $user)
         ->whereHas('employee', fn($q) => $q->where('access_menu->doj', 1))

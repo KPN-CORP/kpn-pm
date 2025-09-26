@@ -76,7 +76,7 @@
     "src": "resources/fonts/remixicon.woff2"
   },
   "resources/js/app.js": {
-    "file": "assets/app-uYo_yPcP.js",
+    "file": "assets/app-D3Ti0q1h.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
@@ -133,7 +133,7 @@
     "isEntry": true
   },
   "resources/js/team-goal.js": {
-    "file": "assets/team-goal-BqcoH6rZ.js",
+    "file": "assets/team-goal-BUgwqW2H.js",
     "name": "team-goal",
     "src": "resources/js/team-goal.js",
     "isEntry": true,
@@ -148,7 +148,7 @@
     "isEntry": true
   },
   "resources/scss/app.scss": {
-    "file": "assets/app-D00rJ0iD.css",
+    "file": "assets/app-b9G4s3ga.css",
     "src": "resources/scss/app.scss",
     "isEntry": true
   },

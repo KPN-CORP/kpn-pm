@@ -28,5 +28,8 @@ class AppServiceProvider extends ServiceProvider
 
         // Share data with views globally
         View::share('appraisalPeriod', $appService->appraisalPeriod());
+        View::share('flowAccess', fn($moduleTransaction) => $appService->checkFlowAccess($moduleTransaction));
+        View::share('userRatingAccess', fn() => $appService->checkKpiUnit());
+
     }
 }

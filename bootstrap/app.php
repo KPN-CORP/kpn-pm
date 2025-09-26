@@ -19,6 +19,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'role_or_permission' => \Spatie\Permission\Middleware\RoleOrPermissionMiddleware::class,
             'locale' => \App\Http\Middleware\LanguageSwitcher::class,
             'notification' => \App\Http\Middleware\NotificationMiddleware::class,
+            'flow_access' => \App\Http\Middleware\FlowAccessMiddleware::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

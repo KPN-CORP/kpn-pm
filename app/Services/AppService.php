@@ -7,9 +7,11 @@ use App\Models\ApprovalLayer;
 use App\Models\ApprovalLayerAppraisal;
 use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
+use App\Models\Assignment;
 use App\Models\Calibration;
 use App\Models\Employee;
 use App\Models\EmployeeAppraisal;
+use App\Models\Flow;
 use App\Models\FormGroupAppraisal;
 use App\Models\KpiUnits;
 use App\Models\MasterCalibration;
@@ -18,6 +20,7 @@ use App\Models\MasterWeightage;
 use App\Models\Schedule;
 use Carbon\Carbon;
 use Exception;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
 use stdClass;
@@ -66,26 +69,27 @@ class AppService
     }
 
     // Function to calculate the average score
-    public function averageScore($formData) {
-
+    public function averageScore($formData)
+    {
         $totalScore = 0;
         $totalCount = 0;
-    
+
         foreach ($formData as $key => $section) {
             if (is_array($section)) {
                 foreach ($section as $subSection) {
-                    if (is_array($subSection) && isset($subSection['score'])) {
-                        $totalScore += $subSection['score'];
+                    if (is_array($subSection) && array_key_exists('score', $subSection)) {
+                        $score = $subSection['score'] ?? 0;
+                        $totalScore += (is_numeric($score) ? $score : 0); // Konversi null jadi 0
                         $totalCount++;
                     }
                 }
             }
         }
-    
+
         if ($totalCount === 0) {
             return 0; // Prevent division by zero
         }
-    
+
         return $totalScore / $totalCount;
     }
     
@@ -179,6 +183,9 @@ class AppService
                     }
                 } elseif ($form['formName'] === "Culture") {
                     // Calculate average score for Culture form
+                    
+                    Log::info('Form setelah normalisasi:', $form);
+
                     $cultureAverageScore = $this->averageScore($form);
                 } elseif ($form['formName'] === "Leadership") {
                     // Calculate average score for Culture form
@@ -246,20 +253,20 @@ class AppService
         $appraisalDatas['cultureAverageScore'] = ($cultureAverageScore * $cultureWeightage / 100) * $appraisalDatas['cultureWeightage360']; // get Culture Average Score
         $appraisalDatas['leadershipAverageScore'] = ($leadershipAverageScore * $leadershipWeightage / 100) * $appraisalDatas['leadershipWeightage360']; // get Leadership Average Score
         
-        $appraisalDatas['kpiScore'] = $totalKpiScore * $kpiWeightage / 100 ; // get KPI Final Score
-        $appraisalDatas['cultureScore'] = $cultureAverageScore * $cultureWeightage / 100; // get KPI Final Score
-        $appraisalDatas['leadershipScore'] = $leadershipAverageScore  * $leadershipWeightage / 100; // get KPI Final Score
+        $appraisalDatas['kpiScore'] = round($totalKpiScore * $kpiWeightage / 100, 2) ; // get KPI Final Score
+        $appraisalDatas['cultureScore'] = round($cultureAverageScore * $cultureWeightage / 100, 2); // get KPI Final Score
+        $appraisalDatas['leadershipScore'] = round($leadershipAverageScore  * $leadershipWeightage / 100, 2); // get KPI Final Score
 
         $scores = [$totalKpiScore,$cultureAverageScore,$leadershipAverageScore];
         // get KPI Final Score
 
-        $appraisalDatas['totalScore'] =  round($appraisalDatas['kpiScore'] + $appraisalDatas['cultureScore'] + $appraisalDatas['leadershipScore'], 2); // Update
+        $appraisalDatas['totalScore'] =  $appraisalDatas['kpiScore'] + $appraisalDatas['cultureScore'] + $appraisalDatas['leadershipScore']; // Update
 
         $appraisalDatas['contributorRating'] = $appraisalDatas['totalScore']; // old
 
         return $appraisalDatas;
     }
-    
+
     public function combineSummaryFormData($appraisalData, $goalData, $employeeData, $period) {
 
         $totalKpiScore = 0; // Initialize the total score
@@ -877,6 +884,61 @@ class AppService
         return $period;
     }
 
+    public function proposed360()
+    {
+        return $this->checkFlowAccess('Propose 360');
+    }
+
+    public function checkFlowAccess(string $moduleTransaction): bool
+    {
+        $user = Auth::user();
+
+        $employee = $user->employee ?? null;
+
+        if (!$employee) {
+            return false;
+        }
+
+        $flow = Flow::where('module_transaction', $moduleTransaction)->first();
+
+        if (!$flow) {
+            return false;
+        }
+
+        $assignmentIds = json_decode($flow->assignments, true) ?? [];
+        $assignments = Assignment::whereIn('id', $assignmentIds)->get();
+
+        foreach ($assignments as $assignment) {
+            $restriction = json_decode($assignment->restriction, true) ?? [];
+
+            $pass = true;
+            foreach ($restriction as $field => $allowedValues) {
+                if (!in_array($employee->{$field} ?? null, $allowedValues, true)) {
+                    $pass = false;
+                    break;
+                }
+            }
+
+            if ($pass) {
+                return true; // kalau ada satu assignment yang match, lolos
+            }
+        }
+
+        return false;
+    }
+
+    public function checkKpiUnit(): bool 
+    {
+        $user = KpiUnits::with(['masterCalibration' => function($query) {
+                $query->where('period', $this->appraisalPeriod());
+            }])->where('employee_id', Auth::user()->employee_id)->where('status_aktif', 'T')->where('periode', $this->appraisalPeriod())->first();
+
+        if (!$user) return false;
+
+        // rule Anda di sini
+        return true; // contoh
+    }
+
     public function appraisalActivePeriod()
     {
         $today = Carbon::today()->toDateString();
@@ -941,6 +1003,9 @@ class AppService
                 $q->whereRaw('json_valid(access_menu)')
                   ->whereJsonContains('access_menu', ['createpa' => 1]);
             });
+        })
+        ->whereDoesntHave('appraisal', function ($query) {
+            $query->where('form_status', 'Draft');
         })
         ->get();
 
@@ -1412,5 +1477,5 @@ class AppService
             'summary' => $summary
         ];
     }
-    
+
 }

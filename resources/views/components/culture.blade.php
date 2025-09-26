@@ -1,4 +1,4 @@
-<div class="form-group mb-4">
+<div class="form-group mb-2">
     <input type="hidden" name="formData[{{ $formIndex }}][formName]" value="{{ $name }}">
     @if(is_array($data))
         <div class="row fs-14">

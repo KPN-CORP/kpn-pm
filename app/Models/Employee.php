@@ -71,4 +71,9 @@ class Employee extends Model
     {
         return $this->hasMany(ApprovalLayerAppraisal::class, 'employee_id', 'employee_id');
     }
+
+    public function managerL1()
+    {
+        return $this->belongsTo(Employee::class, 'manager_l1_id', 'employee_id');
+    }
 }

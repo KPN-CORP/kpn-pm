@@ -1,6 +1,59 @@
 @extends('layouts_.vertical', ['page_title' => 'Goals'])
 
 @section('css')
+<style>
+  .ai-loader{display:inline-flex;gap:.35rem;align-items:center}
+  .ai-loader .dot{
+    width:.55rem;height:.55rem;border-radius:50%;
+    background:linear-gradient(90deg,#8ab4ff,#a78bfa,#f472b6);
+    filter:saturate(115%); animation:ai-bounce 1.1s infinite ease-in-out;
+    box-shadow:0 0 .35rem rgba(80,102,255,.35);
+  }
+  .ai-loader .dot:nth-child(2){animation-delay:.15s}
+  .ai-loader .dot:nth-child(3){animation-delay:.30s}
+  @keyframes ai-bounce{0%,80%,100%{transform:scale(.6);opacity:.6}40%{transform:scale(1);opacity:1}}
+</style>
+<style>
+  .container-fluid.p-0{
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+  }
+
+  .section-loader{
+    position: absolute; inset: 0; z-index: 1050;
+    display: flex; align-items: center; justify-content: center;
+    pointer-events: all;
+    border-radius: inherit;
+
+    /* gradient + animasi */
+    background: linear-gradient(135deg,
+      rgba(62,96,213,.65) 0%,
+      rgba(167,139,250,.65) 50%,
+      rgba(244,114,182,.65) 100%);
+    background-size: 200% 200%;
+    animation: gradient-move 4s ease-in-out infinite;
+
+    /* FADE */
+    opacity: 1; transition: opacity .35s ease;
+  }
+  .section-loader.is-fading{ opacity: 0; }
+
+  @keyframes gradient-move{
+    0%{background-position:0% 0%}
+    50%{background-position:100% 100%}
+    100%{background-position:0% 0%}
+  }
+
+  .section-loader__inner{
+    display:inline-flex; gap:.5rem; align-items:center;
+    padding:.5rem .75rem; border-radius:.75rem;
+    background: rgba(255,255,255,.65); backdrop-filter: blur(2px);
+    box-shadow:0 2px 8px rgba(0,0,0,.08);
+  }
+</style>
+
+
 @endsection
 
 @section('content')
@@ -70,17 +123,27 @@
           @foreach ($datas as $index => $data)
           <input type="hidden" class="form-control" name="users_id" value="{{ Auth::user()->id }}">
           <input type="hidden" class="form-control" name="approver_id" value="{{ $data->approver_id }}">
-          <input type="hidden" class="form-control" name="employee_id" value="{{ $data->employee_id }}">
+          <input type="hidden" class="form-control" name="employee_id" id="employee_id" value="{{ $data->employee_id }}">
           <input type="hidden" class="form-control" name="category" value="Goals">
+          <input type="hidden" class="form-control" id="period" value="{{ $period }}">
           @endforeach
           <!-- Content Row -->
           <div class="row">
             <div class="col-md">
                 <h4>{{ __('Target') }} {{ $period }}</h4>
             </div>
+            <div class="col-auto">
+                <button type="button" id="getLatestGoal" class="btn btn-sm btn-outline-info rounded d-inline-flex align-items-center gap-2">
+                <span class="label"><i class="ri-bard-fill me-1"></i>Get Latest Goal</span>
+                <span class="loading d-none align-items-center gap-2">
+                    <span class="spinner-border spinner-border-sm text-info me-1" role="status" aria-hidden="true"></span>
+                    <span>Generating...</span>
+                </span>
+                </button>
+            </div>
           </div>
-          <div class="container-fluid p-0">
-            <div class="card col-md-12 mb-3 shadow">
+          <div class="container-fluid mt-3 p-0">
+            <div class="card col-md-12 m-0 shadow">
                 <div class="card-body pb-0 px-2 px-md-3">
                     <div class="container-card">
                       <div class="card border-primary border col-md-12 mb-3 bg-primary-subtle">

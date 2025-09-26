@@ -15,7 +15,9 @@ class ApprovalLayerAppraisal extends Model
         'layer_type', 
         'layer', 
         'created_by', 
+        'created_at', 
         'updated_by', 
+        'updated_at', 
     ];
 
     public function employee()

@@ -111,7 +111,7 @@
                                         </div>
                                     </div>
                                     <div class="collapse show" id="dataTasks">
-                                        <div class="card mb-0 mt-2 border border-primary">
+                                        <div class="card mb-0 mt-2">
                                             <div class="card-body py-1" id="task-container-1">
                                                 <!-- task -->
                                                 @forelse ($tasks as $index => $task)
@@ -339,9 +339,12 @@
                                                             // Get the 'goals' and 'doj' values
                                                             $goals = $accessMenu['goals'] ?? null;
                                                             $doj = $accessMenu['doj'] ?? null;
+                                                            $managerL1 = $notask?->employee?->managerL1;
                                                         @endphp
                                                         @if ((!$filterYear || $filterYear == $period) && $doj && $goals && $notask->isManager)
                                                             <button data-id="{{ encrypt($notask->employee->employee_id) }}" id="initiateBtn{{ $index }}" class="btn btn-outline-primary btn-sm">{{ __('Initiate') }}</button>
+                                                        @else
+                                                            <div><a href="javascript:void(0)" id="approval{{ $employeeId }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="Manager L1 : {{ $managerL1 ? $managerL1->fullname.' ('.$managerL1->employee_id.')' : '-' }}" data-bs-id="{{ $employeeId }}" class="badge bg-warning fw-bold rounded-pill py-1 px-2">view L1</a></div>
                                                         @endif
                                                     </div>
                                                 </div>

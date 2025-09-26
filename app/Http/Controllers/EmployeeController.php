@@ -211,4 +211,37 @@ class EmployeeController extends Controller
             }
         }
     }
+
+    function getEmployeeFromWA($id) {
+        try {
+            // Validate the input to ensure it's a valid phone number format
+            
+            $id = preg_replace('/^(62|0)/', '', $id); // remove starting 62 or 0
+
+            if (!preg_match('/^\+?[0-9]{10,15}$/', $id)) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Invalid phone number format.'
+                ], 400);
+            }
+
+            $employees = employee::select('fullname', 'employee_id', 'designation_name', 'date_of_joining', 'unit', 'company_name', 'group_company', 'employee_type')
+                ->where('whatsapp_number', 'like', '%' . $id)
+                ->orWhere('personal_mobile_number', 'like', '%' . $id)
+                ->first();
+
+            if ($employees) {
+                return response()->json([
+                    'status' => 'success',
+                    'data' => $employees
+                ]);    
+            }
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred: '.$e->getMessage()
+            ], 500);
+        }    
+    }
 }

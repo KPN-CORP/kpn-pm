@@ -1,6 +1,44 @@
 @extends('layouts_.vertical', ['page_title' => 'Goals'])
 
 @section('css')
+<style>
+.goal-card {
+    overflow: hidden;
+    transition:
+        opacity 0.25s ease-in-out,
+        transform 0.25s ease-in-out,
+        max-height 0.75s cubic-bezier(0.4, 0, 0.2, 1),
+        margin 0.25s,
+        padding 0.25s;
+    will-change: opacity, transform, max-height;
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 2000px; /* fallback for large content, can be overridden inline */
+}
+
+.goal-card.is-hiding {
+    opacity: 0;
+    transform: translateY(16px);
+    max-height: 0 !important;
+    margin: 0 !important;
+    padding-top: 0 !important;
+    padding-bottom: 0 !important;
+    pointer-events: none;
+}
+
+.goal-card.is-showing {
+    opacity: 1;
+    transform: translateY(0);
+    max-height: 2000px; /* or set via JS for dynamic content */
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    pointer-events: auto;
+}
+
+.goal-card.is-gone {
+    display: none !important;
+}
+</style>
 @endsection
 
 @section('content')
@@ -21,11 +59,14 @@
                 <div class="col-auto">
                     <div class="mb-3">
                         <label class="form-label" for="filterYear">{{ __('Year') }}</label>
-                        <select name="filterYear" id="filterYear" onchange="yearGoal(this)" class="form-select border-secondary" @style('width: 180px')>
-                            <option value="">{{ __('select all') }}</option>
-                            @foreach ($selectYear as $year)
-                                <option value="{{ $year->year }}" {{ $year->year == $filterYear ? 'selected' : '' }}>{{ $year->year }}</option>
-                            @endforeach
+                        <select name="filterYear" id="filterYear" onchange="filterGoals(this.value)" 
+                                class="form-select border-secondary" style="width: 180px">
+                        <option value="">{{ __('select all') }}</option>
+                        @foreach ($selectYear as $year)
+                            <option value="{{ $year->year }}" {{ $year->year == $filterYear ? 'selected' : '' }}>
+                            {{ $year->year }}
+                            </option>
+                        @endforeach
                         </select>
                     </div>
                 </div>
@@ -43,7 +84,7 @@
             @endphp
             <div class="row">
                 <div class="col-md-12">
-                <div class="card shadow">
+                <div class="card shadow p-0 goal-card" data-year="{{ $row->request->period }}">
                     <div class="card-header bg-white py-3 d-flex align-items-center justify-content-between pb-0">
                         <h4 class="m-0 font-weight-bold text-primary">{{ __('Goal') }} {{ $row->request->period }}</h4>
                         @if ($period == $row->request->goal->period && !$row->request->appraisalCheck && $access)
@@ -109,11 +150,11 @@
                             <div class="col-lg col-sm-12 p-2">
                                 <h5>Status</h5>
                                 <div>
-                                    <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->request->goal->form_status == 'Draft' ? 'Draft' : ($row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : $row->name) }}" class="badge {{ $row->request->goal->form_status == 'Draft' || $row->request->sendback_to == $row->request->employee_id ? 'bg-secondary' : ($row->request->status === 'Approved' || $row->request->appraisalCheck ? 'bg-success' : 'bg-warning')}} rounded-pill py-1 px-2">{{ $row->request->goal->form_status == 'Draft' ? 'Draft': ($row->request->status == 'Approved' || $row->request->appraisalCheck ? __('Approved') : ($row->request->sendback_to == $row->request->employee_id ? 'Waiting For Revision' : __($row->request->status))) }}</a>
+                                    <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->request->goal->form_status == 'Draft' ? 'Draft' : ($row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : 'Auto Approved') }}" class="badge {{ $row->request->goal->form_status == 'Draft' || $row->request->sendback_to == $row->request->employee_id ? 'bg-secondary' : ($row->request->status === 'Approved' || $row->request->appraisalCheck ? 'bg-success' : 'bg-warning')}} rounded-pill py-1 px-2">{{ $row->request->goal->form_status == 'Draft' ? 'Draft': ($row->request->status == 'Approved' || $row->request->appraisalCheck ? __('Approved') : ($row->request->sendback_to == $row->request->employee_id ? 'Waiting For Revision' : __($row->request->status))) }}</a>
                                 </div>
                             </div>
                         </div>
-                        @if ($row->request->sendback_messages && $row->request->sendback_to == $row->request->employee_id)
+                        @if ($row->request->sendback_messages && $row->request->sendback_to == $row->request->employee_id && !$row->request->appraisalCheck)
                             <hr class="mt-2 mb-2">
                             <div class="row p-2">
                                 <div class="col-lg col-sm-12 px-2">
@@ -215,22 +256,63 @@
         @endforelse
     </div>
     @endsection
-    @push('scripts')
-        @if(Session::has('error'))
-        <script>
-            document.addEventListener('DOMContentLoaded', function () {                
-                Swal.fire({
-                    icon: "error",
-                    title: "{{ Session::get('error')['title'] }}",
-                    text: "{{ Session::get('error')['message'] }}",
-                    confirmButtonText: "OK",
-                });
-            });            
-        </script>
-        @endif
-        <script>
-            function yearGoal() {
-                $("#formYearGoal").submit();
-            }
-        </script>
-    @endpush
+   @push('scripts')
+@if(Session::has('error'))
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    Swal.fire({
+      icon: "error",
+      title: "{{ Session::get('error')['title'] }}",
+      text: "{{ Session::get('error')['message'] }}",
+      confirmButtonText: "OK",
+    });
+  });
+</script>
+@endif
+
+<script>
+  function hideCard(card) {
+    if (card.classList.contains('is-gone')) return;
+
+    card.classList.remove('is-showing');
+    card.classList.add('is-hiding');
+
+    const onEnd = (e) => {
+      if (e.propertyName !== 'max-height') return;
+      card.classList.add('is-gone');
+      card.removeEventListener('transitionend', onEnd);
+    };
+    card.addEventListener('transitionend', onEnd);
+  }
+
+  function showCard(card) {
+    card.classList.remove('is-gone');
+
+    // force reflow biar transisi jalan
+    card.offsetHeight;
+
+    card.classList.remove('is-hiding');
+    card.classList.add('is-showing');
+  }
+
+  function filterGoals(year) {
+    const cards = document.querySelectorAll('.goal-card');
+    const selected = (year || '').toString().trim();
+
+    cards.forEach(card => {
+      const cardYear = (card.dataset.year || '').toString().trim();
+      const shouldShow = !selected || cardYear === selected;
+
+      shouldShow ? showCard(card) : hideCard(card);
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    const sel = document.getElementById('filterYear');
+    if (sel) filterGoals(sel.value);
+  });
+
+  window.filterGoals = filterGoals;
+</script>
+
+@endpush

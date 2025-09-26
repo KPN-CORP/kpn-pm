@@ -5,6 +5,7 @@
 
 @section('content')
     <!-- Begin Page Content -->
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <div class="container-fluid">
         @if(session('success'))
             <div class="alert alert-success mt-3">
@@ -75,12 +76,83 @@
                                 <div class="col-lg col-sm-12 p-2">
                                     <h5>Status</h5>
                                     <div>
-                                        <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->request->appraisal->first()->goal->form_status == 'Draft' ? 'Draft' : ($row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : $row->name) }}" class="badge {{ $row->request->appraisal->first()->goal->form_status == 'Draft' || $row->request->sendback_to == $row->request->employee_id ? 'bg-secondary' : ($row->request->status === 'Approved' ? 'bg-success' : 'bg-warning')}} rounded-pill py-1 px-2">{{ $row->request->appraisal->first()->goal->form_status == 'Draft' ? 'Draft': ($row->request->status == 'Pending' ? __('Pending') : ($row->request->sendback_to == $row->request->employee_id ? 'Waiting For Revision' : $row->request->status)) }}</a>
+                                        <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->request->appraisal->first()->goal->form_status == 'Draft' || $row->request->appraisal->form_status == 'Draft' ? 'Draft' : ($row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : $row->name) }}" class="badge {{ $row->request->appraisal->first()->goal->form_status == 'Draft' || $row->request->appraisal->form_status == 'Draft' || $row->request->sendback_to == $row->request->employee_id ? 'bg-secondary' : ($row->request->status === 'Approved' ? 'bg-success' : 'bg-warning')}} rounded-pill py-1 px-2">{{ $row->request->appraisal->first()->goal->form_status  == 'Draft' || $row->request->appraisal->form_status == 'Draft' ? 'Draft': ($row->request->status == 'Pending' ? __('Pending') : ($row->request->sendback_to == $row->request->employee_id ? 'Waiting For Revision' : $row->request->status)) }}</a>
                                     </div>
                                 </div>
                             </div>
                         </div>
+                        @php
+                            $achievement = [
+                                ["month" => "January", "value" => "-"],
+                                ["month" => "February", "value" => "-"],
+                                ["month" => "March", "value" => "-"],
+                                ["month" => "April", "value" => "-"],
+                                ["month" => "May", "value" => "-"],
+                                ["month" => "June", "value" => "-"],
+                                ["month" => "July", "value" => "-"],
+                                ["month" => "August", "value" => "-"],
+                                ["month" => "September", "value" => "-"],
+                                ["month" => "October", "value" => "-"],
+                                ["month" => "November", "value" => "-"],
+                                ["month" => "December", "value" => "-"],
+                            ];
+                            if ($achievements && $achievements->isNotEmpty()) {
+                                $achievement = json_decode($achievements->first()->data, true);
+                            }
+                        @endphp
+                        @if ($viewAchievement)
+                        <div class="card-body m-0 py-2">
+                            <div class="rounded mb-2 p-3 bg-secondary-subtle bg-opacity-10 text-primary align-items-center">
+                                <div class="row mb-2">
+                                    <span class="fs-16 mx-1">
+                                        Achievements
+                                    </span>      
+                                </div>                         
+                                <div class="row">
+                                    <div class="table mb-0">
+                                        <table class="table table-bordered table-sm mb-0 text-center align-middle">
+                                            <thead class="bg-primary-subtle">
+                                                <tr>
+                                                    @forelse ($achievement as $item)
+                                                        <th>{{ substr($item['month'], 0, 3) }}</th>
+                                                    @empty
+                                                        <th colspan="{{ count($achievement) }}">No Data
+                                                    @endforelse
+                                                </tr>
+                                            </thead>
+                                            <tbody class="bg-white">
+                                                <tr>
+                                                    @foreach ($achievement as $item)
+                                                        <td>{{ $item['value'] }}</td>
+                                                    @endforeach
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
                         @if ($row->request->created_by == $row->request->employee->id)
+                        @if($row->request->appraisal?->file)
+                        <div class="card-body m-0 py-2">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <label for="attachment" class="form-label">Supporting documents :</label>
+                                    <div class="d-flex align-items-center gap-1">
+                                        <a href="{{ asset($row->request->appraisal->file) }}" target="_blank" class="badge rounded-pill text-bg-warning px-2 py-1" style="font-size: 0.75rem">
+                                            attachment <i class="ri-file-text-line"></i>
+                                        </a>
+                                        @if ($row->request->status != 'Approved')
+                                            <a href="javascript:void(0);" onclick="deleteFile(this, '{{ $row->request->appraisal->id }}')" class="badge rounded-pill text-bg-light p-1">
+                                                <span class="spinner-border spinner-border-sm d-none" aria-hidden="true"></span><i class="ri-close-line" style="font-size: 1rem"></i>
+                                            </a>
+                                        @endif
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        @endif
                         <div class="card-body">
                             <div class="row">
                                 <div class="col">
@@ -264,4 +336,56 @@
             });
         </script>
         @endif
+        <script>
+            function deleteFile(button, id) {
+                const spinner = button.querySelector(".spinner-border");
+                const icon = button.querySelector("i");
+
+                // Tampilkan spinner dan sembunyikan icon
+                spinner.classList.remove("d-none");
+                icon.classList.add("d-none");
+
+                // Disable tombol
+                button.classList.add("disabled");
+                button.style.pointerEvents = "none";
+
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: "Attachment will be deleted.",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3e60d5',
+                    cancelButtonColor: "#f15776",
+                    reverseButtons: true,
+                    confirmButtonText: 'Yes, delete it!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        fetch(`/appraisals/${id}`, {
+                            method: 'DELETE',
+                            headers: {
+                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+                            }
+                        })
+                        .then(response => {
+                            if (response.redirected) {
+                                window.location.href = response.url;
+                            } else {
+                                return response.json();
+                            }
+                        })
+                        .catch(error => {
+                            console.error('Error deleting file:', error);
+                            Swal.fire('Error', 'Something went wrong.', 'error');
+                        });
+                    } else {
+                        spinner.classList.add("d-none");
+                        icon.classList.remove("d-none");
+
+                        // Disable tombol
+                        button.classList.remove("disabled");
+                        button.style.pointerEvents = "";
+                    }
+                });
+            }
+        </script>
     @endpush
