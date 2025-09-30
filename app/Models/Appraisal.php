@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Illuminate\Support\Facades\Crypt;
 
 class Appraisal extends Model
 {
@@ -14,6 +15,8 @@ class Appraisal extends Model
     protected $primaryKey = 'id';
     public $incrementing = false;
     protected $keyType = 'string';
+
+    protected $fillable = ['form_data', 'form_status', 'updated_by', 'file'];
 
     public function approvalRequest()
     {

@@ -81,8 +81,9 @@ class MyGoalController extends Controller
 
         $formattedData = $datas->map(function($item) {
 
-            $appraisalCheck = Appraisal::where('goals_id', $item->goal->id)->exists();
+            $appraisalCheck = Appraisal::where('goals_id', $item->form_id)->exists();
 
+            
             $item->appraisalCheck = $appraisalCheck;
 
             // Format created_at
@@ -92,9 +93,10 @@ class MyGoalController extends Controller
             } else {
                 $item->formatted_created_at = $createdDate->format('d M Y');
             }
-    
+            
             // Format updated_at
             $updatedDate = !$item->updated_by ? Carbon::parse($item->goal->updated_at) : Carbon::parse($item->updated_at);
+            // dd($updatedDate);
             if ($updatedDate->isToday()) {
                 $item->formatted_updated_at = 'Today ' . $updatedDate->format('g:i A');
             } else {
@@ -668,6 +670,26 @@ class MyGoalController extends Controller
                 ->withInput()
                 ->withErrors(['error' => 'Update failed: ' . $e->getMessage()]);
         }
+    }
+
+    // GoalController.php
+    public function latest($id)
+    {
+        
+        $latest = Goal::where('employee_id', $id)->orderByDesc('period')->first();
+
+        $data = [];
+        if ($latest) {
+            // pastikan selalu array
+            $data = is_string($latest->form_data) 
+                ? json_decode($latest->form_data, true) 
+                : $latest->form_data;
+        }
+
+        return response()->json([
+            'success' => (bool) $latest,
+            'data'    => $data,
+        ]);
     }
 
 }

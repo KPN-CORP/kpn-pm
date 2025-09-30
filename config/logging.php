@@ -1,5 +1,6 @@
 <?php
 
+use App\Logging\AuditJsonFormatter;
 use Monolog\Handler\NullHandler;
 use Monolog\Handler\StreamHandler;
 use Monolog\Handler\SyslogUdpHandler;
@@ -125,6 +126,15 @@ return [
 
         'emergency' => [
             'path' => storage_path('logs/laravel.log'),
+        ],
+
+        'audit' => [
+            'driver' => 'daily',
+            'path' => storage_path('logs/audit.log'),
+            'level' => 'info',
+            'days'  => 30,
+            // pakai tap agar semua handler format JSON
+            'tap'   => [AuditJsonFormatter::class],
         ],
 
     ],

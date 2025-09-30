@@ -57,3 +57,24 @@
 .sticky-padding {
     padding-top: 140px;
 }
+
+/* Custom styles to make Select2 elements smaller */
+.select2-container .select2-selection--single {
+    height: calc(1.5em + 0.5rem + 2px); /* Match Bootstrap's form-select-sm height */
+}
+
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__rendered {
+    font-size: 0.875rem; /* Smaller font size, matches Bootstrap's .small */
+    line-height: 1.5;
+    padding-top: 0.25rem;
+    padding-bottom: 0.25rem;
+    padding-left: 0.5rem;
+}
+
+.select2-container--bootstrap-5 .select2-results > .select2-results__options {
+    font-size: 0.875rem; /* Smaller font size for dropdown options */
+}
+
+.select2-container--bootstrap-5 .select2-selection--single .select2-selection__arrow {
+    height: calc(1.5em + 0.5rem); /* Vertically align the arrow */
+}

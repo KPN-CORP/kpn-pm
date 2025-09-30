@@ -161,7 +161,7 @@ class SsoController extends Controller
                 ]
                 ));
 
-                return response()->json(['token' => $jwtToken]);
+                return response()->json(['token' => $jwtToken, 'user' => $user]);
 
             } else {
                 Alert::error('Login Failed, Please Contact Administrator')->showConfirmButton('OK');

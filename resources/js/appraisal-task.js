@@ -199,7 +199,30 @@ $(document).ready(function() {
             { data: 'employee.office_area' },
             { data: 'employee.group_company' },
             { data: 'approval_date', className: 'text-end' },
-            { data: 'employee.category' },
+            {
+                data: 'employee.status',
+                render: function (data, type, row) {
+                    if (type === 'display') {
+                        // Tentukan warna badge berdasarkan status
+                        let badgeClass = '';
+                        switch (data?.toLowerCase()) {
+                            case 'approved':
+                                badgeClass = 'success';
+                                break;
+                            case 'draft':
+                                badgeClass = 'secondary';
+                                break;
+                            default:
+                                badgeClass = '';
+                        }
+            
+                        return `<span class="badge bg-${badgeClass}">${data == 'Approved' ? 'Submitted' : data}</span>`;
+                    }
+            
+                    // Untuk sort/filter tetap pakai data asli
+                    return data;
+                }
+            },
             { data: 'action', className: 'sorting_1' }
         ]
     });
@@ -443,7 +466,7 @@ $(document).ready(function() {
                             spinner.removeClass("d-none");
                         }
         
-                        document.getElementById("appraisalForm").submit();
+                        document.getElementById("formAppraisalUser").submit();
         
                         // Show success message
                         Swal.fire({
