@@ -100,11 +100,11 @@
                                         <p class="d-none d-md-inline me-1">Details</p><i class="ri-arrow-down-s-line"></i>
                                     </span>                               
                                 </button>
-                                @if ($item['formName'] == 'Leadership')
+                                @if ($item['formName'] == 'Leadership' || $item['formName'] == 'Leadership 1' || $item['formName'] == 'Leadership 2')
                                 <div class="collapse" id="collapse-{{ $indexItem }}">
                                     <div class="card card-body mb-3">
                                         @forelse($formData['formData'] as $form)
-                                            @if($form['formName'] === 'Leadership')
+                                            @if($form['formName'] === 'Leadership' || $form['formName'] === 'Leadership 1' || $form['formName'] === 'Leadership 2')
                                                 @foreach($form as $key => $item)
                                                     @if(is_numeric($key))
                                                     <div class="{{ $loop->last ? '':'border-bottom' }} mb-3">
