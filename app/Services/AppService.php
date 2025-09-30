@@ -158,6 +158,8 @@ class AppService
         $totalLeadershipScore = 0; // Initialize the total score
         $cultureAverageScore = 0; // Initialize Culture average score
         $leadershipAverageScore = 0; // Initialize Culture average score
+        $leadershipAverageScore1 = 0;
+        $leadershipAverageScore2 = 0;
         
         $jobLevel = $employeeData->job_level;
         
@@ -190,6 +192,12 @@ class AppService
                 } elseif ($form['formName'] === "Leadership") {
                     // Calculate average score for Culture form
                     $leadershipAverageScore = $this->averageScore($form);
+                } elseif ($form['formName'] === "Leadership 1") {
+                    // Calculate average score for Culture form
+                    $leadershipAverageScore1 = $this->averageScore($form);
+                } elseif ($form['formName'] === "Leadership 2") {
+                    // Calculate average score for Culture form
+                    $leadershipAverageScore2 = $this->averageScore($form);
                 }
             }
         } else {
@@ -248,6 +256,8 @@ class AppService
         $appraisalDatas['totalKpiScore'] = round($totalKpiScore, 2); // get KPI Final Score
         $appraisalDatas['totalCultureScore'] = round($cultureAverageScore, 2); // get KPI Final Score
         $appraisalDatas['totalLeadershipScore'] = round($leadershipAverageScore, 2); // get KPI Final Score
+        $appraisalDatas['totalLeadershipScore1'] = round($leadershipAverageScore1, 2);
+        $appraisalDatas['totalLeadershipScore2'] = round($leadershipAverageScore2, 2);
         $appraisalDatas['cultureScore360'] = $cultureAverageScore * $cultureWeightage360 / 100; // get KPI Final Score
         $appraisalDatas['leadershipScore360'] = $leadershipAverageScore * $leadershipWeightage360 / 100; // get KPI Final Score
         $appraisalDatas['cultureAverageScore'] = ($cultureAverageScore * $cultureWeightage / 100) * $appraisalDatas['cultureWeightage360']; // get Culture Average Score

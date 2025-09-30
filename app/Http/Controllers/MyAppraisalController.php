@@ -193,6 +193,8 @@ class MyAppraisalController extends Controller
             
             $cultureData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Culture') ?? [];
             $leadershipData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership') ?? [];
+            $leadershipData1 = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership 1') ?? [];
+            $leadershipData2 = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership 2') ?? [];
             
             $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $datas->first()->period);
             
@@ -200,10 +202,12 @@ class MyAppraisalController extends Controller
                 $appraisalData['kpiScore'] = round($formData['totalKpiScore'], 2);
                 $appraisalData['cultureScore'] = round($formData['totalCultureScore'], 2);
                 $appraisalData['leadershipScore'] = round($formData['totalLeadershipScore'], 2);
+                $appraisalData['leadershipScore1'] = round($formData['totalLeadershipScore1'], 2);
+                $appraisalData['leadershipScore2'] = round($formData['totalLeadershipScore2'], 2);
             }
             
             foreach ($formData['formData'] as &$form) {
-                if ($form['formName'] === 'Leadership' || $form['formName'] === 'Leadership 1' || $form['formName'] === 'Leadership 2') {
+                if ($form['formName'] === 'Leadership') {
                     foreach ($leadershipData as $index => $leadershipItem) {
                         foreach ($leadershipItem['items'] as $itemIndex => $item) {
                             if (isset($form[$index][$itemIndex])) {
@@ -214,6 +218,32 @@ class MyAppraisalController extends Controller
                             }
                         }
                         $form[$index]['title'] = $leadershipItem['title'];
+                    }
+                }
+                if ($form['formName'] === 'Leadership 1') {
+                    foreach ($leadershipData1 as $index => $leadershipItem1) {
+                        foreach ($leadershipItem1['items'] as $itemIndex => $item) {
+                            if (isset($form[$index][$itemIndex])) {
+                                $form[$index][$itemIndex] = [
+                                    'formItem' => $item,
+                                    'score' => $form[$index][$itemIndex]['score']
+                                ];
+                            }
+                        }
+                        $form[$index]['title'] = $leadershipItem1['title'];
+                    }
+                }
+                if ($form['formName'] === 'Leadership 2') {
+                    foreach ($leadershipData2 as $index => $leadershipItem2) {
+                        foreach ($leadershipItem2['items'] as $itemIndex => $item) {
+                            if (isset($form[$index][$itemIndex])) {
+                                $form[$index][$itemIndex] = [
+                                    'formItem' => $item,
+                                    'score' => $form[$index][$itemIndex]['score']
+                                ];
+                            }
+                        }
+                        $form[$index]['title'] = $leadershipItem2['title'];
                     }
                 }
                 if ($form['formName'] === 'Culture') {
