@@ -266,11 +266,13 @@ class AppService
         $appraisalDatas['kpiScore'] = round($totalKpiScore * $kpiWeightage / 100, 2) ; // get KPI Final Score
         $appraisalDatas['cultureScore'] = round($cultureAverageScore * $cultureWeightage / 100, 2); // get KPI Final Score
         $appraisalDatas['leadershipScore'] = round($leadershipAverageScore  * $leadershipWeightage / 100, 2); // get KPI Final Score
+        $appraisalDatas['leadershipScore1'] = round($leadershipAverageScore1  * $leadershipWeightage / 100, 2);
+        $appraisalDatas['leadershipScore2'] = round($leadershipAverageScore2  * $leadershipWeightage / 100, 2);
 
         $scores = [$totalKpiScore,$cultureAverageScore,$leadershipAverageScore];
         // get KPI Final Score
 
-        $appraisalDatas['totalScore'] =  $appraisalDatas['kpiScore'] + $appraisalDatas['cultureScore'] + $appraisalDatas['leadershipScore']; // Update
+        $appraisalDatas['totalScore'] =  $appraisalDatas['kpiScore'] + $appraisalDatas['cultureScore'] + $appraisalDatas['leadershipScore'] + $appraisalDatas['leadershipScore1'] + $appraisalDatas['leadershipScore2']; // Update
 
         $appraisalDatas['contributorRating'] = $appraisalDatas['totalScore']; // old
 
