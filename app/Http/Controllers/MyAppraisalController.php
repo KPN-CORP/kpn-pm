@@ -203,7 +203,7 @@ class MyAppraisalController extends Controller
             }
             
             foreach ($formData['formData'] as &$form) {
-                if ($form['formName'] === 'Leadership') {
+                if ($form['formName'] === 'Leadership' || $form['formName'] === 'Leadership 1' || $form['formName'] === 'Leadership 2') {
                     foreach ($leadershipData as $index => $leadershipItem) {
                         foreach ($leadershipItem['items'] as $itemIndex => $item) {
                             if (isset($form[$index][$itemIndex])) {
