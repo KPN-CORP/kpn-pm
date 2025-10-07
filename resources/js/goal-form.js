@@ -685,7 +685,7 @@ async function optimizeText(kpi, text, period) {
     try {
 
         const response = await genAI.models.generateContent({
-            model: 'gemini-1.5-flash-latest',
+            model: 'gemini-2.0-flash',
             contents: prompt,
         });
 

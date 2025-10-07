@@ -462,7 +462,7 @@ https://github.com/nodeca/pako/blob/main/LICENSE
     If no year exists, do not add one. 
     Adjust to the language used in the original text. 
     Do not add extra symbols, punctuation, or formatting beyond what is needed for clarity. 
-    Maintain a professional tone and return only the improved text without any introduction or explanation.`,s=e?o:i;try{return(await n.models.generateContent({model:"gemini-1.5-flash-latest",contents:s})).text}catch(a){return console.error("Error optimizing text with Gemini:",a),t}}function VT(e,t){const r=Y(e);r.prop("disabled",!0).toggleClass("disabled",!0),r.find(".label").toggleClass("d-none",t).text("Goals Generated"),r.find(".loading").toggleClass("d-none",!t)}function Sne(e){const t=Y(e);t.length&&(t.find(".section-loader").length===0?t.append(`
+    Maintain a professional tone and return only the improved text without any introduction or explanation.`,s=e?o:i;try{return(await n.models.generateContent({model:"gemini-2.0-flash",contents:s})).text}catch(a){return console.error("Error optimizing text with Gemini:",a),t}}function VT(e,t){const r=Y(e);r.prop("disabled",!0).toggleClass("disabled",!0),r.find(".label").toggleClass("d-none",t).text("Goals Generated"),r.find(".loading").toggleClass("d-none",!t)}function Sne(e){const t=Y(e);t.length&&(t.find(".section-loader").length===0?t.append(`
       <div class="section-loader">
         <div class="section-loader__inner">
           <span><i class="ri-bard-fill me-1"></i>Generating...</span>
