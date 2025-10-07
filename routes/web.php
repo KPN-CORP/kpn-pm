@@ -317,9 +317,11 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::get('admin-tasks', [AdminTasksController::class, 'index'])->name('admin-tasks');
         Route::get('admin-tasks/detail/{id}', [AdminTasksController::class, 'detail'])->name('admin-tasks.detail');
         Route::post('admin-tasks/{id}', [AdminTasksController::class, 'action'])->name('admin-tasks.action');
+    
+    });
 
+    Route::middleware(['permission:viewaudittrail'])->group(function () {
         Route::get('audit-trail', [AuditTrailController::class, 'index'])->name('audit-trail');
-
     });
     
     Route::middleware(['permission:viewrole'])->group(function () {
