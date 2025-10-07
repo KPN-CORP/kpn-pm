@@ -5,8 +5,7 @@ deployment:
     # - export DEPLOYPATH=/home/hcispanel/kpn-pm
 
     # Copy essential Laravel application directories to deployment path
-    # - /bin/cp -r app bootstrap config database routes resources $DEPLOYPATH
-    - /bin/cp -r app resources $DEPLOYPATH
+    - /bin/cp -r app bootstrap config database routes resources $DEPLOYPATH
 
     - /bin/cp -r public/build $DEPLOYPATH/public
 
