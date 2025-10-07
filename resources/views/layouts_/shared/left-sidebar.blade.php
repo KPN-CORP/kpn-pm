@@ -284,12 +284,16 @@
                     </div>
                 </li>
                 @endcan
-                <li class="side-nav-item">
-                    <a href="{{ route('audit-trail') }}" class="side-nav-link">
-                        <i class="ri-list-check-2"></i>
-                        <span> Audit Trail </span>
-                    </a>
-                </li>
+                @if (auth()->user()->hasRole('superadmin'))
+                    @can('viewaudittrail')
+                    <li class="side-nav-item">
+                        <a href="{{ route('audit-trail') }}" class="side-nav-link">
+                            <i class="ri-list-check-2"></i>
+                            <span> Audit Trail </span>
+                        </a>
+                    </li>
+                    @endcan
+                @endif
                 @endcan
             @endif
 
