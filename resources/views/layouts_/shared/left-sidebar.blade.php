@@ -198,7 +198,7 @@
                             @endcan
                             @can('importkpi')
                             <li>
-                                <a href="{{ route('importkpi') }}">Import KPI</a>
+                                <a href="{{ route('importkpi') }}">Import Quartal Achievement</a>
                             </li>
                             @endcan
                             @can('reminderpa')

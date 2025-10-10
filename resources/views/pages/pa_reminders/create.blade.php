@@ -100,22 +100,28 @@
                               <div class="col-md-12">
                                   <div class="mb-2">
                                       <label class="form-label" for="inputState">Repeat On</label>
-                                      <div class="row">
-                                        <div class="col-md-auto">
-                                            <div class="btn-group mb-2 d-block d-md-flex" role="group" aria-label="Vertical button group">
-                                                <button type="button" name="repeat_days[]" value="Mon" class="btn btn-outline-primary btn-sm day-button">Mon</button>
-                                                <button type="button" name="repeat_days[]" value="Tue" class="btn btn-outline-primary btn-sm day-button">Tue</button>
-                                                <button type="button" name="repeat_days[]" value="Wed" class="btn btn-outline-primary btn-sm day-button">Wed</button>
-                                                <button type="button" name="repeat_days[]" value="Thu" class="btn btn-outline-primary btn-sm day-button">Thu</button>
-                                                <button type="button" name="repeat_days[]" value="Fri" class="btn btn-outline-primary btn-sm day-button">Fri</button>
-                                                <button type="button" name="repeat_days[]" value="Sat" class="btn btn-outline-primary btn-sm day-button">Sat</button>
-                                                <button type="button" name="repeat_days[]" value="Sun" class="btn btn-outline-primary btn-sm day-button">Sun</button>
-                                            </div>
-                                        </div>
-                                        <div class="col-md-auto text-end">
-                                            <button type="button" class="btn btn-outline-primary btn-sm mb-2" id="select-all">Select All</button>
-                                        </div>
-                                    </div>
+                                      <div class="btn-group mb-2 d-block d-md-flex" role="group" aria-label="Repeat Day">
+                                          <input type="radio" class="btn-check" name="repeat_days_selected" id="dayMon" value="Mon" autocomplete="off">
+                                          <label class="btn btn-outline-primary btn-sm" for="dayMon">Mon</label>
+
+                                          <input type="radio" class="btn-check" name="repeat_days_selected" id="dayTue" value="Tue" autocomplete="off">
+                                          <label class="btn btn-outline-primary btn-sm" for="dayTue">Tue</label>
+
+                                          <input type="radio" class="btn-check" name="repeat_days_selected" id="dayWed" value="Wed" autocomplete="off">
+                                          <label class="btn btn-outline-primary btn-sm" for="dayWed">Wed</label>
+
+                                          <input type="radio" class="btn-check" name="repeat_days_selected" id="dayThu" value="Thu" autocomplete="off">
+                                          <label class="btn btn-outline-primary btn-sm" for="dayThu">Thu</label>
+
+                                          <input type="radio" class="btn-check" name="repeat_days_selected" id="dayFri" value="Fri" autocomplete="off">
+                                          <label class="btn btn-outline-primary btn-sm" for="dayFri">Fri</label>
+
+                                          <input type="radio" class="btn-check" name="repeat_days_selected" id="daySat" value="Sat" autocomplete="off">
+                                          <label class="btn btn-outline-primary btn-sm" for="daySat">Sat</label>
+
+                                          <input type="radio" class="btn-check" name="repeat_days_selected" id="daySun" value="Sun" autocomplete="off">
+                                          <label class="btn btn-outline-primary btn-sm" for="daySun">Sun</label>
+                                      </div>
                                   </div>
                               </div>
                           </div>
@@ -130,7 +136,7 @@
                           </div>
                           <div class="row">
                               <div class="col-md d-md-flex justify-content-end text-center">
-                                  <input type="text" name="repeat_days_selected" id="repeatDaysSelected">
+                                  {{-- <input type="text" name="repeat_days_selected" id="repeatDaysSelected"> --}}
                                   <a href="{{ route('reminderpaindex') }}" type="button" class="btn btn-outline-secondary shadow px-4 me-2">Cancel</a>
                                   <button type="submit" class="btn btn-primary shadow px-4">Submit</button>
                               </div>

@@ -67,7 +67,9 @@
                                         <td>{{ $item->includeList }}</td>
                                         <td>{{ $item->repeat_days }}</td>
                                         <td class="text-center">
-                                            
+                                            <a href="" class="btn btn-sm btn-outline-warning" title="Edit"><i class="ri-edit-box-line"></i></a>
+                                            <a class="btn btn-sm btn-danger" title="Delete" ><i class="ri-delete-bin-line"></i></a>
+                                            {{-- onclick="" --}}
                                         </td>
                                     </tr>
                                 @endforeach
