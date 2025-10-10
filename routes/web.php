@@ -346,6 +346,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::get('/import-kpi', [ImportKpiController::class, 'showImportKpiForm'])->name('importkpi');
         Route::post('/import-kpi/submit', [ImportKpiController::class, 'importKpi'])->name('importkpisubmit');
         Route::delete('/achievements/{id}', [ImportKpiController::class, 'destroy'])->name('achievements.destroy');
+        Route::get('/download-template', [ImportKpiController::class, 'downloadTemplate'])->name('downloadTemplateImport');
     });
 
     Route::middleware(['permission:reminderpa'])->group(function () {

@@ -539,6 +539,28 @@ class AppraisalTaskController extends Controller
                         }
                     }
                 }
+                if ($form['formName'] === 'Leadership 1') {
+                    foreach ($form as $key => &$value) {
+                        if (is_numeric($key)) {
+                            $scores = [];
+                            foreach ($value as $score) {
+                                $scores[] = $score['score'];
+                            }
+                            $value = ['score' => $scores];
+                        }
+                    }
+                }
+                if ($form['formName'] === 'Leadership 2') {
+                    foreach ($form as $key => &$value) {
+                        if (is_numeric($key)) {
+                            $scores = [];
+                            foreach ($value as $score) {
+                                $scores[] = $score['score'];
+                            }
+                            $value = ['score' => $scores];
+                        }
+                    }
+                }
             }
         }
 
@@ -560,6 +582,28 @@ class AppraisalTaskController extends Controller
                     }
                 }
                 if ($form['formName'] === 'Leadership') {
+                    foreach ($form as $key => &$value) {
+                        if (is_numeric($key)) {
+                            $scores = [];
+                            foreach ($value as $score) {
+                                $scores[] = $score['score'];
+                            }
+                            $value = ['score' => $scores];
+                        }
+                    }
+                }
+                if ($form['formName'] === 'Leadership 1') {
+                    foreach ($form as $key => &$value) {
+                        if (is_numeric($key)) {
+                            $scores = [];
+                            foreach ($value as $score) {
+                                $scores[] = $score['score'];
+                            }
+                            $value = ['score' => $scores];
+                        }
+                    }
+                }
+                if ($form['formName'] === 'Leadership 2') {
                     foreach ($form as $key => &$value) {
                         if (is_numeric($key)) {
                             $scores = [];
