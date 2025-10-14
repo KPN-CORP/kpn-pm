@@ -99,16 +99,9 @@ class PaReminderController extends Controller
             'start_date'      => 'required|date',
             'end_date'        => 'required|date|after_or_equal:start_date',
             'includeList'     => 'nullable|boolean',
-            'repeat_days_selected' => 'nullable|string', // hidden input hasil klik button hari
-            'messages'        => 'nullable|string',
+            'repeat_days_selected' => 'nullable|string',
         ]);
 
-        // ubah repeat_days string "Mon,Tue" → array
-        // $repeatDays = $validated['repeat_days_selected']
-        //     ? explode(',', $validated['repeat_days_selected'])
-        //     : [];
-
-        // simpan ke DB (pakai string, karena kolom text)
         $reminder = PaReminder::create([
             'reminder_name'   => $validated['reminder_name'],
             'bisnis_unit'     => $request->filled('bisnis_unit') ? implode(',', $request->input('bisnis_unit')) : '',
@@ -118,8 +111,8 @@ class PaReminderController extends Controller
             'start_date'      => $validated['start_date'],
             'end_date'        => $validated['end_date'],
             'includeList'     => $request->has('includeList') ? 1 : 0,
-            'repeat_days'     => $request->filled('repeat_days_selected') ? implode(',', $request->input('repeat_days_selected')) : '',
-            'messages'        => $validated['messages'] ?? null,
+            'repeat_days'     => $request->input('repeat_days_selected', ''),
+            'messages'        => $request->messages,
             'created_by'      => $userId,
             'created_at'      => now(),
         ]);
@@ -133,18 +126,54 @@ class PaReminderController extends Controller
         
     }
 
-    public function edit(string $id)
+    public function edit($id)
     {
-        
+        $reminder = PaReminder::findOrFail($id);
+
+        $userId = Auth::id();
+        $parentLink = 'Settings';
+        $link = 'Reminder PA';
+        $sublink  = 'Create';
+
+        return view('pages.pa_reminders.edit', [
+            'link' => $link,
+            'sublink ' => $sublink ,
+            'parentLink' => $parentLink,
+            'userId' => $userId,
+            'reminder' => $reminder
+        ]);
     }
 
-    public function update(Request $request, string $id)
+    public function update(Request $request, $id)
     {
-        
+        $validated = $request->validate([
+            'start_date'      => 'required|date',
+            'end_date'        => 'required|date|after_or_equal:start_date',
+            'includeList'     => 'nullable|boolean',
+            'repeat_days_selected' => 'nullable|string',
+            'messages'        => 'nullable|string',
+        ]);
+
+        $reminder = PaReminder::findOrFail($id);
+
+        $reminder->update([
+            'start_date'      => $validated['start_date'],
+            'end_date'        => $validated['end_date'],
+            'includeList'     => $request->has('includeList') ? 1 : 0,
+            'repeat_days'     => $request->input('repeat_days_selected', ''),
+            'messages'        => $request->input('messages'),
+            'updated_at'      => now(),
+        ]);
+
+        return redirect()->route('reminderpaindex')
+            ->with('success', 'Reminder berhasil diperbarui.');
     }
 
-    public function destroy(string $id)
+    public function destroy($id)
     {
-        
+        $reminder = PaReminder::findOrFail($id);
+        $reminder->delete(); // Soft delete
+
+        return redirect()->back()->with('success', 'Reminder berhasil dihapus (soft delete).');
     }
 }

@@ -27,7 +27,7 @@ class ReminderMail extends Mailable
     public function build()
     {
         return $this->subject($this->reminder->reminder_name)
-            ->markdown('emails.reminder')
+            ->view('emails.reminder')
             ->with([
                 'employee' => $this->employee,
                 'reminder' => $this->reminder,

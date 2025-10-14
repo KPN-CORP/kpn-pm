@@ -354,6 +354,9 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::get('/reminder-pa', [PaReminderController::class, 'index'])->name('reminderpaindex');
         Route::get('/remindersCreate', [PaReminderController::class, 'create'])->name('prcreate');
         Route::post('/remindersStore', [PaReminderController::class, 'store'])->name('prstore');
+        Route::delete('/reminders/{id}', [PaReminderController::class, 'destroy'])->name('reminders.destroy');
+        Route::get('/reminders/{id}/edit', [PaReminderController::class, 'edit'])->name('reminders.edit');
+        Route::put('/reminders/{id}', [PaReminderController::class, 'update'])->name('reminders.update');
     });
     
     Route::middleware(['permission:reportpa'])->group(function () {
