@@ -19,11 +19,13 @@ use App\Services\AppService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use PhpParser\Node\Expr\Empty_;
 use stdClass;
@@ -221,6 +223,7 @@ class AppraisalTaskController extends Controller
                     'leadership_score' => $team->leadership_score ?? '-',
                 ],
                 'calibrationCheck' => $team->calibrationCheck ?? false,
+                'contributorStatus' => $contributors->isNotEmpty() ? $contributors->first()->status : '-',
                 'approval_date' => $team->contributors->isNotEmpty() ? $this->appService->formatDate($team->contributors->first()->created_at): ($team->approvalRequest->first() ? $this->appService->formatDate($team->approvalRequest->first()->created_at) : '-'), // Check if approvalRequest exists
                 'action' => view('components.action-buttons', ['team' => $team])->render(), // Render action buttons
             ];
@@ -321,6 +324,7 @@ class AppraisalTaskController extends Controller
                     'leadership_score' => $team->leadership_score, // leadership Score
                 ],
                 'calibrationCheck' => $team->calibrationCheck ?? false,
+                'contributorStatus' => $team->contributors->isNotEmpty() ? $team->contributors->first()->status : '-',
                 'approval_date' => $team->contributors->isNotEmpty() ? $this->appService->formatDate($team->contributors->first()->created_at) : '-',
                 'action' => view('components.action-buttons', ['team' => $team])->render(), // Render action buttons
             ];
@@ -385,12 +389,14 @@ class AppraisalTaskController extends Controller
             'viewCategory' => 'initiate',
             'filteredFormData' => $filteredFormData,
         ];
+
+        $viewAchievement = $employee->group_company == 'Cement' ? true : false;
         
         $parentLink = __('Appraisal');
         $link = 'Initiate Appraisal';
 
         // Pass the data to the view
-        return view('pages.appraisals-task.initiate', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'approval', 'goalData', 'user', 'ratings', 'employee', 'achievements'));
+        return view('pages.appraisals-task.initiate', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'approval', 'goalData', 'user', 'ratings', 'employee', 'achievements', 'viewAchievement'));
 
     }
 
@@ -640,12 +646,16 @@ class AppraisalTaskController extends Controller
         ];
 
         $ratings = $formGroupData['data']['rating'];
+
+        $employee = EmployeeAppraisal::where('employee_id', $id)->first();
+
+        $viewAchievement = $employee->group_company == 'Cement' ? true : false;
         
         $parentLink = __('Appraisal');
         $link = 'Review Appraisal';
 
         // Pass the data to the view
-        return view('pages.appraisals-task.review', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'goals', 'approval', 'goalData', 'user', 'achievement', 'appraisalId', 'ratings', 'appraisal', 'type', 'achievements'));
+        return view('pages.appraisals-task.review', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'goals', 'approval', 'goalData', 'user', 'achievement', 'appraisalId', 'ratings', 'appraisal', 'type', 'achievements', 'viewAchievement'));
 
     }
 
@@ -681,6 +691,9 @@ class AppraisalTaskController extends Controller
 
             $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->goal->form_data, true) : [];
             $appraisalData = $datas->isNotEmpty() ? json_decode($datas->first()->form_data, true) : [];
+
+            $achievements = Achievements::where('employee_id', $datasQuery->first()->employee_id)->where('period', $this->period)->get();
+            $viewAchievement = $datasQuery->first()->employee->group_company == 'Cement' ? true : false;
 
             if (!Empty($appraisalData)) {
                 $period = $datas->first()->period;
@@ -767,7 +780,7 @@ class AppraisalTaskController extends Controller
                 return $req;
             });
 
-            return view('pages.appraisals-task.detail', compact('datas', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'goals', 'selectYear', 'appraisalData'));
+            return view('pages.appraisals-task.detail', compact('datas', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'goals', 'selectYear', 'appraisalData', 'achievements', 'viewAchievement'));
 
         } catch (Exception $e) {
             Log::error('Error in index method: ' . $e->getMessage());
@@ -788,6 +801,8 @@ class AppraisalTaskController extends Controller
     public function storeInitiate(Request $request)
     {
         $submit_status = 'Submitted';
+        $submit_type = $request->submit_type == 'submit_draft' ? 'Draft' : 'Approved';
+        $messages = $request->submit_type == 'submit_draft' ? 'Draft saved successfully.' : 'Appraisal submitted successfully.';
         $period = $this->appService->appraisalPeriod();
 
         // Validate the request data
@@ -797,7 +812,8 @@ class AppraisalTaskController extends Controller
             'approver_id' => 'required|string|size:11',
             'formGroupName' => 'required|string|min:5|max:100',
             'formData' => 'required|array',
-            'attachment'    => 'nullable|file|mimes:pdf|max:10240',
+            'attachment'    => 'nullable|array',
+            'attachment.*'  => 'file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png|max:10240',
         ]);
 
         DB::beginTransaction(); // Start the database transaction
@@ -823,26 +839,28 @@ class AppraisalTaskController extends Controller
 
             $masterCalibration = MasterCalibration::where('period', $period)->first();
 
-            $fullPath = null;
+            $timestamp  = Carbon::now()->format('His');
+            $baseDir    = 'files/docs_pa';                       // di disk 'public'
+            Storage::disk('public')->makeDirectory($baseDir);       // idempotent
 
-            if ($request->hasFile('attachment')) {
-                $file = $request->file('attachment');
-            
-                $employeeId = $validatedData['employee_id'];
-                $timestamp = Carbon::now()->format('Ymd_His');
-                $filename = "{$employeeId}_{$period}_{$timestamp}.pdf";
-            
-                $destinationPath = storage_path('app/public/files/appraisals');
-            
-                if (!file_exists($destinationPath)) {
-                    mkdir($destinationPath, 0755, true);
-                }
-            
-                // Pindahkan file ke folder tujuan
-                $file->move($destinationPath, $filename);
-            
-                // Simpan path ke DB
-                $fullPath = 'storage/files/appraisals/' . $filename; // agar bisa diakses via browser
+            $paths = [];
+            $files = $request->file('attachment', []);
+
+            foreach ($files as $i => $file) {
+                if (!($file instanceof UploadedFile)) continue;
+                $origName = $file->getClientOriginalName();
+                $baseName = pathinfo($origName, PATHINFO_FILENAME);
+                $clean = preg_replace('/[^\pL0-9 _.-]+/u', '', $baseName); // buang char aneh
+                $clean = trim(preg_replace('/\s+/', ' ', $clean));         // rapikan spasi
+                $clean = str_replace(' ', '_', mb_substr($clean, 0, 80));  // ganti spasi -> underscore
+                $ext      = strtolower($file->getClientOriginalExtension() ?: $file->extension());
+                $safeExt  = $ext ?: 'bin';
+                $filename = "{$clean}_{$period}_{$timestamp}_" . str_pad($i+1, 2, '0', STR_PAD_LEFT) . ".{$safeExt}";
+
+                Storage::disk('public')->putFileAs($baseDir, $file, $filename);
+
+                // Simpan path web (akses via /storage)
+                $paths[] = "storage/{$baseDir}/{$filename}";
             }
 
                 // Create a new Appraisal instance and save the data
@@ -855,7 +873,7 @@ class AppraisalTaskController extends Controller
                 $appraisal->form_data = json_encode($datas); // Store the form data as JSON
                 $appraisal->form_status = $submit_status;
                 $appraisal->period = $period;
-                $appraisal->file = $fullPath;
+                $appraisal->file = empty($paths) ? null : json_encode($paths);
                 $appraisal->created_by = Auth::user()->id;
                 
                 $appraisal->save();
@@ -872,7 +890,7 @@ class AppraisalTaskController extends Controller
                     // Add additional data here
                     'form_data' => json_encode($datas),
                     'rating' => $formDatas['contributorRating'],
-                    'status' => 'Approved',
+                    'status' => $submit_type,
                     'period' => $period,
                     'created_by' => Auth::user()->id
                 ]);
@@ -893,19 +911,21 @@ class AppraisalTaskController extends Controller
                 $approval->employee_id = $validatedData['employee_id'];
                 $approval->current_approval_id = $validatedData['approver_id'];
                 $approval->created_by = Auth::user()->id;
-                $approval->status = 'Approved';
+                $approval->status = $submit_type != 'Approved' ? 'Pending' : 'Approved';
                 // Set other attributes as needed
                 $approval->save();
 
-                $calibration = new Calibration();
-                $calibration->id_calibration_group = $calibrationGroupID;
-                $calibration->appraisal_id = $appraisal->id;
-                $calibration->employee_id = $validatedData['employee_id'];
-                $calibration->approver_id = $firstCalibrator;
-                $calibration->period = $period;
-                $calibration->created_by = Auth::user()->id;
-
-                $calibration->save();
+                if ($submit_type === 'Approved') {
+                    $calibration = new Calibration();
+                    $calibration->id_calibration_group = $calibrationGroupID;
+                    $calibration->appraisal_id = $appraisal->id;
+                    $calibration->employee_id = $validatedData['employee_id'];
+                    $calibration->approver_id = $firstCalibrator;
+                    $calibration->period = $period;
+                    $calibration->created_by = Auth::user()->id;
+    
+                    $calibration->save();
+                }
 
                 DB::commit(); // Commit the transaction
 
@@ -921,6 +941,7 @@ class AppraisalTaskController extends Controller
     public function storeReview(Request $request)
     {
         try {
+
             $period = $this->appService->appraisalPeriod();
             $submit_status = $request->submit_type == 'submit_draft' ? 'Draft' : 'Approved';
             $messages = $request->submit_type == 'submit_draft' ? 'Draft saved successfully.' : 'Appraisal submitted successfully.';
@@ -934,7 +955,8 @@ class AppraisalTaskController extends Controller
                 'approver_id' => 'required|string|size:11',
                 'formGroupName' => 'required|string|min:5|max:100',
                 'formData' => 'required|array',
-                'attachment'    => 'nullable|file|mimes:pdf|max:10240',
+                'attachment'    => 'nullable|array',
+                'attachment.*'  => 'file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png|max:10240',
             ]);
 
             DB::beginTransaction(); // Start the database transaction
@@ -1030,67 +1052,119 @@ class AppraisalTaskController extends Controller
                     $statusForm = 'Submitted';
                 }
 
-                $calibration = Calibration::updateOrCreate(
-                    [
-                        'id_calibration_group' => $calibrationGroupID,
-                        'appraisal_id' => $appraisalId,
-                        'employee_id' => $validatedData['employee_id'],
-                        'approver_id' => $firstCalibrator,
-                        'period' => $period,
-                    ],
-                    [
-                        'created_by' => $request->userid,
-                    ]
-                );
+                $appraisal = Appraisal::where('id', $appraisalId)->first();
 
-                if ($calibration) {
-                    $appraisal = Appraisal::where('id', $calibration->appraisal_id)->first();
+                $existingRaw  = $appraisal->file;
+                $existingList = is_array($existingRaw) ? $existingRaw : (json_decode($existingRaw, true) ?: ($existingRaw ? [$existingRaw] : []));
+                $kept = $request['keep_files'] ?? [];      // bentuk "storage/files/appraisals/xxx.ext"
+                $kept = array_values(array_filter($kept, fn($p) => is_string($p) && $p !== ''));
 
-                    // Lanjutkan proses update file, validasi, dll...
-                    $fullPath = $appraisal->file;
-
-                    if ($request->hasFile('attachment')) {
-                        if ($appraisal->file && File::exists(public_path($appraisal->file))) {
-                            File::delete(public_path($appraisal->file));
-                        }
-
-                        $file = $request->file('attachment');
-                        $employeeId = $validatedData['employee_id'];
-                        $timestamp = Carbon::now()->format('Ymd_His');
-                        $filename = "{$employeeId}_{$period}_{$timestamp}.pdf";
-
-                        $relativePath = 'files/appraisals/' . $filename;
-                        $file->storeAs('public/' . dirname($relativePath), basename($relativePath));
-
-                        $fullPath = 'storage/' . $relativePath;
+                // Hapus fisik file yang TIDAK di-keep
+                $toDelete = array_values(array_diff($existingList, $kept));
+                foreach ($toDelete as $webPath) {
+                    $diskPath = Str::after($webPath, 'storage/'); // "files/appraisals/xxx.ext"
+                    if ($diskPath && Storage::disk('public')->exists($diskPath)) {
+                        Storage::disk('public')->delete($diskPath);
                     }
+                }
+    
+                // Lanjutkan proses update file, validasi, dll...
+                $timestamp  = Carbon::now()->format('His');
+                $baseDir    = 'files/docs_pa';                       // di disk 'public'
+                Storage::disk('public')->makeDirectory($baseDir);       // idempotent
 
-                    $appraisal->update([
-                        'form_data' => json_encode($datas),
-                        'form_status' => $statusForm,
-                        'updated_by' => $request->userid,
-                        'file' => $fullPath,
-                    ]);
+                $paths = [];
+                $filesInput = $request->file('attachment', []);
 
-                    ApprovalRequest::where('form_id', $calibration->appraisal_id)
-                        ->update([
-                            'current_approval_id' => $approver,
-                            'status' => $statusRequest,
-                            'updated_by' => $request->userid,
-                            'messages' => $onbehalfMessages,
-                        ]);
+                $files = [];
+                if ($filesInput instanceof UploadedFile) {
+                    $files = [$filesInput];
+                } elseif (is_array($filesInput)) {
+                    $files = array_values(array_filter($filesInput, fn($f) => $f instanceof UploadedFile));
+                }
 
-                    Approval::updateOrCreate(
+                // (Opsional tapi disarankan) Validasi TOTAL 10MB (kept + new)
+                $totalBytesKept = array_sum(array_map(function ($webPath) {
+                    $diskPath = Str::after($webPath, 'storage/');
+                    return Storage::disk('public')->exists($diskPath) ? Storage::disk('public')->size($diskPath) : 0;
+                }, $kept));
+                $totalBytesNew = array_sum(array_map(fn(UploadedFile $f) => $f->getSize(), $files));
+                if (($totalBytesKept + $totalBytesNew) > 10 * 1024 * 1024) {
+                    return back()->withErrors(['attachment' => 'Total file size exceeds 10MB.'])->withInput();
+                }
+
+                $startIdx = count($kept);
+                foreach ($files as $i => $file) {
+                    if (!($file instanceof UploadedFile)) continue;
+                    $origName = $file->getClientOriginalName();
+                    $baseName = pathinfo($origName, PATHINFO_FILENAME);
+                    $clean = preg_replace('/[^\pL0-9 _.-]+/u', '', $baseName); // buang char aneh
+                    $clean = trim(preg_replace('/\s+/', ' ', $clean));         // rapikan spasi
+                    $clean = str_replace(' ', '_', mb_substr($clean, 0, 80));  // ganti spasi -> underscore
+                    $ext      = strtolower($file->getClientOriginalExtension() ?: $file->extension());
+                    $seq = str_pad($startIdx + $i + 1, 2, '0', STR_PAD_LEFT);
+                    $safeExt  = $ext ?: 'bin';
+                    $filename = "{$clean}_{$period}_{$timestamp}_{$seq}.{$safeExt}";
+
+                    Storage::disk('public')->putFileAs($baseDir, $file, $filename);
+
+                    // Simpan path web (akses via /storage)
+                    $paths[] = "storage/{$baseDir}/{$filename}";
+                }
+
+                $finalPaths = array_values(array_merge($kept, $paths));
+
+
+                if ($submit_status === 'Approved') {
+                    $calibration = Calibration::updateOrCreate(
                         [
-                            'request_id' => ApprovalRequest::where('form_id', $calibration->appraisal_id)->value('id'),
-                            'approver_id' => $validatedData['approver_id'],
+                            'id_calibration_group' => $calibrationGroupID,
+                            'appraisal_id' => $appraisalId,
+                            'employee_id' => $validatedData['employee_id'],
+                            'approver_id' => $firstCalibrator,
+                            'period' => $period,
                         ],
                         [
                             'created_by' => $request->userid,
-                            'status' => 'Approved',
                         ]
                     );
+
+                    if ($calibration) {
+
+                        $appraisal->update([
+                            'form_data' => json_encode($datas),
+                            'form_status' => $statusForm,
+                            'updated_by' => $request->userid,
+                            'file' => empty($finalPaths) ? null : json_encode($finalPaths),
+                        ]);
+    
+                        ApprovalRequest::where('form_id', $calibration->appraisal_id)
+                            ->update([
+                                'current_approval_id' => $approver,
+                                'status' => $statusRequest,
+                                'updated_by' => $request->userid,
+                                'messages' => $onbehalfMessages,
+                            ]);
+    
+                        Approval::updateOrCreate(
+                            [
+                                'request_id' => ApprovalRequest::where('form_id', $calibration->appraisal_id)->value('id'),
+                                'approver_id' => $validatedData['approver_id'],
+                            ],
+                            [
+                                'created_by' => $request->userid,
+                                'status' => 'Approved',
+                            ]
+                        );
+                    }
+                } else {
+    
+                        $appraisal->update([
+                            'updated_by' => $request->userid,
+                            'file' => empty($finalPaths) ? null : json_encode($finalPaths),
+                        ]);
                 }
+
             }
 
             DB::commit(); // Commit the transaction

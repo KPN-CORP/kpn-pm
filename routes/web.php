@@ -108,6 +108,8 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth', 'locale', 'notification')->group(function () {
 
+    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
     Route::get('/', function () {
         return redirect('goals');
     });
@@ -156,7 +158,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::post('/appraisals/submit', [MyAppraisalController::class, 'store'])->name('appraisal.submit');
     Route::post('/appraisals/update', [MyAppraisalController::class, 'update'])->name('appraisal.update');
     Route::post('/appraisals/update', [MyAppraisalController::class, 'update'])->name('appraisal.update');
-    Route::delete('/appraisals/{id}', [MyAppraisalController::class, 'destroy'])->name('delete.attachment');
+    Route::post('/appraisals/file/destroy', [MyAppraisalController::class, 'destroyFile'])->name('delete.attachment');
     
     // Team Appraisal
     Route::get('/appraisals-task', [AppraisalTaskController::class, 'index'])->name('appraisals-task');

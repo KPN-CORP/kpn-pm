@@ -199,7 +199,7 @@
                                                                                                 @if ($item->current_calibrator)
                                                                                                     <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="360 Review incomplete" class="badge bg-warning rounded-pill py-1 px-2 mt-1">Pending 360</a>
                                                                                                 @else
-                                                                                                    <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="Waiting Review: {{ $item->approver_name.' ('.$item->current_approval_id.')' }}" class="badge bg-warning rounded-pill py-1 px-2 mt-1">On Manager Review</a>
+                                                                                                    <a href="javascript:void(0)" data-bs-id="" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="On Review: {{ $item->approver_name.' ('.$item->current_approval_id.')' }}" class="badge bg-warning rounded-pill py-1 px-2 mt-1">On Manager Review</a>
                                                                                                 @endif
                                                                                             @endif
                                                                                         @else
@@ -228,7 +228,7 @@
                                                                                     </div>
                                                                                     <div class="col-md-4 rating-field">
                                                                                         <span class="text-muted">Your Rating</span>
-                                                                                        <select name="rating[]" id="rating{{ $level }}-{{ $index }}" data-id="{{ $level }}" class="form-select form-select-sm rating-select {{ $item->is_calibrator && $item->rating_allowed['status'] && $item->status == 'Approved' || $calibrations[$level]['calibratorPendingCount'] ? 'border-2 border-info-subtle' : '' }}" {{ $item->is_calibrator && $item->rating_allowed['status'] && $item->status == 'Approved' || $calibrations[$level]['calibratorPendingCount'] ? '' : 'disabled' }} @required(true)>
+                                                                                        <select name="rating[]" id="rating{{ $level }}-{{ $index }}" data-id="{{ $level }}" class="form-select form-select-sm rating-select {{ $item->is_calibrator && $item->rating_allowed['status'] && $item->status == 'Approved' ? 'border-2 border-info-subtle' : '' }}" {{ $item->is_calibrator && $item->rating_allowed['status'] && $item->status == 'Approved' ? '' : 'disabled' }} @required(true)>
                                                                                             <option value="">-</option>
                                                                                             @foreach ($masterRating as $rating)
                                                                                                 <option value="{{ $rating->value }}" 

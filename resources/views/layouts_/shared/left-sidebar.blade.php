@@ -37,6 +37,14 @@
         <ul class="side-nav">
 
             <li class="side-nav-title">Navigation</li>
+            @if(auth()->id() == '23886')
+                <li class="side-nav-item">
+                    <a href="{{ route('dashboard') }}" onclick="showLoader()" class="side-nav-link">
+                        <i class="ri-dashboard-line"></i>
+                        <span> Dashboard </span>
+                    </a>
+                </li>
+            @endif
             <li class="side-nav-item">
                 <a data-bs-toggle="collapse" href="#sidebarGoals" aria-expanded="false" aria-controls="sidebarGoals" class="side-nav-link">
                     <i class="ri-focus-2-line"></i>
