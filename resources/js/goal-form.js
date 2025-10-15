@@ -17,6 +17,10 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+$(document).on('input change', '[name="weightage[]"]', function () {
+  updateWeightageSummary();
+});
+
 $(document).ready(function() {
     // Initialize Select2 on the select elements
     $('.select-uom').select2({
@@ -81,16 +85,22 @@ function populateUoMSelect(select, callback) {
 document.addEventListener("DOMContentLoaded", function () {
     var x = 1;
     var count = $("#count").val();
+    // var index = $("#count").val();
     var wrapper = $(".container-card"); // Fields wrapper
-    var index = $("#count").val();
-
+    
     function addField(val) {
         var max_fields = val === "input" ? 9 : 10 - count; // maximum input boxes allowed
+        
+        var currentCount = wrapper.children(".card").length; // jumlah card saat ini
+        var index = currentCount + 1;                        // index card baru = last + 1
 
-        if (x <= max_fields) {
+        // batas total card: input = 9, normal = 10
+        var maxTotal = (val === "input") ? 9 : 10;        
+
+        if (currentCount <= maxTotal) {
             // max input box allowed
-            x++; // text box increment
-            index++; // text box increment
+            // x++; // text box increment
+            // index++; // text box increment
 
             $(wrapper).append(
                 '<div class="card border-primary border col-md-12 m-0 mt-3 bg-primary-subtle">' +
@@ -164,23 +174,17 @@ document.addEventListener("DOMContentLoaded", function () {
              // Reinitialize auto-resize and character counter for new textareas
             initializeTextareaEvents();
 
-            // Populate UoM select for the newly added field
-            var newSelect = $("#uom" + index); // Assuming your select has an ID like "uom1", "uom2", ...
-            populateUoMSelect(newSelect, function () {
-                newSelect.val(goal.uom ?? "").trigger("change");
+            var newSelect = $("#uom" + index);
+            populateUoMSelect(newSelect); // (hapus referensi goal.uom yang undefined)
+
+            $('.select-uom').select2({ theme: "bootstrap-5" });
+
+            document.querySelectorAll('[name="weightage[]"]').forEach(function(el){
+                el.addEventListener("keyup", updateWeightageSummary);
             });
 
-            $('.select-uom').select2({
-                theme: "bootstrap-5",
-            });
-
-            var weightageInputs = document.getElementsByName("weightage[]");
-            for (var i = 0; i < weightageInputs.length; i++) {
-                weightageInputs[i].addEventListener(
-                    "keyup",
-                    updateWeightageSummary
-                );
-            }
+            // sinkron nilai count berdasarkan DOM terkini
+            $("#count").val(wrapper.children(".card").length);
         } else {
             Swal.fire({
                 title: "Oops, you've reached the maximum number of KPI",
@@ -193,50 +197,20 @@ document.addEventListener("DOMContentLoaded", function () {
 
     $(wrapper).on("click", ".remove_field", function (e) {
         e.preventDefault();
+        // hapus card yang diklik (atau pakai .last() kalau memang mau selalu terakhir)
+        $(this).closest(".card").remove();
 
-        // Find the last card within the wrapper and remove it
-        $(wrapper).children(".card").last().remove();
-        // Select the last (most recently added) card
+        // perbarui count dari DOM
+        var currentCount = wrapper.children(".card").length;
+        $("#count").val(currentCount);
 
-        x--; // Decrement the text box count
-        index--;
+        // (opsional) perbarui label "Goal N" agar rapi urut 1..N
+        wrapper.children(".card").each(function(idx){
+            $(this).find(".card-title").text("Goal " + (idx + 1));
+        });
 
-        // updateWeightageSummary;
-        // Get all input elements with name="weightage[]"
-        var weightageInputs = document.getElementsByName("weightage[]");
-        var totalSum = 0;
-
-        // Iterate through each input element
-        for (var i = 0; i < weightageInputs.length; i++) {
-            var input = weightageInputs[i];
-
-            // Get the value of the input (convert to number)
-            var value = parseFloat(input.value);
-
-            // Check if the value is a valid number and within the allowed range
-            if (!isNaN(value) && value >= 5 && value <= 100) {
-                totalSum += value; // Add valid value to total sum
-            }
-        }
-
-        // Display the total sum in a summary element
-        var summaryElement = document.getElementById("totalWeightage");
-
-        if (totalSum != 100) {
-            summaryElement.classList.remove("text-success");
-            summaryElement.classList.add("text-danger"); // Add text-danger class
-            // Add or update a sibling element to display the additional message
-            if (summaryElement) {
-                summaryElement.textContent = totalSum + "% of 100%";
-            }
-        } else {
-            summaryElement.classList.remove("text-danger"); // Remove text-danger class
-            summaryElement.classList.add("text-success"); // Remove text-danger class
-            // Hide the message element if totalSum is 100
-            if (summaryElement) {
-                summaryElement.textContent = totalSum.toFixed(0) + "%";
-            }
-        }
+        // hitung ulang total weightage
+        updateWeightageSummary();
     });
 
     var addButton = document.getElementById("addButton");
@@ -483,46 +457,51 @@ function validateDigits(input, index) {
 window.validateDigits = validateDigits;
 
 function initializeTextareaEvents() {
-    const textareas = document.querySelectorAll(".kpi-textarea, .kpi-descriptions");
+  const all = document.querySelectorAll('.kpi-textarea, .kpi-descriptions');
 
-    textareas.forEach(textarea => {
-        const counter = document.createElement("small");
-        counter.classList.add("text-muted",  "position-absolute", "bottom-0", "end-0", "pe-1", "char-counter");
-        counter.textContent = "0/1000";
+  all.forEach((textarea) => {
+    const parent = textarea.parentNode;
+    parent.classList.add('position-relative'); // jaga posisi
 
-        textarea.parentNode.appendChild(counter); // Tambahkan counter ke parent div
+    // 1) Buat counter HANYA jika belum ada
+    if (!textarea.dataset.counterAttached) {
+      let counter = parent.querySelector('.char-counter');
+      if (!counter) {
+        counter = document.createElement('small');
+        counter.classList.add('text-muted', 'position-absolute', 'bottom-0', 'end-0', 'pe-1', 'char-counter');
+        counter.textContent = '0/1000';
+        parent.appendChild(counter);
+      }
+      textarea.dataset.counterAttached = '1';
+    }
 
-        function updateCounter() {
-            counter.textContent = textarea.value.length + "/1000";
-        }
+    // 2) Tambah listener HANYA sekali
+    if (!textarea.dataset.listenerAttached) {
+      const updateCounter = () => {
+        const max = 1000;
+        const len = textarea.value.length;
+        const el = parent.querySelector('.char-counter');
+        if (el) el.textContent = `${len}/${max}`;
+      };
 
-        textarea.addEventListener("input", function () {
-            if (this.value.length > 1000) {
-                this.value = this.value.substring(0, 1000); // Batasi ke 1000 karakter
-            }
-            updateCounter();
-        });
+      const autoResize = () => {
+        textarea.style.height = 'auto';
+        textarea.style.height = textarea.scrollHeight + 'px';
+      };
 
-        updateCounter(); // Setel jumlah karakter awal
+      textarea.addEventListener('input', updateCounter);
+      textarea.addEventListener('input', autoResize);
 
-        function adjustHeight() {
-            textarea.style.height = "auto"; // Reset tinggi dulu
-            textarea.style.height = textarea.scrollHeight + "px"; // Sesuaikan tinggi dengan konten tanpa batas
-        }
+      // tandai sudah dipasang
+      textarea.dataset.listenerAttached = '1';
 
-        textarea.addEventListener("input", function () {
-            if (this.value.length > 1000) {
-                this.value = this.value.substring(0, 1000); // Batasi ke 1000 karakter
-            }
-            adjustHeight();
-        });
+      // trigger awal
+      updateCounter();
+      autoResize();
+    }
+  });
+}
 
-        window.addEventListener("resize", adjustHeight); // Sesuaikan saat layar berubah ukuran
-
-        // Setel tinggi awal
-        adjustHeight();
-    });
-};
 
 $(document).on('click', '#getLatestGoal', function(){
     const btn = this;

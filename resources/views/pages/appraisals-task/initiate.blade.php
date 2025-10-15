@@ -81,7 +81,7 @@
                     $achievement = json_decode($achievements->first()->data, true);
                 }
             @endphp
-
+            @if ($viewAchievement)
             <div class="rounded mb-2 p-3 bg-white text-primary align-items-center">
                 <div class="row mb-2">
                     <span class="fs-16 mx-1">
@@ -109,6 +109,7 @@
                     </div>
                 </div>
             </div>
+            @endif
         </div>
         {{-- @endif --}}
         <div class="step" data-step="{{ $step }}"></div>
@@ -134,7 +135,7 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <form id="appraisalForm" action="{{ route('appraisals-task.submit') }}" method="POST" enctype="multipart/form-data">
+                        <form id="formAppraisalUser" action="{{ route('appraisals-task.submit') }}" method="POST" enctype="multipart/form-data">
                         @csrf
                         <input type="hidden" name="employee_id" value="{{ $goal->employee_id }}">
                         <input type="hidden" name="form_group_id" value="{{ $formGroupData['data']['id'] }}">
@@ -156,14 +157,29 @@
                             <div class="row">
                                 <div class="col-md-4">
                                     <div class="mb-3">
-                                        <label for="attachment" class="form-label">Supporting documents for achievement result</label>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <input class="form-control form-control-sm" id="attachment" name="attachment" type="file" accept=".pdf">
-                                        </div>
-                                        <small class="text-muted d-block mt-1">
-                                            Maximum file size: 10MB. Only PDF files are allowed.
+                                        <label for="attachment_pm" class="form-label">Supporting documents for achievement result</label>
+
+
+                                        <small id="totalSizeInfo" class="text-muted d-block mt-1">
+                                            Total: 0 B / 10 MB.
                                         </small>
-                                    </div>                                    
+                                        <div class="d-flex align-items-center gap-2">
+                                            <input class="form-control form-control-sm"
+                                                id="attachment_pm"
+                                                name="attachment[]"
+                                                type="file"
+                                                multiple
+                                                style="max-width:75%;">
+                                        </div>
+
+                                        {{-- Container preview file --}}
+                                        <div id="fileCards" class="d-flex flex-wrap gap-2 align-items-center mt-2"></div>
+                                    </div>
+                                </div>
+                                <div class="col-md">
+                                    <div class="mb-3 text-end">
+                                        <a data-id="submit_draft" data-step="review" type="button" class="btn btn-sm btn-outline-secondary submit-draft"><span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Save as Draft') }}</a>
+                                    </div>
                                 </div>
                             </div>
                             <div class="d-flex justify-content-center py-2">
@@ -172,7 +188,7 @@
                                 @if ($filteredFormDatas['viewCategory']=="detail")
                                     <a href="{{ route('appraisals-task') }}" class="btn btn-outline-primary px-md-4">{{ __('Close') }}</a>
                                 @else
-                                    <a data-id="submit_form" name="submit_form" class="btn btn-primary submit-btn px-md-4" style="display: none;"><span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Submit') }}</a>
+                                    <a data-id="submit_form" data-step="review" name="submit_form" class="btn btn-primary submit-user px-md-4" style="display: none;"><span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Submit') }}</a>
                                 @endif
                             </div>
                         </form>

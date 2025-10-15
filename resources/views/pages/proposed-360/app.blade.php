@@ -77,6 +77,8 @@
         }
 
     @endphp
+    @if (!empty($selfEnabled) && $selfEnabled)
+        
     <div class="row px-2">
         <div class="col-lg-12 p-0">
             <div class="mt-3 p-2 bg-light-subtle rounded shadow g-3">       
@@ -351,6 +353,7 @@
             </div>
         </div>
     </div>
+    @endif
     @endforeach
     @if (!$datas->isEmpty()) {{-- Cek jika ada data peers dan team/subordinate dari user --}}
     <div class="row px-2">
@@ -597,6 +600,7 @@
                                     </div>
                                 </div>
                                 @if (!empty($row->subordinates->first()))
+                                <input type="hidden" id="havingSubs" value="{{ !empty($row->subordinates->first()) }}">
                                 <div class="row">
                                     <div class="col">
                                         <div class="card bg-light-subtle border border-light shadow-none mb-0">
@@ -665,8 +669,18 @@
                     </div>
                 </div>
                 @empty
-                @endforelse
 
+                @endforelse
+            </div>
+        </div>
+    </div>
+    @endif
+    @if (empty($selfEnabled) && !$selfEnabled && $datas->isEmpty())
+    <div class="row px-2">
+        <div class="col-lg-12 p-0">
+            <div class="mt-3 p-4 bg-light-subtle rounded shadow text-center">
+                <h5 class="mb-2 text-muted">No Proposed 360 Tasks</h5>
+                <p class="mb-0 text-secondary">There are no tasks to propose for 360 appraisal at this time.</p>
             </div>
         </div>
     </div>

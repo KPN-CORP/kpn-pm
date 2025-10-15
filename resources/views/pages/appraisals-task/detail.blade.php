@@ -1,3 +1,8 @@
+@php
+    use Illuminate\Support\Facades\Storage;
+    use Illuminate\Support\Str;
+    $existing = json_decode($datas->first()->appraisal->file ?? '[]', true) ?: [];
+@endphp
 @extends('layouts_.vertical', ['page_title' => 'Appraisal'])
 
 @section('css')
@@ -74,23 +79,25 @@
         {{-- @if ($row->request->employee->group_company == 'Cement') --}}
         <div class="card-body m-0 py-2">
             @php
-                // Contoh data bulanan
-                $achievements = [
-                    ["month" => "January", "value" => "B"],
-                    ["month" => "February", "value" => "B"],
-                    ["month" => "March", "value" => "A"],
-                    ["month" => "April", "value" => "A"],
-                    ["month" => "May", "value" => "B"],
-                    ["month" => "June", "value" => "B"],
-                    ["month" => "July", "value" => "C"],
-                    ["month" => "August", "value" => "C"],
-                    ["month" => "September", "value" => "B"],
-                    ["month" => "October", "value" => "A"],
-                    ["month" => "November", "value" => "B"],
-                    ["month" => "December", "value" => "A"],
+                $achievement = [
+                    ["month" => "January", "value" => "-"],
+                    ["month" => "February", "value" => "-"],
+                    ["month" => "March", "value" => "-"],
+                    ["month" => "April", "value" => "-"],
+                    ["month" => "May", "value" => "-"],
+                    ["month" => "June", "value" => "-"],
+                    ["month" => "July", "value" => "-"],
+                    ["month" => "August", "value" => "-"],
+                    ["month" => "September", "value" => "-"],
+                    ["month" => "October", "value" => "-"],
+                    ["month" => "November", "value" => "-"],
+                    ["month" => "December", "value" => "-"],
                 ];
+                if ($achievements && $achievements->isNotEmpty()) {
+                    $achievement = json_decode($achievements->first()->data, true);
+                }
             @endphp
-
+            @if ($viewAchievement)
             <div class="rounded mb-2 p-3 bg-white text-primary align-items-center">
                 <div class="row mb-2">
                     <span class="fs-16 mx-1">
@@ -118,6 +125,7 @@
                     </div>
                 </div>
             </div>
+            @endif
         </div>
         {{-- @endif --}}
         <div class="row">
@@ -127,12 +135,44 @@
                     <div class="card-body m-0 py-3">
                         <div class="row">
                             <div class="col-md-4">
-                                <label for="attachment" class="form-label">Supporting documents :</label>
-                                <div class="d-flex align-items-center gap-1">
-                                    <a href="{{ asset($datas->first()->appraisal->file) }}" target="_blank" class="badge rounded-pill text-bg-warning px-2 py-1" style="font-size: 0.75rem">
-                                        attachment <i class="ri-file-text-line"></i>
+                            <label class="form-label">Supporting documents :</label>
+
+                            @php
+                                $appraisal = $datas->first()->appraisal ?? null;
+                                // gunakan $existing jika sudah disiapkan controller, jika belum fallback
+                                $files = ($existing ?? null);
+                                if (!$files || !is_array($files)) {
+                                    $files = [];
+                                    if (!empty($appraisal?->files) && is_array($appraisal->files)) {
+                                        $files = $appraisal->files; // misal disimpan sebagai array path
+                                    } elseif (!empty($appraisal?->file)) {
+                                        $files = [$appraisal->file]; // fallback single path lama
+                                    }
+                                }
+                            @endphp
+
+                            <div class="d-flex flex-wrap gap-2 align-items-center" id="fileCardsReadonly">
+                                @forelse ($files as $path)
+                                @php
+                                    $diskPath = Str::after($path, 'storage/');
+                                    $url  = Storage::disk('public')->url($diskPath);
+                                    $name = basename($diskPath);
+                                @endphp
+
+                                <div class="file-card d-flex flex-wrap gap-2 align-items-center" data-existing="1" data-url="{{ $url }}">
+                                    <span class="d-inline-flex align-items-center gap-1 border rounded-pill p-1 pe-2">
+                                    <a href="{{ $url }}" target="_blank" rel="noopener noreferrer"
+                                        class="badge text-bg-warning border-0 rounded-pill px-2 py-1 text-decoration-none"
+                                        style="font-size:.75rem">
+                                        <span class="filename text-truncate d-inline-block" style="max-width:220px;">{{ $name }}</span>
+                                        <i class="ri-file-text-line"></i>
                                     </a>
+                                    </span>
                                 </div>
+                                @empty
+                                <span class="text-muted small">No supporting documents.</span>
+                                @endforelse
+                            </div>
                             </div>
                         </div>
                     </div>

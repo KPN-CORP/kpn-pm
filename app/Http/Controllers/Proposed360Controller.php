@@ -44,6 +44,39 @@ class Proposed360Controller extends Controller
         $assignmentIds = $this->parseAssignmentIds($flowRow); // [] jika null/tidak valid
         $teamRuleSets  = $this->loadTeamAssignments($assignmentIds); // kumpulan rule-set utk scope TEAM (L1)
 
+        // === 1a) cek apakah scope SELF diizinkan oleh flow ===
+        $selfEnabled = $this->flowAllowsSelf($flowRow);
+
+        // === 2) SELF (tanpa restriction assignment) ===
+        $selfRow = null;
+        $self     = collect();
+        $selfPeers = collect();
+
+        if ($selfEnabled) {
+            $selfRow = EmployeeAppraisal::select('id','employee_id','fullname','designation_name','manager_l1_id')
+                ->with(['appraisalLayer' => fn($q) => $q->whereIn('layer_type',['peers','subordinate'])])
+                ->where('employee_id',$authEmpId)
+                ->first();
+
+            if ($selfRow) {
+                // peers untuk "self"
+                if ($selfRow->manager_l1_id) {
+                    $selfPeers = EmployeeAppraisal::select('id','employee_id','fullname','designation_name','manager_l1_id')
+                        ->where('manager_l1_id',$selfRow->manager_l1_id)
+                        ->where('employee_id','!=',$authEmpId)
+                        ->get();
+                }
+                $selfRow->peers        = $selfRow->appraisalLayer->where('layer_type','peers')->values();
+                // selfRow->subordinates akan diisi nanti (berdasarkan data team yg lolos rule)
+                $self = collect([$selfRow]);
+            }
+        } else {
+            // jika flow tidak mengizinkan self → kosongkan/disable di Blade
+            $selfRow = null;
+            $self    = collect();
+            $selfPeers = collect();
+        }
+
         // === 2) SELF (tanpa restriction assignment) ===
         $selfRow = EmployeeAppraisal::select('id','employee_id','fullname','designation_name','manager_l1_id')
             ->with(['appraisalLayer' => fn($q) => $q->whereIn('layer_type',['peers','subordinate'])])
@@ -188,11 +221,23 @@ class Proposed360Controller extends Controller
         $parentLink = __('Propose 360');
         $link       = __('Propose List');
 
-        return view('pages.proposed-360.app', compact('parentLink','link','datas','peers','subordinates','self','selfPeers', 'period'));
+        return view('pages.proposed-360.app', compact('parentLink','link','datas','peers','subordinates','self','selfPeers', 'period', 'selfEnabled'));
     }
 
     /* ===================== HELPERS ===================== */
 
+    private function flowAllowsSelf(?\App\Models\Flow $flow): bool
+    {
+        if (!$flow) return false;
+        $json = $flow->initiator ?? $flow->initiators ?? '[]';
+        $arr  = json_decode($json, true);
+        if (!is_array($arr)) return false;
+
+        return collect($arr)->contains(function ($it) {
+            return strtolower((string)data_get($it, 'type')) === 'state'
+                && strtolower((string)data_get($it, 'state_key')) === 'self';
+        });
+    }
     /**
      * Ambil daftar assignment id dari kolom json di table flows.
      */

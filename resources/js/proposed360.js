@@ -34,6 +34,11 @@ import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
     return true;
   }
 
+  function hasSubordinates() {
+    const v = (document.getElementById('havingSubs')?.value ?? '').toString().trim().toLowerCase();
+    return v === '1' || v === 'true' || v === 'yes';
+  }
+
   document.querySelectorAll('.btn-approve').forEach(btn => {
     btn.addEventListener('click', function(e){
       const approveForm = e.currentTarget.closest('form');
@@ -46,6 +51,12 @@ import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
       const peers = pickValues(sourceForm, 'select[name="peers[]"]');
       const subs  = pickValues(sourceForm, 'select[name="subordinates[]"]');
+
+      if (hasSubordinates() && (!Array.isArray(subs) || subs.length === 0)) {
+        if (window.Swal) Swal.fire('Subordinates required', 'Pilih minimal 1 bawahan untuk melanjutkan.', 'warning');
+        else alert('Pilih minimal 1 bawahan untuk melanjutkan.');
+        return;
+      }
 
       if (!validateFirstLayer(peers, subs, employeeLabel)) return;
 

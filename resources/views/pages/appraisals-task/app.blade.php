@@ -50,7 +50,7 @@
                           <div class="tab-content" id="myTabContent">
                             <div class="tab-pane fade show active" id="team" role="tabpanel" aria-labelledby="team-tab">
                                 <div class="table-responsive">
-                                    <table id="tableAppraisalTeam" class="table table-hover activate-select dataTables_scrollHeadInner">
+                                    <table id="tableAppraisalTeam" class="table table-hover table-sm activate-select dataTables_scrollHeadInner">
                                         <thead>
                                             <tr>
                                                 <th></th>
@@ -58,7 +58,7 @@
                                                 <th>Name</th>
                                                 <th>Designation</th>
                                                 <th>Office</th>
-                                                <th>Business Unit</th>
+                                                <th>Status</th>
                                                 <th>{{ __('Initiated Date') }}</th>
                                                 <th class="sorting_1">Action</th>
                                             </tr>
@@ -75,10 +75,9 @@
                                                 <th>Name</th>
                                                 <th>Designation</th>
                                                 <th>Office</th>
-                                                <th>Business Unit</th>
-                                                <th>{{ __('Initiated Date') }}</th>
                                                 <th>Status</th>
-                                                <th class="">Action</th>
+                                                <th>{{ __('Initiated Date') }}</th>
+                                                <th class="sorting_1">Action</th>
                                             </tr>
                                         </thead>
                                     </table>
