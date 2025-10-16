@@ -96,7 +96,7 @@
                               <div class="col-md-12">
                                   <div class="mb-2">
                                       <label class="form-label" for="for_messages">Messages</label>
-                                      <div id="editor-container" class="form-control" style="height: 200px;">{!! $reminder->messages !!}</div>
+                                      <div id="editor-container-ms" class="form-control" style="height: 200px;">{!! $reminder->messages !!}</div>
                                     <textarea name="messages" id="messages" class="d-none">{{ old('messages', $reminder->messages) }}</textarea>
                                   </div>
                               </div>
@@ -116,6 +116,8 @@
 @endsection
 
 @push('scripts')
+<link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">
+<script src="https://cdn.quilljs.com/1.3.6/quill.js"></script>
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const form = document.getElementById('reminderForm');
@@ -123,7 +125,7 @@
         const repeatDaysSelected = document.getElementById('repeatDaysSelected');
         const selectAllBtn = document.getElementById('select-all');
 
-        var quill = new Quill('#editor-container', {
+        var quill = new Quill('#editor-container-ms', {
             theme: 'snow'
         });
 
