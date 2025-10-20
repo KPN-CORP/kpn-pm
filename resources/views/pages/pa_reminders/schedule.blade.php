@@ -64,10 +64,22 @@
                                         <td>{{ $item->reminder_name }}</td>
                                         <td>{{ $item->start_date }}</td>
                                         <td>{{ $item->end_date }}</td>
-                                        <td>{{ $item->includeList }}</td>
+                                        <td>{{ $item->includeList == 1 ? 'Yes' : 'No' }}</td>
                                         <td>{{ $item->repeat_days }}</td>
                                         <td class="text-center">
-                                            
+                                            <a href="{{ route('reminders.edit', $item->id) }}" 
+                                              class="btn btn-sm btn-outline-warning" 
+                                              title="Edit">
+                                              <i class="ri-edit-box-line"></i>
+                                            </a>
+                                            <form action="{{ route('reminders.destroy', $item->id) }}" method="POST" style="display:inline;">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="btn btn-sm btn-danger" title="Delete"
+                                                    onclick="return confirm('Yakin ingin menghapus reminder ini?')">
+                                                    <i class="ri-delete-bin-line"></i>
+                                                </button>
+                                            </form>
                                         </td>
                                     </tr>
                                 @endforeach

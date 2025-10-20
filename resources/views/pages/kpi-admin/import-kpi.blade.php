@@ -1,4 +1,4 @@
-@extends('layouts_.vertical', ['page_title' => 'Import KPI'])
+@extends('layouts_.vertical', ['page_title' => 'Import Quartal Achievement'])
 
 @section('css')
     
@@ -116,7 +116,8 @@
                                     <div class="alert alert-info">
                                         <strong>Notes:</strong>
                                         <ul class="mb-0">
-                                            <li>Template Import ...</strong></li>
+                                            <li>Gunakan format file sesuai template import.</li>
+                                            <li>Template dapat diunduh melalui tombol <strong>Download Template Import</strong>.</li>
                                         </ul>
                                     </div>
                                 </div>
@@ -127,6 +128,9 @@
                             </div>
                         </div>
                         <div class="modal-footer">
+                            <a href="{{ route('downloadTemplateImport') }}" class="btn btn-outline-info">{{--  --}}
+                                <i class="bi bi-download"></i> Download Template Import
+                            </a>
                             <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                             <button type="submit" class="btn btn-primary">Import</button>
                         </div>

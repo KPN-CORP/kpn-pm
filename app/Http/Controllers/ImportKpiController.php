@@ -116,4 +116,20 @@ class ImportKpiController extends Controller
 
         return redirect()->route('importkpi')->with('success', 'Data berhasil dihapus.');
     }
+
+    public function downloadTemplate()
+    {
+        // Lokasi file template di folder public
+        // $filePath = storage_path('templates/template_import_kpi.xlsx');
+        $filePath = Storage::path('public/templates/template_import_kpi.xlsx');
+
+
+        if (!file_exists($filePath)) {
+            abort(404, 'File template tidak ditemukan.');
+        }
+
+        return response()->download($filePath, 'Template_Import_KPI.xlsx', [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
 }
