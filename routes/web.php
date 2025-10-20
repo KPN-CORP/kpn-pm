@@ -108,8 +108,6 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth', 'locale', 'notification')->group(function () {
 
-    Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
-
     Route::get('/', function () {
         return redirect('goals');
     });
@@ -439,6 +437,8 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::middleware(['permission:viewimport', 'role:superadmin'])->group(function () {
         Route::get('/import-rating', [AdminImportController::class, 'index'])->name('importRating');
         Route::post('/import-rating/store', [AdminImportController::class, 'storeRating'])->name('importRating.store');
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
     });
 
 });

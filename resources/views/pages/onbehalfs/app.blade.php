@@ -72,7 +72,7 @@
         <div class="offcanvas-body">
           <form id="onbehalf_filter" action="{{ route('admin.onbehalf.content') }}" method="POST">
             @csrf
-            <input type="text" id="filter_category" name="filter_category">
+            <input type="hidden" id="filter_category" name="filter_category">
                 <div class="row">
                     <div class="col">
                         <div class="mb-3">

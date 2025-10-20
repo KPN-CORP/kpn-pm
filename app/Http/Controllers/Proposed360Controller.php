@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ApprovalFlow;
 use App\Models\ApprovalLog;
 use App\Models\ApprovalRequest;
+use App\Models\Employee;
 use App\Models\EmployeeAppraisal;
 use App\Models\Flow;
 use App\Models\Proposed360;
@@ -13,6 +14,7 @@ use App\Services\AppService;
 use App\Services\Proposed360Service;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -34,197 +36,281 @@ class Proposed360Controller extends Controller
     }
 
     public function index(Request $request)
-    {
-        $period    = $this->period;
-        $authEmpId = (string) Auth::user()->employee_id;
+{
+    $period    = $this->period;
+    $authEmpId = (string) Auth::user()->employee_id;
 
-        // === 1) Ambil flow Propose 360 + assignment_ids ===
-        $flowRow = Flow::where('module_transaction','Propose 360')->first();
+    // === 1) Ambil Flow Propose 360 + assignment_ids ===
+    $flowRow       = Flow::where('module_transaction', 'Propose 360')->first();
+    $assignmentIds = $this->parseAssignmentIds($flowRow);          // [] jika null/tidak valid
+    $teamRuleSets  = $this->loadTeamAssignments($assignmentIds);   // kumpulan rule-set utk scope TEAM (L1)
+    $selfEnabled   = $this->flowAllowsSelf($flowRow);              // cek initiator 'self'
 
-        $assignmentIds = $this->parseAssignmentIds($flowRow); // [] jika null/tidak valid
-        $teamRuleSets  = $this->loadTeamAssignments($assignmentIds); // kumpulan rule-set utk scope TEAM (L1)
+    // === 2) SELF (tanpa restriction assignment, tapi bisa di-nonaktifkan lewat flow) ===
+    $selfRow    = null;
+    $self       = collect();
+    $selfPeers  = collect();
 
-        // === 1a) cek apakah scope SELF diizinkan oleh flow ===
-        $selfEnabled = $this->flowAllowsSelf($flowRow);
-
-        // === 2) SELF (tanpa restriction assignment) ===
-        $selfRow = null;
-        $self     = collect();
-        $selfPeers = collect();
-
-        if ($selfEnabled) {
-            $selfRow = EmployeeAppraisal::select('id','employee_id','fullname','designation_name','manager_l1_id')
-                ->with(['appraisalLayer' => fn($q) => $q->whereIn('layer_type',['peers','subordinate'])])
-                ->where('employee_id',$authEmpId)
-                ->first();
-
-            if ($selfRow) {
-                // peers untuk "self"
-                if ($selfRow->manager_l1_id) {
-                    $selfPeers = EmployeeAppraisal::select('id','employee_id','fullname','designation_name','manager_l1_id')
-                        ->where('manager_l1_id',$selfRow->manager_l1_id)
-                        ->where('employee_id','!=',$authEmpId)
-                        ->get();
-                }
-                $selfRow->peers        = $selfRow->appraisalLayer->where('layer_type','peers')->values();
-                // selfRow->subordinates akan diisi nanti (berdasarkan data team yg lolos rule)
-                $self = collect([$selfRow]);
-            }
-        } else {
-            // jika flow tidak mengizinkan self → kosongkan/disable di Blade
-            $selfRow = null;
-            $self    = collect();
-            $selfPeers = collect();
-        }
-
-        // === 2) SELF (tanpa restriction assignment) ===
-        $selfRow = EmployeeAppraisal::select('id','employee_id','fullname','designation_name','manager_l1_id')
+    if ($selfEnabled) {
+        $selfRow = EmployeeAppraisal::select(
+                'id','employee_id','fullname','designation_name','manager_l1_id','manager_l2_id'
+            )
             ->with(['appraisalLayer' => fn($q) => $q->whereIn('layer_type',['peers','subordinate'])])
-            ->where('employee_id',$authEmpId)
+            ->where('employee_id', $authEmpId)
             ->first();
 
-        $self = collect(); $selfPeers = collect(); $datas = collect(); $peers = collect(); $subordinates = collect(); $teamIds = [];
-
         if ($selfRow) {
+            // kandidat peers SELF = semua NON-reportee target (tidak ada chain L-1 / L-2 target dan L-1 under target)
+            $selfPeers = $this->buildPeerCandidatesFor((string) $selfRow->employee_id);
+
             $selfRow->peers = $selfRow->appraisalLayer->where('layer_type','peers')->values();
-
-            // === 3) TEAM: base: bawahan langsung. Lalu apply restriction dari assignments ===
-            if (!empty($teamRuleSets)) {
-                $datas = EmployeeAppraisal::select('id','employee_id','fullname','designation_name','manager_l1_id')
-                    ->with(['appraisalLayer' => fn($q) => $q->whereIn('layer_type',['peers','subordinate'])])
-                    ->where('manager_l1_id',$authEmpId)
-                    ->where(function($q) use ($teamRuleSets, $authEmpId) {
-                        // OR antar rule-set
-                        foreach ($teamRuleSets as $rules) {
-                            $q->orWhere(function($q) use ($rules, $authEmpId) {
-
-                                $this->applySingleRuleToQuery($q, $rules, $authEmpId);
-
-                            });
-                        }
-                    })
-                    ->get();
-
-                $subordinates = EmployeeAppraisal::select('id','employee_id','fullname','designation_name','manager_l1_id')
-                    ->with(['appraisalLayer' => fn($q) => $q->whereIn('layer_type',['peers','subordinate'])])
-                    ->where('manager_l1_id',$authEmpId)
-                    ->get();
-            } else {
-                // Tidak ada assignments → tidak ada DATA TEAM (sesuai requirement)
-                $datas = collect();
-            }
-
-            $teamIds = $datas->pluck('employee_id')->all();
-
-            $childrenRaw = EmployeeAppraisal::select('id','employee_id','fullname','designation_name','manager_l1_id')
-                ->whereIn('manager_l1_id', $teamIds)
-                ->get();
-
-            $children = $childrenRaw->groupBy('manager_l1_id');
-
-            $datas->transform(function ($emp) use ($children) {
-                $emp->subordinates = $children->get($emp->employee_id, collect());
-                return $emp;
-            });
-
-
-            // SELF section tetap tampil; subordinates untuk SELF = datas (yang sudah ter-restrict)
-            $selfRow->subordinates = $datas;
+            // selfRow->subordinates akan diisi setelah TEAM dibangun
             $self = collect([$selfRow]);
-
-            // peers utk SELF (rekan 1 atasan)
-            if ($selfRow->manager_l1_id) {
-                $selfPeers = EmployeeAppraisal::select('id','employee_id','fullname','designation_name','manager_l1_id')
-                    ->where('manager_l1_id',$selfRow->manager_l1_id)
-                    ->where('employee_id','!=',$authEmpId)
-                    ->get();
-                    
-                $peers = EmployeeAppraisal::select('id','employee_id','fullname','designation_name','manager_l1_id')
-                    ->where('manager_l1_id',$authEmpId)
-                    ->get();
-            }
-
         }
-
-        // === 4) ApprovalRequest Proposed360 periode berjalan (SELF + TEAM yang tampil) ===
-        $employeeKeys = [];
-        if ($selfRow) $employeeKeys[] = (string) $selfRow->employee_id;
-        if (!empty($teamIds)) $employeeKeys = array_merge($employeeKeys, array_map('strval',$teamIds));
-        $employeeKeys = array_values(array_unique($employeeKeys));
-
-        $approvals = ApprovalRequest::with(['manager', 'initiated'])
-            ->select('id','form_id','current_approval_id','employee_id','status', 'created_by','created_at','category','period', 'sendback_messages')
-            ->when(!empty($employeeKeys), fn($q) => $q->whereIn('employee_id',$employeeKeys))
-            ->where('category','Proposed360')
-            ->where('period',$period)
-            ->orderByDesc('created_at')
-            ->get()
-            ->groupBy('employee_id')
-            ->map->first();
-
-        // === 5) Jika current_approval_id adalah ROLE NAME → tampilkan kandidat approver ===
-        $roleNames = $approvals->filter(fn($ar)=> ($c=(string)($ar?->current_approval_id ?? ''))!=='' && !ctype_digit($c))
-                            ->pluck('current_approval_id')->unique()->values();
-
-        if ($roleNames->isNotEmpty()) {
-            $roleUsersMap = $this->buildRoleCandidatesMap($roleNames);
-            $approvals = $approvals->map(function($ar) use ($roleUsersMap) {
-                $cur = (string)($ar?->current_approval_id ?? '');
-                if ($cur !== '' && !ctype_digit($cur)) {
-                    $ar->current_approval_candidates = $roleUsersMap[$cur] ?? [];
-                }
-                return $ar;
-            });
-        }
-
-        // sematkan approval_request ke SELF & TEAM
-        if ($selfRow) {
-            $selfRow->approval_request = $approvals->get((string) $selfRow->employee_id);
-        }
-        $datas->each(function ($emp) use ($approvals) {
-            $emp->approval_request = $approvals->get((string) $emp->employee_id);
-        });
-
-        // === 6) Prefill peers/subordinates dari transaksi Proposed360 (jika ada) ===
-        $formIds = collect();
-        if (!empty($selfRow?->approval_request?->form_id)) $formIds->push($selfRow->approval_request->form_id);
-        $datas->each(function ($emp) use ($formIds) {
-            if (!empty($emp->approval_request?->form_id)) $formIds->push($emp->approval_request->form_id);
-        });
-        $formIds = $formIds->filter()->unique()->values();
-
-        $txMap = $formIds->isNotEmpty()
-            ? Proposed360::select('id','peers','subordinates')
-                ->whereIn('id',$formIds)->get()
-                ->map(function ($t) {
-                    $t->peers        = is_string($t->peers) ? json_decode($t->peers,true) : ($t->peers ?? []);
-                    $t->subordinates = is_string($t->subordinates) ? json_decode($t->subordinates,true) : ($t->subordinates ?? []);
-                    return $t;
-                })->keyBy('id')
-            : collect();
-
-        if ($selfRow && !empty($selfRow->approval_request?->form_id)) {
-            if ($tx = $txMap->get($selfRow->approval_request->form_id)) {
-                $selfRow->selected_peers        = collect($tx->peers)->filter()->values()->take(3)->all();
-                $selfRow->selected_subordinates = collect($tx->subordinates)->filter()->values()->take(3)->all();
-            }
-        }
-        $datas->each(function ($emp) use ($txMap) {
-            if (!empty($emp->approval_request?->form_id)) {
-                if ($tx = $txMap->get($emp->approval_request->form_id)) {
-                    $emp->selected_peers        = collect($tx->peers)->filter()->values()->take(3)->all();
-                    $emp->selected_subordinates = collect($tx->subordinates)->filter()->values()->take(3)->all();
-                }
-            }
-        });
-
-        $parentLink = __('Propose 360');
-        $link       = __('Propose List');
-
-        return view('pages.proposed-360.app', compact('parentLink','link','datas','peers','subordinates','self','selfPeers', 'period', 'selfEnabled'));
     }
 
-    /* ===================== HELPERS ===================== */
+    // === 3) TEAM: bawahan langsung (L1) milik user, lalu apply restriction dari assignments ===
+    $datas        = collect();
+    $subordinates = collect();
+
+    if ($selfRow) {
+        if (!empty($teamRuleSets)) {
+            // base: L1 di bawah user → lalu OR antar rule-set
+            $datas = EmployeeAppraisal::select(
+                    'id','employee_id','fullname','designation_name','manager_l1_id','manager_l2_id'
+                )
+                ->with(['appraisalLayer' => fn($q) => $q->whereIn('layer_type',['peers','subordinate'])])
+                ->where('manager_l1_id', $authEmpId)
+                ->where(function ($outer) use ($teamRuleSets, $authEmpId) {
+                    foreach ($teamRuleSets as $rules) {
+                        $outer->orWhere(function ($q) use ($rules, $authEmpId) {
+                            $this->applySingleRuleToQuery($q, $rules, $authEmpId);
+                        });
+                    }
+                })
+                ->get();
+            $subordinates = EmployeeAppraisal::select('id','employee_id','fullname','designation_name','manager_l1_id','manager_l2_id')
+                    ->with(['appraisalLayer' => fn($q) => $q->whereIn('layer_type',['peers','subordinate'])])
+                    ->where('manager_l2_id',$authEmpId)->orWhere('manager_l1_id',$authEmpId)
+                    ->get();
+        } else {
+            // Tidak ada assignments → tidak ada data TEAM (sesuai requirement)
+            $datas = collect();
+        }
+
+        // === 3a) Subordinates (untuk tampilan anak dari setiap anggota TEAM)
+        $teamIds = $datas->pluck('employee_id')->all();
+
+        $childrenRaw = EmployeeAppraisal::select(
+                'id','employee_id','fullname','designation_name','manager_l1_id','manager_l2_id'
+            )
+            ->where(function ($q) use ($teamIds) {
+                $q->whereIn('manager_l1_id', $teamIds)
+                  ->orWhereIn('manager_l2_id', $teamIds);
+            })
+            ->get();
+
+        // group: gabungan anak L1 & L2 per manager (tanpa duplikat)
+        $children = collect();
+        foreach ($teamIds as $tid) {
+            $byL1 = $childrenRaw->where('manager_l1_id', $tid);
+            $byL2 = $childrenRaw->where('manager_l2_id', $tid);
+            $children[$tid] = $byL1->merge($byL2)->unique('employee_id')->values();
+        }
+
+        // sematkan subordinat & kandidat peers NON-reportee per-kartu TEAM
+        $datas->transform(function ($emp) use ($children) {
+            $emp->subordinates     = $children->get($emp->employee_id, collect());
+            $emp->peer_candidates  = $this->buildPeerCandidatesFor((string) $emp->employee_id);
+            return $emp;
+        });
+
+        // SELF: subordinates card = daftar TEAM yang lolos restriction
+        $selfRow->subordinates = $datas;
+    }
+
+    // === 4) Ambil ApprovalRequest Proposed360 periode berjalan (SELF + TEAM yang tampil) ===
+    $employeeKeys = [];
+    if ($selfRow) $employeeKeys[] = (string) $selfRow->employee_id;
+    if (isset($teamIds) && !empty($teamIds)) {
+        $employeeKeys = array_merge($employeeKeys, array_map('strval', $teamIds));
+    }
+    $employeeKeys = array_values(array_unique($employeeKeys));
+
+    $approvals = ApprovalRequest::with(['manager','initiated'])
+        ->select('id','form_id','current_approval_id','employee_id','status','created_by','created_at','category','period','sendback_messages')
+        ->when(!empty($employeeKeys), fn($q) => $q->whereIn('employee_id', $employeeKeys))
+        ->where('category','Proposed360')
+        ->where('period', $period)
+        ->orderByDesc('created_at')
+        ->get()
+        ->groupBy('employee_id')
+        ->map->first();
+
+    // === 5) Jika current_approval_id adalah ROLE NAME → tampilkan kandidat approver ===
+    $roleNames = $approvals->filter(function ($ar) {
+            $cur = (string) ($ar?->current_approval_id ?? '');
+            return $cur !== '' && !ctype_digit($cur);
+        })
+        ->pluck('current_approval_id')
+        ->unique()
+        ->values();
+
+    if ($roleNames->isNotEmpty()) {
+        $roleUsersMap = $this->buildRoleCandidatesMap($roleNames);
+        $approvals = $approvals->map(function ($ar) use ($roleUsersMap) {
+            $cur = (string) ($ar?->current_approval_id ?? '');
+            if ($cur !== '' && !ctype_digit($cur)) {
+                $ar->current_approval_candidates = $roleUsersMap[$cur] ?? [];
+            }
+            return $ar;
+        });
+    }
+
+    // sematkan approval_request ke SELF & TEAM
+    if ($selfRow) {
+        $selfRow->approval_request = $approvals->get((string) $selfRow->employee_id);
+    }
+    $datas->each(function ($emp) use ($approvals) {
+        $emp->approval_request = $approvals->get((string) $emp->employee_id);
+    });
+
+    // === 6) Prefill peers/subordinates dari transaksi Proposed360 (jika ada) ===
+    $formIds = collect();
+    if (!empty($selfRow?->approval_request?->form_id)) $formIds->push($selfRow->approval_request->form_id);
+    $datas->each(function ($emp) use ($formIds) {
+        if (!empty($emp->approval_request?->form_id)) $formIds->push($emp->approval_request->form_id);
+    });
+    $formIds = $formIds->filter()->unique()->values();
+
+    $txMap = $formIds->isNotEmpty()
+        ? Proposed360::select('id','peers','subordinates')
+            ->whereIn('id', $formIds)
+            ->get()
+            ->map(function ($t) {
+                $t->peers        = is_string($t->peers) ? json_decode($t->peers, true) : ($t->peers ?? []);
+                $t->subordinates = is_string($t->subordinates) ? json_decode($t->subordinates, true) : ($t->subordinates ?? []);
+                return $t;
+            })
+            ->keyBy('id')
+        : collect();
+
+    if ($selfRow && !empty($selfRow->approval_request?->form_id)) {
+        if ($tx = $txMap->get($selfRow->approval_request->form_id)) {
+            $selfRow->selected_peers        = collect($tx->peers)->filter()->values()->take(3)->all();
+            $selfRow->selected_subordinates = collect($tx->subordinates)->filter()->values()->take(3)->all();
+        }
+    }
+    $datas->each(function ($emp) use ($txMap) {
+        if (!empty($emp->approval_request?->form_id)) {
+            if ($tx = $txMap->get($emp->approval_request->form_id)) {
+                $emp->selected_peers        = collect($tx->peers)->filter()->values()->take(3)->all();
+                $emp->selected_subordinates = collect($tx->subordinates)->filter()->values()->take(3)->all();
+            }
+        }
+    });
+
+    $parentLink = __('Propose 360');
+    $link       = __('Propose List');
+
+    // $peers (global) tak lagi dipakai untuk TEAM (kini per kartu: $row->peer_candidates)
+    // tetap kirim variabel agar Blade tidak error.
+    $peers = collect();
+
+    return view('pages.proposed-360.app', compact(
+        'parentLink','link','datas','peers','subordinates','self','selfPeers','period','selfEnabled'
+    ));
+}
+
+
+
+/* ===================== HELPERS ===================== */
+/**
+ * Bangun kandidat peers NON-reportee untuk target tertentu:
+ * - exclude seluruh L-1 & L-2 target
+ * - exclude semua karyawan yg L1-nya berada di bawah L2 = target (L1 under target)
+ * - exclude diri sendiri
+ */
+private function buildPeerCandidatesFor(string $targetEmpId): \Illuminate\Support\Collection
+{
+    // --- 1) Ambil L1 & L2 si target
+    $target = EmployeeAppraisal::query()
+        ->select('employee_id','manager_l1_id','manager_l2_id')
+        ->where('employee_id', $targetEmpId)
+        ->first();
+
+    $targetL1 = $target?->manager_l1_id ? (string) $target->manager_l1_id : null;
+    $targetL2 = $target?->manager_l2_id ? (string) $target->manager_l2_id : null;
+
+    // --- 2) Ambil row L1-nya target untuk dapatkan L1 & L2 dari L1 target (harus ikut di-exclude)
+    $targetL1Row = null;
+    $targetL1_L1 = null;
+    $targetL1_L2 = null;
+    if ($targetL1) {
+        $targetL1Row = EmployeeAppraisal::query()
+            ->select('employee_id','manager_l1_id','manager_l2_id')
+            ->where('employee_id', $targetL1)
+            ->first();
+
+        $targetL1_L1 = $targetL1Row?->manager_l1_id ? (string) $targetL1Row->manager_l1_id : null; // L1 dari L1 target
+        $targetL1_L2 = $targetL1Row?->manager_l2_id ? (string) $targetL1Row->manager_l2_id : null; // L2 dari L1 target
+    }
+
+    // --- 3) Kumpulan L1 yang berada di bawah target (target sebagai L2)
+    $l1UnderTarget = EmployeeAppraisal::query()
+        ->select('employee_id','manager_l1_id','manager_l2_id')
+        ->where('manager_l2_id', $targetEmpId)
+        ->get();
+
+    // --- 4) Atasan (L1 & L2) dari setiap L1 di bawah target
+    $superiorsOfL1s = collect();
+    foreach ($l1UnderTarget as $l1Row) {
+        if (!empty($l1Row->manager_l1_id)) $superiorsOfL1s->push((string) $l1Row->manager_l1_id);
+        if (!empty($l1Row->manager_l2_id)) $superiorsOfL1s->push((string) $l1Row->manager_l2_id);
+    }
+
+    // --- 5) Semua reportee langsung target (L-1 & L-2)
+    $directReporteesOfTarget = EmployeeAppraisal::query()
+        ->where(function ($q) use ($targetEmpId) {
+            $q->where('manager_l1_id', $targetEmpId)
+              ->orWhere('manager_l2_id', $targetEmpId);
+        })
+        ->pluck('employee_id');
+
+    // --- 6) Semua reportee dari L1-nya target (manager_l1_id/manager_l2_id = targetL1)
+    $reporteesOfTargetL1 = collect();
+    if ($targetL1) {
+        $reporteesOfTargetL1 = EmployeeAppraisal::query()
+            ->where(function ($q) use ($targetL1) {
+                $q->where('manager_l1_id', $targetL1)
+                  ->orWhere('manager_l2_id', $targetL1);
+            })
+            ->pluck('employee_id');
+    }
+
+    // --- 7) Susun exclusion list
+    $exclude = collect()
+        ->merge([$targetEmpId])                          // diri sendiri
+        ->when($targetL1, fn($c) => $c->push($targetL1)) // L1 target
+        ->when($targetL2, fn($c) => $c->push($targetL2)) // L2 target
+        ->when($targetL1_L1, fn($c) => $c->push($targetL1_L1)) // L1 dari L1 target  ✅
+        ->when($targetL1_L2, fn($c) => $c->push($targetL1_L2)) // L2 dari L1 target  ✅
+        ->merge($directReporteesOfTarget)                // semua reportee target (L-1/L-2)
+        // ->merge($reporteesOfTargetL1)                    // semua reportee dari L1 target
+        ->merge($l1UnderTarget->pluck('employee_id'))    // L1 di bawah target
+        ->merge($superiorsOfL1s)                         // L1 & L2 dari setiap L1 di bawah target
+        ->filter()
+        ->unique()
+        ->values()
+        ->all();
+
+    // --- 8) Kandidat peers = semua karyawan yang TIDAK ada di exclusion list
+    return EmployeeAppraisal::select('id','employee_id','fullname','designation_name','manager_l1_id','manager_l2_id')
+        ->whereNotIn('employee_id', $exclude)
+        ->get();
+}
+
+
 
     private function flowAllowsSelf(?\App\Models\Flow $flow): bool
     {

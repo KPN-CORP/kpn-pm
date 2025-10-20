@@ -99,8 +99,9 @@
                     <div class="card-body">
                         <form id="formAppraisalUser" action="{{ route('appraisal.update') }}" enctype="multipart/form-data" method="POST">
                         @csrf
+                        <input type="hidden" id="user_id" value="{{ Auth::user()->employee_id }}">
                         <input type="hidden" class="form-control" name="id" value="{{ $appraisal->id }}">
-                        <input type="hidden" name="employee_id" value="{{ $appraisal->employee_id }}">
+                        <input type="hidden" id="employee_id" name="employee_id" value="{{ $appraisal->employee_id }}">
                         <input type="hidden" class="form-control" name="approver_id" value="{{ $approval->approver_id }}">
                         <input type="hidden" name="formGroupName" value="{{ $formGroupData['data']['name'] }}">
                         @foreach ($filteredFormData as $index => $row)

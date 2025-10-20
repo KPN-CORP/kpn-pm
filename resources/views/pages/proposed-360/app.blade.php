@@ -523,8 +523,8 @@
                                     </div>
                                 </div>
                                 <form id="form-propose-team-{{ $row->employee_id }}" method="POST" action="{{ ($approval && strtoupper($approval->status)==='SENDBACK')
-                    ? route('proposed360.resubmit')
-                    : route('proposed360.store') }}">
+                                    ? route('proposed360.resubmit')
+                                    : route('proposed360.store') }}">
                                     @csrf
                                     @if($approval && strtoupper($approval->status)==='SENDBACK')
                                         <input type="hidden" name="form_id" value="{{ $approval->form_id }}">
@@ -547,7 +547,7 @@
                                                         @endphp
                                                         <select name="peers[]" id="peer1_{{ $id }}" class="form-select select360" required>
                                                             <option value="">- Please Select -</option>
-                                                            @foreach ($peers as $item)
+                                                            @foreach ($row->peer_candidates as $item)
                                                                 @continue($item->employee_id == $row->employee_id)
                                                                 <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
                                                                     {{ $item->fullname }} {{ $item->employee_id }}
@@ -565,7 +565,7 @@
                                                         @endphp
                                                         <select name="peers[]" id="peer2_{{ $id }}" class="form-select select360">
                                                             <option value="">- Please Select -</option>
-                                                            @foreach ($peers as $item)
+                                                            @foreach ($row->peer_candidates as $item)
                                                                 @continue($item->employee_id == $row->employee_id)
                                                                 <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
                                                                     {{ $item->fullname }} {{ $item->employee_id }}
@@ -584,7 +584,7 @@
                                                         @endphp
                                                         <select name="peers[]" id="peer3_{{ $id }}" class="form-select select360">
                                                             <option value="">- Please Select -</option>
-                                                            @foreach ($peers as $item)
+                                                            @foreach ($row->peer_candidates as $item)
                                                                 @continue($item->employee_id == $row->employee_id)
                                                                 <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
                                                                     {{ $item->fullname }} {{ $item->employee_id }}
