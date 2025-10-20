@@ -152,9 +152,10 @@
                     <div class="card-body">
                         <form id="formAppraisalUser" action="{{ route('appraisals-task.submitReview') }}" method="POST" enctype="multipart/form-data">
                         @csrf
+                        <input type="hidden" id="user_id" value="{{ Auth::user()->employee_id }}">
                         <input type="hidden" name="type" value="{{ $type }}">
                         <input type="hidden" name="appraisal_id" value="{{ $appraisalId }}">
-                        <input type="hidden" name="employee_id" value="{{ $goals->employee_id }}">
+                        <input type="hidden" id="employee_id" name="employee_id" value="{{ $goals->employee_id }}">
                         <input type="hidden" name="form_group_id" value="{{ $formGroupData['data']['id'] }}">
                         <input type="hidden" class="form-control" name="approver_id" value="{{ $approval->approver_id }}">
                         <input type="hidden" class="form-control" name="userid" value="{{ $approval->approver->id }}">

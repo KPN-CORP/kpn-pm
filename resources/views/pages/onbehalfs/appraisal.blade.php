@@ -67,29 +67,26 @@
                                   aria-haspopup="true" aria-expanded="false" id="animated-preview" data-bs-offset="0,10">
                                   Action
                               </button>
+                              {{-- Dropdown tetap muncul jika tombol aktif --}}
+                                  <div class="dropdown-menu dropdown-menu-animated">
+                                      @if ($row->request->status === 'Pending')
+                                          <a class="dropdown-item"
+                                            href="{{ route('admin.create.approval.appraisal', [encrypt($row->request->employee_id), 'onbehalf']) }}">
+                                              Approve
+                                          </a>
+                                      @else
+                                        <a class="dropdown-item"
+                                              href="{{ route('admin.create.approval.appraisal', [encrypt($row->request->employee_id), 'onbehalf']) }}">
+                                              Revise
+                                        </a>
+                                      @endif
+                                  </div>
                               @endif
                           @else
                               {{-- Non-aktif karena status Sendback atau Draft --}}
                               <button class="btn btn-sm btn-light px-1 rounded disabled" type="button">
                                   Action
                               </button>
-                          @endif
-
-                          {{-- Dropdown tetap muncul jika tombol aktif --}}
-                          @if ($canAct && $hasCalibration)
-                              <div class="dropdown-menu dropdown-menu-animated">
-                                  @if ($row->request->status === 'Pending')
-                                      <a class="dropdown-item"
-                                        href="{{ route('admin.create.approval.appraisal', [encrypt($row->request->employee_id), 'onbehalf']) }}">
-                                          Approve
-                                      </a>
-                                  @else
-                                    <a class="dropdown-item"
-                                          href="{{ route('admin.create.approval.appraisal', [encrypt($row->request->employee_id), 'onbehalf']) }}">
-                                          Revise
-                                    </a>
-                                  @endif
-                              </div>
                           @endif
 
                         </div>

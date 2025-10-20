@@ -201,12 +201,16 @@ $(function () {
   $('.submit-user').on('click', async function () {
     const submitType = $(this).data('id'); // 'submit_form'
     const step = $(this).data('step'); // 'submit_draft'
+    const employeeID = document.getElementById('employee_id').value;
+    const userID = document.getElementById('user_id').value;
+    console.log(employeeID, userID);
+    
     $('#submitType').val(submitType);
     if (!validateStep(currentStep)) return false;
-
+    let submitMessages = employeeID != userID ? "You can still change it as long as the calibration has not started yet" : "You can still change it as long as the manager has not approved it yet";
     const ok = (await Swal.fire({
       title: "Submit Form?",
-      text: "You can still change it as long as the manager has not approved it yet",
+      text: submitMessages,
       showCancelButton: true,
       confirmButtonColor: "#3e60d5",
       cancelButtonColor: "#f15776",
