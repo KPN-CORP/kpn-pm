@@ -345,7 +345,7 @@ function confirmSubmission(submitType) {
         title1 = "Do you want to submit?";
         title2 = "KPI submitted successfuly!";
         text =
-            "You can still change it as long as the manager has not approved it yet";
+            "The goal will go through approval process once you submitted it";
         confirmText = "Submit";
     }
 

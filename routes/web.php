@@ -317,6 +317,13 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::get('admin-tasks', [AdminTasksController::class, 'index'])->name('admin-tasks');
         Route::get('admin-tasks/detail/{id}', [AdminTasksController::class, 'detail'])->name('admin-tasks.detail');
         Route::post('admin-tasks/{id}', [AdminTasksController::class, 'action'])->name('admin-tasks.action');
+
+        Route::get('/approval-history', [AdminTasksController::class, 'indexHistory'])
+            ->name('approval-history');
+
+        Route::get('/approval-history/detail/{id}', [AdminTasksController::class, 'detailHistory'])
+            ->name('approval-history.detail');
+
     
     });
 

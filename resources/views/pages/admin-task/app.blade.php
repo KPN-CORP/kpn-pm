@@ -5,8 +5,33 @@
   @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
   @if(session('error'))   <div class="alert alert-danger">{{ session('error') }}</div> @endif
 
-  <h4 class="mb-3">Approval Tasks (Role)</h4>
+  <h4 class="mb-3 d-flex align-items-center justify-content-between">
+  <span>Approval Tasks (Admin)</span>
+    <a href="{{ route('approval-history') }}" class="btn btn-outline-primary btn-sm">
+      <i class="ri-history-line me-1"></i> History Approval
+    </a>
+  </h4>
 
+  @php $q = request('q'); @endphp
+
+  {{-- SEARCH (auto submit) --}}
+  <form id="searchForm" method="GET" class="mb-3">
+    <div class="input-group">
+      <input type="text" id="q" name="q" value="{{ $q }}" class="form-control"
+             placeholder="Cari: Employee ID / Name / Category / Role">
+    </div>
+  </form>
+
+  {{-- INFO BAR --}}
+  @if($tasks->total() > 0)
+    <div class="small text-muted mb-2">
+      Showing <strong>{{ $tasks->firstItem() }}</strong>–<strong>{{ $tasks->lastItem() }}</strong>
+      from <strong>{{ $tasks->total() }}</strong> data
+      @if($q) (keyword: “{{ $q }}”) @endif
+    </div>
+  @endif
+
+  {{-- LIST --}}
   @forelse ($tasks as $t)
     @php
       $emp = $empMap[$t->employee_id] ?? null;
@@ -21,7 +46,7 @@
         <div class="card-body py-2">
           <div class="d-flex justify-content-between align-items-center">
             <div>
-              <div class="fw-semibold">{{ $t->category }} — Periode {{ $t->period }}</div>
+              <div class="fw-semibold">{{ $t->category }} — Period {{ $t->period }}</div>
               <div class="small text-muted">Employee: {{ $label }}</div>
               <div class="small text-muted">Step {{ $t->current_step }} / {{ $t->total_steps }}</div>
               <div class="small">Waiting for (Role): <span class="fw-semibold">{{ $role }}</span></div>
@@ -38,11 +63,35 @@
       </div>
     </a>
   @empty
-    <div class="alert alert-info">Tidak ada task approval untuk role Anda.</div>
+    <div class="alert alert-info">No task.</div>
   @endforelse
 
+  {{-- PAGINATION --}}
   <div class="mt-3">
-    {{ $tasks->links() }}
+    {{ $tasks->withQueryString()->links() }}
   </div>
 </div>
+
+{{-- Auto search (debounce) --}}
+@push('scripts')
+<script>
+(function(){
+  const form = document.getElementById('searchForm');
+  const input = document.getElementById('q');
+  let timer = null;
+
+  const submitNow = () => form.requestSubmit();
+
+  input.addEventListener('input', function(){
+    if (timer) clearTimeout(timer);
+    timer = setTimeout(submitNow, 350); // debounce 350ms
+  });
+
+  // Enter langsung submit, clear (Esc) untuk kosongkan & submit
+  input.addEventListener('keydown', function(e){
+    if (e.key === 'Escape') { input.value=''; submitNow(); }
+  });
+})();
+</script>
+@endpush
 @endsection
