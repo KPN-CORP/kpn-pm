@@ -80,53 +80,104 @@ class ApprovalEngine
 
     public function approve(string $formId, string $actorEmpId): void
     {
-        $req = ApprovalRequest::with(['initiated'])->where('form_id', $formId)->lockForUpdate()->firstOrFail();
+        $role = Auth::user()->roles->first()->name;
+
+        /** @var \App\Models\ApprovalRequest $req */
+        $req = ApprovalRequest::with(['initiated'])
+            ->where('form_id', $formId)
+            ->lockForUpdate()
+            ->firstOrFail();
+
         if ($req->status !== 'Pending') return;
-        if (!$this->canActOn($req, $actorEmpId)) return;
 
-        // Snapshot sebelum update (untuk audit)
-        $fromStatus    = $req->status;
-        $fromStep      = (int) $req->current_step;
-        $fromApprover  = (string) ($req->current_approval_id ?? null);
+        $isOverride = $this->hasOverridePrivilege();
 
-        $steps  = ApprovalFlowStep::where('approval_flow_id', $req->approval_flow_id)->orderBy('step_number')->get();
-        $isLast = $req->current_step >= $steps->count();
+        // jika bukan override, tetap wajib lolos canActOn
+        if (!$isOverride && !$this->canActOn($req, $actorEmpId)) return;
 
-        if ($isLast) {
+        // Snapshot
+        $fromStep     = (int) $req->current_step;
+        $fromApprover = (string) ($req->current_approval_id ?? null);
+
+        $steps = ApprovalFlowStep::where('approval_flow_id', $req->approval_flow_id)
+            ->orderBy('step_number')->get();
+
+        // === ADMIN/ROLE OVERRIDE: langsung Approved penuh ===
+        if ($isOverride) {
             $req->update([
-                'status'     => 'Approved',
-                'sendback_messages'   => Null,
-                'updated_by' => Auth::id(),
+                'status'              => 'Approved',
+                'current_step'        => $steps->count(),
+                'current_approval_id' => $role,
+                'sendback_messages'   => null,
+                'updated_by'          => Auth::id(),
             ]);
 
             $this->finalize($req, (string) $actorEmpId);
 
-            // Audit trail
             $this->auditLog([
                 'module'              => 'approval_request',
-                'loggable_id'         => (string)$req->form_id,
+                'loggable_id'         => (string) $req->form_id,
                 'loggable_type'       => ApprovalRequest::class,
                 'approval_request_id' => $req->id,
-                'actor_employee_id'   => (string)$actorEmpId,
-                'actor_role'          => $req->current_approval_id,      // bisa role-name
-                'action'              => 'APPROVE',
+                'actor_employee_id'   => (string) $actorEmpId,
+                'actor_role'          => $fromApprover,
+                'action'              => 'APPROVE_OVERRIDE',
                 'status_from'         => 'Pending',
-                'status_to'           => $isLast ? 'Approved' : 'Pending',
+                'status_to'           => 'Approved',
                 'flow_id'             => $req->approval_flow_id,
                 'step_from'           => $fromStep,
-                'step_to'             => $isLast ? $fromStep : (int)$req->current_step,
+                'step_to'             => (int) $req->current_step,
                 'approver_from'       => $fromApprover,
                 'approver_to'         => null,
-                'meta'                => [
-                    'form_id'              => (string) $formId,
-                    'category'             => $req->category,
-                    'employee_id'          => $req->employeeId,
-                    'approver_id'          => (string) $actorEmpId,
-                    'period'               => $req->period,
-                    'total_steps'          => $steps->count(),
-                    'current_approval_id'  => isset($current) ? (string) $current : null,
-                    'messages'             => $req->message,
-                    'final'                => true
+                'meta' => [
+                    'form_id'      => (string) $formId,
+                    'category'     => $req->category,
+                    'employee_id'  => $req->employee_id, // <-- perbaikan
+                    'approver_id'  => (string) $actorEmpId,
+                    'period'       => $req->period,
+                    'total_steps'  => $steps->count(),
+                    'override'     => true,
+                    'final'        => true,
+                ],
+            ]);
+            return;
+        }
+
+        // === Flow normal
+        $isLast = $req->current_step >= $steps->count();
+
+        if ($isLast) {
+            $req->update([
+                'status'            => 'Approved',
+                'sendback_messages' => null,
+                'updated_by'        => Auth::id(),
+            ]);
+
+            $this->finalize($req, (string) $actorEmpId);
+
+            $this->auditLog([
+                'module'              => 'approval_request',
+                'loggable_id'         => (string) $req->form_id,
+                'loggable_type'       => ApprovalRequest::class,
+                'approval_request_id' => $req->id,
+                'actor_employee_id'   => (string) $actorEmpId,
+                'actor_role'          => $fromApprover,
+                'action'              => 'APPROVE',
+                'status_from'         => 'Pending',
+                'status_to'           => 'Approved',
+                'flow_id'             => $req->approval_flow_id,
+                'step_from'           => $fromStep,
+                'step_to'             => (int) $req->current_step,
+                'approver_from'       => $fromApprover,
+                'approver_to'         => null,
+                'meta' => [
+                    'form_id'      => (string) $formId,
+                    'category'     => $req->category,
+                    'employee_id'  => $req->employee_id,
+                    'approver_id'  => (string) $actorEmpId,
+                    'period'       => $req->period,
+                    'total_steps'  => $steps->count(),
+                    'final'        => true,
                 ],
             ]);
             return;
@@ -145,81 +196,123 @@ class ApprovalEngine
         $req->update([
             'current_step'        => $req->current_step + 1,
             'current_approval_id' => isset($nextApprover) ? (string) $nextApprover : null,
-            'sendback_messages'   => Null,
+            'sendback_messages'   => null,
             'updated_by'          => Auth::id(),
         ]);
 
-        // Audit trail
         $this->auditLog([
             'module'              => 'approval_request',
-            'loggable_id'         => (string)$req->form_id,
+            'loggable_id'         => (string) $req->form_id,
             'loggable_type'       => ApprovalRequest::class,
             'approval_request_id' => $req->id,
-            'actor_employee_id'   => (string)$actorEmpId,
-            'actor_role'          => $req->current_approval_id,      // bisa role-name
+            'actor_employee_id'   => (string) $actorEmpId,
+            'actor_role'          => $fromApprover,
             'action'              => 'APPROVE',
             'status_from'         => 'Pending',
-            'status_to'           => $isLast ? 'Approved' : 'Pending',
+            'status_to'           => 'Pending',
             'flow_id'             => $req->approval_flow_id,
             'step_from'           => $fromStep,
-            'step_to'             => $isLast ? $fromStep : (int)$req->current_step,
+            'step_to'             => (int) $req->current_step,
             'approver_from'       => $fromApprover,
-            'approver_to'         => $isLast ? null : (string)$nextApprover,
-            'meta'                => [
-                'form_id'              => (string) $formId,
-                'category'             => $req->category,
-                'employee_id'   => $req->employeeId,
-                'approver_id'=> (string) $actorEmpId,
-                'period'               => $req->period,
-                'total_steps'          => $steps->count(),
-                'current_approval_id'  => isset($current) ? (string) $current : null,
-                'messages'             => $req->message,
-                'next_step_name'       =>$next?->step_name,
+            'approver_to'         => (string) $nextApprover,
+            'meta' => [
+                'form_id'         => (string) $formId,
+                'category'        => $req->category,
+                'employee_id'     => $req->employee_id, // <-- perbaikan
+                'approver_id'     => (string) $actorEmpId,
+                'period'          => $req->period,
+                'total_steps'     => $steps->count(),
+                'next_step_name'  => $next?->step_name,
             ],
         ]);
-
     }
+
 
     public function reject(string $formId, string $actorEmpId, ?string $sendbackTo = null, ?string $message = null): void
     {
         /** @var ApprovalRequest $req */
-        $req = ApprovalRequest::where('form_id', $formId)->lockForUpdate()->firstOrFail();
+        $req = ApprovalRequest::where('form_id', $formId)
+            ->lockForUpdate()
+            ->firstOrFail();
+
         if ($req->status !== 'Pending') return;
-        if (!$this->canActOn($req, $actorEmpId)) return;
 
-        // Snapshot sebelum update (untuk audit)
-        $fromStatus    = $req->status;
-        $fromStep      = (int) $req->current_step;
-        $fromApprover  = (string) ($req->current_approval_id ?? null);
+        $isOverride = $this->hasOverridePrivilege();
+        if (!$isOverride && !$this->canActOn($req, $actorEmpId)) return;
 
+        // Snapshot (audit)
+        $fromStep     = (int) $req->current_step;
+        $fromApprover = (string) ($req->current_approval_id ?? null);
+
+        // Normalisasi message & sendbackTo
+        $msg = isset($message) && $message !== '' ? mb_substr($message, 0, 1000) : null;
+        $sbTo = $sendbackTo; // biarkan sesuai input (role/employee/step-key)
+
+        // Catatan: jika ingin "final reject" saat override, di sini bisa diubah ke status 'Rejected'.
+        // Saat ini tetap 'Sendback' agar konsisten flow.
         $req->update([
             'status'              => 'Sendback',
-            'current_approval_id' => (string) $req->current_approval_id, // tetap
-            'sendback_to'         => $sendbackTo,
-            'sendback_messages'   => $message,
+            'current_approval_id' => $req->current_approval_id, // tetap di step ini
+            'sendback_to'         => $sbTo,
+            'sendback_messages'   => $msg,
             'updated_by'          => Auth::id(),
         ]);
 
         // Audit trail
         $this->auditLog([
             'module'              => 'approval_request',
-            'loggable_id'         => (string)$req->form_id,
+            'loggable_id'         => (string) $req->form_id,
             'loggable_type'       => ApprovalRequest::class,
             'approval_request_id' => $req->id,
-            'actor_employee_id'   => (string)$actorEmpId,
-            'actor_role'          => $req->current_approval_id,
-            'action'              => 'SEND_BACK',
+            'actor_employee_id'   => (string) $actorEmpId,
+            'actor_role'          => $fromApprover,   // snapshot sebelum update
+            'action'              => $isOverride ? 'SEND_BACK_OVERRIDE' : 'SEND_BACK',
             'status_from'         => 'Pending',
             'status_to'           => 'Sendback',
             'flow_id'             => $req->approval_flow_id,
-            'step_from'           => (int)$req->current_step,
-            'step_to'             => (int)$req->current_step,
-            'approver_from'       => (string)$req->current_approval_id,
-            'approver_to'         => (string)$req->current_approval_id,
-            'comments'            => $message,
-            'meta'                => ['sendback_to'=>$sendbackTo],
+            'step_from'           => $fromStep,
+            'step_to'             => $fromStep,
+            'approver_from'       => $fromApprover,
+            'approver_to'         => $fromApprover,
+            'comments'            => $msg,
+            'meta'                => [
+                'sendback_to' => $sbTo,
+                'override'    => $isOverride ?: false,
+                'form_id'     => (string) $formId,
+                'category'    => $req->category,
+                'employee_id' => $req->employee_id,
+                'period'      => $req->period,
+            ],
         ]);
+    }
 
+
+    private function hasOverridePrivilege(): bool
+    {
+        $user = Auth::user();
+        if (!$user) return false;
+
+        // A) Spatie Permission (opsional)
+        if ($user->roles()->exists()) {
+            return true;
+        }
+
+        // B) Flag di roles (dinamis): can_override atau value (truthy)
+        if (isset($user->roles)) {
+            $hasFlag = $user->roles->contains(function($r){
+                return (bool)($r->can_override ?? $r->value ?? false);
+            });
+            if ($hasFlag) return true;
+        }
+
+        // C) Fallback via config (ENV)
+        $overrideRoles = (array) config('approval.override_roles', []);
+        if (!empty($overrideRoles) && isset($user->roles)) {
+            $names = $user->roles->pluck('name')->all();
+            return (bool) array_intersect($names, $overrideRoles);
+        }
+
+        return false;
     }
 
     public function resubmit(string $formId, string $actorEmpId, ?string $message = null): void

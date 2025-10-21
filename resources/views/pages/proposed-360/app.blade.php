@@ -72,8 +72,11 @@
                 'sendback' => "Waiting for Revision - {$row->approval_request->initiated->name} ({$row->approval_request->initiated->employee_id})",
                 default    => $submittedAt ? "Diajukan {$submittedAt} by {$row->approval_request->initiated->name} ({$row->approval_request->initiated->employee_id})" : null,
             };
-            $initiator = Auth::id() == $row->approval_request?->created_by ? '' : 'disabled';
-            $initiatorClass = Auth::id() == $row->approval_request?->created_by ? 'select360' : '';
+            // Determine if current user is the initiator
+            $isInitiator = Auth::id() == $row->approval_request?->created_by;
+            // Enable inputs for the initiator only when status is 'draft' or 'sendback'
+            $initiator = ($isInitiator && $statusText == 'sendback') || $statusText == 'draft' ? '' : 'disabled';
+            $initiatorClass = ($isInitiator && $statusText == 'sendback') || $statusText == 'draft' ? 'select360' : '';
         }
 
     @endphp
@@ -413,6 +416,11 @@
                         };
                     }
 
+                    
+                    $isInitiator = Auth::id() == $row->approval_request?->created_by;
+                    // Enable inputs for the initiator only when status is 'draft' or 'sendback'
+                    $initiator = ($isInitiator && $statusText == 'sendback') || $statusText == 'draft' ? '' : 'disabled';
+                    $initiatorClass = ($isInitiator && $statusText == 'sendback') || $statusText == 'draft' ? 'select360' : '';
                 @endphp
                 <div class="row mt-3">
                     <div class="col">
@@ -545,7 +553,7 @@
                                                             $pref = old('peers.0')
                                                                     ?? ($approval ? data_get($row, 'selected_peers.0') : data_get($selectedLayer, 'approver_id'));
                                                         @endphp
-                                                        <select name="peers[]" id="peer1_{{ $id }}" class="form-select select360" required>
+                                                        <select name="peers[]" id="peer1_{{ $id }}" class="form-select {{ $initiatorClass }}" required {{ $initiator }}>
                                                             <option value="">- Please Select -</option>
                                                             @foreach ($row->peer_candidates as $item)
                                                                 @continue($item->employee_id == $row->employee_id)
@@ -563,7 +571,7 @@
                                                             $pref = old('peers.1')
                                                                     ?? ($approval ? data_get($row, 'selected_peers.1') : data_get($selectedLayer, 'approver_id'));
                                                         @endphp
-                                                        <select name="peers[]" id="peer2_{{ $id }}" class="form-select select360">
+                                                        <select name="peers[]" id="peer2_{{ $id }}" class="form-select {{ $initiatorClass }}" {{ $initiator }}>
                                                             <option value="">- Please Select -</option>
                                                             @foreach ($row->peer_candidates as $item)
                                                                 @continue($item->employee_id == $row->employee_id)
@@ -582,7 +590,7 @@
                                                             $pref = old('peers.2')
                                                                     ?? ($approval ? data_get($row, 'selected_peers.2') : data_get($selectedLayer, 'approver_id'));
                                                         @endphp
-                                                        <select name="peers[]" id="peer3_{{ $id }}" class="form-select select360">
+                                                        <select name="peers[]" id="peer3_{{ $id }}" class="form-select {{ $initiatorClass }}" {{ $initiator }}>
                                                             <option value="">- Please Select -</option>
                                                             @foreach ($row->peer_candidates as $item)
                                                                 @continue($item->employee_id == $row->employee_id)
@@ -613,7 +621,7 @@
                                                             $pref = old('subordinates.0')
                                                                     ?? ($approval ? data_get($row, 'selected_subordinates.0') : data_get($selectedLayer, 'approver_id'));
                                                         @endphp
-                                                        <select name="subordinates[]" id="sub1_{{ $id }}" class="form-select select360" required>
+                                                        <select name="subordinates[]" id="sub1_{{ $id }}" class="form-select {{ $initiatorClass }}" required {{ $initiator }}>
                                                             <option value="">- Please Select -</option>
                                                             @foreach ($row->subordinates as $item)
                                                                 <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
@@ -630,7 +638,7 @@
                                                             $pref = old('subordinates.1')
                                                                     ?? ($approval ? data_get($row, 'selected_subordinates.1') : data_get($selectedLayer, 'approver_id'));
                                                         @endphp
-                                                        <select name="subordinates[]" id="sub2_{{ $id }}" class="form-select select360">
+                                                        <select name="subordinates[]" id="sub2_{{ $id }}" class="form-select {{ $initiatorClass }}" {{ $initiator }}>
                                                             <option value="">- Please Select -</option>
                                                             @foreach ($row->subordinates as $item)
                                                                 <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
@@ -647,7 +655,7 @@
                                                             $pref = old('subordinates.2')
                                                                     ?? ($approval ? data_get($row, 'selected_subordinates.2') : data_get($selectedLayer, 'approver_id'));
                                                         @endphp
-                                                        <select name="subordinates[]" id="sub3_{{ $id }}" class="form-select select360">
+                                                        <select name="subordinates[]" id="sub3_{{ $id }}" class="form-select {{ $initiatorClass }}" {{ $initiator }}>
                                                             <option value="">- Please Select -</option>
                                                             @foreach ($row->subordinates as $item)
                                                                 <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
