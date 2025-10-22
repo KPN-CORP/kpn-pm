@@ -118,3 +118,75 @@
     </div>
     </div>
     @endsection
+      
+@push('scripts')
+ <script>
+(function(){
+  const CSRF = '{{ csrf_token() }}';
+
+  async function postRevoke(url, payload) {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest',
+        'X-CSRF-TOKEN': CSRF,
+        'Accept': 'application/json',
+        'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+      },
+      body: new URLSearchParams(payload || {})
+    });
+    const data = await res.json().catch(()=>({}));
+    if (!res.ok || data.ok === false) {
+      throw new Error(data.message || 'Revoke gagal.');
+    }
+    return data;
+  }
+
+  document.addEventListener('click', async (e) => {
+    const btn = e.target.closest('.js-revoke');
+    if (!btn) return;
+
+    e.preventDefault();
+
+    const url    = btn.getAttribute('data-url');
+    const rowSel = btn.getAttribute('data-row');
+    const empId  = btn.getAttribute('data-emp');
+
+    // Reason wajib
+    const { value: reason } = await Swal.fire({
+      title: 'Revoke Appraisal?',
+      input: 'text',
+      inputLabel: 'Reason',
+      inputPlaceholder: 'Type a reason...',
+      inputAttributes: { maxlength: 250, autocapitalize: 'off' },
+      showCancelButton: true,
+      confirmButtonText: 'Revoke',
+      confirmButtonColor: '#dc3545',
+      inputValidator: (v) => {
+        if (!v || !v.trim()) return 'Reason wajib diisi';
+        return undefined;
+      },
+    });
+    if (reason === undefined) return; // user cancel
+
+    // prevent double-click
+    btn.disabled = true;
+
+    try {
+      const resp = await postRevoke(url, { reason: reason.trim() });
+
+      // Hapus baris (vanilla)
+      const tr = document.querySelector(rowSel);
+      if (tr) tr.remove();
+
+      Swal.fire({ icon: 'success', title: 'Revoked', text: resp.message || 'Appraisal revoked successfully.' });
+    } catch (err) {
+      Swal.fire({ icon: 'error', title: 'Failed', text: err.message || 'Revoke failed.' });
+    } finally {
+      btn.disabled = false;
+    }
+  });
+})();
+</script>
+
+@endpush

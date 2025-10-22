@@ -387,6 +387,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::post('/admin/approval/goal', [AdminOnBehalfController::class, 'store'])->name('admin.approval.goal');
         Route::get('/admin/approval/goal/{id}', [AdminOnBehalfController::class, 'create'])->name('admin.create.approval.goal');
         Route::get('/admin/appraisal/{id}/{type}', [AppraisalTaskController::class, 'review'])->name('admin.create.approval.appraisal');
+        Route::post('/admin/revoke-appraisal/{id}/{type}', [AppraisalTaskController::class, 'revoke'])->name('admin.revoke.approval.appraisal');
 
         // Goals - Admin
         Route::get('/onbehalf', [AdminOnBehalfController::class, 'index'])->name('onbehalf');

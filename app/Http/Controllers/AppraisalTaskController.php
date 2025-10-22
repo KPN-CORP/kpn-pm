@@ -7,6 +7,7 @@ use App\Models\Appraisal;
 use App\Models\AppraisalContributor;
 use App\Models\Approval;
 use App\Models\ApprovalLayerAppraisal;
+use App\Models\ApprovalLog;
 use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
 use App\Models\Calibration;
@@ -24,6 +25,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -657,6 +659,150 @@ class AppraisalTaskController extends Controller
         // Pass the data to the view
         return view('pages.appraisals-task.review', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'goals', 'approval', 'goalData', 'user', 'achievement', 'appraisalId', 'ratings', 'appraisal', 'type', 'achievements', 'viewAchievement'));
 
+    }
+
+    public function revoke(Request $request)
+    {
+        $actor   = Auth::user();
+        $period  = $this->appService->appraisalPeriod();
+        $empId   = decrypt($request->id);
+        $reason  = $request->input('reason') ?? '-';
+
+        $employee = EmployeeAppraisal::where('employee_id', $empId)->first();
+        if (! $employee) {
+            return $request->ajax()
+                ? response()->json(['ok'=>false,'message'=>'Employee tidak ditemukan.'], 404)
+                : back()->with('error','Employee tidak ditemukan.');
+        }
+
+        try {
+            DB::beginTransaction();
+
+            $appraisal = Appraisal::where('employee_id', $empId)
+                ->where('period', $period)
+                ->lockForUpdate()
+                ->first();
+
+            $approvalReq = ApprovalRequest::where('employee_id', $empId)
+                ->where('period', $period)
+                ->where('category', 'Appraisal')
+                ->lockForUpdate()
+                ->first();
+
+            if ($approvalReq) {
+                $this->writeApprovalLog([
+                    'module'              => 'approval_request',
+                    'loggable_id'         => (string) $approvalReq->form_id,
+                    'loggable_type'       => ApprovalRequest::class,
+                    'approval_request_id' => $approvalReq->id,
+                    'actor_employee_id'   => (string) ($actor->employee_id ?? ''),
+                    'actor_role'          => optional($actor->roles->first())->name,
+                    'action'              => 'REVOKE',
+                    'status_from'         => (string) ($approvalReq->status ?? 'Unknown'),
+                    'status_to'           => 'Revoked',
+                    'flow_id'             => $approvalReq->approval_flow_id,
+                    'step_from'           => (int) ($approvalReq->current_step ?? 0),
+                    'step_to'             => (int) ($approvalReq->current_step ?? 0),
+                    'approver_from'       => (string) ($approvalReq->current_approval_id ?? ''),
+                    'approver_to'         => (string) ($approvalReq->current_approval_id ?? ''),
+                    'comments'            => $reason,
+                    'meta'                => [
+                        'period'      => $period,
+                        'employee_id' => $empId,
+                        'category'    => 'Appraisal',
+                    ],
+                ]);
+            }
+
+            AppraisalContributor::where('employee_id', $empId)
+                ->where('period', $period)
+                ->delete();
+
+            if ($approvalReq) {
+                $approvalReq->update([
+                    'updated_by' => Auth::id(),
+                    'updated_at' => now(),
+                ]);
+                $approvalReq->delete();
+            }
+
+            if ($appraisal) {
+                $appraisal->delete();
+            }
+
+            DB::commit();
+
+            // ===== AJAX response tanpa refresh =====
+            if ($request->ajax()) {
+                return response()->json([
+                    'ok'           => true,
+                    'message'      => 'Appraisal revoked successfully.',
+                    'employee_id'  => $empId,
+                    'row_key'      => $empId, // pakai untuk selector row
+                ]);
+            }
+
+            return back()->with('success', 'Appraisal revoked successfully.');
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            report($e);
+
+            if ($request->ajax()) {
+                return response()->json([
+                    'ok'      => false,
+                    'message' => 'Revoke failed: '.$e->getMessage(),
+                ], 500);
+            }
+            return back()->with('error', 'Revoke failed: '.$e->getMessage());
+        }
+    }
+
+
+    private function writeApprovalLog(array $payload): void
+    {
+        // 1) File log
+        Log::channel('audit')->info('AUDIT', $payload);
+
+        // 2) DB insert (adaptif)
+        $now      = now();
+        $action   = strtoupper((string)($payload['action'] ?? 'UNKNOWN'));
+        $comments = $payload['comments'] ?? null;
+        $actorEmp = (string)($payload['actor_employee_id'] ?? '');
+        $metaJson = empty($payload['meta']) ? null : json_encode($payload['meta'], JSON_UNESCAPED_UNICODE);
+
+        try {
+            $logs = DB::table('approval_logs')->insert([
+                'approval_request_id' => $payload['approval_request_id'] ?? null,
+                'actor_employee_id'   => $actorEmp,
+                'action'              => $action,
+                'comments'            => $comments,
+                'acted_at'            => $now,
+                'module'              => $payload['module'] ?? 'approval_request',
+                'loggable_id'         => $payload['loggable_id'] ?? null,
+                'loggable_type'       => $payload['loggable_type'] ?? null,
+                'flow_id'             => $payload['flow_id'] ?? null,
+                'step_from'           => $payload['step_from'] ?? null,
+                'step_to'             => $payload['step_to'] ?? null,
+                'status_from'         => $payload['status_from'] ?? null,
+                'status_to'           => $payload['status_to'] ?? null,
+                'approver_from'       => $payload['approver_from'] ?? null,
+                'approver_to'         => $payload['approver_to'] ?? null,
+                'actor_role'          => $payload['actor_role'] ?? null,
+                'meta_json'           => $metaJson,
+                'created_at'          => $now,
+                'updated_at'          => $now,
+            ]);
+
+            // avoid dd() in production; log the result instead so execution continues
+            Log::channel('audit')->info('AUDIT_DB_INSERT', ['insert_result' => $logs, 'payload' => $payload]);
+            return;
+
+        } catch (\Throwable $e) {
+            Log::channel('audit')->error('AUDIT_DB_WRITE_FAILED', [
+                'error' => $e->getMessage(),
+                'payload' => $payload,
+            ]);
+        }
     }
 
     public function detail(Request $request)
