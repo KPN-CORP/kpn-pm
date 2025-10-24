@@ -1,4 +1,4 @@
-@extends('layouts_.vertical', ['page_title' => 'Approval Detail'])
+@extends('layouts_.vertical', ['page_title' => 'Approval Details'])
 
 @section('content')
 <div class="container-fluid">
@@ -7,19 +7,27 @@
 
   <div class="card">
     <div class="card-body">
-      <h5 class="mb-3">Detail Approval</h5>
+      <h5 class="mb-3">Approval Details</h5>
 
       <div class="row mb-2">
-        <div class="col-md-3 text-muted">Kategori</div>
+        <div class="col-md-3 text-muted">Category</div>
         <div class="col">{{ $req->category }}</div>
       </div>
       <div class="row mb-2">
-        <div class="col-md-3 text-muted">Periode</div>
+        <div class="col-md-3 text-muted">Period</div>
         <div class="col">{{ $req->period }}</div>
       </div>
       <div class="row mb-2">
-        <div class="col-md-3 text-muted">Current Role</div>
-        <div class="col"><span class="badge bg-warning">{{ $req->current_approval_id }}</span></div>
+        <div class="col-md-3 text-muted">Current Approver</div>
+        <div class="col">
+          <span class="badge bg-warning">
+            @if(empty($candidates))
+              {{ $req->manager->fullname.' ('.$req->manager->employee_id.')' }}
+            @else
+              {{ $req->current_approval_id }}
+            @endif
+          </span>
+        </div>
       </div>
       <div class="row mb-2">
         <div class="col-md-3 text-muted">Target Employee</div>
@@ -32,7 +40,7 @@
         </div>
       </div>
       <div class="row mb-2">
-        <div class="col-md-3 text-muted">Pengaju</div>
+        <div class="col-md-3 text-muted">Initiator</div>
         <div class="col">
           @if($initiator)
             {{ $initiator->fullname }} ({{ $initiator->employee_id }})
@@ -42,7 +50,7 @@
         </div>
       </div>
       <div class="row mb-3">
-        <div class="col-md-3 text-muted">Diajukan</div>
+        <div class="col-md-3 text-muted">Initiated on</div>
         <div class="col">{{ \Illuminate\Support\Carbon::parse($req->created_at)->format('d M Y H:i') }}</div>
       </div>
 

@@ -93,7 +93,24 @@ $(document).ready(function() {
             { data: 'employee.fullname' },
             { data: 'employee.designation' },
             { data: 'employee.office_area' },
-            { data: 'employee.group_company' },
+            {
+                data: 'contributorStatus',
+                className: 'text-center',
+                render: function (data, type) {
+                    if (type !== 'display') return data;
+
+                    const val = (data ?? '').toString();
+                    const cls =
+                    val.toLowerCase() === 'draft'    ? 'secondary' :
+                    val.toLowerCase() === 'approved' ? 'success'   :
+                                                        'light text-body';
+
+                    // escape singkat
+                    const safe = val.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+                    return `<span class="badge bg-${cls}">${safe}</span>`;
+                }
+            },
             { data: 'approval_date',  className: 'text-end' },
             { data: 'action', className: 'sorting_1' }
         ]
@@ -197,32 +214,25 @@ $(document).ready(function() {
             { data: 'employee.fullname' },
             { data: 'employee.designation' },
             { data: 'employee.office_area' },
-            { data: 'employee.group_company' },
-            { data: 'approval_date', className: 'text-end' },
             {
-                data: 'employee.status',
-                render: function (data, type, row) {
-                    if (type === 'display') {
-                        // Tentukan warna badge berdasarkan status
-                        let badgeClass = '';
-                        switch (data?.toLowerCase()) {
-                            case 'approved':
-                                badgeClass = 'success';
-                                break;
-                            case 'draft':
-                                badgeClass = 'secondary';
-                                break;
-                            default:
-                                badgeClass = '';
-                        }
-            
-                        return `<span class="badge bg-${badgeClass}">${data == 'Approved' ? 'Submitted' : data}</span>`;
-                    }
-            
-                    // Untuk sort/filter tetap pakai data asli
-                    return data;
+                data: 'contributorStatus',
+                className: 'text-center',
+                render: function (data, type) {
+                    if (type !== 'display') return data;
+
+                    const val = (data ?? '').toString();
+                    const cls =
+                    val.toLowerCase() === 'draft'    ? 'secondary' :
+                    val.toLowerCase() === 'approved' ? 'success'   :
+                                                        'light text-body';
+
+                    // escape singkat
+                    const safe = val.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+                    return `<span class="badge bg-${cls}">${safe}</span>`;
                 }
             },
+            { data: 'approval_date', className: 'text-end' },
             { data: 'action', className: 'sorting_1' }
         ]
     });
@@ -430,58 +440,58 @@ $(document).ready(function() {
         }
     });
 
-    $('.submit-btn').click(function () {
-        let submitType = $(this).data('id');
-        document.getElementById("submitType").value = submitType; 
-        if (validateStep(currentStep)) {
-            let title1;
-            let title2;
-            let text;
-            let confirmText;
+    // $('.submit-btn').click(function () {
+    //     let submitType = $(this).data('id');
+    //     document.getElementById("submitType").value = submitType; 
+    //     if (validateStep(currentStep)) {
+    //         let title1;
+    //         let title2;
+    //         let text;
+    //         let confirmText;
     
-            const spinner = $(this).find(".spinner-border");
+    //         const spinner = $(this).find(".spinner-border");
     
-            if (submitType === "submit_form") {
-                title1 = "Submit From?";
-                text = "This can't be revert";
-                title2 = "Appraisal submitted successfully!";
-                confirmText = "Submit";
+    //         if (submitType === "submit_form") {
+    //             title1 = "Submit From?";
+    //             text = "This can't be revert";
+    //             title2 = "Appraisal submitted successfully!";
+    //             confirmText = "Submit";
 
-                Swal.fire({
-                    title: title1,
-                    text: text,
-                    showCancelButton: true,
-                    confirmButtonColor: "#3e60d5",
-                    cancelButtonColor: "#f15776",
-                    confirmButtonText: confirmText,
-                    reverseButtons: true,
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        // Disable submit button
-                        $(this).prop("disabled", true);
-                        $(this).addClass("disabled");
+    //             Swal.fire({
+    //                 title: title1,
+    //                 text: text,
+    //                 showCancelButton: true,
+    //                 confirmButtonColor: "#3e60d5",
+    //                 cancelButtonColor: "#f15776",
+    //                 confirmButtonText: confirmText,
+    //                 reverseButtons: true,
+    //             }).then((result) => {
+    //                 if (result.isConfirmed) {
+    //                     // Disable submit button
+    //                     $(this).prop("disabled", true);
+    //                     $(this).addClass("disabled");
         
-                        // Show spinner if it exists
-                        if (spinner.length) {
-                            spinner.removeClass("d-none");
-                        }
+    //                     // Show spinner if it exists
+    //                     if (spinner.length) {
+    //                         spinner.removeClass("d-none");
+    //                     }
         
-                        document.getElementById("formAppraisalUser").submit();
+    //                     document.getElementById("formAppraisalUser").submit();
         
-                        // Show success message
-                        Swal.fire({
-                            title: title2,
-                            icon: "success",
-                            showConfirmButton: false,
-                            timer: 1500, // Optional: Auto close the success message after 1.5 seconds
-                        });
-                    }
-                });
-            }
+    //                     // Show success message
+    //                     Swal.fire({
+    //                         title: title2,
+    //                         icon: "success",
+    //                         showConfirmButton: false,
+    //                         timer: 1500, // Optional: Auto close the success message after 1.5 seconds
+    //                     });
+    //                 }
+    //             });
+    //         }
     
-            return false; // Prevent default form submission
-        }
-    });    
+    //         return false; // Prevent default form submission
+    //     }
+    // });    
 
     $('.prev-btn').click(function() {
         currentStep--;

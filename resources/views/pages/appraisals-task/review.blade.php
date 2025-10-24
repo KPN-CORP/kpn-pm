@@ -1,3 +1,9 @@
+@php
+    use Illuminate\Support\Facades\Storage;
+    use Illuminate\Support\Str;
+        $existing = json_decode($appraisal->file ?? '[]', true) ?: [];
+
+@endphp
 @extends('layouts_.vertical', ['page_title' => 'Appraisal'])
 
 @section('css')
@@ -88,7 +94,7 @@
                     $achievement = json_decode($achievements->first()->data, true);
                 }
             @endphp
-
+            @if ($viewAchievement)
             <div class="rounded mb-2 p-3 bg-white text-primary align-items-center">
                 <div class="row mb-2">
                     <span class="fs-16 mx-1">
@@ -118,6 +124,7 @@
                     </div>
                 </div>
             </div>
+            @endif
         </div>
         {{-- @endif --}}
         <div class="step" data-step="{{ $step }}"></div>
@@ -145,9 +152,10 @@
                     <div class="card-body">
                         <form id="formAppraisalUser" action="{{ route('appraisals-task.submitReview') }}" method="POST" enctype="multipart/form-data">
                         @csrf
+                        <input type="hidden" id="user_id" value="{{ Auth::user()->employee_id }}">
                         <input type="hidden" name="type" value="{{ $type }}">
                         <input type="hidden" name="appraisal_id" value="{{ $appraisalId }}">
-                        <input type="hidden" name="employee_id" value="{{ $goals->employee_id }}">
+                        <input type="hidden" id="employee_id" name="employee_id" value="{{ $goals->employee_id }}">
                         <input type="hidden" name="form_group_id" value="{{ $formGroupData['data']['id'] }}">
                         <input type="hidden" class="form-control" name="approver_id" value="{{ $approval->approver_id }}">
                         <input type="hidden" class="form-control" name="userid" value="{{ $approval->approver->id }}">
@@ -168,42 +176,94 @@
                             <input type="hidden" name="submit_type" id="submitType" value="">
                             <div class="row">
                             @if ($formGroupData['data']['name'] != 'Appraisal Form 360')
-                                @if($appraisal?->file)
-                                    @if ($appraisal->created_by == Auth::user()->id)
-                                    <div class="col-md-4">
-                                        <div class="mb-3">
-                                            <label for="attachment" class="form-label">Supporting documents for achievement result</label>
-                                            <div class="d-flex align-items-center gap-2">
-                                                <input class="form-control form-control-sm" id="attachment" name="attachment" type="file" accept=".pdf" style="max-width: 75%;">
-                                                
-                                                @if($appraisal?->file)
-                                                    <a href="{{ asset($appraisal->file) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
-                                                        <i class="ri-file-text-line"></i>
-                                                    </a>
-                                                @endif
-                                            </div>
-                                            <small class="text-muted d-block mt-1">
-                                                Maximum file size: 10MB. Only PDF files are allowed.
-                                            </small>
-                                        </div>
+                                @if ($appraisal->created_by == Auth::id())
+                                <div class="col-md-6">
+                                <div class="mb-3">
+                                    <label for="attachment_pm" class="form-label">Supporting documents for achievement result</label>
+
+                                    <small id="totalSizeInfo" class="text-muted d-block mt-1">
+                                        Total: 0 B / 10 MB.
+                                    </small>
+                                    <div class="d-flex flex-column gap-2">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <input class="form-control form-control-sm"
+                                                id="attachment_pm"
+                                                name="attachment[]"
+                                                type="file"
+                                                multiple
+                                                style="max-width:75%;">
                                     </div>
-                                    @else
-                                    <div class="col-md">
-                                        <div class="mb-3">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <a href="{{ asset($appraisal->file) }}" target="_blank" class="btn btn-sm btn-warning rounded-pill px-2 py-1">
-                                                    <i class="ri-file-text-line"></i> Supporting documents for achievement result
+
+                                    {{-- preview file (existing + baru) --}}
+                                    <div id="fileCards" class="d-flex flex-wrap gap-2 align-items-center mt-2">
+                                        @if (!empty($existing ?? []))
+                                        @foreach ($existing as $path)
+                                            @php
+                                            $diskPath = Str::after($path, 'storage/');
+                                            $url  = asset($path);
+                                            $name = basename($diskPath);
+                                            $size = Storage::disk('public')->exists($diskPath) ? Storage::disk('public')->size($diskPath) : 0;
+                                            @endphp
+
+                                            <div class="file-card d-flex flex-wrap gap-2 align-items-center"
+                                                data-existing="1" data-path="{{ $path }}" data-size="{{ $size }}" data-url="{{ $url }}">
+                                            <span class="d-inline-flex align-items-center gap-1 border rounded-pill p-1 pe-2">
+                                                <a href="{{ $url }}" target="_blank" rel="noopener noreferrer"
+                                                class="badge text-bg-warning border-0 rounded-pill px-2 py-1 text-decoration-none"
+                                                style="font-size:.75rem">
+                                                <span class="filename text-truncate d-inline-block" style="max-width:220px;">{{ $name }}</span>
+                                                <i class="ri-file-text-line"></i>
                                                 </a>
+
+                                                @if ($appraisal?->status != 'Approved')
+                                                <button type="button" class="btn-close rounded-circle border-0 p-0 ms-1"
+                                                        title="Remove file" aria-label="Remove file"></button>
+                                                @endif
+                                            </span>
                                             </div>
-                                        </div>                                    
+
+                                            <input type="hidden" name="keep_files[]" value="{{ $path }}">
+                                        @endforeach
+                                        @endif
                                     </div>
-                                    @endif
+                                    </div>
+                                </div>
+                                </div>
+                                @else
+                                <div class="col-md">
+                                <div class="mb-3">
+                                    <div id="fileCardsReadonly" class="d-flex flex-wrap gap-2 align-items-center">
+                                    @php $existing = $existing ?? (isset($appraisal->file) && $appraisal->file ? [$appraisal->file] : []); @endphp
+
+                                    @forelse ($existing as $path)
+                                        @php
+                                        $diskPath = Str::after($path, 'storage/');
+                                        $url  = asset($path);
+                                        $name = basename($diskPath);
+                                        @endphp
+
+                                        <div class="file-card d-flex flex-wrap gap-2 align-items-center" data-existing="1" data-url="{{ $url }}">
+                                        <span class="d-inline-flex align-items-center gap-1 border rounded-pill p-1 pe-2">
+                                            <a href="{{ $url }}" target="_blank" rel="noopener noreferrer"
+                                            class="badge text-bg-warning border-0 rounded-pill px-2 py-1 text-decoration-none"
+                                            style="font-size:.75rem">
+                                            <span class="filename text-truncate d-inline-block" style="max-width:220px;">{{ $name }}</span>
+                                            <i class="ri-file-text-line"></i>
+                                            </a>
+                                        </span>
+                                        </div>
+                                    @empty
+                                        <span class="text-muted small">No supporting documents.</span>
+                                    @endforelse
+                                    </div>
+                                </div>
+                                </div>
                                 @endif
                             @endif
                             @if ($type != 'onbehalf')
                                 <div class="col-md">
                                     <div class="mb-3 text-end">
-                                        <a data-id="submit_draft" type="button" class="btn btn-sm btn-outline-secondary submit-draft"><span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Save as Draft') }}</a>
+                                        <a data-id="submit_draft" data-step="review" type="button" class="btn btn-sm btn-outline-secondary submit-draft"><span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Save as Draft') }}</a>
                                     </div>
                                 </div>
                             @endif
@@ -214,9 +274,10 @@
                                 @if ($filteredFormDatas['viewCategory']=="detail")
                                     <a href="{{ route('appraisals-task') }}" class="btn btn-outline-primary px-md-4">{{ __('Close') }}</a>
                                 @else
-                                    <a data-id="submit_form" type="submit" class="btn btn-primary submit-btn px-md-4" style="display: none;"><span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Submit') }}</a>
+                                    <a data-id="submit_form" data-step="review" class="btn btn-primary submit-user px-md-4" style="display: none;"><span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Submit') }}</a>
                                 @endif
                             </div>
+                            <input type="hidden" name="submit_type" id="submitType" value="">
                         </form>
                     </div>
                 </div>

@@ -1,6 +1,21 @@
+@php
+    use Illuminate\Support\Facades\Storage;
+    use Illuminate\Support\Str;
+    $existing = json_decode($appraisal->file ?? '[]', true) ?: [];
+@endphp
 @extends('layouts_.vertical', ['page_title' => 'Appraisal'])
 
 @section('css')
+<style>
+.file-card .filename{
+  max-width:120px;
+  display:inline-block;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+</style>
 @endsection
 
 @section('content')
@@ -84,8 +99,9 @@
                     <div class="card-body">
                         <form id="formAppraisalUser" action="{{ route('appraisal.update') }}" enctype="multipart/form-data" method="POST">
                         @csrf
+                        <input type="hidden" id="user_id" value="{{ Auth::user()->employee_id }}">
                         <input type="hidden" class="form-control" name="id" value="{{ $appraisal->id }}">
-                        <input type="hidden" name="employee_id" value="{{ $appraisal->employee_id }}">
+                        <input type="hidden" id="employee_id" name="employee_id" value="{{ $appraisal->employee_id }}">
                         <input type="hidden" class="form-control" name="approver_id" value="{{ $approval->approver_id }}">
                         <input type="hidden" name="formGroupName" value="{{ $formGroupData['data']['name'] }}">
                         @foreach ($filteredFormData as $index => $row)
@@ -103,26 +119,50 @@
                             @endforeach
                             <input type="hidden" name="submit_type" id="submitType" value="">
                             <div class="row">
-                                <div class="col-md-4">
+                                <div class="col-md">
                                     <div class="mb-3">
                                         <label for="attachment" class="form-label">Supporting documents for achievement result</label>
-                                        <div class="d-flex align-items-center gap-2">
-                                            <input class="form-control form-control-sm" id="attachment" name="attachment" type="file" accept=".pdf" style="max-width: 75%;">
-                                            
-                                            @if($appraisal?->file)
-                                                <a href="{{ asset($appraisal->file) }}" target="_blank" class="btn btn-sm btn-outline-secondary">
-                                                    <i class="ri-file-text-line"></i>
-                                                </a>
-                                            @endif
+                                        <input class="form-control" id="attachment_pm" name="attachment[]" type="file" multiple>
+                                        <small id="totalSizeInfo" class="form-text text-muted mt-1">Total: 0 B / 10 MB</small>
+                                        <div id="fileCards" class="d-flex flex-wrap gap-2 mt-2 align-items-center">
+                                            @foreach ($existing as $path)
+                                                @php
+                                                    $diskPath = Str::after($path, 'storage/');
+                                                    $url  = asset($path);
+                                                    $name = basename($diskPath);
+                                                    $size = Storage::disk('public')->exists($diskPath)
+                                                        ? Storage::disk('public')->size($diskPath)
+                                                        : 0;
+                                                @endphp
+
+                                                <div class="file-card d-flex flex-wrap gap-2 align-items-center"
+                                                    data-existing="1"
+                                                    data-path="{{ $path }}"
+                                                    data-size="{{ $size }}"
+                                                    data-url="{{ $url }}">
+                                                    <span class="d-inline-flex align-items-center gap-1 border rounded-pill p-1 pe-2">
+                                                        <a href="{{ $url }}" target="_blank" rel="noopener noreferrer"
+                                                        class="badge text-bg-warning border-0 rounded-pill px-2 py-1 text-decoration-none"
+                                                        style="font-size:.75rem">
+                                                            <span class="filename text-truncate d-inline-block">{{ $name }}</span>
+                                                            <i class="ri-file-text-line"></i>
+                                                        </a>
+                                                        <button type="button"
+                                                                class="btn-close rounded-circle border-0 p-0 ms-1"
+                                                                title="Remove file"
+                                                                aria-label="Remove file">
+                                                        </button>
+                                                    </span>
+                                                </div>
+
+                                                <input type="hidden" name="keep_files[]" value="{{ $path }}">
+                                            @endforeach
                                         </div>
-                                        <small class="text-muted d-block mt-1">
-                                            Maximum file size: 10MB. Only PDF files are allowed.
-                                        </small>
-                                    </div>                                    
+                                    </div>                             
                                 </div>
                                 <div class="col-md">
                                     <div class="mb-3 text-end">
-                                        <a data-id="submit_draft" type="button" class="btn btn-sm btn-outline-secondary submit-draft"><span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Save as Draft') }}</a>
+                                        <a data-id="submit_draft" data-step="edit" type="button" class="btn btn-sm btn-outline-secondary submit-draft"><span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Save as Draft') }}</a>
                                     </div>
                                 </div>
                             </div>
