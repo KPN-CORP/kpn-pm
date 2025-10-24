@@ -385,12 +385,14 @@ class MyAppraisalController extends Controller
 
     public function store(Request $request)
     {
-        // try {
+        try {
+            // Log::info('Store started');
             $submit_status = $request->submit_type == 'submit_draft' ? 'Draft' : 'Submitted';
             $messages = $request->submit_type == 'submit_draft' ? 'Draft saved successfully.' : 'Appraisal submitted successfully.';
             $period = $this->appService->appraisalPeriod();
 
             // Validasi data
+            // Log::info('Validated data', $request->all());
             $validatedData = $request->validate([
                 'form_group_id' => 'required|string',
                 'employee_id'   => 'required|string|size:11',
@@ -481,15 +483,18 @@ class MyAppraisalController extends Controller
             $approval->created_by = Auth::user()->id;
             $approval->save();
 
+            // Log::info('Appraisal saved successfully, redirecting...');
             return redirect('appraisals')->with('success', $messages);
 
-        // } catch (ValidationException $e) {
-        //     // Kembalikan ke form dengan error validasi
-        //     return back()->withErrors($e->validator)->withInput();
-        // } catch (\Exception $e) {
-        //     // Tangani error umum lainnya
-        //     return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage())->withInput();
-        // }
+        } catch (ValidationException $e) {
+            // Kembalikan ke form dengan error validasi
+            // Log::error('Validation error', ['errors' => $e->validator->errors()]);
+            return back()->withErrors($e->validator)->withInput();
+        } catch (\Exception $e) {
+            // Tangani error umum lainnya
+            // Log::error('General error', ['message' => $e->getMessage()]);
+            return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage())->withInput();
+        }
     }
 
     private function getDataByName($data, $name) {
