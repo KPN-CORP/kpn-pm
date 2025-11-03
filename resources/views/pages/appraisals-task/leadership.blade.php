@@ -22,11 +22,11 @@
                                                 <div class="col-md-auto justify-content-end">
                                                     <select class="form-select" name="formData[{{ $formIndex }}][{{ $index }}][{{ $indexItem }}][score]" id="score" required {{ $viewCategory == "detail" ? 'disabled' : '' }}>
                                                         <option value="">Please select</option>
-                                                        <option value="5" {{ isset($dataItem['score'][$indexItem]) && $isManager && $dataItem['score'][$indexItem] == "5" && $viewCategory == "detail" ? 'selected' : '' }}>Expert</option>
-                                                        <option value="4" {{ isset($dataItem['score'][$indexItem]) && $isManager && $dataItem['score'][$indexItem] == "4" && $viewCategory == "detail" ? 'selected' : '' }}>Advanced</option>
-                                                        <option value="3" {{ isset($dataItem['score'][$indexItem]) && $isManager && $dataItem['score'][$indexItem] == "3" && $viewCategory == "detail" ? 'selected' : '' }}>Practitioner</option>
-                                                        <option value="2" {{ isset($dataItem['score'][$indexItem]) && $isManager && $dataItem['score'][$indexItem] == "2" && $viewCategory == "detail" ? 'selected' : '' }}>Comprehension</option>
-                                                        <option value="1" {{ isset($dataItem['score'][$indexItem]) && $isManager && $dataItem['score'][$indexItem] == "1" && $viewCategory == "detail" ? 'selected' : '' }}>Basic</option>
+                                                        <option value="5" {{ isset($dataItem['score'][$indexItem]) && $dataItem['score'][$indexItem] == "5" && $viewCategory == "detail" ? 'selected' : '' }}>Expert</option>
+                                                        <option value="4" {{ isset($dataItem['score'][$indexItem]) && $dataItem['score'][$indexItem] == "4" && $viewCategory == "detail" ? 'selected' : '' }}>Advanced</option>
+                                                        <option value="3" {{ isset($dataItem['score'][$indexItem]) && $dataItem['score'][$indexItem] == "3" && $viewCategory == "detail" ? 'selected' : '' }}>Practitioner</option>
+                                                        <option value="2" {{ isset($dataItem['score'][$indexItem]) && $dataItem['score'][$indexItem] == "2" && $viewCategory == "detail" ? 'selected' : '' }}>Comprehension</option>
+                                                        <option value="1" {{ isset($dataItem['score'][$indexItem]) && $dataItem['score'][$indexItem] == "1" && $viewCategory == "detail" ? 'selected' : '' }}>Basic</option>
                                                     </select>
                                                     <div class="text-danger error-message fs-14"></div>
                                                 </div>

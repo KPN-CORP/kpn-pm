@@ -16,56 +16,43 @@ $(document).ready(function() {
                     columns: ':not(:first-child):not(:last-child)'
                 },
                 customize: function(csv) {
-                    // Split CSV into rows
                     let csvRows = csv.split('\n');
-                    
-                    // Get filtered data from the DataTable
-                    let dt = $('#tableAppraisalTeam').DataTable();
-                    let filteredData = dt.rows({ search: 'applied' }).data().toArray(); // Use rows based on search
-                    
-                    // Add new headers
-                    csvRows[0] = csvRows[0].replace(/\r?\n|\r/g, '') + ',KPI Score,Culture Score,Leadership Score,Total Score';
-                
-                    // Process each filtered data row
+                    let dt = $('#tableAppraisal360').DataTable();
+                    let data = dt.rows().data().toArray();
+
+                    // ambil semua key score dari baris pertama yang valid
+                    let allScoreKeys = [];
+                    if (data[0]?.kpi) {
+                        allScoreKeys = Object.keys(data[0].kpi).filter(k => k.toLowerCase().includes('score'));
+                    }
+
+                    // Tambahkan header dinamis
+                    csvRows[0] = csvRows[0].replace(/\r?\n|\r/g, '') + ',' + allScoreKeys.join(',');
+
                     for (let i = 1; i < csvRows.length; i++) {
-                        if (csvRows[i] && filteredData[i - 1]) { // Align with filtered data
-                            // Fetch row data and calculate scores
-                            let rowData = filteredData[i - 1];
+                        if (csvRows[i] && data[i - 1]) {
+                            let rowData = data[i - 1];
                             let scores = getScores(rowData);
-                    
-                            // Split the current row into an array of values, considering quoted values
+
                             let rowColumns = csvRows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                    
-                            // Ensure we have enough columns; fill with blank entries if needed
                             while (rowColumns.length < 10) rowColumns.push('');
-                    
-                            // Insert the scores into specified columns
-                            rowColumns[6] = scores.kpiScore;           // KPI Score
-                            rowColumns[7] = scores.cultureScore;        // Culture Score
-                            rowColumns[8] = scores.leadershipScore;    // Leadership Score
-                            rowColumns[9] = scores.totalScore;         // Total Score
-                            
-                            // Reassemble the row with fields correctly quoted if necessary
+
+                            // masukkan semua score sesuai urutan key
+                            allScoreKeys.forEach(k => {
+                                rowColumns.push(scores[k]);
+                            });
+
                             csvRows[i] = rowColumns.map(value => {
-                                // Remove any carriage returns
-                                value = value.replace(/\r/g, ''); 
-                    
-                                // Strip surrounding quotes if they exist around the entire value
-                                if (value.startsWith('"') && value.endsWith('"')) {
-                                    value = value.slice(1, -1); // Remove the first and last quote
-                                }
-                    
-                                // Check if the value needs quotes (e.g., contains a comma or internal quotes)
+                                value = value.replace(/\r/g, '');
+                                if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
                                 if (value.includes(',') || value.includes('"')) {
-                                    // Escape quotes inside the value and wrap it in double quotes
-                                    return `"${value.replace(/"/g, '""')}"`; // Double quotes inside value
+                                    return `"${value.replace(/"/g, '""')}"`;
                                 }
                                 return value;
                             }).join(",");
                         }
                     }
-                    
-                    // Join rows back into a single CSV string
+
                     return csvRows.join('\n');
                 }
             }
@@ -244,22 +231,25 @@ $(document).ready(function() {
 
 // Function to get formatted scores for export
 function getScores(rowData) {
-    let scores = {
-        totalScore: 'N/A',
-        kpiScore: 'N/A',
-        cultureScore: 'N/A',
-        leadershipScore: 'N/A'
-    };
+    const scores = {};
 
-    if (rowData.kpi && rowData.kpi.kpi_status) {
-        scores.kpiScore = '' + rowData.kpi.kpi_score || 'N/A';
-        scores.cultureScore = '' + rowData.kpi.culture_score || 'N/A';
-        scores.leadershipScore = '' + rowData.kpi.leadership_score || 'N/A';
-        scores.totalScore = '' + rowData.kpi.total_score || 'N/A';
+    if (rowData?.kpi && typeof rowData.kpi === 'object') {
+        Object.entries(rowData.kpi).forEach(([key, value]) => {
+            if (key.toLowerCase().includes('score')) {
+                scores[key] = value ?? 'N/A';
+            }
+        });
     }
+
+    // Tambahkan default jika belum ada
+    const defaults = ['total_score', 'kpi_score', 'culture_score', 'leadership_score'];
+    defaults.forEach(d => {
+        if (!(d in scores)) scores[d] = 'N/A';
+    });
 
     return scores;
 }
+
 
 // Function to add child row toggle functionality
 function addChildRowToggle(table, tableId, speed = 250) {
