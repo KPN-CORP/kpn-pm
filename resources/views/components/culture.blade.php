@@ -38,7 +38,7 @@
                                                 <option value="">select</option>
                                                 @foreach ($ratings as $item) {{-- $isManager --}}
                                                     <option value="{{ $item['value'] }}" 
-                                                        {{ isset($dataItem['score'][$indexItem]) && $dataItem['score'][$indexItem] == $item['value'] ? 'selected' : '' }}>
+                                                        {{ isset($dataItem['score'][$indexItem]) && (isset($isManager) && $isManager) && $dataItem['score'][$indexItem] == $item['value'] ? 'selected' : '' }}>
                                                         {{ $item['value'] }}
                                                     </option>
                                                 @endforeach
