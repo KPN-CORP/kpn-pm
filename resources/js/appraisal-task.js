@@ -265,62 +265,40 @@ function addChildRowToggle(table, tableId, speed = 250) {
 
 // Function to format child row content
 function formatChildRow(rowData) {
-    let kpiContent = '<div>No scores available</div>';
-    let totalScoreContent = '';
-    let kpiScoreContent = '';
-    let cultureScoreContent = '';
-    let leadershipScoreContent = '';
-
-    if (rowData.kpi && rowData.kpi.kpi_status) {
-        if (rowData.kpi.total_score) {
-            totalScoreContent = `<div class="row">
-                <div class="col-2">
-                    <div class="mb-1 border-bottom border-secondary"><strong>Total Score</strong></div>
-                </div>
-                <div class="col-auto">
-                    <div class="mb-1 border-bottom border-secondary"><strong>: ${rowData.kpi.total_score}</strong></div>
-                </div>
-            </div>`;
-        }
-
-        if (rowData.kpi.kpi_score) {
-            kpiScoreContent = `<div class="row">
-                <div class="col-2">
-                    <div class="mb-1">KPI</div>
-                </div>
-                <div class="col">
-                    <div class="mb-1">: ${rowData.kpi.kpi_score}</div>
-                </div>
-            </div>`;
-        }
-
-        if (rowData.kpi.culture_score) {
-            cultureScoreContent = `<div class="row">
-                <div class="col-2">
-                    <div class="mb-1">Culture</div>
-                </div>
-                <div class="col">
-                    <div class="mb-1">: ${rowData.kpi.culture_score}</div>
-                </div>
-            </div>`;
-        }
-
-        if (rowData.kpi.leadership_score) {
-            leadershipScoreContent = `<div class="row">
-                <div class="col-2">
-                    <div class="mb-1">Leadership</strong></div>
-                </div>
-                <div class="col">
-                    <div class="mb-1">: ${rowData.kpi.leadership_score}</div>
-                </div>
-            </div>`;
-        }
-
-        kpiContent = `${totalScoreContent}${kpiScoreContent}${cultureScoreContent}${leadershipScoreContent}`;
+    if (!rowData?.kpi || !rowData.kpi.kpi_status) {
+        return '<div>No scores available</div>';
     }
 
-    return kpiContent;
+    // Ambil semua key yang mengandung 'score'
+    const scoreEntries = Object.entries(rowData.kpi)
+        .filter(([key, value]) => key.toLowerCase().includes('score') && value !== undefined && value !== null && value !== '');
+
+    if (scoreEntries.length === 0) {
+        return '<div>No scores available</div>';
+    }
+
+    // Buat konten HTML dinamis
+    let content = '';
+    scoreEntries.forEach(([key, value], i) => {
+        // Format nama label jadi rapi, misal: total_score_1 → Total Score 1
+        const label = key
+            .replace(/_/g, ' ')        // ubah underscore ke spasi
+            .replace(/\b\w/g, l => l.toUpperCase()); // kapitalisasi tiap kata
+
+        content += `
+            <div class="row">
+                <div class="col-3 col-md-2">
+                    <div class="mb-1 border-bottom border-secondary"><strong>${label}</strong></div>
+                </div>
+                <div class="col-auto">
+                    <div class="mb-1 border-bottom border-secondary"><strong>: ${value}</strong></div>
+                </div>
+            </div>`;
+    });
+
+    return content;
 }
+
 
 $(document).ready(function() {
     let currentStep = $('.step').data('step');
