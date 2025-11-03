@@ -453,7 +453,7 @@ class AppraisalTaskController extends Controller
 
         $step = $request->input('step', 1);
         
-        $goals = Goal::with(['employee'])->where('employee_id', $id)->where('period', $period)->first();
+        $goals = Goal::with(['employeeAppraisal'])->where('employee_id', $id)->where('period', $period)->first();
 
         $achievements = Achievements::where('employee_id', $id)->where('period', $period)->get();
         
