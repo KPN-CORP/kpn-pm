@@ -123,115 +123,116 @@ class AppraisalTaskController extends Controller
         }
     }
     
-
-    public function getTeamData(Request $request)
+public function getTeamData(Request $request)
     {
         $user = $this->user;
         $period = $this->appService->appraisalPeriod();
-
         $filterYear = $request->input('filterYear');
-        
-        $datas = ApprovalLayerAppraisal::with(['employee' => function($query) {
-            $query->where(function($q) {
-                $q->whereRaw('json_valid(access_menu)')
-                  ->whereJsonContains('access_menu', ['createpa' => 1]);
-            });
-        }, 'approver', 'contributors' => function($query) use ($user, $period) {
-            $query->where('contributor_id', $user)->where('period', $period);
-        }, 'goal' => function($query) use ($period) {
-            $query->where('period', $period);
-        }, 'approvalRequest' => function($query) use ($period, $user) {
-            $query->where('category', 'Appraisal')->where('period', $period)->where('current_approval_id', $user);
-        }, 'appraisal'])
+    
+        $datas = ApprovalLayerAppraisal::with([
+            'employee' => function ($query) {
+                $query->whereRaw('json_valid(access_menu)')
+                      ->whereJsonContains('access_menu', ['createpa' => 1]);
+            },
+            'approver',
+            'contributors' => function ($query) use ($user, $period) {
+                $query->where('contributor_id', $user)
+                      ->where('period', $period);
+            },
+            'goal' => function ($query) use ($period) {
+                $query->where('period', $period);
+            },
+            'approvalRequest' => function ($query) use ($period, $user) {
+                $query->where('category', 'Appraisal')
+                      ->where('period', $period)
+                      ->where('current_approval_id', $user);
+            },
+            'appraisal'
+        ])
         ->whereHas('employee', function ($query) {
-            $query->where(function ($q) {
-                $q->whereRaw('json_valid(access_menu)')
+            $query->whereRaw('json_valid(access_menu)')
                   ->whereJsonContains('access_menu', ['createpa' => 1]);
-            });
         })
-        ->whereDoesntHave('appraisal', function ($query) {
-            $query->where('form_status', 'Draft');
-        })
+        ->whereDoesntHave('appraisal', fn($q) => $q->where('form_status', 'Draft'))
         ->where('approver_id', $user)
         ->where('layer_type', 'manager')
         ->get();
-
-        $datas->map(function($item) use ($period) {
-
-            // Check if goal and contributors exist and if form_data is not null
-            $goalData = $item && $item->goal->isNotEmpty() && $item->goal->first()->form_data 
-                ? json_decode($item->goal->first()->form_data, true) 
-                : [];
-        
-            $appraisalData = $item && $item->contributors->isNotEmpty() && $item->contributors->first()->form_data 
-                ? json_decode($item->contributors->first()->form_data, true) 
-                : [];
-
-            if (!Empty($appraisalData)) {
-                // Get employee data
-                $employeeData = $item->employee ?? null;
-                
-                // Combine form data
-                $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $period);
-
-                $calibrationCheck = Calibration::where('employee_id', $item->employee_id)->where('status', 'Approved')->where('period', $period)->exists();
-                
-                $item->calibrationCheck = $calibrationCheck;
-                
-                // Assign form scores to the item
-                $item->total_score = round($formData['totalScore'], 2) ?? [];
-                $item->kpi_score = round($formData['totalKpiScore'], 2) ?? [];
-                $item->culture_score = round($formData['totalCultureScore'], 2) ?? [];
-                $item->leadership_score = round($formData['totalLeadershipScore'], 2) ?? [];
+    
+        $datas->each(function ($item) use ($period) {
+            $goalData = optional($item->goal->first())->form_data;
+            $appraisalData = optional($item->contributors->first())->form_data;
+    
+            if (!$appraisalData) return;
+    
+            $goalDataArr = json_decode($goalData ?? '[]', true);
+            $appraisalArr = json_decode($appraisalData ?? '[]', true);
+            $employeeData = $item->employee ?? null;
+    
+            $formData = $this->appService->combineFormData(
+                $appraisalArr,
+                $goalDataArr,
+                'employee',
+                $employeeData,
+                $period
+            );
+    
+            // Simpan nilai total score secara fleksibel
+            foreach ($formData as $key => $value) {
+                if (Str::startsWith($key, 'total')) {
+                    $column = Str::of($key)
+                        ->replaceFirst('total', '')
+                        ->snake()
+                        ->__toString();
+    
+                    $item->{$column} = round((float) $value, 2);
+                }
             }
-        
-            return $item;
+    
+            // Cek calibration
+            $item->calibrationCheck = Calibration::where('employee_id', $item->employee_id)
+                ->where('status', 'Approved')
+                ->where('period', $period)
+                ->exists();
         });
-
-        // Prepare data for DataTables
-        $data = [];
-
-        foreach ($datas as $index => $team) {
-            // Ensure 'employee' exists before proceeding
-
-            if (Empty($team->employee->first())) {
-                continue; // Skip this iteration if 'employee' is not set
-            }
-
-            if (Empty($team->goal->first())) {
-                continue; // Skip this iteration if 'employee' is not set
-            }
-
-            // Access relationships and check if they are set
+    
+        $data = $datas->map(function ($team, $index) {
             $employee = $team->employee;
-            $contributors = $team->contributors;
-            $approvalRequest = $team->approvalRequest->first(); // Get the first approval request
-
-            // Add data to the array only if employee exists
-            $data[] = [
+            $goal = $team->goal->first();
+            $contributor = $team->contributors->first();
+            $approvalReq = $team->approvalRequest->first();
+    
+            if (!$employee || !$goal) return null;
+    
+            // ambil semua kolom score yang muncul dari loop di atas
+            $scoreKeys = collect($team->getAttributes())
+                ->filter(fn($v, $k) => Str::contains($k, 'score'))
+                ->keys()
+                ->toArray();
+    
+            $scores = [];
+            foreach ($scoreKeys as $key) {
+                $scores[$key] = $team->{$key};
+            }
+    
+            return [
                 'index' => $index + 1,
                 'employee' => [
-                    'fullname' => $employee->fullname ?? '-', // Default to '-' if employee data is missing
-                    'employee_id' => $employee->employee_id ?? '-',
-                    'designation' => $employee->designation_name ?? '-',
-                    'office_area' => $employee->office_area ?? '-',
+                    'fullname'      => $employee->fullname ?? '-',
+                    'employee_id'   => $employee->employee_id ?? '-',
+                    'designation'   => $employee->designation_name ?? '-',
+                    'office_area'   => $employee->office_area ?? '-',
                     'group_company' => $employee->group_company ?? '-',
                 ],
-                'kpi' => [
-                    'kpi_status' => $contributors->isNotEmpty(),
-                    'total_score' => $team->total_score ?? '-', // Default to '-' if score is missing
-                    'kpi_score' => $team->kpi_score ?? '-',
-                    'culture_score' => $team->culture_score ?? '-',
-                    'leadership_score' => $team->leadership_score ?? '-',
-                ],
+                'kpi' => array_merge(['kpi_status' => (bool) $contributor], $scores),
                 'calibrationCheck' => $team->calibrationCheck ?? false,
-                'contributorStatus' => $contributors->isNotEmpty() ? $contributors->first()->status : '-',
-                'approval_date' => $team->contributors->isNotEmpty() ? $this->appService->formatDate($team->contributors->first()->created_at): ($team->approvalRequest->first() ? $this->appService->formatDate($team->approvalRequest->first()->created_at) : '-'), // Check if approvalRequest exists
-                'action' => view('components.action-buttons', ['team' => $team])->render(), // Render action buttons
+                'contributorStatus' => $contributor->status ?? '-',
+                'approval_date' => $contributor
+                    ? $this->appService->formatDate($contributor->created_at)
+                    : ($approvalReq ? $this->appService->formatDate($approvalReq->created_at) : '-'),
+                'action' => view('components.action-buttons', ['team' => $team])->render(),
             ];
-        }
-
-        // Return the response as JSON
+        })->filter()->values();
+    
         return response()->json($data);
     }
 
@@ -240,99 +241,112 @@ class AppraisalTaskController extends Controller
         $user = $this->user;
         $period = $this->appService->appraisalPeriod();
         $filterYear = $request->input('filterYear');
-
-        $datas = ApprovalLayerAppraisal::with(['employee' => function($query) {
-            $query->where(function($q) {
-                $q->whereRaw('json_valid(access_menu)')
-                  ->whereJsonContains('access_menu', ['accesspa' => 1]);
-            });
-        }, 'approver', 'contributors' => function($query) use ($user, $period) {
-            $query->where('contributor_id', $user)->where('period', $period);
-        }, 'goal' => function($query) use ($period) {
-            $query->where('period', $period);
-        }, 'approvalRequest' => function($query) use ($period) {
-            $query->where('category', 'Appraisal')->where('period', $period);
-        }])
+    
+        $datas = ApprovalLayerAppraisal::with([
+            'employee' => function ($query) {
+                $query->whereRaw('json_valid(access_menu)')
+                      ->whereJsonContains('access_menu', ['accesspa' => 1]);
+            },
+            'approver',
+            'contributors' => function ($query) use ($user, $period) {
+                $query->where('contributor_id', $user)
+                      ->where('period', $period);
+            },
+            'goal' => function ($query) use ($period) {
+                $query->where('period', $period);
+            },
+            'approvalRequest' => function ($query) use ($period) {
+                $query->where('category', 'Appraisal')
+                      ->where('period', $period);
+            }
+        ])
         ->whereHas('employee', function ($query) {
-            $query->where(function ($q) {
-                $q->whereRaw('json_valid(access_menu)')
+            $query->whereRaw('json_valid(access_menu)')
                   ->whereJsonContains('access_menu', ['accesspa' => 1]);
-            });
         })
         ->where('approver_id', $user)
-        ->whereIn('layer_type', ['peers', 'subordinate']);
-        
-        $datas = $datas->has('approvalRequest')->get();
-
-        $datas->map(function($item) use ($period){
-            // Check if goal and contributors exist and if form_data is not null
-            $goalData = $item && $item->goal->isNotEmpty() && $item->goal->first()->form_data 
-                ? json_decode($item->goal->first()->form_data, true) 
-                : [];
-        
-            $appraisalData = $item && $item->contributors->isNotEmpty() && $item->contributors->first()->form_data 
-                ? json_decode($item->contributors->first()->form_data, true) 
-                : [];
-
-            if (!Empty($appraisalData)) {
-            
-                // Get employee data
-                $employeeData = $item->employee ?? null;
-            
-                // Combine form data
-                $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $period);
-
-                $calibrationCheck = Calibration::where('employee_id', $item->employee_id)->where('status', 'Approved')->where('period', $period)->exists();
-                
-                $item->calibrationCheck = $calibrationCheck;
-            
-                // Assign form scores to the item
-                $item->kpi_score = round($formData['totalKpiScore'], 2) ?? [];
-                $item->culture_score = round($formData['totalCultureScore'], 2) ?? [];
-                $item->leadership_score = round($formData['totalLeadershipScore'], 2) ?? [];
+        ->whereIn('layer_type', ['peers', 'subordinate'])
+        ->has('approvalRequest')
+        ->get();
+    
+        $datas->each(function ($item) use ($period) {
+            $goalData = optional($item->goal->first())->form_data;
+            $appraisalData = optional($item->contributors->first())->form_data;
+    
+            if (!$appraisalData) return;
+    
+            $goalDataArr = json_decode($goalData ?? '[]', true);
+            $appraisalArr = json_decode($appraisalData ?? '[]', true);
+    
+            $employeeData = $item->employee ?? null;
+    
+            $formData = $this->appService->combineFormData(
+                $appraisalArr,
+                $goalDataArr,
+                'employee',
+                $employeeData,
+                $period
+            );
+    
+            // Simpan nilai total score secara fleksibel
+            foreach ($formData as $key => $value) {
+                if (Str::startsWith($key, 'total')) {
+                    $column = Str::of($key)
+                        ->replaceFirst('total', '')
+                        ->snake()
+                        ->__toString();
+    
+                    $item->{$column} = round((float) $value, 2);
+                }
             }
-        
-            return $item;
+    
+            // Cek calibration
+            $item->calibrationCheck = Calibration::where('employee_id', $item->employee_id)
+                ->where('status', 'Approved')
+                ->where('period', $period)
+                ->exists();
         });
-
-        // Prepare data for DataTables
-        $data = [];
-
-        foreach ($datas as $index => $team) {
-
-            if (Empty($team->employee->first())) {
-                continue; // Skip this iteration if 'employee' is not set
+    
+        // Format data untuk DataTables
+        $data = $datas->map(function ($team, $index) {
+            $employee = $team->employee;
+            $goal = $team->goal->first();
+            $contributor = $team->contributors->first();
+    
+            if (!$employee || !$goal) return null;
+    
+            // Ambil semua kolom score yang ter-generate di atas
+            $scoreKeys = collect($team->getAttributes())
+                ->filter(fn($v, $k) => Str::contains($k, 'score'))
+                ->keys()
+                ->toArray();
+    
+            $scores = [];
+            foreach ($scoreKeys as $key) {
+                $scores[$key] = $team->{$key};
             }
-
-            if (Empty($team->goal->first())) {
-                continue; // Skip this iteration if 'employee' is not set
-            }
-
-            $data[] = [
+    
+            return [
                 'index' => $index + 1,
                 'employee' => [
-                    'fullname' => $team->employee->fullname,
-                    'employee_id' => $team->employee->employee_id,
-                    'designation' => $team->employee->designation_name,
-                    'office_area' => $team->employee->office_area,
-                    'group_company' => $team->employee->group_company,
-                    'category' => $team->layer_type,
-                    'status' => $team->contributors->isNotEmpty() ? $team->contributors->first()->status : '-',
+                    'fullname'      => $employee->fullname,
+                    'employee_id'   => $employee->employee_id,
+                    'designation'   => $employee->designation_name,
+                    'office_area'   => $employee->office_area,
+                    'group_company' => $employee->group_company,
+                    'category'      => $team->layer_type,
+                    'status'        => $contributor->status ?? '-',
                 ],
-                'kpi' => [
-                    'kpi_status' => $team->contributors->isNotEmpty(),
-                    'kpi_score' => $team->kpi_score, // KPI Score
-                    'culture_score' => $team->culture_score, // culture Score
-                    'leadership_score' => $team->leadership_score, // leadership Score
-                ],
+                'kpi' => array_merge(['kpi_status' => (bool) $contributor], $scores),
                 'calibrationCheck' => $team->calibrationCheck ?? false,
-                'contributorStatus' => $team->contributors->isNotEmpty() ? $team->contributors->first()->status : '-',
-                'approval_date' => $team->contributors->isNotEmpty() ? $this->appService->formatDate($team->contributors->first()->created_at) : '-',
-                'action' => view('components.action-buttons', ['team' => $team])->render(), // Render action buttons
+                'contributorStatus' => $contributor->status ?? '-',
+                'approval_date' => $contributor
+                    ? $this->appService->formatDate($contributor->created_at)
+                    : '-',
+                'action' => view('components.action-buttons', ['team' => $team])->render(),
             ];
-        }
-
-        // Return the response as JSON
+        })->filter()->values();
+    
         return response()->json($data);
     }
 
