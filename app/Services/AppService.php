@@ -270,7 +270,7 @@ class AppService
         $appraisalDatas['totalLeadershipScore'] = round($leadershipAverageScore, 2); // get KPI Final Score
         $appraisalDatas['totalLeadershipScore1'] = round($leadershipAverageScore1, 2);
         $appraisalDatas['totalLeadershipScore2'] = round($leadershipAverageScore2, 2);
-        $appraisalDatas['technicalAverageScore'] = round($technicalAverageScore, 2);
+        $appraisalDatas['totalTechnicalScore'] = round($technicalAverageScore, 2);
         $appraisalDatas['cultureScore360'] = $cultureAverageScore * $cultureWeightage360 / 100; // get KPI Final Score
         $appraisalDatas['leadershipScore360'] = $leadershipAverageScore * $leadershipWeightage360 / 100; // get KPI Final Score
         $appraisalDatas['technicalScore360'] = $technicalAverageScore * $technicalWeightage360 / 100; // get KPI Final Score

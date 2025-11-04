@@ -197,6 +197,7 @@ class MyAppraisalController extends Controller
             $leadershipData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership') ?? [];
             $leadershipData1 = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership 1') ?? [];
             $leadershipData2 = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership 2') ?? [];
+            $technicalData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Technical') ?? [];
             
             $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $datas->first()->period);
             
@@ -206,6 +207,7 @@ class MyAppraisalController extends Controller
                 $appraisalData['leadershipScore'] = round($formData['totalLeadershipScore'], 2);
                 $appraisalData['leadershipScore1'] = round($formData['totalLeadershipScore1'], 2);
                 $appraisalData['leadershipScore2'] = round($formData['totalLeadershipScore2'], 2);
+                $appraisalData['technicalScore'] = round($formData['totalTechnicalScore'], 2);
             }
             
             foreach ($formData['formData'] as &$form) {
@@ -259,6 +261,19 @@ class MyAppraisalController extends Controller
                             }
                         }
                         $form[$index]['title'] = $cultureItem['title'];
+                    }
+                }
+                if ($form['formName'] === 'Technical') {
+                    foreach ($technicalData as $index => $technicalItem) {
+                        foreach ($technicalItem['items'] as $itemIndex => $item) {
+                            if (isset($form[$index][$itemIndex])) {
+                                $form[$index][$itemIndex] = [
+                                    'formItem' => $item,
+                                    'score' => $form[$index][$itemIndex]['score']
+                                ];
+                            }
+                        }
+                        $form[$index]['title'] = $technicalItem['title'];
                     }
                 }
             }
