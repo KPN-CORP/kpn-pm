@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ApprovalLog;
 use App\Models\ApprovalRequest;
 use App\Models\EmployeeAppraisal;
 use App\Models\Proposed360;
+use App\Models\User;
 use App\Services\ApprovalEngine;
 use App\Services\AppService;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -17,44 +20,120 @@ class AdminTasksController extends Controller
     protected $user;
     protected $appService;
     protected $period;
+    protected $permissionGroupCompanies;
+    protected $permissionCompanies;
+    protected $permissionLocations;
+    protected $roles;
 
     public function __construct(AppService $appService)
     {
         $this->appService = $appService;
         $this->user = Auth::user()->employee_id;
         $this->period = $this->appService->appraisalPeriod();
+
+        $this->roles = Auth::user()->roles;
+        
+        $restrictionData = [];
+        if(!is_null($this->roles)){
+            $restrictionData = json_decode($this->roles->first()->restriction, true);
+        }
+        
+        $this->permissionGroupCompanies = $restrictionData['group_company'] ?? [];
+        $this->permissionCompanies = $restrictionData['contribution_level_code'] ?? [];
+        $this->permissionLocations = $restrictionData['work_area_code'] ?? [];
     }
 
     public function index(Request $request)
     {
-        $user   = Auth::user();
-        $roles  = $this->getUserRoleNames($user);           // ['Admin', 'HRBP', ...]
+        $user  = Auth::user();
+        $roles = $this->getUserRoleNames($user);
         if (empty($roles)) {
-            return view('pages.admin-task.app', ['tasks' => collect(), 'empMap' => collect(), 'roleCandidates' => collect()])
+            return view('pages.admin-task.app', ['tasks'=>collect(), 'empMap'=>collect(), 'roleCandidates'=>collect()])
                 ->with('error','Anda tidak memiliki role untuk task approval.');
         }
 
-        // Ambil task PENDING yg ditugaskan ke salah satu role user
-        $tasks = ApprovalRequest::query()
+        $q       = trim((string) $request->get('q', ''));
+        $perPage = 15;
+
+        // IDs employee yang boleh dilihat berdasarkan 3 permission
+        $scopedEmpIds = $this->buildEmployeeScopeIds();
+
+        $base = ApprovalRequest::query()
             ->select('id','form_id','employee_id','category','period','current_step','total_steps','current_approval_id','status','created_at')
             ->where('status','Pending')
-            ->whereIn('current_approval_id', $roles)        // current_approval_id = role name
-            ->orderByDesc('created_at')
-            ->paginate(15);
+            // ->whereIn('current_approval_id', $roles)
+            ->where('category', 'Proposed360') // Batasi ke Proposed360 saja
+            // Terapkan scope permissions hanya jika ada data permission
+            ->when(!empty($scopedEmpIds), fn($q)=>$q->whereIn('employee_id', $scopedEmpIds));
 
-        // Map employee label
+        // Search: employee_id / fullname / category / role / period
+        if ($q !== '') {
+            $empIdsFromName = EmployeeAppraisal::query()
+                ->where('fullname','like',"%{$q}%")
+                ->orWhere('employee_id','like',"%{$q}%")
+                ->limit(500)
+                ->pluck('employee_id')
+                ->all();
+
+            $base->where(function($w) use ($q, $empIdsFromName){
+                $w->where('employee_id','like',"%{$q}%")
+                ->orWhereIn('employee_id', $empIdsFromName)
+                ->orWhere('category','like',"%{$q}%")
+                ->orWhere('period','like',"%{$q}%")
+                ->orWhere('current_approval_id','like',"%{$q}%");
+            });
+        }
+
+        $tasks = $base->orderByDesc('created_at')->paginate($perPage)->withQueryString();
+
         $empIds = $tasks->pluck('employee_id')->filter()->unique()->values()->all();
         $empMap = EmployeeAppraisal::select('employee_id','fullname','designation_name')
             ->whereIn('employee_id', $empIds)->get()->keyBy('employee_id');
 
-        // Kumpulkan role yg tampil di halaman → resolusi kandidat untuk tooltip/list
         $roleNamesUsed = $tasks->pluck('current_approval_id')->filter()->unique()->values()->all();
-        $roleCandidates = $this->getRoleCandidatesLabels($roleNamesUsed); // ['HRBP'=>['Nama (123)'], ...]
+        $roleCandidates = $this->getRoleCandidatesLabels($roleNamesUsed);
 
-        $parentLink = __('Admin Tasks');
-        $link = __('Tasks');
+        $parentLink = __('Admin Tasks'); $link = __('Tasks');
 
+        if ($request->ajax()) {
+            return response()->view('pages.admin-task._list', compact('tasks','empMap','roleCandidates'));
+        }
         return view('pages.admin-task.app', compact('parentLink','link','tasks','empMap','roleCandidates'));
+    }
+
+    protected function buildEmployeeScopeQuery(): Builder
+    {
+        // Ambil dari properti yg sudah Anda set di __construct
+        $groupCompanies = $this->permissionGroupCompanies;     // match ke kolom: company_name / group_company
+        $companies      = $this->permissionCompanies;          // match ke kolom: contribution_level_code
+        $locations      = $this->permissionLocations;          // match ke kolom: work_area (atau work_area_code)
+
+        return EmployeeAppraisal::query()
+            ->select('employee_id')
+            ->when(!empty($groupCompanies) || !empty($companies) || !empty($locations), function($q) use ($groupCompanies, $companies, $locations){
+                $q->where(function($w) use ($groupCompanies, $companies, $locations){
+                    if (!empty($groupCompanies)) {
+                        $w->orWhereIn('group_company', $groupCompanies);
+                        // jika field Anda bernama group_company, ganti baris di atas
+                        // $w->orWhereIn('group_company', $groupCompanies);
+                    }
+                    if (!empty($companies)) {
+                        $w->orWhereIn('contribution_level_code', $companies);
+                    }
+                    if (!empty($locations)) {
+                        $w->orWhereIn('work_area_code', $locations); // atau work_area_code
+                    }
+                });
+            });
+    }
+
+    protected function buildEmployeeScopeIds(): array
+    {
+        // Untuk whereIn subquery berbasis array (aman bila jumlahnya tidak ratusan ribu)
+        return $this->buildEmployeeScopeQuery()
+            ->limit(50000) // guard
+            ->pluck('employee_id')
+            ->all();
     }
 
     public function detail(string $id)
@@ -62,17 +141,49 @@ class AdminTasksController extends Controller
         $user  = Auth::user();
         $roles = $this->getUserRoleNames($user);
 
-        $req = ApprovalRequest::select('*')->findOrFail($id);
+        $req = ApprovalRequest::with('manager')->findOrFail($id);
         if ($req->status !== 'Pending') {
             abort(403, 'Task tidak dalam status Pending.');
         }
-        if (!in_array($req->current_approval_id, $roles, true)) {
+
+        // --- ROLE CHECK ---
+        if (!$roles) {
             abort(403, 'Anda tidak memiliki role untuk task ini.');
         }
 
-        $employee = EmployeeAppraisal::select('employee_id','fullname','designation_name','manager_l1_id','manager_l2_id')
-            ->where('employee_id', $req->employee_id)->first();
+        $employee = EmployeeAppraisal::select(
+                'employee_id','fullname','designation_name','manager_l1_id','manager_l2_id',
+                'group_company','contribution_level_code','work_area_code'
+            )
+            ->where('employee_id', $req->employee_id)
+            ->first();
 
+        if (!$employee) {
+            abort(404, 'Data karyawan tidak ditemukan.');
+        }
+
+        $permGroup  = $this->permissionGroupCompanies ?? [];
+        $permComp   = $this->permissionCompanies ?? [];
+        $permLoc    = $this->permissionLocations ?? [];
+
+        $hasRestriction = !empty($permGroup) || !empty($permComp) || !empty($permLoc);
+
+        // Jika ada restriction → karyawan harus match minimal salah satu (OR)
+        if ($hasRestriction) {
+            $matchGroup = !empty($permGroup) && in_array((string)$employee->group_company, $permGroup, true);
+            // Jika field Anda bernama group_company, ganti ke $employee->group_company
+
+            $matchComp  = !empty($permComp) && in_array((string)$employee->contribution_level_code, $permComp, true);
+
+            $matchLoc   = !empty($permLoc) && in_array((string)$employee->work_area_code, $permLoc, true);
+            // Jika pakai work_area_code, sesuaikan
+
+            if (!($matchGroup || $matchComp || $matchLoc)) {
+                abort(403, 'Anda tidak memiliki akses (perusahaan/lokasi) untuk task ini.');
+            }
+        }
+
+        // --- initiator & form detail (tetap) ---
         $initiator = EmployeeAppraisal::select('employee_id','fullname')
             ->where('id', $req->created_by)->first();
 
@@ -81,9 +192,9 @@ class AdminTasksController extends Controller
             $formDetail = Proposed360::select('id','scope','peers','subordinates','managers','notes','appraisal_year','proposer_employee_id','employee_id')
                 ->find($req->form_id);
             if ($formDetail) {
-                $formDetail->peers         = is_string($formDetail->peers) ? json_decode($formDetail->peers, true) : ($formDetail->peers ?? []);
-                $formDetail->subordinates  = is_string($formDetail->subordinates) ? json_decode($formDetail->subordinates, true) : ($formDetail->subordinates ?? []);
-                $formDetail->managers      = is_string($formDetail->managers) ? json_decode($formDetail->managers, true) : ($formDetail->managers ?? []);
+                $formDetail->peers        = is_string($formDetail->peers) ? json_decode($formDetail->peers, true) : ($formDetail->peers ?? []);
+                $formDetail->subordinates = is_string($formDetail->subordinates) ? json_decode($formDetail->subordinates, true) : ($formDetail->subordinates ?? []);
+                $formDetail->managers     = is_string($formDetail->managers) ? json_decode($formDetail->managers, true) : ($formDetail->managers ?? []);
             }
         }
 
@@ -103,28 +214,34 @@ class AdminTasksController extends Controller
             'message' => 'nullable|string|max:1000',
         ]);
 
-        $user         = Auth::user();
-        $actorEmpId   = (string) ($user->employee_id ?? '');
-        $roles        = $this->getUserRoleNames($user);
+        $user       = Auth::user();
+        $actorEmpId = (string) ($user->employee_id ?? '');
+        $roles      = $this->getUserRoleNames($user);
 
         /** @var ApprovalRequest $req */
         $req = ApprovalRequest::lockForUpdate()->findOrFail($id);
         if ($req->status !== 'Pending') {
             return back()->with('error','Task tidak dalam status Pending.');
         }
-        if (!in_array($req->current_approval_id, $roles, true)) {
+        if (empty($roles)) {
             return back()->with('error','Anda tidak memiliki role untuk task ini.');
         }
 
+        // Permission 3 parameter (sudah Anda tambah sebelumnya)…
+        // ... cek perusahaan/lokasi di sini (dipertahankan)
+
+        $isOverride = $this->canOverrideApproval($user); // ⬅️ dinamis
+
         try {
             DB::beginTransaction();
+
             if ($request->action === 'APPROVE') {
-                $engine->approve((string)$req->form_id, $actorEmpId);
+                $engine->approve((string) $req->form_id, $actorEmpId, $isOverride);
                 DB::commit();
-                return redirect()->route('admin-tasks')->with('success','Task Approved Succesfully');
+                return redirect()->route('admin-tasks')->with('success','Task Approved Successfully');
             }
-            // REJECT
-            $engine->reject((string)$req->form_id, $actorEmpId, null, $request->message);
+
+            $engine->reject((string) $req->form_id, $actorEmpId, null, $request->message);
             DB::commit();
             return redirect()->route('admin-tasks')->with('success','Task has been Sendbacked.');
         } catch (\Throwable $e) {
@@ -134,7 +251,180 @@ class AdminTasksController extends Controller
         }
     }
 
+    protected function scopedEmployeeIds(): array
+    {
+        $user  = Auth::user();
+        $roles = $user->roles ?? collect(); // jika pakai relasi
+        $restrictionData = [];
+        if ($roles && $roles->first()?->restriction) {
+            $restrictionData = json_decode($roles->first()->restriction, true) ?? [];
+        }
+
+        $groupCompanies = $restrictionData['group_company'] ?? [];
+        $companies      = $restrictionData['contribution_level_code'] ?? [];
+        $locations      = $restrictionData['work_area_code'] ?? [];
+
+        return EmployeeAppraisal::query()
+            ->select('employee_id')
+            ->when(!empty($groupCompanies) || !empty($companies) || !empty($locations), function ($q) use ($groupCompanies, $companies, $locations) {
+                $q->where(function ($w) use ($groupCompanies, $companies, $locations) {
+                    if (!empty($groupCompanies)) {
+                        $w->orWhereIn('group_company', $groupCompanies);
+                    }
+                    if (!empty($companies)) {
+                        $w->orWhereIn('contribution_level_code', $companies);
+                    }
+                    if (!empty($locations)) {
+                        $w->orWhereIn('work_area_code', $locations);
+                    }
+                });
+            })
+            ->limit(50000)
+            ->pluck('employee_id')
+            ->all();
+    }
+
+    public function indexHistory(Request $request)
+    {
+        $user  = Auth::user();
+        $roles = $this->getUserRoleNames($user);
+        if (empty($roles)) {
+            return view('pages.admin-task.approval-history', [
+                'histories'=>collect(), 'empMap'=>collect()
+            ])->with('error','Anda tidak memiliki role.');
+        }
+
+        $q       = trim((string) $request->get('q', ''));
+        $perPage = 15;
+
+        $scopedEmpIds = $this->buildEmployeeScopeIds();
+
+        $base = ApprovalRequest::query()
+            ->select('id','form_id','employee_id','category','period','current_step','total_steps','current_approval_id','status','created_at')
+            ->where('status','Approved')
+            ->where('category','Proposed360') // samakan batasan seperti sample Anda
+            ->when(!empty($scopedEmpIds), fn($q2)=>$q2->whereIn('employee_id', $scopedEmpIds));
+
+        if ($q !== '') {
+            $empIdsFromName = EmployeeAppraisal::query()
+                ->where('fullname','like',"%{$q}%")
+                ->orWhere('employee_id','like',"%{$q}%")
+                ->limit(500)->pluck('employee_id')->all();
+
+            $base->where(function($w) use ($q, $empIdsFromName){
+                $w->where('employee_id','like',"%{$q}%")
+                  ->orWhereIn('employee_id', $empIdsFromName)
+                  ->orWhere('category','like',"%{$q}%")
+                  ->orWhere('period','like',"%{$q}%")
+                  ->orWhere('current_approval_id','like',"%{$q}%");
+            });
+        }
+
+        $histories = $base->orderByDesc('created_at')->paginate($perPage)->withQueryString();
+
+        $empIds = $histories->pluck('employee_id')->filter()->unique()->values()->all();
+        $empMap = EmployeeAppraisal::select('employee_id','fullname','designation_name')
+            ->whereIn('employee_id', $empIds)->get()->keyBy('employee_id');
+
+        $parentLink = __('Admin Tasks'); $link = __('History Approval');
+
+        return view('pages.admin-task.approval-history', compact('parentLink','link','histories','empMap'));
+    }
+
+    public function detailHistory(string $id)
+    {
+        $req = ApprovalRequest::findOrFail($id);
+        if ($req->status !== 'Approved') abort(404, 'Data bukan final approval.');
+
+        $employee = EmployeeAppraisal::select('employee_id','fullname','designation_name','manager_l1_id','manager_l2_id','group_company','contribution_level_code','work_area_code')
+        ->where('employee_id', $req->employee_id)->first();
+
+        $initiator = EmployeeAppraisal::select('employee_id','fullname')
+            ->where('id', $req->created_by)->first();
+
+        // ===== Proposed360: format list "Fullname (ID)" =====
+        $formDetail = null; $peersList=[]; $subsList=[]; $mgrsList=[];
+        if ($req->category === 'Proposed360') {
+            $formDetail = Proposed360::select('id','scope','peers','subordinates','managers','notes','appraisal_year','proposer_employee_id','employee_id')
+                ->find($req->form_id);
+
+            if ($formDetail) {
+                $peers = is_string($formDetail->peers) ? json_decode($formDetail->peers, true) : ($formDetail->peers ?? []);
+                $subs  = is_string($formDetail->subordinates) ? json_decode($formDetail->subordinates, true) : ($formDetail->subordinates ?? []);
+                $mgrs  = is_string($formDetail->managers) ? json_decode($formDetail->managers, true) : ($formDetail->managers ?? []);
+
+                $allIds = collect([$peers,$subs,$mgrs])->flatten()->filter()->unique()->values();
+                $nameMap = EmployeeAppraisal::whereIn('employee_id', $allIds)->pluck('fullname','employee_id');
+
+                $fmt = fn($ids)=>collect($ids)->map(fn($id)=>sprintf('%s (%s)', $nameMap[$id] ?? $id, $id))->all();
+                $peersList = $fmt($peers);
+                $subsList  = $fmt($subs);
+                $mgrsList  = $fmt($mgrs);
+            }
+        }
+
+        // ===== Approved By & Approved On dari log =====
+        $approvedByEmpId = null;
+        $approvedByName  = null;
+        $approvedOn      = $req->updated_at;
+        $approvedIsOverride = false;
+        $approvedByRole  = null;
+
+        $log = ApprovalLog::where('approval_request_id', $req->id)
+            ->whereIn('action', ['APPROVE','APPROVE_OVERRIDE'])
+            ->orderByDesc('acted_at')->orderByDesc('id')
+            ->first();
+
+        if ($log) {
+            $approvedByEmpId   = (string) $log->actor_employee_id;
+            $approvedOn        = $log->acted_at ?: $log->created_at ?: $approvedOn;
+            $approvedIsOverride= $log->action === 'APPROVE_OVERRIDE';
+
+            $approvedByName    = EmployeeAppraisal::where('employee_id', $approvedByEmpId)->value('fullname');
+
+            // Jika override → tampilkan role dari user approver
+            if ($approvedIsOverride) {
+                $approverUser = User::with('roles:name')    // relasi roles harus ada
+                    ->where('employee_id', $approvedByEmpId)
+                    ->first();
+                $approvedByRole = optional($approverUser?->roles?->first())->name;
+            }
+        }
+
+        $parentLink = __('History Approval'); $link = __('Detail');
+
+        return view('pages.admin-task.approval-history-detail', compact(
+            'req','employee','initiator','formDetail',
+            'peersList','subsList','mgrsList',
+            'approvedByEmpId','approvedByName','approvedOn',
+            'approvedIsOverride','approvedByRole', 'parentLink','link'
+        ));
+    }
+
     /** ---------- Helpers ---------- */
+
+    protected function canOverrideApproval($user): bool
+    {
+        // A. Pakai Spatie Permission (jika ada)
+        if ($user->roles()->exists()) {
+            return true;
+        }
+
+        // B. Cek flag di tabel roles (misal kolom `can_override`)
+        if (isset($user->roles)) {
+            $hasFlag = $user->roles->contains(fn($r) => (bool)($r->can_override ?? false));
+            if ($hasFlag) return true;
+        }
+
+        // C. Config fallback (bisa Anda ubah tanpa code change)
+        $overrideRoles = config('approval.override_roles', []); // ex: ['Admin','Super Admin']
+        if (!empty($overrideRoles) && isset($user->roles)) {
+            $names = $user->roles->pluck('name')->all();
+            return (bool) array_intersect($names, $overrideRoles);
+        }
+
+        return false;
+    }
 
     // Ambil semua nama role milik user (Spatie > fallback)
     protected function getUserRoleNames($user): array

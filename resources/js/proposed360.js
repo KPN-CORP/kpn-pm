@@ -34,6 +34,11 @@ import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
     return true;
   }
 
+  function hasSubordinates() {
+    const v = (document.getElementById('havingSubs')?.value ?? '').toString().trim().toLowerCase();
+    return v === '1' || v === 'true' || v === 'yes';
+  }
+
   document.querySelectorAll('.btn-approve').forEach(btn => {
     btn.addEventListener('click', function(e){
       const approveForm = e.currentTarget.closest('form');
@@ -46,6 +51,12 @@ import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
       const peers = pickValues(sourceForm, 'select[name="peers[]"]');
       const subs  = pickValues(sourceForm, 'select[name="subordinates[]"]');
+
+      if (hasSubordinates() && (!Array.isArray(subs) || subs.length === 0)) {
+        if (window.Swal) Swal.fire('Subordinates required', 'Pilih minimal 1 bawahan untuk melanjutkan.', 'warning');
+        else alert('Pilih minimal 1 bawahan untuk melanjutkan.');
+        return;
+      }
 
       if (!validateFirstLayer(peers, subs, employeeLabel)) return;
 
@@ -109,8 +120,8 @@ import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
     if (sub1 && !sub1.value)    { ok = false; setErr(sub1,'Subordinate layer 1 wajib dipilih.'); }
 
     if (!ok) {
-      const label = getEmployeeLabel(box);
-      showAlert(`Minimal pilih 1 Peers (layer 1) dan 1 Subordinate (layer 1) untuk ${label}.`);
+      const label = sub1 ? "Minimal pilih 1 Peers (layer 1) & 1 Subordinate (layer 1) untuk " + getEmployeeLabel(box) : "Minimal pilih 1 Peers (layer 1) untuk " + getEmployeeLabel(box);
+      showAlert(`${label}.`);
     }
     return ok;
   }
@@ -134,24 +145,43 @@ import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
     }
 
     document.querySelectorAll('button[data-submit]').forEach((btn) => {
-        btn.addEventListener('click', function (e) {
-        e.preventDefault();
+      btn.addEventListener('click', function (e) {
+          e.preventDefault();
 
-        const form = getFormFromButton(btn);
-        if (!form) {
-            showAlert('Form tidak ditemukan.');
-            return;
-        }
+          const form = getFormFromButton(btn);
+          if (!form) {
+              showAlert('Form tidak ditemukan.');
+              return;
+          }
 
-        const box = form.closest?.('.card-body') || form; // aman walau form null (sudah diguard)
-        if (!validateCard(box)) return;
+          const box = form.closest?.('.card-body') || form; // aman walau form null (sudah diguard)
+          if (!validateCard(box)) return;
 
-        const sp = btn.querySelector('.spinner-border');
-        if (sp) sp.classList.remove('d-none');
-        btn.disabled = true;
-        form.submit();
-        });
-    });
+          // Tampilkan SweetAlert2 sebelum submit
+          Swal.fire({
+              title: "Are you sure?",
+              text: "You won't be able to revert this!",
+              icon: "warning",
+              showCancelButton: true,
+              confirmButtonColor: "#3e60d5",
+              cancelButtonColor: "#f15776",
+              confirmButtonText: "Submit",
+              reverseButtons: true,
+          }).then((result) => {
+              if (result.isConfirmed) {
+                  // Logika submit dipindahkan ke sini
+                  const sp = btn.querySelector('.spinner-border');
+                  if (sp) sp.classList.remove('d-none');
+                  btn.disabled = true;
+                  form.submit();
+              } else {
+                  // Jika user membatalkan, pastikan tombol tetap aktif (jika diperlukan)
+                  // Di sini, kita tidak perlu melakukan apa-apa,
+                  // karena spinner dan disabled hanya diaktifkan saat konfirmasi.
+              }
+          });
+      });
+   });
 
   // Submit via Enter → tetap tervalidasi
   document.querySelectorAll('form[action*="proposed360.store"]').forEach(f=>{

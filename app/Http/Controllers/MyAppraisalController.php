@@ -29,6 +29,8 @@ use RealRashid\SweetAlert\Facades\Alert;
 use stdClass;
 use App\Services\AppService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
@@ -412,7 +414,8 @@ class MyAppraisalController extends Controller
                 'approver_id'   => 'required|string|size:11',
                 'formGroupName' => 'required|string|min:5|max:100',
                 'formData'      => 'required|array',
-                'attachment'    => 'nullable|file|mimes:pdf|max:10240', // file
+                'attachment'    => 'nullable|array',
+                'attachment.*'  => 'file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png|max:10240',
             ]);
 
             $formGroupName = $validatedData['formGroupName'];
@@ -437,29 +440,30 @@ class MyAppraisalController extends Controller
                 ->where('period', $period)
                 ->first();
 
-            // File handling
-            $fullPath = null;
+            $employeeId = $validatedData['employee_id'];
+            $timestamp  = Carbon::now()->format('His');
+            $baseDir    = 'files/docs_pa';                       // di disk 'public'
+            Storage::disk('public')->makeDirectory($baseDir);       // idempotent
 
-            if ($request->hasFile('attachment')) {
-                $file = $request->file('attachment');
-            
-                $employeeId = $validatedData['employee_id'];
-                $timestamp = Carbon::now()->format('Ymd_His');
-                $filename = "{$employeeId}_{$period}_{$timestamp}.pdf";
-            
-                $destinationPath = storage_path('app/public/files/appraisals');
-            
-                if (!file_exists($destinationPath)) {
-                    mkdir($destinationPath, 0755, true);
-                }
-            
-                // Pindahkan file ke folder tujuan
-                $file->move($destinationPath, $filename);
-            
-                // Simpan path ke DB
-                $fullPath = 'storage/files/appraisals/' . $filename; // agar bisa diakses via browser
+            $paths = [];
+            $files = $request->file('attachment', []);
+
+            foreach ($files as $i => $file) {
+                if (!($file instanceof UploadedFile)) continue;
+                $origName = $file->getClientOriginalName();
+                $baseName = pathinfo($origName, PATHINFO_FILENAME);
+                $clean = preg_replace('/[^\pL0-9 _.-]+/u', '', $baseName); // buang char aneh
+                $clean = trim(preg_replace('/\s+/', ' ', $clean));         // rapikan spasi
+                $clean = str_replace(' ', '_', mb_substr($clean, 0, 80));  // ganti spasi -> underscore
+                $ext      = strtolower($file->getClientOriginalExtension() ?: $file->extension());
+                $safeExt  = $ext ?: 'bin';
+                $filename = "{$clean}_{$period}_{$timestamp}_" . str_pad($i+1, 2, '0', STR_PAD_LEFT) . ".{$safeExt}";
+
+                Storage::disk('public')->putFileAs($baseDir, $file, $filename);
+
+                // Simpan path web (akses via /storage)
+                $paths[] = "storage/{$baseDir}/{$filename}";
             }
-            
 
             // Simpan appraisal
             $appraisal = new Appraisal;
@@ -472,7 +476,7 @@ class MyAppraisalController extends Controller
             $appraisal->form_status = $submit_status;
             $appraisal->period = $period;
             $appraisal->created_by = Auth::user()->id;
-            $appraisal->file = $fullPath;
+            $appraisal->file = empty($paths) ? null : json_encode($paths);
             $appraisal->save();
 
             // Simpan snapshot
@@ -507,7 +511,6 @@ class MyAppraisalController extends Controller
             return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage())->withInput();
         }
     }
-
 
     private function getDataByName($data, $name) {
         foreach ($data as $item) {
@@ -695,142 +698,188 @@ class MyAppraisalController extends Controller
 
     }
 
-    function update(Request $request) {
-
-        $submit_status = $request->submit_type == 'submit_draft' ? 'Draft' : 'Submitted';
-        $messages = $request->submit_type == 'submit_draft' ? 'Draft saved successfully.' : 'Appraisal updated successfully.';
+    public function update(Request $request)
+    {
+        $submitStatus = $request->submit_type === 'submit_draft' ? 'Draft' : 'Submitted';
+        $message      = $request->submit_type === 'submit_draft'
+            ? 'Draft saved successfully.'
+            : 'Appraisal updated successfully.';
         $period = $this->appService->appraisalPeriod();
-        // Validate the request data
-        $validatedData = $request->validate([
+
+        // ✅ Validasi
+        $validated = $request->validate([
             'id'            => 'required|uuid',
             'employee_id'   => 'required|string|size:11',
             'formGroupName' => 'required|string|min:5|max:100',
             'formData'      => 'required|array',
-            'attachment'    => 'nullable|file|mimes:pdf|max:10240',
+            // multi-file (baru)
+            'attachment'    => 'nullable|array',
+            'attachment.*'  => 'file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png|max:10240', // 10MB per file (server-side); total dibatasi manual di bawah
+            // daftar file lama yang dipertahankan
+            'keep_files'    => 'nullable|array',
+            'keep_files.*'  => 'string',
         ]);
-    
-        // Extract formGroupName
-        $formGroupName = $validatedData['formGroupName'];
-        $formData = $validatedData['formData'];
-    
-        // Iterate through the formData to add 'score' after 'achievement' for each KPI
+
+        // Normalisasi formData (sesuai logic kamu)
+        $formData = $validated['formData'];
         foreach ($formData as &$form) {
-            if ($form['formName'] === 'KPI') {
+            if (($form['formName'] ?? null) === 'KPI') {
                 foreach ($form as $key => &$value) {
                     if (is_array($value) && isset($value['achievement'])) {
-                        // Add the 'score' key after 'achievement'
-                        $value; // Replace with the actual score value
+                        // TODO: isi $value['score'] jika ada perhitungan server-side
+                        // $value['score'] = ...;
                     }
                 }
             }
-            if ($form['formName'] === 'Culture') {
+            if (in_array(($form['formName'] ?? null), ['Culture','Leadership'], true)) {
                 foreach ($form as $key => &$value) {
                     if (is_numeric($key)) {
                         $scores = [];
                         foreach ($value as $score) {
-                            // Convert each score into an array with 'score' as a key
                             $scores[] = ['score' => $score['score']];
                         }
-                        $value = $scores; // Assign the array of score objects back to the form
-                    }
-                }
-            }
-            if ($form['formName'] === 'Leadership') {
-                foreach ($form as $key => &$value) {
-                    if (is_numeric($key)) {
-                        $scores = [];
-                        foreach ($value as $score) {
-                            // Convert each score into an array with 'score' as a key
-                            $scores[] = ['score' => $score['score']];
-                        }
-                        $value = $scores; // Assign the array of score objects back to the form
+                        $value = $scores;
                     }
                 }
             }
         }
+        unset($form); // keluar dari reference
 
-        $appraisal = Appraisal::where('id', $validatedData['id'])->first();
-    
-        // Create the array structure
-        $datas = [
-            'formGroupName' => $formGroupName,
-            'formData' => $formData,
+        $appraisal = Appraisal::findOrFail($validated['id']);
+
+        $dataPayload = [
+            'formGroupName' => $validated['formGroupName'],
+            'formData'      => $formData,
         ];
 
-        $fullPath = $appraisal->file;
+        // ===== File handling (multi-file) =====
+        $baseDir   = 'files/docs_pa';             // disk 'public'
+        Storage::disk('public')->makeDirectory($baseDir);
 
-        if ($request->hasFile('attachment')) {
+        // Ambil list file lama dari DB (bisa JSON array atau string)
+        $existingRaw  = $appraisal->file;
+        $existingList = is_array($existingRaw) ? $existingRaw : (json_decode($existingRaw, true) ?: ($existingRaw ? [$existingRaw] : []));
 
-            if ($appraisal->file && File::exists($appraisal->file)) {
-                File::delete($appraisal->file);
+        // File lama yang user putuskan untuk dipertahankan
+        $kept = $validated['keep_files'] ?? [];      // bentuk "storage/files/appraisals/xxx.ext"
+        $kept = array_values(array_filter($kept, fn($p) => is_string($p) && $p !== ''));
+
+        // Hapus fisik file yang TIDAK di-keep
+        $toDelete = array_values(array_diff($existingList, $kept));
+        foreach ($toDelete as $webPath) {
+            $diskPath = Str::after($webPath, 'storage/'); // "files/appraisals/xxx.ext"
+            if ($diskPath && Storage::disk('public')->exists($diskPath)) {
+                Storage::disk('public')->delete($diskPath);
             }
-
-            $file = $request->file('attachment');
-        
-            $employeeId = $validatedData['employee_id'];
-            $timestamp = Carbon::now()->format('Ymd_His');
-            $filename = "{$employeeId}_{$period}_{$timestamp}.pdf";
-        
-            $destinationPath = storage_path('app/public/files/appraisals');
-        
-            if (!file_exists($destinationPath)) {
-                mkdir($destinationPath, 0755, true);
-            }
-        
-            // Pindahkan file ke folder tujuan
-            $file->move($destinationPath, $filename);
-        
-            // Simpan path ke DB
-            $fullPath = 'storage/files/appraisals/' . $filename; // agar bisa diakses via browser
         }
-    
-        // Create a new Appraisal instance and save the data
-        $appraisal->form_data = json_encode($datas); // Store the form data as JSON
-        $appraisal->form_status = $submit_status;
-        $appraisal->updated_by = Auth::user()->id;
-        $appraisal->file = $fullPath;
-        
-        $appraisal->save();
-        
-        $snapshot = ApprovalSnapshots::where('form_id', $appraisal->id)->where('employee_id', $appraisal->employee_id)->where('created_by', Auth::user()->id)->first();
-        $snapshot->form_data = json_encode($datas);
-        $snapshot->updated_by = Auth::user()->id;
-        
-        $snapshot->save();
-    
-        // Return a response, such as a redirect or a JSON response
-        return redirect('appraisals')->with('success', $messages);
+
+        // File baru dari request (normalisasi single/multi/null)
+        $filesInput = $request->file('attachment');
+        $newFiles   = [];
+        if ($filesInput instanceof UploadedFile) {
+            $newFiles = [$filesInput];
+        } elseif (is_array($filesInput)) {
+            $newFiles = array_values(array_filter($filesInput, fn($f) => $f instanceof UploadedFile));
+        }
+
+        // (Opsional tapi disarankan) Validasi TOTAL 10MB (kept + new)
+        $totalBytesKept = array_sum(array_map(function ($webPath) {
+            $diskPath = Str::after($webPath, 'storage/');
+            return Storage::disk('public')->exists($diskPath) ? Storage::disk('public')->size($diskPath) : 0;
+        }, $kept));
+        $totalBytesNew = array_sum(array_map(fn(UploadedFile $f) => $f->getSize(), $newFiles));
+        if (($totalBytesKept + $totalBytesNew) > 10 * 1024 * 1024) {
+            return back()->withErrors(['attachment' => 'Total file size exceeds 10MB.'])->withInput();
+        }
+
+        // Simpan file baru
+        $employeeId = $validated['employee_id'];
+        $timestamp  = Carbon::now()->format('His');
+
+        // Agar penamaan urut _01, _02, ... dimulai setelah jumlah kept
+        $startIdx = count($kept);
+        $savedPaths = [];
+        foreach ($newFiles as $i => $file) {
+            $origName = $file->getClientOriginalName();
+            $baseName = pathinfo($origName, PATHINFO_FILENAME);
+            $clean = preg_replace('/[^\pL0-9 _.-]+/u', '', $baseName); // buang char aneh
+            $clean = trim(preg_replace('/\s+/', ' ', $clean));         // rapikan spasi
+            $clean = str_replace(' ', '_', mb_substr($clean, 0, 80));  // ganti spasi -> underscore
+            $ext = strtolower($file->getClientOriginalExtension() ?: $file->extension() ?: 'bin');
+            $seq = str_pad($startIdx + $i + 1, 2, '0', STR_PAD_LEFT);
+            $filename = "{$clean}_{$period}_{$timestamp}_{$seq}.{$ext}";
+            Storage::disk('public')->putFileAs($baseDir, $file, $filename);
+            $savedPaths[] = "storage/{$baseDir}/{$filename}"; // path web (untuk asset())
+        }
+
+        // Gabungkan: kept + new
+        $finalPaths = array_values(array_merge($kept, $savedPaths));
+
+        DB::beginTransaction();
+        try {
+            // Simpan appraisal
+            $appraisal->form_data   = json_encode($dataPayload);
+            $appraisal->form_status = $submitStatus;
+            $appraisal->updated_by  = Auth::id();
+            $appraisal->file        = empty($finalPaths) ? null : json_encode($finalPaths); // simpan selalu sebagai JSON array atau null
+            $appraisal->save();
+
+            // Update snapshot
+            $snapshot = ApprovalSnapshots::where('form_id', $appraisal->id)
+                        ->where('employee_id', $appraisal->employee_id)
+                        ->where('created_by', Auth::id())
+                        ->first();
+            if ($snapshot) {
+                $snapshot->form_data  = json_encode($dataPayload);
+                $snapshot->updated_by = Auth::id();
+                $snapshot->save();
+            }
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            // (opsional) rollback file baru yang sudah terupload
+            foreach ($savedPaths as $webPath) {
+                $diskPath = Str::after($webPath, 'storage/');
+                if ($diskPath && Storage::disk('public')->exists($diskPath)) {
+                    Storage::disk('public')->delete($diskPath);
+                }
+            }
+            report($e);
+            return back()->withErrors(['message' => 'Failed to update appraisal.'])->withInput();
+        }
+
+        return redirect('appraisals')->with('success', $message);
     }
     
-    public function destroy($id): RedirectResponse
-
+    public function destroyFile(Request $request)
     {
+        $request->validate([
+            'appraisal_id' => 'required|uuid',
+            'path'         => 'required|string', // e.g. "storage/files/docs_pa/xxx.ext"
+        ]);
 
-        $appraisal = Appraisal::where('id', $id)->first();
+        $appraisal = Appraisal::findOrFail($request->appraisal_id);
 
-        if (!$appraisal) {
-            return redirect()->route('appraisals')->with('error', 'Appraisal not found.');
+        // Normalisasi file list
+        $current = json_decode($appraisal->file ?? '[]', true) ?: [];
+        if (!is_array($current)) $current = [$current];
+
+        // Buang item
+        $toRemove = $request->path;
+        $updated  = array_values(array_filter($current, fn($p) => $p !== $toRemove));
+
+        // (Opsional) hapus file fisik di storage/public
+        $diskPath = Str::after($toRemove, 'storage/');
+        if ($diskPath && Storage::disk('public')->exists($diskPath)) {
+            Storage::disk('public')->delete($diskPath);
         }
-    
-        if ($appraisal->file) {
-            // Dapatkan path absolut dari file
-            $filePath = storage_path('app/public/' . str_replace('storage/', '', $appraisal->file));
-    
-            // Cek dan hapus file jika ada
-            if (File::exists($filePath)) {
-                File::delete($filePath);
-            }
-    
-            // Hapus path dari database
-            $appraisal->file = null;
-            $appraisal->updated_by = Auth::user()->id;
-            $appraisal->save();
-    
-            return redirect()->route('appraisals')->with('success', 'File deleted successfully!');
-        }
-    
-        return redirect()->route('appraisals')->with('error', 'No file to delete.');
 
+        // Simpan kembali, jika kosong set null
+        $appraisal->file = empty($updated) ? null : json_encode($updated);
+        $appraisal->save();
+
+        return response()->json(['success' => true, 'files' => $updated]);
     }
 
 }

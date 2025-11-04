@@ -156,7 +156,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::post('/appraisals/submit', [MyAppraisalController::class, 'store'])->name('appraisal.submit');
     Route::post('/appraisals/update', [MyAppraisalController::class, 'update'])->name('appraisal.update');
     Route::post('/appraisals/update', [MyAppraisalController::class, 'update'])->name('appraisal.update');
-    Route::delete('/appraisals/{id}', [MyAppraisalController::class, 'destroy'])->name('delete.attachment');
+    Route::post('/appraisals/file/destroy', [MyAppraisalController::class, 'destroyFile'])->name('delete.attachment');
     
     // Team Appraisal
     Route::get('/appraisals-task', [AppraisalTaskController::class, 'index'])->name('appraisals-task');
@@ -318,8 +318,17 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::get('admin-tasks/detail/{id}', [AdminTasksController::class, 'detail'])->name('admin-tasks.detail');
         Route::post('admin-tasks/{id}', [AdminTasksController::class, 'action'])->name('admin-tasks.action');
 
-        Route::get('audit-trail', [AuditTrailController::class, 'index'])->name('audit-trail');
+        Route::get('/approval-history', [AdminTasksController::class, 'indexHistory'])
+            ->name('approval-history');
 
+        Route::get('/approval-history/detail/{id}', [AdminTasksController::class, 'detailHistory'])
+            ->name('approval-history.detail');
+
+    
+    });
+
+    Route::middleware(['permission:viewaudittrail'])->group(function () {
+        Route::get('audit-trail', [AuditTrailController::class, 'index'])->name('audit-trail');
     });
     
     Route::middleware(['permission:viewrole'])->group(function () {
@@ -378,6 +387,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::post('/admin/approval/goal', [AdminOnBehalfController::class, 'store'])->name('admin.approval.goal');
         Route::get('/admin/approval/goal/{id}', [AdminOnBehalfController::class, 'create'])->name('admin.create.approval.goal');
         Route::get('/admin/appraisal/{id}/{type}', [AppraisalTaskController::class, 'review'])->name('admin.create.approval.appraisal');
+        Route::post('/admin/revoke-appraisal/{id}/{type}', [AppraisalTaskController::class, 'revoke'])->name('admin.revoke.approval.appraisal');
 
         // Goals - Admin
         Route::get('/onbehalf', [AdminOnBehalfController::class, 'index'])->name('onbehalf');
@@ -435,6 +445,8 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::middleware(['permission:viewimport', 'role:superadmin'])->group(function () {
         Route::get('/import-rating', [AdminImportController::class, 'index'])->name('importRating');
         Route::post('/import-rating/store', [AdminImportController::class, 'storeRating'])->name('importRating.store');
+        Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
+
     });
 
 });

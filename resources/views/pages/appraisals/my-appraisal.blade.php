@@ -1,6 +1,19 @@
+@php
+    use Illuminate\Support\Facades\Storage;
+    use Illuminate\Support\Str;
+@endphp
 @extends('layouts_.vertical', ['page_title' => 'Appraisal'])
 
 @section('css')
+<style>
+.file-card .filename{
+    max-width:120px;
+    display:inline-block;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+</style>
 @endsection
 
 @section('content')
@@ -99,6 +112,8 @@
                             if ($achievements && $achievements->isNotEmpty()) {
                                 $achievement = json_decode($achievements->first()->data, true);
                             }
+                            $raw = $row->request->appraisal->file ?? null;
+                            $files = is_array($raw) ? $raw : (json_decode($raw, true) ?: ($raw ? [$raw] : []));
                         @endphp
                         @if ($viewAchievement)
                         <div class="card-body m-0 py-2">
@@ -137,18 +152,46 @@
                         @if($row->request->appraisal?->file)
                         <div class="card-body m-0 py-2">
                             <div class="row">
-                                <div class="col-md-4">
-                                    <label for="attachment" class="form-label">Supporting documents :</label>
-                                    <div class="d-flex align-items-center gap-1">
-                                        <a href="{{ asset($row->request->appraisal->file) }}" target="_blank" class="badge rounded-pill text-bg-warning px-2 py-1" style="font-size: 0.75rem">
-                                            attachment <i class="ri-file-text-line"></i>
-                                        </a>
-                                        @if ($row->request->status != 'Approved')
-                                            <a href="javascript:void(0);" onclick="deleteFile(this, '{{ $row->request->appraisal->id }}')" class="badge rounded-pill text-bg-light p-1">
-                                                <span class="spinner-border spinner-border-sm d-none" aria-hidden="true"></span><i class="ri-close-line" style="font-size: 1rem"></i>
-                                            </a>
-                                        @endif
+                                <div class="col-md">
+                                    @if (count($files))
+                                    <label class="form-label">Supporting documents :</label>
+                                        <div id="fileCards" class="d-flex flex-wrap gap-2 align-items-center">
+                                        @foreach ($files as $path)
+                                            @php
+                                                $diskPath = Str::after($path, 'storage/');
+                                                $url  = asset($path);
+                                                $name = basename($diskPath);
+                                                $size = Storage::disk('public')->exists($diskPath)
+                                                    ? Storage::disk('public')->size($diskPath)
+                                                    : 0;
+                                            @endphp
+
+                                            <div class="file-card d-flex flex-wrap gap-2 align-items-center"
+                                                data-existing="1"
+                                                data-path="{{ $path }}"
+                                                data-size="{{ $size }}"
+                                                data-url="{{ $url }}">
+                                                <span class="d-inline-flex align-items-center gap-1 border rounded-pill p-1 pe-2">
+                                                    <a href="{{ $url }}" target="_blank" rel="noopener noreferrer"
+                                                    class="badge text-bg-warning border-0 rounded-pill px-2 py-1 text-decoration-none"
+                                                    style="font-size:.75rem">
+                                                        <span class="filename text-truncate d-inline-block" style="max-width:220px;">{{ $name }}</span>
+                                                        <i class="ri-file-text-line"></i>
+                                                    </a>
+
+                                                    @if ($row->request->status != 'Approved')
+                                                        <button type="button"
+                                                                class="btn-close rounded-circle border-0 p-0 ms-1"
+                                                                title="Remove file"
+                                                                aria-label="Remove file"></button>
+                                                    @endif
+                                                </span>
+                                            </div>
+
+                                            <input type="hidden" name="keep_files[]" value="{{ $path }}">
+                                        @endforeach
                                     </div>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -415,19 +458,17 @@
         </script>
         @endif
         <script>
-            function deleteFile(button, id) {
+            async function deleteFile(button, appraisalId, filePath) {
                 const spinner = button.querySelector(".spinner-border");
-                const icon = button.querySelector("i");
+                const icon    = button.querySelector("i");
 
-                // Tampilkan spinner dan sembunyikan icon
-                spinner.classList.remove("d-none");
-                icon.classList.add("d-none");
-
-                // Disable tombol
+                // UI: lock button
+                spinner?.classList.remove("d-none");
+                icon?.classList.add("d-none");
                 button.classList.add("disabled");
                 button.style.pointerEvents = "none";
 
-                Swal.fire({
+                const ok = await Swal.fire({
                     title: 'Are you sure?',
                     text: "Attachment will be deleted.",
                     icon: 'warning',
@@ -436,34 +477,52 @@
                     cancelButtonColor: "#f15776",
                     reverseButtons: true,
                     confirmButtonText: 'Yes, delete it!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        fetch(`/appraisals/${id}`, {
-                            method: 'DELETE',
-                            headers: {
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
-                            }
-                        })
-                        .then(response => {
-                            if (response.redirected) {
-                                window.location.href = response.url;
-                            } else {
-                                return response.json();
-                            }
-                        })
-                        .catch(error => {
-                            console.error('Error deleting file:', error);
-                            Swal.fire('Error', 'Something went wrong.', 'error');
-                        });
-                    } else {
-                        spinner.classList.add("d-none");
-                        icon.classList.remove("d-none");
+                }).then(r => r.isConfirmed);
 
-                        // Disable tombol
-                        button.classList.remove("disabled");
-                        button.style.pointerEvents = "";
+                if (!ok) {
+                    // restore UI
+                    spinner?.classList.add("d-none");
+                    icon?.classList.remove("d-none");
+                    button.classList.remove("disabled");
+                    button.style.pointerEvents = "";
+                    return;
+                }
+
+                try {
+                    const res = await fetch(`/appraisals/file/destroy`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ appraisal_id: appraisalId, path: filePath })
+                    });
+
+                    if (!res.ok) throw new Error(await res.text());
+
+                    // Hapus kapsul file di UI
+                    const capsule = button.closest('[data-file]');
+                    capsule?.remove();
+
+                    // Jika list kosong → tampilkan placeholder
+                    const list = document.getElementById(`files-${appraisalId}`);
+                    if (list && list.children.length === 0) {
+                    list.outerHTML = '';
                     }
-                });
+
+                    Swal.fire('Removed', 'File deleted', 'success');
+                } catch (err) {
+                    console.error(err);
+                    Swal.fire('Error', 'Failed to delete file', 'error');
+
+                    // restore UI on error
+                    button.classList.remove("disabled");
+                    button.style.pointerEvents = "";
+                } finally {
+                    spinner?.classList.add("d-none");
+                    icon?.classList.remove("d-none");
+                }
             }
         </script>
     @endpush

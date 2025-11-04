@@ -1,9 +1,20 @@
 @extends('layouts_.vertical', ['page_title' => 'Appraisal'])
 
 @section('css')
+<style>
+.file-card .filename{
+    max-width:120px;
+    display:inline-block;
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+</style>
 @endsection
 
 @section('content')
+<meta name="csrf-token" content="{{ csrf_token() }}">
     <!-- Begin Page Content -->
     <div class="container-fluid">
         <!-- Page Heading -->
@@ -87,7 +98,8 @@
                     <div class="card-body">
                         <form id="formAppraisalUser" action="{{ route('appraisal.submit') }}" enctype="multipart/form-data" method="POST">
                         @csrf
-                        <input type="hidden" name="employee_id" value="{{ $goal->employee_id }}">
+                        <input type="hidden" id="user_id" value="{{ Auth::user()->employee_id }}">
+                        <input type="hidden" id="employee_id" name="employee_id" value="{{ $goal->employee_id }}">
                         <input type="hidden" name="form_group_id" value="{{ $formGroupData['data']['id'] }}">
                         <input type="hidden" class="form-control" name="approver_id" value="{{ $approval->approver_id }}">
                         <input type="hidden" name="formGroupName" value="{{ $formGroupData['data']['name'] }}">
@@ -102,26 +114,33 @@
                                     ])
                                 </div>
                             @endforeach
-                            <input type="hidden" name="submit_type" id="submitType" value="">
                             <div class="row">
-                                <div class="col-md-4">
-                                    <div class="mb-3">
-                                        <label for="attachment" class="form-label">Supporting documents for achievement result</label>
-                                        <input class="form-control" id="attachment" name="attachment" type="file" accept=".pdf">
-                                        <small class="text-muted">Maximum file size: 10MB. Only PDF files are allowed.</small>
-                                    </div>
+                                <div class="col-md">
+                                <div class="mb-3">
+                                    <label for="attachment" class="form-label">Supporting documents for achievement result</label>
+                                    <input class="form-control" id="attachment_pm" name="attachment[]" type="file" multiple>
+                                    <small id="totalSizeInfo" class="form-text text-muted mt-1">Total: 0 B / 10 MB</small>
+                                    <div id="fileCards" class="d-flex flex-wrap gap-2 mt-2"></div>
+                                </div>
                                 </div>
                                 <div class="col-md">
-                                    <div class="mb-3 text-end">
-                                        <a data-id="submit_draft" type="button" class="btn btn-sm btn-outline-secondary submit-draft"><span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Save as Draft') }}</a>
-                                    </div>
+                                <div class="mb-3 text-end">
+                                    <a data-id="submit_draft" data-step="create" type="button" class="btn btn-sm btn-outline-secondary submit-draft">
+                                    <span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Save as Draft') }}
+                                    </a>
+                                </div>
                                 </div>
                             </div>
+
                             <div class="d-flex justify-content-center py-2">
-                                <a type="button" class="btn btn-light border me-3 prev-btn" style="display: none;"><i class="ri-arrow-left-line"></i>{{ __('Prev') }}</a>
+                                <a type="button" class="btn btn-light border me-3 prev-btn" style="display:none;"><i class="ri-arrow-left-line"></i>{{ __('Prev') }}</a>
                                 <a type="button" class="btn btn-primary next-btn">{{ __('Next') }} <i class="ri-arrow-right-line"></i></a>
-                                <a data-id="submit_form" class="btn btn-primary submit-user px-md-4" style="display: none;"><span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Submit') }}</a>
+                                <a data-id="submit_form" class="btn btn-primary submit-user px-md-4" style="display:none;">
+                                <span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Submit') }}
+                                </a>
                             </div>
+
+                            <input type="hidden" name="submit_type" id="submitType" value="">
                         </form>
                     </div>
                 </div>
@@ -132,27 +151,13 @@
 @push('scripts')
     <script>
         const errorMessages = '{{ __('Empty Messages') }}';
-
-        document.getElementById('attachment').addEventListener('change', function() {
-            const file = this.files[0];
-            if (file) {
-                const maxSize = 10 * 1024 * 1024; // 5MB in bytes
-                if (file.size > maxSize) {
-                    Swal.fire({
-                        title: "Ukuran file melebihi 10MB!",
-                        confirmButtonColor: "#3e60d5",
-                        icon: "error",
-                    });
-                    this.value = ""; // Reset input
-                } else if (file.type !== "application/pdf") {
-                    Swal.fire({
-                        title: "Hanya file PDF yang diperbolehkan!",
-                        confirmButtonColor: "#3e60d5",
-                        icon: "error",
-                    });
-                    this.value = "";
-                }
-            }
+        // create: langsung init
+        initFileUploader({
+            form:  '#formAppraisalUser',
+            input: '#attachment',
+            cards: '#fileCards',
+            total: '#totalSizeInfo',
+            // keepName tak dipakai di create, biarkan default
         });
     </script>
 @endpush
