@@ -480,6 +480,10 @@ public function getTeamData(Request $request)
             : Auth::user()->employee_id;
 
         $contributorCheck = AppraisalContributor::where('employee_id', $id)->where('period', $period)->first();
+        $contributorTransaction = AppraisalContributor::where('employee_id', $id)
+                                    ->where('period', $period)
+                                    ->where('created_by', Auth::id())
+                                    ->exists(); 
 
         $appraisalContributor = AppraisalContributor::where('employee_id', $id)->where('contributor_id', $approverId)->where('period', $period)->first();
         
@@ -671,7 +675,7 @@ public function getTeamData(Request $request)
         $link = 'Review Appraisal';
 
         // Pass the data to the view
-        return view('pages.appraisals-task.review', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'goals', 'approval', 'goalData', 'user', 'achievement', 'appraisalId', 'ratings', 'appraisal', 'type', 'achievements', 'viewAchievement'));
+        return view('pages.appraisals-task.review', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'goals', 'approval', 'goalData', 'user', 'achievement', 'appraisalId', 'ratings', 'appraisal', 'type', 'achievements', 'viewAchievement', 'contributorTransaction'));
 
     }
 
