@@ -195,8 +195,7 @@ class MyAppraisalController extends Controller
             
             $cultureData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Culture') ?? [];
             $leadershipData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership') ?? [];
-            $leadershipData1 = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership 1') ?? [];
-            $leadershipData2 = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership 2') ?? [];
+            $technicalData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Technical') ?? [];
             
             $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $datas->first()->period);
             
@@ -204,8 +203,7 @@ class MyAppraisalController extends Controller
                 $appraisalData['kpiScore'] = round($formData['totalKpiScore'], 2);
                 $appraisalData['cultureScore'] = round($formData['totalCultureScore'], 2);
                 $appraisalData['leadershipScore'] = round($formData['totalLeadershipScore'], 2);
-                $appraisalData['leadershipScore1'] = round($formData['totalLeadershipScore1'], 2);
-                $appraisalData['leadershipScore2'] = round($formData['totalLeadershipScore2'], 2);
+                $appraisalData['technicalScore'] = round($formData['totalTechnicalScore'], 2);
             }
             
             foreach ($formData['formData'] as &$form) {
@@ -222,9 +220,9 @@ class MyAppraisalController extends Controller
                         $form[$index]['title'] = $leadershipItem['title'];
                     }
                 }
-                if ($form['formName'] === 'Leadership 1') {
-                    foreach ($leadershipData1 as $index => $leadershipItem1) {
-                        foreach ($leadershipItem1['items'] as $itemIndex => $item) {
+                if ($form['formName'] === 'Technical') {
+                    foreach ($technicalData as $index => $technicalItem) {
+                        foreach ($technicalItem['items'] as $itemIndex => $item) {
                             if (isset($form[$index][$itemIndex])) {
                                 $form[$index][$itemIndex] = [
                                     'formItem' => $item,
@@ -232,20 +230,7 @@ class MyAppraisalController extends Controller
                                 ];
                             }
                         }
-                        $form[$index]['title'] = $leadershipItem1['title'];
-                    }
-                }
-                if ($form['formName'] === 'Leadership 2') {
-                    foreach ($leadershipData2 as $index => $leadershipItem2) {
-                        foreach ($leadershipItem2['items'] as $itemIndex => $item) {
-                            if (isset($form[$index][$itemIndex])) {
-                                $form[$index][$itemIndex] = [
-                                    'formItem' => $item,
-                                    'score' => $form[$index][$itemIndex]['score']
-                                ];
-                            }
-                        }
-                        $form[$index]['title'] = $leadershipItem2['title'];
+                        $form[$index]['title'] = $technicalItem['title'];
                     }
                 }
                 if ($form['formName'] === 'Culture') {
@@ -629,6 +614,17 @@ class MyAppraisalController extends Controller
                     }
                 }
                 if ($form['formName'] === 'Leadership') {
+                    foreach ($form as $key => &$value) {
+                        if (is_numeric($key)) {
+                            $scores = [];
+                            foreach ($value as $score) {
+                                $scores[] = $score['score'];
+                            }
+                            $value = ['score' => $scores];
+                        }
+                    }
+                }
+                if ($form['formName'] === 'Technical') {
                     foreach ($form as $key => &$value) {
                         if (is_numeric($key)) {
                             $scores = [];

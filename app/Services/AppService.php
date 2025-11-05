@@ -270,7 +270,7 @@ class AppService
         $appraisalDatas['totalLeadershipScore'] = round($leadershipAverageScore, 2); // get KPI Final Score
         $appraisalDatas['totalLeadershipScore1'] = round($leadershipAverageScore1, 2);
         $appraisalDatas['totalLeadershipScore2'] = round($leadershipAverageScore2, 2);
-        $appraisalDatas['technicalAverageScore'] = round($technicalAverageScore, 2);
+        $appraisalDatas['totalTechnicalScore'] = round($technicalAverageScore, 2);
         $appraisalDatas['cultureScore360'] = $cultureAverageScore * $cultureWeightage360 / 100; // get KPI Final Score
         $appraisalDatas['leadershipScore360'] = $leadershipAverageScore * $leadershipWeightage360 / 100; // get KPI Final Score
         $appraisalDatas['technicalScore360'] = $technicalAverageScore * $technicalWeightage360 / 100; // get KPI Final Score
@@ -611,6 +611,7 @@ class AppService
                 
                 $cultureData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
                 $leadershipData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
+                $technicalData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Technical') ?? [];
                 
                 
                 if($employeeForm){
@@ -705,6 +706,19 @@ class AppService
                                 }
                             }
                             $form[$index]['title'] = $leadershipItem['title'];
+                        }
+                    }
+                    if ($form['formName'] === 'Technical') {
+                        foreach ($technicalData as $index => $technicalItem) {
+                            foreach ($technicalItem['items'] as $itemIndex => $item) {
+                                if (isset($form[$index][$itemIndex])) {
+                                    $form[$index][$itemIndex] = [
+                                        'formItem' => $item,
+                                        'score' => $form[$index][$itemIndex]['score']
+                                    ];
+                                }
+                            }
+                            $form[$index]['title'] = $technicalItem['title'];
                         }
                     }
                     
