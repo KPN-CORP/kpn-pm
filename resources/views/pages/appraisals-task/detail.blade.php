@@ -109,14 +109,16 @@
                         <table class="table table-bordered table-sm mb-0 text-center align-middle">
                             <thead class="bg-primary-subtle">
                                 <tr>
-                                    @foreach ($achievements as $item)
+                                    @forelse ($achievement as $item)
                                         <th>{{ substr($item['month'], 0, 3) }}</th>
-                                    @endforeach
+                                    @empty
+                                        <th colspan="{{ count($achievement) }}">No Data
+                                    @endforelse
                                 </tr>
                             </thead>
                             <tbody class="bg-white">
                                 <tr>
-                                    @foreach ($achievements as $item)
+                                    @foreach ($achievement as $item)
                                         <td>{{ $item['value'] }}</td>
                                     @endforeach
                                 </tr>
