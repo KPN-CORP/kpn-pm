@@ -213,8 +213,7 @@
                                                 $item['formName'] === 'KPI' ? $appraisalData['kpiScore'] :
                                                 ($item['formName'] === 'Culture' ? $appraisalData['cultureScore'] :
                                                 ($item['formName'] === 'Leadership' ? $appraisalData['leadershipScore'] :
-                                                ($item['formName'] === 'Leadership 1' ? $appraisalData['leadershipScore1'] :
-                                                ($item['formName'] === 'Leadership 2' ? $appraisalData['leadershipScore2'] : ''))))
+                                                ($item['formName'] === 'Technical' ? $appraisalData['technicalScore'] : '')))
                                             }}
                                     </span>  
                                     <span>
