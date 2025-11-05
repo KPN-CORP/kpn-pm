@@ -107,10 +107,8 @@ $(document).ready(function() {
     addChildRowToggle(tableTeam, '#tableAppraisalTeam');
 });
 
-
 $(document).ready(function() {
     
-    // Initialize DataTable for 360 Appraisal
     var table360 = $('#tableAppraisal360').DataTable({
         stateSave: true,
         autoWidth: false,
@@ -123,48 +121,7 @@ $(document).ready(function() {
                 title: 'My Appraisal 360',
                 exportOptions: {
                     columns: ':not(:first-child):not(:last-child)'
-                },
-                customize: function(csv) {
-                    let csvRows = csv.split('\n');
-                    let dt = $('#tableAppraisal360').DataTable();
-                    let data = dt.rows().data().toArray();
-
-                    // ambil semua key score dari baris pertama yang valid
-                    let allScoreKeys = [];
-                    if (data[0]?.kpi) {
-                        allScoreKeys = Object.keys(data[0].kpi).filter(k => k.toLowerCase().includes('score'));
-                    }
-
-                    // Tambahkan header dinamis
-                    csvRows[0] = csvRows[0].replace(/\r?\n|\r/g, '') + ',' + allScoreKeys.join(',');
-
-                    for (let i = 1; i < csvRows.length; i++) {
-                        if (csvRows[i] && data[i - 1]) {
-                            let rowData = data[i - 1];
-                            let scores = getScores(rowData);
-
-                            let rowColumns = csvRows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                            while (rowColumns.length < 10) rowColumns.push('');
-
-                            // masukkan semua score sesuai urutan key
-                            allScoreKeys.forEach(k => {
-                                rowColumns.push(scores[k]);
-                            });
-
-                            csvRows[i] = rowColumns.map(value => {
-                                value = value.replace(/\r/g, '');
-                                if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
-                                if (value.includes(',') || value.includes('"')) {
-                                    return `"${value.replace(/"/g, '""')}"`;
-                                }
-                                return value;
-                            }).join(",");
-                        }
-                    }
-
-                    return csvRows.join('\n');
                 }
-                
             }
         ],
         fixedColumns: {
@@ -178,12 +135,12 @@ $(document).ready(function() {
             url: '/appraisals-task/360-data',
             type: 'GET',
             dataSrc: function (json) {
-            // hapus property kpi dari setiap record
-            return json.map(item => {
-                delete item.kpi;
-                return item;
-            });
-    }
+                // hapus property kpi dari setiap record
+                return json.map(item => {
+                    delete item.kpi;
+                    return item;
+                });
+            }
         },
         columns: [
             {
@@ -204,12 +161,13 @@ $(document).ready(function() {
 
                     const val = (data ?? '').toString();
                     const cls =
-                    val.toLowerCase() === 'draft'    ? 'secondary' :
-                    val.toLowerCase() === 'approved' ? 'success'   :
-                                                        'light text-body';
+                        val.toLowerCase() === 'draft'    ? 'secondary' :
+                        val.toLowerCase() === 'approved' ? 'success'   :
+                                                            'light text-body';
 
-                    // escape singkat
-                    const safe = val.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+                    const safe = val.replace(/[&<>"']/g, 
+                        m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])
+                    );
 
                     return `<span class="badge bg-${cls}">${safe}</span>`;
                 }
@@ -219,9 +177,7 @@ $(document).ready(function() {
         ]
     });
     
-    // Add event listener for both tables
     addChildRowToggle(table360, '#tableAppraisal360');
-
 });
 
 // Function to get formatted scores for export
