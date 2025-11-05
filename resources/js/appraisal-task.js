@@ -17,7 +17,7 @@ $(document).ready(function() {
                 },
                 customize: function(csv) {
                     let csvRows = csv.split('\n');
-                    let dt = $('#tableAppraisal360').DataTable();
+                    let dt = $('#tableAppraisalTeam').DataTable();
                     let data = dt.rows().data().toArray();
 
                     // ambil semua key score dari baris pertama yang valid
@@ -177,7 +177,13 @@ $(document).ready(function() {
         ajax: {
             url: '/appraisals-task/360-data',
             type: 'GET',
-            dataSrc: ''
+            dataSrc: function (json) {
+            // hapus property kpi dari setiap record
+            return json.map(item => {
+                delete item.kpi;
+                return item;
+            });
+    }
         },
         columns: [
             {
