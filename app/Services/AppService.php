@@ -611,6 +611,7 @@ class AppService
                 
                 $cultureData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
                 $leadershipData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
+                $technicalData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Technical') ?? [];
                 
                 
                 if($employeeForm){
@@ -705,6 +706,19 @@ class AppService
                                 }
                             }
                             $form[$index]['title'] = $leadershipItem['title'];
+                        }
+                    }
+                    if ($form['formName'] === 'Technical') {
+                        foreach ($technicalData as $index => $technicalItem) {
+                            foreach ($technicalItem['items'] as $itemIndex => $item) {
+                                if (isset($form[$index][$itemIndex])) {
+                                    $form[$index][$itemIndex] = [
+                                        'formItem' => $item,
+                                        'score' => $form[$index][$itemIndex]['score']
+                                    ];
+                                }
+                            }
+                            $form[$index]['title'] = $technicalItem['title'];
                         }
                     }
                     
