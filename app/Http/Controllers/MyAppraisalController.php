@@ -195,6 +195,11 @@ class MyAppraisalController extends Controller
             
             $cultureData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Culture') ?? [];
             $leadershipData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership') ?? [];
+<<<<<<< HEAD
+=======
+            $leadershipData1 = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership 1') ?? [];
+            $leadershipData2 = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership 2') ?? [];
+>>>>>>> 8877787bb2917d248c0b8a700fc02ffb6733c457
             $technicalData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Technical') ?? [];
             
             $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $datas->first()->period);
@@ -203,6 +208,11 @@ class MyAppraisalController extends Controller
                 $appraisalData['kpiScore'] = round($formData['totalKpiScore'], 2);
                 $appraisalData['cultureScore'] = round($formData['totalCultureScore'], 2);
                 $appraisalData['leadershipScore'] = round($formData['totalLeadershipScore'], 2);
+<<<<<<< HEAD
+=======
+                $appraisalData['leadershipScore1'] = round($formData['totalLeadershipScore1'], 2);
+                $appraisalData['leadershipScore2'] = round($formData['totalLeadershipScore2'], 2);
+>>>>>>> 8877787bb2917d248c0b8a700fc02ffb6733c457
                 $appraisalData['technicalScore'] = round($formData['totalTechnicalScore'], 2);
             }
             
@@ -244,6 +254,19 @@ class MyAppraisalController extends Controller
                             }
                         }
                         $form[$index]['title'] = $cultureItem['title'];
+                    }
+                }
+                if ($form['formName'] === 'Technical') {
+                    foreach ($technicalData as $index => $technicalItem) {
+                        foreach ($technicalItem['items'] as $itemIndex => $item) {
+                            if (isset($form[$index][$itemIndex])) {
+                                $form[$index][$itemIndex] = [
+                                    'formItem' => $item,
+                                    'score' => $form[$index][$itemIndex]['score']
+                                ];
+                            }
+                        }
+                        $form[$index]['title'] = $technicalItem['title'];
                     }
                 }
             }
