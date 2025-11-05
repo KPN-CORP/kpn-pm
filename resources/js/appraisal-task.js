@@ -107,8 +107,10 @@ $(document).ready(function() {
     addChildRowToggle(tableTeam, '#tableAppraisalTeam');
 });
 
+
 $(document).ready(function() {
     
+    // Initialize DataTable for 360 Appraisal
     var table360 = $('#tableAppraisal360').DataTable({
         stateSave: true,
         autoWidth: false,
@@ -121,7 +123,48 @@ $(document).ready(function() {
                 title: 'My Appraisal 360',
                 exportOptions: {
                     columns: ':not(:first-child):not(:last-child)'
+                },
+                customize: function(csv) {
+                    let csvRows = csv.split('\n');
+                    let dt = $('#tableAppraisal360').DataTable();
+                    let data = dt.rows().data().toArray();
+
+                    // ambil semua key score dari baris pertama yang valid
+                    let allScoreKeys = [];
+                    if (data[0]?.kpi) {
+                        allScoreKeys = Object.keys(data[0].kpi).filter(k => k.toLowerCase().includes('score'));
+                    }
+
+                    // Tambahkan header dinamis
+                    csvRows[0] = csvRows[0].replace(/\r?\n|\r/g, '') + ',' + allScoreKeys.join(',');
+
+                    for (let i = 1; i < csvRows.length; i++) {
+                        if (csvRows[i] && data[i - 1]) {
+                            let rowData = data[i - 1];
+                            let scores = getScores(rowData);
+
+                            let rowColumns = csvRows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+                            while (rowColumns.length < 10) rowColumns.push('');
+
+                            // masukkan semua score sesuai urutan key
+                            allScoreKeys.forEach(k => {
+                                rowColumns.push(scores[k]);
+                            });
+
+                            csvRows[i] = rowColumns.map(value => {
+                                value = value.replace(/\r/g, '');
+                                if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
+                                if (value.includes(',') || value.includes('"')) {
+                                    return `"${value.replace(/"/g, '""')}"`;
+                                }
+                                return value;
+                            }).join(",");
+                        }
+                    }
+
+                    return csvRows.join('\n');
                 }
+                
             }
         ],
         fixedColumns: {
@@ -135,11 +178,22 @@ $(document).ready(function() {
             url: '/appraisals-task/360-data',
             type: 'GET',
             dataSrc: function (json) {
-                // hapus property kpi dari setiap record
-                return json.map(item => {
-                    delete item.kpi;
-                    return item;
-                });
+                const rows = Array.isArray(json) ? json : json.data ?? [];
+
+                // filter baris yang seluruh value-nya 0, null, atau kosong
+                return rows
+                    .map(item => {
+                        if (item.kpi) delete item.kpi; // tetap hapus kpi kalau ada
+                        return item;
+                    })
+                    .filter(item => {
+                        // ambil semua nilai numerik di level atas
+                        const values = Object.values(item)
+                            .filter(v => typeof v === 'number' || (!isNaN(v) && v !== null && v !== ''));
+
+                        // cek apakah semua nilai 0
+                        return values.some(v => Number(v) !== 0);
+                    });
             }
         },
         columns: [
@@ -161,13 +215,12 @@ $(document).ready(function() {
 
                     const val = (data ?? '').toString();
                     const cls =
-                        val.toLowerCase() === 'draft'    ? 'secondary' :
-                        val.toLowerCase() === 'approved' ? 'success'   :
-                                                            'light text-body';
+                    val.toLowerCase() === 'draft'    ? 'secondary' :
+                    val.toLowerCase() === 'approved' ? 'success'   :
+                                                        'light text-body';
 
-                    const safe = val.replace(/[&<>"']/g, 
-                        m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])
-                    );
+                    // escape singkat
+                    const safe = val.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
 
                     return `<span class="badge bg-${cls}">${safe}</span>`;
                 }
@@ -177,7 +230,9 @@ $(document).ready(function() {
         ]
     });
     
+    // Add event listener for both tables
     addChildRowToggle(table360, '#tableAppraisal360');
+
 });
 
 // Function to get formatted scores for export
@@ -227,13 +282,15 @@ function addChildRowToggle(table, tableId, speed = 250) {
 
 // Function to format child row content
 function formatChildRow(rowData) {
+    console.log(rowData);
+    
     if (!rowData?.kpi || !rowData.kpi.kpi_status) {
         return '<div>No scores available</div>';
     }
 
     // Ambil semua key yang mengandung 'score'
     const scoreEntries = Object.entries(rowData.kpi)
-        .filter(([key, value]) => key.toLowerCase().includes('score') && value !== undefined && value !== null && value !== '');
+        .filter(([key, value]) => key.toLowerCase().includes('score') && value !== undefined && value !== null && value !== 0 && value !== '');
 
     if (scoreEntries.length === 0) {
         return '<div>No scores available</div>';
