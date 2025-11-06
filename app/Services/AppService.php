@@ -156,6 +156,7 @@ class AppService
         $totalKpiScore = 0; // Initialize the total score
         $totalCultureScore = 0; // Initialize the total score
         $totalLeadershipScore = 0; // Initialize the total score
+        $totalTechnicalScore = 0; // Initialize the total score
         $cultureAverageScore = 0; // Initialize Culture average score
         $leadershipAverageScore = 0; // Initialize Culture average score
         $technicalAverageScore = 0;
@@ -273,7 +274,7 @@ class AppService
         $appraisalDatas['leadershipScore'] = round($leadershipAverageScore  * $leadershipWeightage / 100, 2); // get KPI Final Score
         $appraisalDatas['technicalScore'] = round($technicalAverageScore  * $technicalWeightage / 100, 2);
 
-        $scores = [$totalKpiScore,$cultureAverageScore,$leadershipAverageScore];
+        $scores = [$totalKpiScore,$cultureAverageScore,$leadershipAverageScore,$technicalAverageScore];
         // get KPI Final Score
 
         $appraisalDatas['totalScore'] =  $appraisalDatas['kpiScore'] + $appraisalDatas['cultureScore'] + $appraisalDatas['leadershipScore'] + $appraisalDatas['technicalScore']; // Update
@@ -318,7 +319,7 @@ class AppService
                 // Calculate average score for Leadership form
                 $leadershipAverageScore = $this->averageScore($form);
                 } elseif ($form['formName'] === "Technical") {
-                // Calculate average score for Leadership form
+                // Calculate average score for Technical form
                 $technicalAverageScore = $this->averageScore($form);
                 }
             }
@@ -428,7 +429,7 @@ class AppService
         $appraisalDatas['technicalScore360'] = $technicalAverageScore * $technicalWeightage360 / 100; // get KPI Final Score
         $appraisalDatas['cultureAverageScore'] = ($cultureAverageScore * $cultureWeightage / 100) * $appraisalDatas['cultureWeightage360']; // get Culture Average Score
         $appraisalDatas['leadershipAverageScore'] = ($leadershipAverageScore * $leadershipWeightage / 100) * $appraisalDatas['leadershipWeightage360']; // get Leadership Average Score
-        $appraisalDatas['technicalAverageScore'] = ($technicalAverageScore * $technicalWeightage / 100) * $appraisalDatas['$technicalWeightage360']; // get Leadership Average Score
+        $appraisalDatas['technicalAverageScore'] = ($technicalAverageScore * $technicalWeightage / 100) * $appraisalDatas['$technicalWeightage360']; // get Technical Average Score
 
         
         $appraisalDatas['kpiScore'] = $totalKpiScore * $kpiWeightage / 100; // get KPI Final Score
@@ -436,7 +437,7 @@ class AppService
         $appraisalDatas['leadershipScore'] = $totalLeadershipScore  * $leadershipWeightage / 100; // get KPI Final Score
         $appraisalDatas['technicalScore'] = $totalTechnicalScore  * $technicalWeightage / 100; // get KPI Final Score
 
-        $scores = [$totalKpiScore,$cultureAverageScore,$leadershipAverageScore];
+        $scores = [$totalKpiScore,$cultureAverageScore,$leadershipAverageScore,$totalTechnicalScore];
         // get KPI Final Score
 
         $appraisalDatas['totalScore'] =  round($appraisalDatas['kpiScore'] + $appraisalDatas['cultureScore'] + $appraisalDatas['leadershipScore'] + $appraisalDatas['technicalScore'], 2); // Update
@@ -695,6 +696,7 @@ class AppService
                     $formData['kpiScore'] = round($formData['kpiScore'], 2);
                     $formData['cultureScore'] = round($formData['cultureScore'], 2);
                     $formData['leadershipScore'] = round($formData['leadershipScore'], 2);
+                    $formData['technicalScore'] = round($formData['technicalScore'], 2);
                 }
 
                 foreach ($formData['formData'] as &$form) {
@@ -1286,7 +1288,7 @@ class AppService
         }
 
         // Add Culture and Leadership
-        foreach (['Culture', 'Leadership'] as $formName) {
+        foreach (['Culture', 'Leadership', 'Technical'] as $formName) {
             if (isset($summedScores[$formName])) {
                 $form = [
                     "formName" => $formName
@@ -1504,7 +1506,7 @@ class AppService
         }
 
         // Add Culture and Leadership
-        foreach (['Culture', 'Leadership'] as $formName) {
+        foreach (['Culture', 'Leadership', 'Technical'] as $formName) {
             if (isset($summedScores[$formName])) {
                 $form = [
                     "formName" => $formName
