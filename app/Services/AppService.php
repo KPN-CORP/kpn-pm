@@ -429,7 +429,7 @@ class AppService
         $appraisalDatas['technicalScore360'] = $technicalAverageScore * $technicalWeightage360 / 100; // get KPI Final Score
         $appraisalDatas['cultureAverageScore'] = ($cultureAverageScore * $cultureWeightage / 100) * $appraisalDatas['cultureWeightage360']; // get Culture Average Score
         $appraisalDatas['leadershipAverageScore'] = ($leadershipAverageScore * $leadershipWeightage / 100) * $appraisalDatas['leadershipWeightage360']; // get Leadership Average Score
-        $appraisalDatas['technicalAverageScore'] = ($technicalAverageScore * $technicalWeightage / 100) * $appraisalDatas['$technicalWeightage360']; // get Technical Average Score
+        $appraisalDatas['technicalAverageScore'] = ($technicalAverageScore * $technicalWeightage / 100) * $appraisalDatas['technicalWeightage360']; // get Technical Average Score
 
         
         $appraisalDatas['kpiScore'] = $totalKpiScore * $kpiWeightage / 100; // get KPI Final Score
