@@ -565,18 +565,7 @@ public function getTeamData(Request $request)
                         }
                     }
                 }
-                if ($form['formName'] === 'Leadership 1') {
-                    foreach ($form as $key => &$value) {
-                        if (is_numeric($key)) {
-                            $scores = [];
-                            foreach ($value as $score) {
-                                $scores[] = $score['score'];
-                            }
-                            $value = ['score' => $scores];
-                        }
-                    }
-                }
-                if ($form['formName'] === 'Leadership 2') {
+                if ($form['formName'] === 'Technical') {
                     foreach ($form as $key => &$value) {
                         if (is_numeric($key)) {
                             $scores = [];
@@ -618,18 +607,7 @@ public function getTeamData(Request $request)
                         }
                     }
                 }
-                if ($form['formName'] === 'Leadership 1') {
-                    foreach ($form as $key => &$value) {
-                        if (is_numeric($key)) {
-                            $scores = [];
-                            foreach ($value as $score) {
-                                $scores[] = $score['score'];
-                            }
-                            $value = ['score' => $scores];
-                        }
-                    }
-                }
-                if ($form['formName'] === 'Leadership 2') {
+                if ($form['formName'] === 'Technical') {
                     foreach ($form as $key => &$value) {
                         if (is_numeric($key)) {
                             $scores = [];
@@ -879,6 +857,7 @@ public function getTeamData(Request $request)
             
             $cultureData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
             $leadershipData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
+            $technicalData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Technical') ?? [];
 
             $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $period);
 
@@ -886,6 +865,7 @@ public function getTeamData(Request $request)
                 $appraisalData['kpiScore'] = round($formData['totalKpiScore'], 2);
                 $appraisalData['cultureScore'] = round($formData['totalCultureScore'], 2);
                 $appraisalData['leadershipScore'] = round($formData['totalLeadershipScore'], 2);
+                $appraisalData['technicalScore'] = round($formData['totalTechnicalScore'], 2);
             }
             
             foreach ($formData['formData'] as &$form) {
@@ -900,6 +880,19 @@ public function getTeamData(Request $request)
                             }
                         }
                         $form[$index]['title'] = $leadershipItem['title'];
+                    }
+                }
+                if ($form['formName'] === 'Technical') {
+                    foreach ($technicalData as $index => $technicalItem) {
+                        foreach ($technicalItem['items'] as $itemIndex => $item) {
+                            if (isset($form[$index][$itemIndex])) {
+                                $form[$index][$itemIndex] = [
+                                    'formItem' => $item,
+                                    'score' => $form[$index][$itemIndex]['score']
+                                ];
+                            }
+                        }
+                        $form[$index]['title'] = $technicalItem['title'];
                     }
                 }
                 if ($form['formName'] === 'Culture') {
