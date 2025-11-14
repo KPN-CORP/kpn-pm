@@ -54,7 +54,7 @@
                 </div>
             </div>
         </form>
-        @forelse ($data as $row)
+        @forelse ($data as $index => $row)
             @php
                 $year = date('Y', strtotime($row->request->created_at));
             @endphp
@@ -200,20 +200,20 @@
                             <div class="row">
                                 <div class="col">
                                     <div class="mb-2 text-primary fw-semibold fs-16">
-                                        Total Score : {{ round($formData['totalScore'], 2) }}
+                                        Total Score : {{ round($row->formData['totalScore'], 2) }}
                                     </div>
                                 </div>
                             </div>
-                            @forelse ($appraisalData['formData'] as $indexItem => $item)
+                            @forelse ($row->appraisalData['formData'] as $indexItem => $item)
                             <div class="row">
-                                <button class="btn rounded mb-2 py-2 bg-secondary-subtle bg-opacity-10 text-primary align-items-center d-flex justify-content-between" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ $indexItem }}" aria-expanded="false" aria-controls="collapse-{{ $indexItem }}">
+                                <button class="btn rounded mb-2 py-2 bg-secondary-subtle bg-opacity-10 text-primary align-items-center d-flex justify-content-between" type="button" data-bs-toggle="collapse" data-bs-target="#collapse-{{ $index.''.$indexItem }}" aria-expanded="false" aria-controls="collapse-{{ $index.''.$indexItem }}">
                                     <span class="fs-16 ms-1">
                                         {{ $item['formName'] }} 
                                         | Score : {{ 
-                                                $item['formName'] === 'KPI' ? $appraisalData['kpiScore'] :
-                                                ($item['formName'] === 'Culture' ? $appraisalData['cultureScore'] :
-                                                ($item['formName'] === 'Leadership' ? $appraisalData['leadershipScore'] :
-                                                ($item['formName'] === 'Technical' ? $appraisalData['technicalScore'] : '')))
+                                                $item['formName'] === 'KPI' ? $row->appraisalData['kpiScore'] :
+                                                ($item['formName'] === 'Culture' ? $row->appraisalData['cultureScore'] :
+                                                ($item['formName'] === 'Leadership' ? $row->appraisalData['leadershipScore'] :
+                                                ($item['formName'] === 'Technical' ? $row->appraisalData['technicalScore'] : '')))
                                             }}
                                     </span>  
                                     <span>
@@ -221,9 +221,9 @@
                                     </span>                               
                                 </button>
                                 @if ($item['formName'] == 'Leadership')
-                                <div class="collapse" id="collapse-{{ $indexItem }}">
+                                <div class="collapse" id="collapse-{{ $index.''.$indexItem }}">
                                     <div class="card card-body mb-3">
-                                        @forelse($formData['formData'] as $form)
+                                        @forelse($row->formData['formData'] as $form)
                                             @if($form['formName'] === 'Leadership')
                                                 @foreach($form as $key => $item)
                                                     @if(is_numeric($key))
@@ -257,9 +257,9 @@
                                     </div>
                                 </div>
                                 @elseif($item['formName'] == 'Culture')
-                                <div class="collapse" id="collapse-{{ $indexItem }}">
+                                <div class="collapse" id="collapse-{{ $index.''.$indexItem }}">
                                     <div class="card card-body mb-3">
-                                        @forelse($formData['formData'] as $form)
+                                        @forelse($row->formData['formData'] as $form)
                                             @if($form['formName'] === 'Culture')
                                                 @foreach($form as $key => $item)
                                                     @if(is_numeric($key))
@@ -293,9 +293,9 @@
                                     </div>
                                 </div>
                                 @elseif($item['formName'] == 'Technical')
-                                <div class="collapse" id="collapse-{{ $indexItem }}">
+                                <div class="collapse" id="collapse-{{ $index.''.$indexItem }}">
                                     <div class="card card-body mb-3">
-                                        @forelse($formData['formData'] as $form)
+                                        @forelse($row->formData['formData'] as $form)
                                             @if($form['formName'] === 'Technical')
                                                 @foreach($form as $key => $item)
                                                     @if(is_numeric($key))
@@ -329,9 +329,9 @@
                                     </div>
                                 </div>
                                 @else 
-                                <div class="collapse" id="collapse-{{ $indexItem }}">
+                                <div class="collapse" id="collapse-{{ $index.''.$indexItem }}">
                                     <div class="card card-body mb-3 py-0">
-                                        @forelse ($formData['formData'] as $form)
+                                        @forelse ($row->formData['formData'] as $form)
                                         @if ($form['formName'] === 'KPI')
                                         <div class="table-responsive">
                                             <table class="table">
@@ -363,11 +363,19 @@
                                                             <p class="mt-1 mb-0 text-muted">{{ $data['weightage'] }}%</p>
                                                         </td>
                                                         <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
-                                                            <p class="mt-1 mb-0 text-muted">{{ $data['target'] }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</p>
+                                                            <div class="mt-1 mb-1">
+                                                                <span class="fw-semibold text-dark">{{ $data['target'] }}</span><br>
+                                                                <small class="text-muted">{{ $data['custom_uom'] ?? $data['uom'] }}</small>
+                                                            </div>
                                                         </td>
+
                                                         <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
-                                                            <p class="mt-1 mb-0 text-muted">{{ $data['achievement'] }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</p>
+                                                            <div class="mt-1 mb-1">
+                                                                <span class="fw-semibold text-dark">{{ $data['achievement'] }}</span><br>
+                                                                <small class="text-muted">{{ $data['custom_uom'] ?? $data['uom'] }}</small>
+                                                            </div>
                                                         </td>
+
                                                         <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
                                                             <p class="mt-1 mb-0 text-muted">{{ isset($data['percentage']) ? round($data['percentage']) . '%' : '0%' }}</p>
                                                         </td>

@@ -53,7 +53,7 @@
                 <div class="card-body p-2">        
 
                 @if ($flows->isEmpty())
-                    <p class="text-center text-gray-600">Belum ada alur persetujuan yang dibuat.</p>
+                    <p class="text-center m-0 text-gray-600">No flows has been created.</p>
                 @else
                     <table id="tableFlow" class="table table-hover m-0">
                         <thead class="thead-light">

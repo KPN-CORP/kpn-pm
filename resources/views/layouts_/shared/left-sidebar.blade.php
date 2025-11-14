@@ -39,7 +39,7 @@
             <li class="side-nav-title">Navigation</li>
             @if(auth()->id() == '23886')
                 <li class="side-nav-item">
-                    <a href="{{ route('dashboard') }}" onclick="showLoader()" class="side-nav-link">
+                    <a href="{{ route('dashboard') }}" onclick="showLoader()" class="side-nav-link d-none">
                         <i class="ri-dashboard-line"></i>
                         <span> Dashboard </span>
                     </a>
