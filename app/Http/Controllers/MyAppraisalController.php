@@ -78,9 +78,7 @@ class MyAppraisalController extends Controller
 
             // Retrieve approval requests
             $datasQuery = ApprovalRequest::with([
-                'employee', 'appraisal.goal' => function ($query) use ($period) {
-                    $query->where('period', $period);
-                }, 'appraisal.approvalSnapshots' => function ($query) {
+                'employee', 'appraisal.goal', 'appraisal.approvalSnapshots' => function ($query) {
                     $query->where('created_by', Auth::user()->id);
                 }, 'updatedBy', 'adjustedBy', 'initiated', 'manager', 'contributor',
                 'approval' => function ($query) {
@@ -90,14 +88,14 @@ class MyAppraisalController extends Controller
             ->whereHas('approvalLayerAppraisal', function ($query) use ($user) {
                 $query->where('employee_id', $user)->orWhere('approver_id', $user);
             })
-            ->where('employee_id', $user)->where('category', $this->category)->where('period', $period);
+            ->where('employee_id', $user)->where('category', $this->category);
 
             if (!empty($filterYear)) {
                 $datasQuery->where('period', $filterYear);
             }
 
             $datas = $datasQuery->get();
-
+            
             $formattedData = $datas->map(function($item) {
                 $item->formatted_created_at = $this->appService->formatDate($item->appraisal->created_at);
 
@@ -115,14 +113,101 @@ class MyAppraisalController extends Controller
                 return $item;
             });
             
+            
             $adjustByManager = $datas->first()->updatedBy ? 
                 ApprovalLayerAppraisal::where('approver_id', $datas->first()->updatedBy->employee_id)
                     ->where('employee_id', $datas->first()->employee_id)
                     ->first() : null;
 
+            // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
+            $formGroupData = $this->appService->formGroupAppraisal($user, 'Appraisal Form');
+            
+            $cultureData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Culture') ?? [];
+            $leadershipData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership') ?? [];
+            $technicalData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Technical') ?? [];
+
             $data = [];
             foreach ($formattedData as $request) {
+                
                 if ($request->appraisal->goal->form_status != 'Draft' || $request->created_by == Auth::user()->id) {
+                    // dd($request);
+
+                    $goalData = $request ? json_decode($request->appraisal->goal->form_data, true) : [];
+            
+                    $form_data = Auth::user()->id == $request->appraisal->created_by
+                        ? $request->appraisal->approvalSnapshots->form_data
+                        : $request->appraisal->form_data;
+
+                    $appraisalData = json_decode($form_data, true) ?? [];
+
+                    $groupedContributors = $request->contributor->groupBy('contributor_type');
+
+                    $employeeData = $request->employee;
+
+                    $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $request->period);
+                    
+                    if (isset($formData['totalKpiScore'])) {
+                        $appraisalData['kpiScore'] = round($formData['totalKpiScore'], 2);
+                        $appraisalData['cultureScore'] = round($formData['totalCultureScore'], 2);
+                        $appraisalData['leadershipScore'] = round($formData['totalLeadershipScore'], 2);
+                        $appraisalData['technicalScore'] = round($formData['totalTechnicalScore'], 2);
+                    }
+                    
+                    foreach ($formData['formData'] as &$form) {
+                        if ($form['formName'] === 'Leadership') {
+                            foreach ($leadershipData as $index => $leadershipItem) {
+                                foreach ($leadershipItem['items'] as $itemIndex => $item) {
+                                    if (isset($form[$index][$itemIndex])) {
+                                        $form[$index][$itemIndex] = [
+                                            'formItem' => $item,
+                                            'score' => $form[$index][$itemIndex]['score']
+                                        ];
+                                    }
+                                }
+                                $form[$index]['title'] = $leadershipItem['title'];
+                            }
+                        }
+                        if ($form['formName'] === 'Technical') {
+                            foreach ($technicalData as $index => $technicalItem) {
+                                foreach ($technicalItem['items'] as $itemIndex => $item) {
+                                    if (isset($form[$index][$itemIndex])) {
+                                        $form[$index][$itemIndex] = [
+                                            'formItem' => $item,
+                                            'score' => $form[$index][$itemIndex]['score']
+                                        ];
+                                    }
+                                }
+                                $form[$index]['title'] = $technicalItem['title'];
+                            }
+                        }
+                        if ($form['formName'] === 'Culture') {
+                            foreach ($cultureData as $index => $cultureItem) {
+                                foreach ($cultureItem['items'] as $itemIndex => $item) {
+                                    if (isset($form[$index][$itemIndex])) {
+                                        $form[$index][$itemIndex] = [
+                                            'formItem' => $item,
+                                            'score' => $form[$index][$itemIndex]['score']
+                                        ];
+                                    }
+                                }
+                                $form[$index]['title'] = $cultureItem['title'];
+                            }
+                        }
+                        if ($form['formName'] === 'Technical') {
+                            foreach ($technicalData as $index => $technicalItem) {
+                                foreach ($technicalItem['items'] as $itemIndex => $item) {
+                                    if (isset($form[$index][$itemIndex])) {
+                                        $form[$index][$itemIndex] = [
+                                            'formItem' => $item,
+                                            'score' => $form[$index][$itemIndex]['score']
+                                        ];
+                                    }
+                                }
+                                $form[$index]['title'] = $technicalItem['title'];
+                            }
+                        }
+                    }
+                    
 
                     $formGroup = FormGroupAppraisal::with('rating')->find($request->appraisal->form_group_id);
 
@@ -143,17 +228,11 @@ class MyAppraisalController extends Controller
                     $dataItem->name = $request->name;
                     $dataItem->approvalLayer = $request->approvalLayer;
                     $dataItem->finalRating = $finalRating;
+                    $dataItem->formData = $formData;
+                    $dataItem->appraisalData = $appraisalData;
                     $data[] = $dataItem;
                 }
             }
-
-            $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->appraisal->goal->form_data, true) : [];
-            
-            $form_data = Auth::user()->id == $datas->first()->appraisal->created_by ? $datas->first()->appraisal->approvalSnapshots->form_data : $datas->first()->appraisal->form_data;
-
-            $appraisalData = $datas->isNotEmpty() ? json_decode($form_data, true) : [];
-
-            $groupedContributors = $datas->first()->contributor->groupBy('contributor_type');
 
             $mergedResults = [];
 
@@ -187,80 +266,7 @@ class MyAppraisalController extends Controller
                     $combinedSubData = $mergedFormData;
                 }
             }
-
-            $employeeData = $datas->first()->employee;
-
-            // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
-            $formGroupData = $this->appService->formGroupAppraisal($user, 'Appraisal Form');
             
-            $cultureData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Culture') ?? [];
-            $leadershipData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Leadership') ?? [];
-            $technicalData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Technical') ?? [];
-            
-            $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $datas->first()->period);
-            
-            if (isset($formData['totalKpiScore'])) {
-                $appraisalData['kpiScore'] = round($formData['totalKpiScore'], 2);
-                $appraisalData['cultureScore'] = round($formData['totalCultureScore'], 2);
-                $appraisalData['leadershipScore'] = round($formData['totalLeadershipScore'], 2);
-                $appraisalData['technicalScore'] = round($formData['totalTechnicalScore'], 2);
-            }
-            
-            foreach ($formData['formData'] as &$form) {
-                if ($form['formName'] === 'Leadership') {
-                    foreach ($leadershipData as $index => $leadershipItem) {
-                        foreach ($leadershipItem['items'] as $itemIndex => $item) {
-                            if (isset($form[$index][$itemIndex])) {
-                                $form[$index][$itemIndex] = [
-                                    'formItem' => $item,
-                                    'score' => $form[$index][$itemIndex]['score']
-                                ];
-                            }
-                        }
-                        $form[$index]['title'] = $leadershipItem['title'];
-                    }
-                }
-                if ($form['formName'] === 'Technical') {
-                    foreach ($technicalData as $index => $technicalItem) {
-                        foreach ($technicalItem['items'] as $itemIndex => $item) {
-                            if (isset($form[$index][$itemIndex])) {
-                                $form[$index][$itemIndex] = [
-                                    'formItem' => $item,
-                                    'score' => $form[$index][$itemIndex]['score']
-                                ];
-                            }
-                        }
-                        $form[$index]['title'] = $technicalItem['title'];
-                    }
-                }
-                if ($form['formName'] === 'Culture') {
-                    foreach ($cultureData as $index => $cultureItem) {
-                        foreach ($cultureItem['items'] as $itemIndex => $item) {
-                            if (isset($form[$index][$itemIndex])) {
-                                $form[$index][$itemIndex] = [
-                                    'formItem' => $item,
-                                    'score' => $form[$index][$itemIndex]['score']
-                                ];
-                            }
-                        }
-                        $form[$index]['title'] = $cultureItem['title'];
-                    }
-                }
-                if ($form['formName'] === 'Technical') {
-                    foreach ($technicalData as $index => $technicalItem) {
-                        foreach ($technicalItem['items'] as $itemIndex => $item) {
-                            if (isset($form[$index][$itemIndex])) {
-                                $form[$index][$itemIndex] = [
-                                    'formItem' => $item,
-                                    'score' => $form[$index][$itemIndex]['score']
-                                ];
-                            }
-                        }
-                        $form[$index]['title'] = $technicalItem['title'];
-                    }
-                }
-            }
-
             $path = base_path('resources/goal.json');
             if (!File::exists($path)) {
                 $options = ['UoM' => [], 'Type' => []];
@@ -280,8 +286,8 @@ class MyAppraisalController extends Controller
 
             // View Cement only //
             $viewAchievement = $employeeData->group_company == 'Cement' ? true : false;
-
-            return view('pages.appraisals.my-appraisal', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'accessMenu', 'selectYear', 'adjustByManager', 'appraisalData', 'achievements', 'viewAchievement'));
+            
+            return view('pages.appraisals.my-appraisal', compact('data', 'link', 'parentLink', 'uomOption', 'typeOption', 'accessMenu', 'selectYear', 'adjustByManager', 'achievements', 'viewAchievement'));
 
         } catch (Exception $e) {
             Log::error('Error in index method: ' . $e->getMessage());
