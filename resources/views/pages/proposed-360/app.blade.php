@@ -53,7 +53,15 @@
         if ($isRole) {
             // Jika role: tampilkan semua kandidat "fullname (employee_id)" atau fallback role name
             $cands = $approval->current_approval_candidates ?? [];
-            $waitingFor = !empty($cands) ? implode(', ', $cands) : $cur;
+
+            $list = [];
+
+            foreach ($cands as $role => $names) {
+                $list[] = $role . ': ' . implode(', ', $names);
+            }
+
+            $waitingFor = !empty($list) ? implode(' | ', $list) : $cur;
+
         } else {
             // Jika employee_id: pakai relasi manager; fallback ke nilai mentah current_approval_id
             $mgr = $approval->manager ?? null;
@@ -397,8 +405,16 @@
 
                     if ($isRole) {
                         // Jika role: tampilkan semua kandidat "fullname (employee_id)" atau fallback role name
-                        $cands = $approval->current_approval_candidates ?? [];
-                        $waitingFor = !empty($cands) ? implode(', ', $cands) : $cur;
+                       $cands = $approval->current_approval_candidates ?? [];
+
+                        $list = [];
+
+                        foreach ($cands as $role => $names) {
+                            $list[] = $role . ': ' . implode(', ', $names);
+                        }
+
+                        $waitingFor = !empty($list) ? implode(' | ', $list) : $cur;
+
                     } else {
                         // Jika employee_id: pakai relasi manager; fallback ke nilai mentah current_approval_id
                         $mgr = $approval->manager ?? null;

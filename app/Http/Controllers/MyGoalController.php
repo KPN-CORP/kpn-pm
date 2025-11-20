@@ -167,11 +167,16 @@ class MyGoalController extends Controller
         $access_menu = json_decode($employee->access_menu, true);
         $access = ($access_menu['goals'] ?? false) && ($access_menu['doj'] ?? false);
     
-        $selectYear = ApprovalRequest::where('employee_id', $user)->where('category', $this->category)->select('created_at')->get();
-        $selectYear->transform(function ($req) {
-            $req->year = Carbon::parse($req->created_at)->format('Y');
+        $selectYear = ApprovalRequest::where('employee_id', $user)
+        ->where('category', $this->category)
+        ->select('period')
+        ->distinct()
+        ->get()
+        ->map(function ($req) {
+            $req->year = (int) $req->period;
             return $req;
         });
+
 
         $countDraft = Goal::where('employee_id', $user)->where('category', $this->category)->where('form_status', 'Draft')->count();
     

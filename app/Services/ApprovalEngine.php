@@ -19,7 +19,7 @@ class ApprovalEngine
 
     public function openForm(string $formId, string $category, string $employeeId, int $flowId, int $period, string $actorEmpId): void
     {
-        $steps = ApprovalFlowStep::where('approval_flow_id', $flowId)->orderBy('step_number')->get();
+        $steps = ApprovalFlowStep::with('flow')->where('approval_flow_id', $flowId)->orderBy('step_number')->get();
         $first = $steps->first();
 
         // Approver awal dihitung dari konteks initiator (actor)
@@ -35,7 +35,7 @@ class ApprovalEngine
         $approval = ApprovalRequest::create([
             'form_id'             => (string) $formId,
             'category'            => (string) $category,
-            'current_approval_id' => isset($current) ? (string) $current : null, // bisa employee_id atau ROLE NAME
+            'current_approval_id' => isset($first->flow->flow_name) ? (string) $first->flow->flow_name : null, // bisa employee_id atau ROLE NAME
             'approval_flow_id'    => (int) $flowId,
             'total_steps'         => $steps->count(),
             'current_step'        => 1,

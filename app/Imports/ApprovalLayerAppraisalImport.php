@@ -50,18 +50,16 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
             'calibrator_id_10', 'calibrator_name_10'
         ];
 
-        $fileHeaders = $headers->values()->toArray(); // Get all headers from the file
+        $fileHeaders = $headers->values()->toArray();
         $filteredHeaders = array_values(array_intersect($expectedHeaders, $fileHeaders));
         $missingHeaders = array_diff($expectedHeaders, $fileHeaders);
 
         if (!empty($missingHeaders)) {
-            // Handle missing headers case
             throw ValidationException::withMessages([
                 'error' => 'Missing headers: ' . implode(', ', $missingHeaders)
             ]);
         }
 
-        // Check if the filtered headers match the expected headers in both content and order
         if ($filteredHeaders !== $expectedHeaders) {
             throw ValidationException::withMessages([
                 'error' => 'Invalid excel format. The header must contain the following columns in the specified order: ' .
@@ -69,7 +67,6 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
             ]);
         }
 
-        // Remove duplicates from invalid employee IDs list
         $this->invalidEmployeeIds = array_unique($this->invalidEmployeeIds);
 
         foreach ($collection as $row) {
@@ -81,7 +78,6 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
         if (!in_array($row['employee_id'], $this->invalidEmployeeIds)) {
 
             foreach ($collection as $row) {
-                // Skip rows with invalid employee_id
                 if (in_array($row['employee_id'], $this->invalidEmployeeIds)) {
                     continue;
                 }
@@ -98,34 +94,44 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
                         'message' => "Cannot change layer. Employee ID {$row['employee_id']} is already under calibration process.",
                     ];
                     $this->invalidEmployeeIds[] = $row['employee_id'];
-                    continue; // Skip further processing for this row
+                    continue;
                 }
             
                 // Backup data before deleting
-                $appraisalLayersToDelete = ApprovalLayerAppraisal::whereIn('employee_id', $this->employeeIds)->get();
-                foreach ($appraisalLayersToDelete as $layer) {
+                $deleteManagerCalibrator = ApprovalLayerAppraisal::whereIn('employee_id', $this->employeeIds)
+                    ->whereIn('layer_type', ['manager', 'calibrator']);
+
+                // Hanya hapus peers/subordinate jika muncul di file (overwrite case)
+                $deletePeersSubs = ApprovalLayerAppraisal::whereIn('employee_id', $this->employeeIds)
+                    ->whereIn('layer_type', ['peers', 'subordinate'])
+                    ->where(function ($q) use ($collection) {
+                        $q->whereIn('layer', $this->extractLayersFromFile($collection));
+                    });
+
+                // Backup
+                foreach ($deleteManagerCalibrator->get()->merge($deletePeersSubs->get()) as $layer) {
                     ApprovalLayerAppraisalBackup::create([
                         'employee_id' => $layer->employee_id,
                         'approver_id' => $layer->approver_id,
                         'layer_type' => $layer->layer_type,
                         'layer' => $layer->layer,
-                        'created_by' => $layer->created_by ? $layer->created_by : 0,
+                        'created_by' => $layer->created_by ?? 0,
                         'created_at' => $layer->created_at,
                     ]);
                 }
-            
-                ApprovalLayerAppraisal::whereIn('employee_id', $this->employeeIds)->delete();
+
+                // Execute delete
+                $deleteManagerCalibrator->delete();
+                $deletePeersSubs->delete();
             
                 // Second pass to process and import data
                 foreach ($row as $header => $value) {
-                    // Match headers that end with '_id' but exclude 'employee_id'
                     if (preg_match('/^(manager|peers|subordinate|calibrator)_id_(\d+)$/', $header, $matches)) {
-                        $layerType = $matches[1]; // e.g., 'manager', 'peers', etc.
-                        $layer = (int)$matches[2]; // e.g., 1, 2, 3, etc.
-                        $approverId = $value; // The value of the header (e.g., manager_id_1)
+                        $layerType = $matches[1];
+                        $layer = (int)$matches[2];
+                        $approverId = $value;
             
                         if(!empty($row['employee_id'])){
-                            // Validate employee_id existence in Employee model
                             $employeeExists = Employee::where('employee_id', $row['employee_id'])->exists();
                             if (!$employeeExists && strlen($row['employee_id']) !== 11) {
                                 $this->invalidEmployees[] = [
@@ -136,7 +142,7 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
                                     'message' => "Employee ID {$row['employee_id']} does not exist.",
                                 ];
                                 $this->invalidEmployeeIds[] = $row['employee_id'];
-                                continue; // Skip further processing for this row
+                                continue;
                             }
                         }
 
@@ -164,15 +170,12 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
                             continue;
                         }
 
-                        // Skip validation for peers and subordinate if approver_id is empty
+                        // Skip if peers or subordinate is empty (don't create or overwrite)
                         if (($layerType === 'peers' || $layerType === 'subordinate') && empty($approverId)) {
-                            continue; // Skip further processing for this row
+                            continue;
                         }
 
-                        // Validate approver_id existence in Employee model (only if employee_id exists)
-                        $approverExists = Employee::where('employee_id', $approverId)->exists();
                         if (!empty($approverId)) {
-                            // Validate approver_id format (ensure it is exactly 11 digits)
                             if (!is_numeric($approverId) || strlen($approverId) !== 11) {
                                 $this->invalidEmployees[] = [
                                     'employee_id' => $row['employee_id'],
@@ -182,10 +185,9 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
                                     'message' => "Invalid approver_id must be 11 digits for {$header}.",
                                 ];
                                 $this->invalidEmployeeIds[] = $row['employee_id'];
-                                continue; // Skip further processing for this row
+                                continue;
                             }
                         
-                            // Validate approver_id existence in Employee model
                             $approverExists = Employee::where('employee_id', $approverId)->exists();
                             if (!$approverExists) {
                                 $this->invalidEmployees[] = [
@@ -196,10 +198,9 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
                                     'message' => "Approver ID {$approverId} does not exist.",
                                 ];
                                 $this->invalidEmployeeIds[] = $row['employee_id'];
-                                continue; // Skip further processing for this row
+                                continue;
                             }
                         } else {
-                            // Skip empty approver_id values
                             continue;
                         }
 
@@ -210,13 +211,12 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
                                 ->first();
 
                             if ($checkCalibration && $checkCalibration->approver_id != $approverId) {
-                                $checkCalibration->approver_id = $approverId; // Assign calibrator_id_1 as the new approver ID
-                                $checkCalibration->updated_by = $this->userId; // Set the current authenticated user as `updated_by`
-                                $checkCalibration->save(); // Save changes to the database
+                                $checkCalibration->approver_id = $approverId;
+                                $checkCalibration->updated_by = $this->userId;
+                                $checkCalibration->save();
                             }
                         }
 
-                        // Create a new record in ApprovalLayerAppraisal
                         ApprovalLayerAppraisal::create([
                             'employee_id' => $row['employee_id'],
                             'approver_id' => $approverId,
@@ -243,5 +243,20 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
     public function getInvalidEmployees()
     {
         return $this->invalidEmployees;
+    }
+
+    private function extractLayersFromFile($collection)
+    {
+        $layers = [];
+
+        foreach ($collection as $row) {
+            foreach ($row as $header => $value) {
+                if (preg_match('/^(peers|subordinate)_id_(\d+)$/', $header, $m) && !empty($value)) {
+                    $layers[] = (int)$m[2]; // only delete if file supply overwrite data
+                }
+            }
+        }
+
+        return array_unique($layers);
     }
 }

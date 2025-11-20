@@ -4,7 +4,32 @@
 <div class="container-fluid">
   @if(session('success')) <div class="alert alert-success">{{ session('success') }}</div> @endif
   @if(session('error'))   <div class="alert alert-danger">{{ session('error') }}</div> @endif
+  @php
+    if (ctype_digit($req->current_approval_id)) {
+          $roleLabel = "Specific User";
+          $waitingList = $req->current_approval_id;
 
+      } else {
+          // CASE 2: approval_by_flow (flow_name)
+          // resolved_roles = array role dari ApprovalFlowSteps
+          $roles = $req->resolved_roles ?? [];
+
+          // Jika ada banyak role → join
+          $roleLabel = !empty($roles) ? implode(', ', $roles) : $req->current_approval_id;
+
+          // Kandidat approver
+          $candidateMap = $req->approval_candidates ?? [];
+
+          $waitingList = [];
+          foreach ($candidateMap as $r => $cands) {
+              foreach ($cands as $c) {
+                  $waitingList[] = $c; // string: "Nama (id)"
+              }
+          }
+
+          $waitingList = !empty($waitingList) ? implode(', ', $waitingList) : $roleLabel;
+      }
+  @endphp
   <div class="card">
     <div class="card-body">
       <h5 class="mb-3">Approval Details</h5>
@@ -20,13 +45,15 @@
       <div class="row mb-2">
         <div class="col-md-3 text-muted">Current Approver</div>
         <div class="col">
+          @if(empty($candidates))
           <span class="badge bg-warning">
-            @if(empty($candidates))
               {{ $req->manager->fullname.' ('.$req->manager->employee_id.')' }}
-            @else
-              {{ $req->current_approval_id }}
-            @endif
-          </span>
+            </span>
+          @else
+            @foreach($req->resolved_roles ?? [] as $r)
+              <span class="badge bg-warning me-1">{{ $r }}</span>
+            @endforeach
+          @endif
         </div>
       </div>
       <div class="row mb-2">
@@ -58,12 +85,15 @@
         <div class="mb-3">
           <div class="text-muted mb-1">Approver</div>
           <ul class="mb-0">
-            @foreach($candidates as $c)
-              <li>{{ $c }}</li>
+            @foreach($candidates as $role => $users)
+              @foreach($users as $u)
+                <li>{{ $u }}</li>
+              @endforeach
             @endforeach
           </ul>
         </div>
       @endif
+
 
       @if($formDetail)
         <hr>

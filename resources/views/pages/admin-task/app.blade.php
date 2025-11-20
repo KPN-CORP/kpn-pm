@@ -36,9 +36,31 @@
     @php
       $emp = $empMap[$t->employee_id] ?? null;
       $label = $emp ? ($emp->fullname.' ('.$t->employee_id.')') : $t->employee_id;
-      $role  = (string) $t->current_approval_id;
-      $cands = $roleCandidates[$role] ?? [];
-      $waitingList = !empty($cands) ? implode(', ', $cands) : $role;
+      // CASE 1: approval_by_employee (employee_id)
+      if (ctype_digit($t->current_approval_id)) {
+          $roleLabel = "Specific User";
+          $waitingList = $t->current_approval_id;
+
+      } else {
+          // CASE 2: approval_by_flow (flow_name)
+          // resolved_roles = array role dari ApprovalFlowSteps
+          $roles = $t->resolved_roles ?? [];
+
+          // Jika ada banyak role → join
+          $roleLabel = !empty($roles) ? implode(', ', $roles) : $t->current_approval_id;
+
+          // Kandidat approver
+          $candidateMap = $t->approval_candidates ?? [];
+
+          $waitingList = [];
+          foreach ($candidateMap as $r => $cands) {
+              foreach ($cands as $c) {
+                  $waitingList[] = $c; // string: "Nama (id)"
+              }
+          }
+
+          $waitingList = !empty($waitingList) ? implode(', ', $waitingList) : $roleLabel;
+      }
     @endphp
 
     <a href="{{ route('admin-tasks.detail', $t->id) }}" class="text-decoration-none text-reset">
@@ -49,9 +71,12 @@
               <div class="fw-semibold">{{ $t->category }} — Period {{ $t->period }}</div>
               <div class="small text-muted">Employee: {{ $label }}</div>
               <div class="small text-muted">Step {{ $t->current_step }} / {{ $t->total_steps }}</div>
-              <div class="small">Waiting for (Role): <span class="fw-semibold">{{ $role }}</span></div>
-              @if(!empty($cands))
-                <div class="small text-muted">Approver: {{ $waitingList }}</div>
+              <div class="small">Waiting for (Role): 
+                  <span class="fw-semibold">{{ $roleLabel }}</span>
+              </div>
+
+              @if(!empty($waitingList))
+                  <div class="small text-muted">Approver: {{ $waitingList }}</div>
               @endif
             </div>
             <div class="text-end">
