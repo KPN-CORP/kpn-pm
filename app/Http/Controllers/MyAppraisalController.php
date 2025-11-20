@@ -280,7 +280,8 @@ class MyAppraisalController extends Controller
             $parentLink = __('Appraisal');
             $link = __('My Appraisal');
 
-            $selectYear = ApprovalRequest::where('id', $datas->first()->id)->select('period')->get();
+            $selectYear = ApprovalRequest::where('employee_id', $datas->first()->employee_id)->where('category', $this->category)->select('period')->distinct()
+                ->orderBy('period', 'desc')->get();
 
             $achievements = Achievements::where('employee_id', $user)->where('period', $period)->get();
 
