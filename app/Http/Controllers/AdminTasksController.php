@@ -65,7 +65,7 @@ class AdminTasksController extends Controller
 
         $base = ApprovalRequest::query()
             ->select('id','form_id','employee_id','category','period','current_step',
-                    'total_steps','current_approval_id','status','created_at')
+                    'total_steps','current_approval_id', 'approval_flow_id','status','created_at')
             ->where('status','Pending')
             ->where('category', 'Proposed360')
             ->when(!empty($scopedEmpIds), fn($q) => $q->whereIn('employee_id', $scopedEmpIds));
@@ -91,68 +91,34 @@ class AdminTasksController extends Controller
         // Ambil data
         $tasks = $base->orderByDesc('created_at')->paginate($perPage)->withQueryString();
 
-        // ================================================================
-        // FILTER TASK SESUAI PERAN USER
-        // ================================================================
-        $tasks = $tasks->filter(function ($t) use ($userRoles, $userEmpId) {
+        $tasks->getCollection()->transform(function ($t) {
 
-            $cur = $t->current_approval_id;
+            $cur  = $t->approval_flow_id;
             $step = (int) $t->current_step;
 
-            // === CASE 1: current_approval_id = employee_id ===
-            if (ctype_digit($cur)) {
-                return $cur === $userEmpId;
+            // CASE 1: specific user
+            if (ctype_digit((string) $cur)) {
+                $t->resolved_roles = [];
+                $t->approval_candidates = $this->buildRoleCandidatesMap($t->current_approval_id ? [(string)$t->current_approval_id] : []);
+                return $t;
             }
 
-            // === CASE 2: current_approval_id = flow_name ===
-            $flowName = $cur;
+            // CASE 2: flow role
+            $roles = $this->getStepRoles($cur, $step);
 
-            // Ambil approver_role dari ApprovalFlowSteps
-            $roles = $this->getStepRolesByFlowName($flowName, $step);
-            $t->resolved_roles = $roles;
+            $t->resolved_roles      = $roles;
+            $t->approval_candidates = $this->buildRoleCandidatesMap($roles);
 
-            $candidateMap = $this->buildRoleCandidatesMap($roles);
-            $t->approval_candidates  = $candidateMap;
-
-            // Cocokkan role user vs approver_role
-            return count(array_intersect($roles, $userRoles)) > 0;
+            return $t;
         });
 
-        $tasks = new \Illuminate\Pagination\LengthAwarePaginator(
-            $tasks,                    // items yang sudah difilter
-            $tasks->count(),           // total items
-            $perPage,                  // per page
-            $request->get('page', 1),  // current page
-            ['path' => $request->url(), 'query' => $request->query()]
-        );
 
         //=========== MAP EMPLOYEE ===========
         $empIds = $tasks->pluck('employee_id')->filter()->unique()->values()->all();
         $empMap = EmployeeAppraisal::select('employee_id','fullname','designation_name')
             ->whereIn('employee_id', $empIds)->get()->keyBy('employee_id');
 
-        //=========== ROLE CANDIDATES ==========
-
         $roleNamesUsed = [];
-
-        foreach ($tasks as $t) {
-
-            $cur        = $t->current_approval_id;
-            $stepNumber = (int) $t->current_step;
-
-            // employee_id → tidak punya approver_role
-            if (ctype_digit($cur)) {
-                $t->resolved_roles = [];
-                continue;
-            }
-
-            // flow_name → ambil approver_role
-            $roles = $this->getStepRolesByFlowName($cur, $stepNumber);
-
-            foreach ($roles as $r) {
-                $roleNamesUsed[] = $r;
-            }
-        }
 
         $roleNamesUsed = array_values(array_unique($roleNamesUsed));
         $roleCandidates = $this->getRoleCandidatesLabels($roleNamesUsed);
@@ -173,7 +139,9 @@ class AdminTasksController extends Controller
     {
         $map = collect();
 
-        // Spatie
+        // -----------------------------------------------------------
+        // 1. SPAITE PERMISSION (PRIMARY SOURCE)
+        // -----------------------------------------------------------
         if (
             class_exists(\Spatie\Permission\Models\Role::class) &&
             Schema::hasTable('model_has_roles')
@@ -183,14 +151,16 @@ class AdminTasksController extends Controller
             $roleIdByName = $roleModels->pluck('id','name');
 
             if ($roleIdByName->isNotEmpty()) {
-                $rows    = DB::table('model_has_roles')
-                            ->whereIn('role_id', $roleIdByName->values())
-                            ->get(['role_id','model_type','model_id']);
+                $rows = DB::table('model_has_roles')
+                    ->whereIn('role_id', $roleIdByName->values())
+                    ->get(['role_id','model_type','model_id']);
 
                 $userIds = $rows->pluck('model_id')->unique()->values();
-                $userEmp = DB::table('users')->whereIn('id',$userIds)
-                            ->pluck('employee_id','id');
+                $userEmp = DB::table('users')
+                    ->whereIn('id', $userIds)
+                    ->pluck('employee_id', 'id');
 
+                // Ambil employee info
                 $empMap = EmployeeAppraisal::whereIn(
                     'employee_id',
                     array_filter($userEmp->values()->all())
@@ -199,41 +169,52 @@ class AdminTasksController extends Controller
                 ->keyBy('employee_id');
 
                 foreach ($roleIdByName as $rName => $rId) {
-                    $empIds = $rows->where('role_id',$rId)
-                        ->map(fn($r)=>(string) ($userEmp[$r->model_id] ?? ''))
+
+                    // employee_id per role
+                    $empIds = $rows->where('role_id', $rId)
+                        ->map(fn($r) => (string)($userEmp[$r->model_id] ?? ''))
                         ->filter()
                         ->unique()
                         ->values()
                         ->all();
 
+                    // label
                     $labels = collect($empIds)->map(function ($eid) use ($empMap) {
-                        return ($empMap[$eid]->fullname ?? $eid).' ('.$eid.')';
+                        $fullname = $empMap[$eid]->fullname ?? null;
+                        return ($fullname ?? $eid) . " ({$eid})";
                     })->toArray();
 
-                    $map[$rName] = $labels;
+                    // Jika role kosong, fallback ke employee_id langsung
+                    if (empty($labels)) {
+                        $map[$rName] = [$rName . ' (no assigned user)'];
+                    } else {
+                        $map[$rName] = $labels;
+                    }
                 }
             }
         }
 
-        // Fallback pivot umum
+        // -----------------------------------------------------------
+        // 2. FALLBACK PIVOT
+        // -----------------------------------------------------------
         if ($map->isEmpty()) {
             $roles = DB::table('roles')
                 ->whereIn('name', $roleNames)
-                ->orWhereIn('code', $roleNames)
-                ->get(['id','name','code']);
+                ->get(['id','name']);
 
             if ($roles->isNotEmpty()) {
-                $pivot = collect(['role_user','user_roles'])
-                    ->filter(fn($t)=>Schema::hasTable($t));
 
-                $roleIdByName = $roles->mapWithKeys(fn($r)=>[
-                    $r->name ?? $r->code => $r->id
+                $pivotNames = collect(['role_user', 'user_roles'])
+                    ->filter(fn($t) => Schema::hasTable($t));
+
+                $roleIdByName = $roles->mapWithKeys(fn($r) => [
+                    $r->name => $r->id
                 ]);
 
                 $all = [];
-                foreach ($pivot as $p) {
+                foreach ($pivotNames as $p) {
                     $rows = DB::table($p)
-                        ->whereIn('role_id',$roleIdByName->values())
+                        ->whereIn('role_id', $roleIdByName->values())
                         ->get(['role_id','user_id']);
 
                     foreach ($rows as $r) {
@@ -241,6 +222,7 @@ class AdminTasksController extends Controller
                     }
                 }
 
+                // pull user-employee mapping
                 $userEmp = DB::table('users')
                     ->whereIn('id', array_merge(...array_values($all ?: [])))
                     ->pluck('employee_id','id');
@@ -254,15 +236,44 @@ class AdminTasksController extends Controller
 
                 foreach ($roleIdByName as $rName => $rId) {
                     $uids = array_unique($all[$rId] ?? []);
-                    $labels = [];
 
-                    foreach ($uids as $uid) {
+                    $labels = collect($uids)->map(function ($uid) use ($userEmp, $empMap) {
                         $eid = (string)($userEmp[$uid] ?? '');
-                        if ($eid === '') continue;
-                        $labels[] = ($empMap[$eid]->fullname ?? $eid).' ('.$eid.')';
-                    }
+                        if ($eid === '') {
+                            return null;
+                        }
+                        $fullname = $empMap[$eid]->fullname ?? null;
+                        return ($fullname ?? $eid) . " ({$eid})";
+                    })
+                    ->filter()
+                    ->values()
+                    ->toArray();
 
-                    $map[$rName] = $labels;
+                    // fallback jika tetap kosong
+                    if (empty($labels)) {
+                        $map[$rName] = [$rName . ' (no assigned user)'];
+                    } else {
+                        $map[$rName] = $labels;
+                    }
+                }
+            }
+        }
+
+        // -----------------------------------------------------------
+        // 3. FINAL FALLBACK — role tidak ditemukan di mana pun
+        // -----------------------------------------------------------
+        if ($map->isEmpty() && !empty($roleNames)) {
+
+            foreach ($roleNames as $roleName) {
+
+                // cek apakah roleName berisi employee_id
+                if (ctype_digit($roleName)) {
+                    $emp = EmployeeAppraisal::where('employee_id', $roleName)->first();
+                    $label = $emp ? "{$emp->fullname} ({$roleName})" : $roleName;
+                    $map[$roleName] = [$label];
+                } else {
+                    // last fallback → tampilkan role tanpa user
+                    $map[$roleName] = [$roleName . ' (unassigned)'];
                 }
             }
         }
@@ -270,14 +281,27 @@ class AdminTasksController extends Controller
         return $map;
     }
 
-    protected function getStepRolesByFlowName(string $flowName, int $stepNumber): array
+
+    protected function getStepRoles($flowId, $stepName): array
     {
-        return \App\Models\ApprovalFlowStep::whereHas('flow', function($q) use ($flowName) {
-                    $q->where('flow_name', $flowName);
-                })
-                ->where('step_number', $stepNumber)
-                ->value('approver_role') ?? [];
+        if (!$flowId || trim($stepName) === '') {
+            return [];
+        }
+
+        $roleString = \App\Models\ApprovalFlowStep::query()
+            ->where('approval_flow_id', $flowId)
+            ->whereRaw('LOWER(step_name) = ?', [strtolower($stepName)])
+            ->value('approver_role');
+
+        return $roleString
+            ? collect($roleString)
+                ->map(fn($r) => trim($r))
+                ->filter()
+                ->values()
+                ->all()
+            : [];
     }
+
 
     protected function buildEmployeeScopeQuery(): Builder
     {
@@ -379,13 +403,18 @@ class AdminTasksController extends Controller
         $parentLink = __('Tasks');
         $link = __('Approval Details');
 
-        $cur        = $req->current_approval_id;
+        $cur        = $req->approval_flow_id;
         $stepNumber = (int) $req->current_step;
 
-        $roles = $this->getStepRolesByFlowName($cur, $stepNumber);
+        $roles = $this->getStepRoles($cur, $stepNumber);
         $req->resolved_roles = $roles;
 
-
+        // Jika role saat ini adalah salah satu manager level, gunakan current_approval_id sebagai kandidat approver
+        $managerRoles = ['L1 Manager', 'L2 Manager'];
+        if (is_array($roles) && array_intersect($roles, $managerRoles)) {
+            $roles = $req->current_approval_id ? [(string)$req->current_approval_id] : [];
+        }
+        
         // Kandidat untuk role ini (tooltip/list)
         $candidates = $this->buildRoleCandidatesMap($roles) ?? [];
 

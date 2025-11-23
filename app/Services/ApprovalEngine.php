@@ -35,7 +35,7 @@ class ApprovalEngine
         $approval = ApprovalRequest::create([
             'form_id'             => (string) $formId,
             'category'            => (string) $category,
-            'current_approval_id' => isset($first->flow->flow_name) ? (string) $first->flow->flow_name : null, // bisa employee_id atau ROLE NAME
+            'current_approval_id' => isset($current) ? (string) $current : null, // bisa employee_id atau ROLE NAME
             'approval_flow_id'    => (int) $flowId,
             'total_steps'         => $steps->count(),
             'current_step'        => 1,
@@ -464,6 +464,7 @@ class ApprovalEngine
 
             // System role → KEMBALIKAN NAMA ROLE (string)
             $sysRoleName = $this->canonicalRoleName($role);
+            dd($sysRoleName);
             if ($sysRoleName) return $sysRoleName;
         }
 

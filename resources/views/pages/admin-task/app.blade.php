@@ -71,13 +71,34 @@
               <div class="fw-semibold">{{ $t->category }} — Period {{ $t->period }}</div>
               <div class="small text-muted">Employee: {{ $label }}</div>
               <div class="small text-muted">Step {{ $t->current_step }} / {{ $t->total_steps }}</div>
-              <div class="small">Waiting for (Role): 
-                  <span class="fw-semibold">{{ $roleLabel }}</span>
-              </div>
+              {{-- Waiting For --}}
+              @if ($roleLabel === 'Specific User')
+                  {{-- Specific user approval --}}
+                  @php
+                      $candidateMap = $t->approval_candidates ?? [];
+                      // Ambil kandidat pertama
+                      $first = collect($candidateMap)->flatten()->first();
 
-              @if(!empty($waitingList))
-                  <div class="small text-muted">Approver: {{ $waitingList }}</div>
+                      $targetLabel = $first ?: $roleLabel;
+                  @endphp
+
+                  <div class="small">
+                      Waiting for Approval:
+                      <span class="fw-semibold">{{ $targetLabel }}</span>
+                  </div>
+
+              @else
+                  {{-- Flow / role-based approval --}}
+                  <div class="small">
+                      Waiting for (Role):
+                      <span class="fw-semibold">{{ $roleLabel }}</span>
+                  </div>
+
+                  @if(!empty($waitingList))
+                      <div class="small text-muted">Approver: {{ $waitingList }}</div>
+                  @endif
               @endif
+
             </div>
             <div class="text-end">
               <span class="badge bg-warning text-dark">pending</span>

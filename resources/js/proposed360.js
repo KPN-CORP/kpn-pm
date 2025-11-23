@@ -24,7 +24,7 @@ import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
     });
   }
 
-  function validateFirstLayer(peers, subs, employeeLabel){
+  function validateFirstLayer(peers, subs, employeeLabel, hasSubordinates){
     if (!peers[0] || !subs[0]) {
       const who = employeeLabel ? ` untuk ${employeeLabel}` : '';
       if (window.Swal) Swal.fire({icon:'error',title:'Validasi',text:'Minimal pilih Peers 1 dan Subordinate 1' + who + '.'});
@@ -34,31 +34,43 @@ import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
     return true;
   }
 
-  function hasSubordinates() {
-    const v = (document.getElementById('havingSubs')?.value ?? '').toString().trim().toLowerCase();
-    return v === '1' || v === 'true' || v === 'yes';
+  function hasSubordinates(employeeId) {
+      const el = document.getElementById(`havingSubs_${employeeId}`);
+      
+      if (!el) return false;
+
+      const v = (el.value ?? '').toString().trim().toLowerCase();
+      console.log('subs for', employeeId, '=>', v);
+
+      return v === '1' || v === 'true' || v === 'yes';
   }
+
 
   document.querySelectorAll('.btn-approve').forEach(btn => {
     btn.addEventListener('click', function(e){
       const approveForm = e.currentTarget.closest('form');
+      
       const cloneArea   = approveForm.querySelector('.js-clone-area');
+      
       const sourceForm  = document.getElementById(e.currentTarget.getAttribute('data-source-form'));
       if (!sourceForm || !cloneArea) { approveForm.submit(); return; }
 
       const cardBody = e.currentTarget.closest('.card-body');
       const employeeLabel = cardBody?.querySelector('[data-employee-label]')?.textContent?.trim() ?? '';
+      // find the employee input inside the card and read its value (avoid jQuery .val and document.getElementById on element)
+      const employeeEl = cardBody && (cardBody.querySelector('#employeeId'));
+      const employeeId = employeeEl ? (employeeEl.value ?? '') : '';
 
       const peers = pickValues(sourceForm, 'select[name="peers[]"]');
-      const subs  = pickValues(sourceForm, 'select[name="subordinates[]"]');
-
-      if (hasSubordinates() && (!Array.isArray(subs) || subs.length === 0)) {
+      const subs  = pickValues(sourceForm, 'select[name="subordinates[]"]');      
+      
+      if (hasSubordinates(employeeId)) {
         if (window.Swal) Swal.fire('Subordinates required', 'Pilih minimal 1 bawahan untuk melanjutkan.', 'warning');
         else alert('Pilih minimal 1 bawahan untuk melanjutkan.');
         return;
       }
 
-      if (!validateFirstLayer(peers, subs, employeeLabel)) return;
+      // if (!validateFirstLayer(peers, subs, employeeLabel, hasSubordinates(employeeId))) return;
 
       // ⬇️ Clear SEKALI, lalu APPEND dua-duanya
       cloneArea.innerHTML = '';

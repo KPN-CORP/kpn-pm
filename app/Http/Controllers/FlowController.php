@@ -63,7 +63,6 @@ class FlowController extends Controller
             // 'superadmin' => 'Admin',
             'manager_l1_id' => 'L1 Manager',
             'manager_l2_id' => 'L2 Manager',
-            // 'l3_manager_id' => 'L3 Manager',
         ] + $approverRoles;
 
         $assignments = Assignment::select('id', 'name')->pluck('name', 'id');
