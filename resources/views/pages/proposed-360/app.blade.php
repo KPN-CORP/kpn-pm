@@ -122,6 +122,7 @@
                     <div class="col">
                         <div class="card mb-0">
                             <div class="card-body p-1 p-md-2 d-flex flex-column gap-2">
+                                <input type="hidden" id="employeeId" value="{{ $row->employee_id }}">
                                 <div class="row">
                                     <div class="col-md-4 me-2">
                                         <div class="row">
@@ -432,7 +433,6 @@
                         };
                     }
 
-                    
                     $isInitiator = Auth::id() == $row->approval_request?->created_by;
                     // Enable inputs for the initiator only when status is 'draft' or 'sendback'
                     $initiator = ($isInitiator && $statusText == 'sendback') || $statusText == 'draft' ? '' : 'disabled';
@@ -458,6 +458,8 @@
                                     </div>
                                 </div>
                                 @endif
+                                <input type="hidden" id="employeeId" value="{{ $row->employee_id }}">
+
                                 <div class="row">
                                     <div class="col-md-4 me-2">
                                         <div class="row">
@@ -624,7 +626,7 @@
                                     </div>
                                 </div>
                                 @if (!empty($row->subordinates->first()))
-                                <input type="hidden" id="havingSubs" value="{{ !empty($row->subordinates->first()) }}">
+                                <input type="hidden" id="havingSubs_{{ $row->employee_id }}" value="{{ !empty($row->subordinates->first()) }}">
                                 <div class="row">
                                     <div class="col">
                                         <div class="card bg-light-subtle border border-light shadow-none mb-0">

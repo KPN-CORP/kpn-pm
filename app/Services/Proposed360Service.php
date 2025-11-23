@@ -215,7 +215,7 @@ class Proposed360Service
 
                 if (!empty($payload)) {
                     // Catatan: asumsikan casts JSON di model; jika tidak, json_encode terlebih dulu.
-                    $payload['updated_by'] = $actorEmpId;
+                    $payload['updated_by'] = Auth::id();
                     $trx->update($payload);
                     Log::info('proposed360.approve.update', [
                         'form_id' => $formId,
@@ -259,7 +259,7 @@ class Proposed360Service
             // $this->syncRows($empId, 'manager',     $mgrs,  $actorEmpId);
 
             // tandai transaksi
-            $trx->update(['status' => 'APPROVED', 'updated_by' => (string)$actorEmpId]);
+            $trx->update(['status' => 'APPROVED', 'updated_by' => Auth::id()]);
         });
     }
 
