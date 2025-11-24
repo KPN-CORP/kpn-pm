@@ -19,30 +19,28 @@
     </thead>
     <tbody>
         @foreach ($data as $row)
-        @foreach($row->subordinates as $subordinate)
              @php
-                $formData = $subordinate->goal && $subordinate->goal->form_data 
-                            ? json_decode($subordinate->goal->form_data, true) 
+                $formData = $row->goal && $row->goal->form_data 
+                            ? json_decode($row->goal->form_data, true) 
                             : null;
             @endphp
-        @endforeach
             @if ($formData)
                 @foreach ($formData as $item)
                     <tr>
-                        <td>{{ $subordinate->employee_id }}</td>
-                        <td>{{ $subordinate->employee->fullname }}</td>
-                        <td>{{ $subordinate->goal->category }}</td>
+                        <td>{{ $row->employee_id }}</td>
+                        <td>{{ $row->employee->fullname }}</td>
+                        <td>{{ $row->goal->category }}</td>
                         <td>{{ $item['kpi'] }}</td>
                         <td>{{ $item['target'] }}</td>
                         <td>{{ $item['uom']==='Other' ? $item['custom_uom'] : $item['uom'] }}</td>
                         <td>{{ $item['weightage'] }}</td>
                         <td>{{ $item['type'] }}</td>
-                        <td>{{ $subordinate->goal->form_status }}</td>
-                        <td>{{ $subordinate->status=='Pending'? ($subordinate->sendback_to ? 'Waiting For Revision' : ($subordinate->goal->form_status=='Draft'? 'Not Started' : 'Waiting For Approval')) : $subordinate->status }}</td>
-                        <td>{{ $subordinate->status=='Sendback' && $subordinate->sendback_to == $subordinate->employee_id || $subordinate->goal->form_status=='Draft' ? '-' : $subordinate->manager->fullname }}</td>
-                        <td>{{ $subordinate->manager->employee_id }}</td>
-                        <td>{{ $subordinate->initiated->name }}</td>
-                        <td>{{ $subordinate->initiated->employee_id }}</td>
+                        <td>{{ $row->goal->form_status }}</td>
+                        <td>{{ $row->status=='Pending'? ($row->sendback_to ? 'Waiting For Revision' : ($row->goal->form_status=='Draft'? 'Not Started' : 'Waiting For Approval')) : $row->status }}</td>
+                        <td>{{ $row->status=='Sendback' && $row->sendback_to == $row->employee_id || $row->goal->form_status=='Draft' ? '-' : $row->manager->fullname }}</td>
+                        <td>{{ $row->manager->employee_id }}</td>
+                        <td>{{ $row->initiated->name }}</td>
+                        <td>{{ $row->initiated->employee_id }}</td>
                     </tr>
                 @endforeach
             @endif

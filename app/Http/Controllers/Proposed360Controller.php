@@ -59,9 +59,16 @@ class Proposed360Controller extends Controller
         $self = collect();
         $selfPeers = collect();
 
+        $allEmployees = EmployeeAppraisal::select(
+            'employee_id','fullname','designation_name',
+            'manager_l1_id','manager_l2_id'
+        )
+        ->get()
+        ->keyBy('employee_id');
+
         if ($selfRow) {
             $selfRow->peers       = $selfRow->appraisalLayer->where('layer_type','peers')->values();
-            $selfPeers            = $this->buildPeerCandidatesFor($selfRow->employee_id);
+            $selfPeers            = $this->buildPeerCandidatesFor($selfRow->employee_id, $allEmployees);
             $self                 = collect([$selfRow]);
         }
 
@@ -120,10 +127,17 @@ class Proposed360Controller extends Controller
                 ->values();
         }
 
+        $allEmployees = EmployeeAppraisal::select(
+            'employee_id','fullname','designation_name',
+            'manager_l1_id','manager_l2_id'
+        )
+        ->get()
+        ->keyBy('employee_id');
+
         // isi subordinate & peers untuk TEAM
-        $datas->transform(function ($emp) use ($children) {
+        $datas->transform(function ($emp) use ($children, $allEmployees) {
             $emp->subordinates    = $children->get($emp->employee_id, collect());
-            $emp->peer_candidates = $this->buildPeerCandidatesFor($emp->employee_id);
+            $emp->peer_candidates = $this->buildPeerCandidatesFor($emp->employee_id, $allEmployees);
             return $emp;
         });
 
@@ -192,10 +206,17 @@ class Proposed360Controller extends Controller
                 ->values();
         }
 
+        $allEmployees = EmployeeAppraisal::select(
+            'employee_id','fullname','designation_name',
+            'manager_l1_id','manager_l2_id'
+        )
+        ->get()
+        ->keyBy('employee_id');
+
         // final transform
-        $datas->transform(function ($emp) use ($childrenMap) {
+        $datas->transform(function ($emp) use ($childrenMap, $allEmployees) {
             $emp->subordinates    = $childrenMap->get($emp->employee_id, collect());
-            $emp->peer_candidates = $this->buildPeerCandidatesFor($emp->employee_id);
+            $emp->peer_candidates = $this->buildPeerCandidatesFor($emp->employee_id, $allEmployees);
             return $emp;
         });
 
@@ -369,84 +390,67 @@ private function getRoleNameByStep(int|string $flowId, string $stepName)
 
 
 
-private function buildPeerCandidatesFor(string $targetEmpId): \Illuminate\Support\Collection
+private function buildPeerCandidatesFor(string $targetEmpId, Collection $allEmp)
 {
-    // --- 1) Ambil L1 & L2 si target
-    $target = EmployeeAppraisal::query()
-        ->select('employee_id','manager_l1_id','manager_l2_id')
-        ->where('employee_id', $targetEmpId)
-        ->first();
-
-    $targetL1 = $target?->manager_l1_id ? (string) $target->manager_l1_id : null;
-    $targetL2 = $target?->manager_l2_id ? (string) $target->manager_l2_id : null;
-
-    // --- 2) Ambil row L1-nya target untuk dapatkan L1 & L2 dari L1 target (harus ikut di-exclude)
-    $targetL1Row = null;
-    $targetL1_L1 = null;
-    $targetL1_L2 = null;
-    if ($targetL1) {
-        $targetL1Row = EmployeeAppraisal::query()
-            ->select('employee_id','manager_l1_id','manager_l2_id')
-            ->where('employee_id', $targetL1)
-            ->first();
-
-        $targetL1_L1 = $targetL1Row?->manager_l1_id ? (string) $targetL1Row->manager_l1_id : null; // L1 dari L1 target
-        $targetL1_L2 = $targetL1Row?->manager_l2_id ? (string) $targetL1Row->manager_l2_id : null; // L2 dari L1 target
+    if (!$allEmp->has($targetEmpId)) {
+        return collect();
     }
 
-    // --- 3) Kumpulan L1 yang berada di bawah target (target sebagai L2)
-    $l1UnderTarget = EmployeeAppraisal::query()
-        ->select('employee_id','manager_l1_id','manager_l2_id')
-        ->where('manager_l2_id', $targetEmpId)
-        ->get();
+    $target = $allEmp[$targetEmpId];
 
-    // --- 4) Atasan (L1 & L2) dari setiap L1 di bawah target
+    $targetL1 = (string) ($target->manager_l1_id ?? '');
+    $targetL2 = (string) ($target->manager_l2_id ?? '');
+
+    // Ambil L1 row utk dapatkan L1 L1 / L2 L1
+    $targetL1Row = $targetL1 && $allEmp->has($targetL1)
+        ? $allEmp[$targetL1]
+        : null;
+
+    $targetL1_L1 = $targetL1Row?->manager_l1_id ? (string) $targetL1Row->manager_l1_id : null;
+    $targetL1_L2 = $targetL1Row?->manager_l2_id ? (string) $targetL1Row->manager_l2_id : null;
+
+    // Semua employees sebagai koleksi
+    $all = $allEmp->values();
+
+    // === direct reportees of target
+    $directReportees = $all->filter(function ($emp) use ($targetEmpId) {
+        return $emp->manager_l1_id == $targetEmpId || $emp->manager_l2_id == $targetEmpId;
+    })->pluck('employee_id')->all();
+
+    // === L1 under target (target as L2)
+    $l1UnderTarget = $all->filter(function ($emp) use ($targetEmpId) {
+        return (string) $emp->manager_l2_id === $targetEmpId;
+    });
+
     $superiorsOfL1s = collect();
-    foreach ($l1UnderTarget as $l1Row) {
-        if (!empty($l1Row->manager_l1_id)) $superiorsOfL1s->push((string) $l1Row->manager_l1_id);
-        if (!empty($l1Row->manager_l2_id)) $superiorsOfL1s->push((string) $l1Row->manager_l2_id);
+    foreach ($l1UnderTarget as $emp) {
+        if (!empty($emp->manager_l1_id)) $superiorsOfL1s->push((string) $emp->manager_l1_id);
+        if (!empty($emp->manager_l2_id)) $superiorsOfL1s->push((string) $emp->manager_l2_id);
     }
 
-    // --- 5) Semua reportee langsung target (L-1 & L-2)
-    $directReporteesOfTarget = EmployeeAppraisal::query()
-        ->where(function ($q) use ($targetEmpId) {
-            $q->where('manager_l1_id', $targetEmpId)
-              ->orWhere('manager_l2_id', $targetEmpId);
-        })
-        ->pluck('employee_id');
+    // === Exclusion list
+    $exclude = collect();
 
-    // --- 6) Semua reportee dari L1-nya target (manager_l1_id/manager_l2_id = targetL1)
-    $reporteesOfTargetL1 = collect();
-    if ($targetL1) {
-        $reporteesOfTargetL1 = EmployeeAppraisal::query()
-            ->where(function ($q) use ($targetL1) {
-                $q->where('manager_l1_id', $targetL1)
-                  ->orWhere('manager_l2_id', $targetL1);
-            })
-            ->pluck('employee_id');
-    }
+    $exclude->push($targetEmpId);
 
-    // --- 7) Susun exclusion list
-    $exclude = collect()
-        ->merge([$targetEmpId])                          // diri sendiri
-        ->when($targetL1, fn($c) => $c->push($targetL1)) // L1 target
-        ->when($targetL2, fn($c) => $c->push($targetL2)) // L2 target
-        ->when($targetL1_L1, fn($c) => $c->push($targetL1_L1)) // L1 dari L1 target  ✅
-        ->when($targetL1_L2, fn($c) => $c->push($targetL1_L2)) // L2 dari L1 target  ✅
-        ->merge($directReporteesOfTarget)                // semua reportee target (L-1/L-2)
-        // ->merge($reporteesOfTargetL1)                    // semua reportee dari L1 target
-        ->merge($l1UnderTarget->pluck('employee_id'))    // L1 di bawah target
-        ->merge($superiorsOfL1s)                         // L1 & L2 dari setiap L1 di bawah target
-        ->filter()
-        ->unique()
-        ->values()
-        ->all();
+    if ($targetL1) $exclude->push($targetL1);
+    if ($targetL2) $exclude->push($targetL2);
+    if ($targetL1_L1) $exclude->push($targetL1_L1);
+    if ($targetL1_L2) $exclude->push($targetL1_L2);
 
-    // --- 8) Kandidat peers = semua karyawan yang TIDAK ada di exclusion list
-    return EmployeeAppraisal::select('id','employee_id','fullname','designation_name','manager_l1_id','manager_l2_id')
-        ->whereNotIn('employee_id', $exclude)
-        ->get();
+    $exclude
+        ->push(...$directReportees)
+        ->push(...$l1UnderTarget->pluck('employee_id')->all())
+        ->push(...$superiorsOfL1s->all());
+
+    $exclude = $exclude->filter()->unique()->values()->all();
+
+    // === peers = allEmp MINUS exclude
+    return $allEmp
+        ->reject(fn($e) => in_array($e->employee_id, $exclude))
+        ->values();
 }
+
 
 
 

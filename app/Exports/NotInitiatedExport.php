@@ -18,17 +18,15 @@ class NotInitiatedExport implements FromView, WithStyles
     use Exportable;
 
     protected $employeeId;
-    protected $appService;
     protected $period;
     protected $category;
     protected $data;
 
-    public function __construct($employeeId, $appService)
+    public function __construct($employeeId, $period)
     {
         $this->category = 'Goals';
         $this->employeeId = $employeeId;
-        $this->appService = $appService;
-        $this->period = $this->appService->goalPeriod();
+        $this->period = $period;
     }
 
     public function view(): View
