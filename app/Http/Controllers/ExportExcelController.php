@@ -97,8 +97,9 @@ class ExportExcelController extends Controller
     public function notInitiated(Request $request) 
     {
         $employee_id = $request->employee_id;
+        $period = $request->filterYear;
 
-        $data = new NotInitiatedExport($employee_id, $this->appService);
+        $data = new NotInitiatedExport($employee_id, $period);
         return Excel::download($data, 'import_team_goals.xlsx');
 
     }
@@ -106,8 +107,9 @@ class ExportExcelController extends Controller
     public function initiated(Request $request) 
     {
         $employee_id = $request->employee_id;
+        $period = $request->filterYear;
 
-        $data = new InitiatedExport($employee_id);
+        $data = new InitiatedExport($employee_id, $period);
         return Excel::download($data, 'employee_initiated_goals.xlsx');
 
     }

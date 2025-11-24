@@ -3,8 +3,10 @@
 namespace App\Exports;
 
 use App\Models\ApprovalLayer;
+use App\Models\ApprovalRequest;
 use App\Models\Employee;
 use Illuminate\Contracts\View\View;
+use Illuminate\Support\Facades\Auth;
 use Maatwebsite\Excel\Concerns\Exportable;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\FromView;
@@ -15,10 +17,12 @@ class InitiatedExport implements FromView, WithStyles
     use Exportable;
 
     protected $employeeId;
+    protected $period;
 
-    public function __construct($employeeId)
+    public function __construct($employeeId, $period)
     {
         $this->employeeId = $employeeId;
+        $this->period = $period;
     }
 
     public function view(): View
@@ -27,20 +31,20 @@ class InitiatedExport implements FromView, WithStyles
 
         if(Auth()->user()->isApprover()){
 
-            $query = ApprovalLayer::with(['employee','subordinates' => function ($query) use ($user){
-                $query->with(['manager', 'goal', 'initiated', 'approvalLayer', 'updatedBy', 'approval' => function ($query) {
-                    $query->with('approverName');
-                }])->whereHas('approvalLayer', function ($query) use ($user) {
-                    $query->where('employee_id', $user)->orWhere('approver_id', $user);
-                })->whereYear('created_at', now()->year);
-            }])
-            ->leftJoin('approval_requests', 'approval_layers.employee_id', '=', 'approval_requests.employee_id')
-            ->select('approval_layers.employee_id', 'approval_layers.approver_id', 'approval_layers.layer', 'approval_requests.created_at')
-            ->whereYear('approval_requests.created_at', now()->year)
-            ->whereHas('subordinates')->where('approver_id', $user);        
-        }
+            $query = ApprovalRequest::query();
 
-        $data = $query->get();
+            $query->where('category', 'Goals')->where('period', $this->period);
+
+            $query->whereHas('approvalLayer', function ($query) {
+                $query->where('approver_id', Auth::user()->employee_id);
+            });
+
+            $data = $query->with(['employee', 'manager', 'goal', 'initiated', 'approvalLayer'])->get();
+            
+        }
+        
+        // $data = $query->get();
+        // dd($data);
 
         return view('exports.initiated', compact('data'));
 

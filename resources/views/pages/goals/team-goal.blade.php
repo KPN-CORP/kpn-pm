@@ -289,6 +289,7 @@
                                             <form id="exportNotInitiatedForm" action="{{ route('team-goals.notInitiated') }}" method="POST">
                                                 @csrf
                                                 <input type="hidden" name="employee_id" id="employee_id" value="{{ Auth()->user()->employee_id }}">
+                                                <input type="hidden" name="filterYear" id="filterYear" value="{{ $filterYear ?? $period }}">
                                                 @if (count($notasks))
                                                     <button id="report-button" type="submit" class="btn btn-sm btn-success float-end"><i class="ri-download-cloud-2-line me-1"></i><span>{{ __('Download Template') }}</span></button>
                                                 @endif
