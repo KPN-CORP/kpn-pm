@@ -17,6 +17,13 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+function initSelect2($element) {
+    $element.select2({
+        theme: "bootstrap-5",
+        width: '100%' 
+    });
+}
+
 $(document).on('input change', '[name="weightage[]"]', function () {
   updateWeightageSummary();
 });
@@ -66,20 +73,30 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 // Function to fetch UoM data and populate select element
-function populateUoMSelect(select, callback) {
-  fetch("/units-of-measurement")
-    .then(r => r.json())
-    .then(data => {
-      Object.keys(data.UoM).forEach(category => {
-        const optgroup = $("<optgroup></optgroup>").attr("label", category);
-        data.UoM[category].forEach(unit => {
-          optgroup.append($("<option></option>").attr("value", unit).text(unit));
-        });
-        $(select).append(optgroup);
-      });
-    })
-    .then(() => { if(typeof callback==="function") callback(); })
-    .catch(err => console.error("Error fetching units of measurement:", err));
+function populateUoMSelect($select, callback) {
+    fetch("/units-of-measurement")
+        .then(r => r.json())
+        .then(data => {
+
+            // Reset + Tambahkan default option
+            $select
+                .empty()
+                .append('<option value="">- Select -</option>'); // DEFAULT
+
+            Object.keys(data.UoM).forEach(category => {
+                const $optgroup = $('<optgroup>').attr("label", category);
+
+                data.UoM[category].forEach(unit => {
+                    $optgroup.append(`<option value="${unit}">${unit}</option>`);
+                });
+
+                $select.append($optgroup);
+            });
+        })
+        .then(() => {
+            if (typeof callback === "function") callback();
+        })
+        .catch(err => console.error("Error fetching UoM data:", err));
 }
 
 document.addEventListener("DOMContentLoaded", function () {
@@ -174,10 +191,10 @@ document.addEventListener("DOMContentLoaded", function () {
              // Reinitialize auto-resize and character counter for new textareas
             initializeTextareaEvents();
 
-            var newSelect = $("#uom" + index);
-            populateUoMSelect(newSelect); // (hapus referensi goal.uom yang undefined)
-
-            newSelect.select2({ theme: "bootstrap-5" });
+            var $select = $("#uom" + index);
+            populateUoMSelect($select, function () {
+                initSelect2($select);
+            });
 
             document.querySelectorAll('[name="weightage[]"]').forEach(function(el){
                 el.addEventListener("keyup", updateWeightageSummary);
@@ -200,9 +217,10 @@ document.addEventListener("DOMContentLoaded", function () {
         // hapus card yang diklik (atau pakai .last() kalau memang mau selalu terakhir)
         $(this).closest(".card").remove();
 
+        reindexCards();
+
         // perbarui count dari DOM
-        var currentCount = wrapper.children(".card").length;
-        $("#count").val(currentCount);
+        $("#count").val($(".container-card .card").length);
 
         // (opsional) perbarui label "Goal N" agar rapi urut 1..N
         wrapper.children(".card").each(function(idx){
@@ -597,10 +615,12 @@ $(document).on('click', '#getLatestGoal', function(){
                   </div>
                 `);
 
-                const $sel = $("#uom" + index);
-                populateUoMSelect($sel, function () {
-                    $sel.val(g.uom ?? "").trigger("change");
+                const $select = $("#uom" + index);
+                populateUoMSelect($select, function () {
+                    initSelect2($select);
+                    $select.val(g.uom ?? "").trigger("change");
                 });
+
             });
 
             $('.select-uom').select2({ theme: "bootstrap-5" });
@@ -721,3 +741,27 @@ function hideSectionLoader(selector, opts){
 
 // Run initialization when page loads
 document.addEventListener("DOMContentLoaded", initializeTextareaEvents);
+
+function reindexCards() {
+    $(".container-card .card").each(function(i) {
+        const index = i + 1;
+
+        // update title
+        $(this).find(".card-title").text("Goal " + index);
+
+        // update target input
+        $(this).find('input[id^="target"]').attr("id", "target" + index);
+        $(this).find('input[oninput]').attr("oninput", `validateDigits(this, ${index})`);
+
+        // update UoM select
+        const $sel = $(this).find('select.select-uom');
+        $sel.attr("id", "uom" + index);
+        $sel.attr("data-id", index);
+
+        // update custom_uom
+        $(this).find('input[id^="custom_uom"]').attr("id", "custom_uom" + index);
+
+        // update type select
+        $(this).find('select.select-type').attr("id", "type" + index);
+    });
+}
