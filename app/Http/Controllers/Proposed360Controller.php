@@ -342,8 +342,6 @@ class Proposed360Controller extends Controller
         $link       = __('Propose List');
         $peers      = collect();
 
-        // dd($datas);
-
         return view('pages.proposed-360.app', compact(
             'parentLink','link','datas','peers','subordinates','self','selfPeers','period','selfEnabled'
         ));
@@ -387,9 +385,6 @@ private function getRoleNameByStep(int|string $flowId, string $stepName)
     });
 }
 
-
-
-
 private function buildPeerCandidatesFor(string $targetEmpId, Collection $allEmp)
 {
     if (!$allEmp->has($targetEmpId)) {
@@ -406,8 +401,8 @@ private function buildPeerCandidatesFor(string $targetEmpId, Collection $allEmp)
         ? $allEmp[$targetL1]
         : null;
 
-    $targetL1_L1 = $targetL1Row?->manager_l1_id ? (string) $targetL1Row->manager_l1_id : null;
-    $targetL1_L2 = $targetL1Row?->manager_l2_id ? (string) $targetL1Row->manager_l2_id : null;
+    $targetL1_L1 = $targetL1Row ? (string) ($targetL1Row->manager_l1_id ?? '') : null;
+    $targetL1_L2 = $targetL1Row ? (string) ($targetL1Row->manager_l2_id ?? '') : null;
 
     // Semua employees sebagai koleksi
     $all = $allEmp->values();
@@ -775,11 +770,13 @@ private function buildPeerCandidatesFor(string $targetEmpId, Collection $allEmp)
         DB::beginTransaction();
         try {
             if ($data['action']==='APPROVE') {
+
                 // APPROVE dengan overwrite pilihan terbaru dari form:
-                $service->approve($data['form_id'], $engine, $request->input('peers'), $request->input('subordinates'));
+                $result = $service->approve($data['form_id'], $engine, $request->input('peers'), $request->input('subordinates'), $request->input('having_subs'));
             } else {
                 $service->reject($data['form_id'], $engine, $data['sendback_to'] ?? null, $message);
             }
+
             DB::commit();
             Log::info('proposed360.action.success', ['trace'=>$trace,'form_id'=>$data['form_id'],'action'=>$data['action']]);
             return redirect()->route('proposed360')->with('success','Approval processed successfully');

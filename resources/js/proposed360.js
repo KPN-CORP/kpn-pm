@@ -6,7 +6,7 @@ import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 (function(){
   function pickValues(form, selector){
-    return Array.from(form.querySelectorAll(selector))
+    return [...form.querySelectorAll(selector)]
       .map(el => el && el.value ? String(el.value) : null)
       .filter(Boolean)
       .filter((v,i,a) => a.indexOf(v) === i)
@@ -40,48 +40,49 @@ import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
       if (!el) return false;
 
       const v = (el.value ?? '').toString().trim().toLowerCase();
-      console.log('subs for', employeeId, '=>', v);
+      // console.log('subs for', employeeId, '=>', v);
 
       return v === '1' || v === 'true' || v === 'yes';
   }
 
 
   document.querySelectorAll('.btn-approve').forEach(btn => {
-    btn.addEventListener('click', function(e){
-      const approveForm = e.currentTarget.closest('form');
-      
-      const cloneArea   = approveForm.querySelector('.js-clone-area');
-      
-      const sourceForm  = document.getElementById(e.currentTarget.getAttribute('data-source-form'));
-      if (!sourceForm || !cloneArea) { approveForm.submit(); return; }
+      btn.addEventListener('click', function(e){
+          const approveForm = e.currentTarget.closest('form');
+          const cloneArea   = approveForm.querySelector('.js-clone-area');
+          const sourceForm  = document.getElementById(e.currentTarget.dataset.sourceForm);
 
-      const cardBody = e.currentTarget.closest('.card-body');
-      const employeeLabel = cardBody?.querySelector('[data-employee-label]')?.textContent?.trim() ?? '';
-      // find the employee input inside the card and read its value (avoid jQuery .val and document.getElementById on element)
-      const employeeEl = cardBody && (cardBody.querySelector('#employeeId'));
-      const employeeId = employeeEl ? (employeeEl.value ?? '') : '';
+          if (!sourceForm || !cloneArea) {
+              approveForm.submit();
+              return;
+          }
 
-      const peers = pickValues(sourceForm, 'select[name="peers[]"]');
-      const subs  = pickValues(sourceForm, 'select[name="subordinates[]"]');      
-      
-      if (hasSubordinates(employeeId)) {
-        if (window.Swal) Swal.fire('Subordinates required', 'Pilih minimal 1 bawahan untuk melanjutkan.', 'warning');
-        else alert('Pilih minimal 1 bawahan untuk melanjutkan.');
-        return;
-      }
+          const employeeId = sourceForm.querySelector('input[name="employee_id"]')?.value ?? '';
 
-      // if (!validateFirstLayer(peers, subs, employeeLabel, hasSubordinates(employeeId))) return;
+          const peers = pickValues(sourceForm, 'select[name="peers[]"]');
+          const subs  = pickValues(sourceForm, 'select[name="subordinates[]"]');
 
-      // ⬇️ Clear SEKALI, lalu APPEND dua-duanya
-      cloneArea.innerHTML = '';
-      appendHiddenList(cloneArea, 'peers', peers);
-      appendHiddenList(cloneArea, 'subordinates', subs);
+          console.log(subs);
+          
 
-      const sp = e.currentTarget.querySelector('.spinner-border'); if (sp) sp.classList.remove('d-none');
-      e.currentTarget.disabled = true;
-      approveForm.submit();
-    });
-  });
+          // FIXED: hanya blokir jika punya subordinate tapi tidak input nilai
+          if ( hasSubordinates(employeeId) && subs.length === 0 ) {
+              Swal.fire('Subordinates required', 'Pilih minimal 1 bawahan untuk melanjutkan.', 'warning');
+              return;
+          }
+
+          cloneArea.innerHTML = '';
+          appendHiddenList(cloneArea, 'peers', peers);
+          appendHiddenList(cloneArea, 'subordinates', subs);
+
+          const sp = e.currentTarget.querySelector('.spinner-border');
+          if (sp) sp.classList.remove('d-none');
+          e.currentTarget.disabled = true;
+
+          approveForm.submit();
+      });
+});
+
 })();
 
 (function(){

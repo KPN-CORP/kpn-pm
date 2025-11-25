@@ -80,14 +80,13 @@ class ApprovalEngine
 
     public function approve(string $formId, string $actorEmpId): void
     {
-        $role = Auth::user()->roles->first()->name;
+        $role = Auth::user()->roles?->first()?->name;
 
         /** @var \App\Models\ApprovalRequest $req */
         $req = ApprovalRequest::with(['initiated'])
             ->where('form_id', $formId)
             ->lockForUpdate()
             ->firstOrFail();
-
         if ($req->status !== 'Pending') return;
 
         $isOverride = $this->hasOverridePrivilege();
@@ -463,8 +462,8 @@ class ApprovalEngine
             if ($role === 'proposer') return (string) $proposerEmpId;
 
             // System role → KEMBALIKAN NAMA ROLE (string)
+            dd($roles);
             $sysRoleName = $this->canonicalRoleName($role);
-            dd($sysRoleName);
             if ($sysRoleName) return $sysRoleName;
         }
 

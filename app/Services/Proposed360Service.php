@@ -167,9 +167,10 @@ class Proposed360Service
         string $formId,
         ApprovalEngine $engine,
         ?array $peers = null,
-        ?array $subordinates = null
+        ?array $subordinates = null,
+        $havingSubs
     ): void {
-        DB::transaction(function () use ($formId, $engine, $peers, $subordinates) {
+        DB::transaction(function () use ($formId, $engine, $peers, $subordinates, $havingSubs) {
             $actorEmpId = (string) Auth::user()->employee_id;
 
             // --- Normalisasi input (hanya jika parameter dikirim) ---
@@ -184,35 +185,42 @@ class Proposed360Service
                     ->all();
             };
 
+            
             $peersNorm = $norm($peers);
             $subsNorm  = $norm($subordinates);
-
+            
             // --- Validasi (wajib layer-1 hanya jika field dikirim ke service) ---
             if (is_array($peers) || is_array($subordinates)) {
+                $rules = [
+                    'peers'     => ['array','max:3'],
+                    'peers.0'   => ['required'],   // peers L1 wajib
+                    'peers.*'   => ['distinct'],
+
+                    'subordinates' => ['array','max:3'],
+                    'subordinates.*' => ['distinct'],
+                ];
+
+                if ($havingSubs) {
+                    $rules['subordinates.0'] = ['required'];
+                }
+
                 Validator::make(
                     ['peers' => $peersNorm, 'subordinates' => $subsNorm],
+                    $rules,
                     [
-                        'peers'               => ['array','max:3'],
-                        'peers.0'             => ['required'],   // layer-1 wajib jika peers dikirim
-                        'peers.*'             => ['distinct'],
-                        'subordinates'        => ['array','max:3'],
-                        'subordinates.0'      => ['required'],   // layer-1 wajib jika subordinates dikirim
-                        'subordinates.*'      => ['distinct'],
-                    ],
-                    [
-                        'peers.0.required'        => 'Peers layer 1 wajib diisi.',
-                        'subordinates.0.required' => 'Subordinate layer 1 wajib diisi.',
+                        'peers.0.required'         => 'Peers layer 1 wajib diisi.',
+                        'subordinates.0.required'  => 'Subordinate layer 1 wajib diisi.',
                     ]
                 )->validate();
             }
-
+            
             // --- Update transaksi bila ada input baru ---
             if (is_array($peers) || is_array($subordinates)) {
                 $trx = \App\Models\Proposed360::lockForUpdate()->findOrFail($formId);
                 $payload = [];
                 if (is_array($peers))        $payload['peers'] = $peersNorm;
                 if (is_array($subordinates)) $payload['subordinates'] = $subsNorm;
-
+                
                 if (!empty($payload)) {
                     // Catatan: asumsikan casts JSON di model; jika tidak, json_encode terlebih dulu.
                     $payload['updated_by'] = Auth::id();
@@ -223,7 +231,7 @@ class Proposed360Service
                     ]);
                 }
             }
-
+            
             // --- Lanjut approve via engine (akan trigger finalize di engine) ---
             $engine->approve($formId, $actorEmpId);
         });
