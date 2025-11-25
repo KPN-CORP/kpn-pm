@@ -177,7 +177,7 @@ document.addEventListener("DOMContentLoaded", function () {
             var newSelect = $("#uom" + index);
             populateUoMSelect(newSelect); // (hapus referensi goal.uom yang undefined)
 
-            $('.select-uom').select2({ theme: "bootstrap-5" });
+            newSelect.select2({ theme: "bootstrap-5" });
 
             document.querySelectorAll('[name="weightage[]"]').forEach(function(el){
                 el.addEventListener("keyup", updateWeightageSummary);

@@ -97,22 +97,22 @@ class AdminTasksController extends Controller
             $step = (int) $t->current_step;
 
             // CASE 1: specific user
-            if (ctype_digit((string) $cur)) {
+            if (ctype_digit((string) $t->current_approval_id)) {
                 $t->resolved_roles = [];
                 $t->approval_candidates = $this->buildRoleCandidatesMap($t->current_approval_id ? [(string)$t->current_approval_id] : []);
                 return $t;
-            }
 
+            }
+            
             // CASE 2: flow role
             $roles = $this->getStepRoles($cur, $step);
-
+            
             $t->resolved_roles      = $roles;
             $t->approval_candidates = $this->buildRoleCandidatesMap($roles);
-
+            
             return $t;
         });
-
-
+        
         //=========== MAP EMPLOYEE ===========
         $empIds = $tasks->pluck('employee_id')->filter()->unique()->values()->all();
         $empMap = EmployeeAppraisal::select('employee_id','fullname','designation_name')

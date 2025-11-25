@@ -122,7 +122,7 @@
                     <div class="col">
                         <div class="card mb-0">
                             <div class="card-body p-1 p-md-2 d-flex flex-column gap-2">
-                                <input type="hidden" id="employeeId" value="{{ $row->employee_id }}">
+                                <input type="hidden" id="employeeId_{{ $row->employee_id }}" value="{{ $row->employee_id }}">
                                 <div class="row">
                                     <div class="col-md-4 me-2">
                                         <div class="row">
@@ -215,7 +215,7 @@
                                     <input type="hidden" name="mode" value="RESUBMIT"><!-- optional flag -->
                                 @endif
                                 <input type="hidden" name="scope" value="self">
-                                <input type="hidden" name="employee_id" value="{{ $row->employee_id }}">
+                                <input type="hidden" id="employeeId_{{ $row->employee_id }}" name="employee_id" value="{{ $row->employee_id }}">
                                 <input type="hidden" name="appraisal_year" value="{{ $appraisalYear }}">
                                 <div class="row">
                                     <div class="col">
@@ -458,7 +458,7 @@
                                     </div>
                                 </div>
                                 @endif
-                                <input type="hidden" id="employeeId" value="{{ $row->employee_id }}">
+                                <input type="hidden" id="employeeId_{{ $row->employee_id }}" value="{{ $row->employee_id }}">
 
                                 <div class="row">
                                     <div class="col-md-4 me-2">
@@ -513,6 +513,7 @@
                                                     @csrf
                                                         <input type="hidden" name="form_id" value="{{ $approval->form_id }}">
                                                         <input type="hidden" name="action" value="APPROVE">
+                                                        <input type="hidden" name="having_subs" id="havingSubs_{{ $row->employee_id }}" value="{{ !empty($row->subordinates->first()) }}">
 
                                                         {{-- Hidden holder tempat inject peers[] & subordinates[] sebelum submit --}}
                                                         <span class="js-clone-area"></span>
@@ -626,7 +627,6 @@
                                     </div>
                                 </div>
                                 @if (!empty($row->subordinates->first()))
-                                <input type="hidden" id="havingSubs_{{ $row->employee_id }}" value="{{ !empty($row->subordinates->first()) }}">
                                 <div class="row">
                                     <div class="col">
                                         <div class="card bg-light-subtle border border-light shadow-none mb-0">
