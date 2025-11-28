@@ -85,9 +85,9 @@
                                   <div class="card-body">
                                       <div class='row align-items-end'>
                                           <div class='col'><h5 class='card-title fs-16 mb-0 text-primary'>Goal {{ $index + 1 }}</h5></div>
-                                          @if ($index >= 1)
+                                          {{-- @if ($index >= 1)
                                               <div class='col-auto'><a class='btn-close remove_field' type='button'></a></div>
-                                          @endif
+                                          @endif --}}
                                       </div>
                                       <div class="row mt-2">
                                           <div class="col-md">
