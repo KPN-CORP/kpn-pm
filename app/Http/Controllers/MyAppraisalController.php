@@ -691,10 +691,13 @@ class MyAppraisalController extends Controller
 
             // View Cement only //
             $viewAchievement = $employee->group_company == 'Cement' ? true : false;
-
+            
+            $sefInitiate = $appraisal->created_by == Auth::id();
+            
             $viewCategory = 'Edit';
+            
 
-            return view('pages.appraisals.edit', compact('step', 'goal', 'appraisal', 'goalData', 'formCount', 'filteredFormData', 'link', 'data', 'approvalRequest', 'parentLink', 'approval', 'formGroupData', 'ratings', 'viewCategory', 'achievements', 'viewAchievement'));
+            return view('pages.appraisals.edit', compact('step', 'goal', 'appraisal', 'goalData', 'formCount', 'filteredFormData', 'link', 'data', 'approvalRequest', 'parentLink', 'approval', 'formGroupData', 'ratings', 'viewCategory', 'achievements', 'viewAchievement', 'sefInitiate'));
         }
 
     }

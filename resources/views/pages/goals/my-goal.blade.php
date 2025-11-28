@@ -13,7 +13,7 @@
     will-change: opacity, transform, max-height;
     opacity: 1;
     transform: translateY(0);
-    max-height: 2000px; /* fallback for large content, can be overridden inline */
+    max-height: 5000px; /* fallback for large content, can be overridden inline */
 }
 
 .goal-card.is-hiding {
@@ -29,7 +29,7 @@
 .goal-card.is-showing {
     opacity: 1;
     transform: translateY(0);
-    max-height: 2000px; /* or set via JS for dynamic content */
+    max-height: 5000px; /* or set via JS for dynamic content */
     padding-top: 1rem;
     padding-bottom: 1rem;
     pointer-events: auto;

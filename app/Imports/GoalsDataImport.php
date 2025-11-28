@@ -161,7 +161,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
                 $existLayer = ApprovalLayer::where('approver_id', $data['current_approval_id'])
                                     ->where('employee_id', $employeeId)->max('layer');
 
-                if ($existLayer) {
+                if (!$existLayer) {
                     $message = "Cannot find Layer ID : " . $data['current_approval_id'] . " on Employee ID: $employeeId.";
                     Log::info($message);
                     
