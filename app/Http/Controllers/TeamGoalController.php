@@ -483,15 +483,16 @@ class TeamGoalController extends Controller
             
             $import = new GoalsDataImportManager($filePath, $this->user, $this->period);
             Excel::import($import, $filePath);
-
+            
             // Simpan data ke database setelah semua baris diproses
             $import->saveToDatabase();
             
             // Simpan transaksi
             $import->saveTransaction();
-
+            
             $invalidEmployees = $import->getInvalidEmployees();
-    
+            dd($invalidEmployees);
+            
             $message = 'Data imported successfully.';
 
             if (!empty($invalidEmployees)) {
