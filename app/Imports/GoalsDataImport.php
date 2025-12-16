@@ -38,21 +38,21 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
         Log::info("Processing row: ", $row);
 
         try {
-            
-            static $headersChecked = false;  
 
-            if (!$headersChecked) {  
-                $headers = collect($row)->keys();  
-                $expectedHeaders = ['employee_id', 'employee_name', 'category', 'kpi', 'target', 'uom', 'weightage', 'type', 'description', 'current_approver_id', 'period'];  
+            static $headersChecked = false;
 
-                if (!collect($expectedHeaders)->diff($headers)->isEmpty()) {  
-                    throw ValidationException::withMessages([  
-                        'error' => 'Invalid excel format. The header must contain Employee_ID, Employee_Name, KPI, Target, UOM, Weightage, Type, Description, Current Approver ID, Period.',  
-                    ]);  
-                }  
+            if (!$headersChecked) {
+                $headers = collect($row)->keys();
+                $expectedHeaders = ['employee_id', 'employee_name', 'category', 'kpi', 'target', 'uom', 'weightage', 'type', 'description', 'current_approver_id', 'period'];
 
-                $headersChecked = true;  
-            }  
+                if (!collect($expectedHeaders)->diff($headers)->isEmpty()) {
+                    throw ValidationException::withMessages([
+                        'error' => 'Invalid excel format. The header must contain Employee_ID, Employee_Name, KPI, Target, UOM, Weightage, Type, Description, Current Approver ID, Period.',
+                    ]);
+                }
+
+                $headersChecked = true;
+            }
 
             $validate = Validator::make($row, [
                 'employee_id' => 'digits:11', // Ensure employee_id is exactly 11 digits
@@ -61,7 +61,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
 
             if ($validate->fails()) {
                 $errors = $validate->errors(); // Get validation errors
-                            
+
                 // Check if 'employee_id' has errors
                 if ($errors->has('employee_id')) {
                     $this->detailError[] = [
@@ -69,7 +69,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
                         'message' => "Employee ID must contain 11 digits.", // Get the first error message
                     ];
                 }
-                
+
                 // Check if 'weightage' has errors
                 if ($errors->has('weightage')) {
                     $this->detailError[] = [
@@ -80,15 +80,15 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
             }
 
             $path = base_path('resources/goal.json');
-    
+
             // Check if the JSON file exists
             if (!File::exists($path)) {
                 abort(500, 'JSON file does not exist.');
             }
-        
+
             // Read the contents of the JSON file
             $options = json_decode(File::get($path), true);
-        
+
             $uomOption = $options['UoM'];
 
             $validUoms = collect($uomOption)->flatten()->all();
@@ -96,7 +96,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
             if (in_array($row['uom'], $validUoms, true)) {
                 $uom = $row['uom'];
                 $custom_uom = null;
-            }else{
+            } else {
                 $uom = "Other";
                 $custom_uom = $row['uom'];
             }
@@ -104,21 +104,20 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
             $employeeId = $row['employee_id'];
 
             $employeeExist = Employee::where('employee_id', $employeeId)
-                    ->where('fullname', 'like', '%' . $row['employee_name'] . '%')
-                    ->exists();
+                ->exists();
 
-                if (!$employeeExist) {
-                    $message = "Employee : " . $row['employee_name'] ." with ID " . $employeeId . " not exist.";
-                    Log::info($message);
-                    
-                    $this->detailError[] = [
-                        'employee_id' => $employeeId,
-                        'message' => $message,
-                    ];
+            if (!$employeeExist) {
+                $message = "Employee : " . $row['employee_name'] . " with ID " . $employeeId . " not exist.";
+                Log::info($message);
 
-                    $this->errorCount++;    
-                    return;
-                }
+                $this->detailError[] = [
+                    'employee_id' => $employeeId,
+                    'message' => $message,
+                ];
+
+                $this->errorCount++;
+                return;
+            }
 
             // Simpan data KPI ke array berdasarkan employee_id
             if (!isset($this->employeesData[$employeeId])) {
@@ -151,7 +150,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
     public function saveToDatabase()
     {
         ksort($this->employeesData, SORT_NUMERIC);
-        
+
         foreach ($this->employeesData as $employeeId => $data) {
 
             DB::beginTransaction();
@@ -159,12 +158,12 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
             try {
 
                 $existLayer = ApprovalLayer::where('approver_id', $data['current_approval_id'])
-                                    ->where('employee_id', $employeeId)->max('layer');
+                    ->where('employee_id', $employeeId)->max('layer');
 
                 if (!$existLayer) {
                     $message = "Cannot find Layer ID : " . $data['current_approval_id'] . " on Employee ID: $employeeId.";
                     Log::info($message);
-                    
+
                     $this->detailError[] = [
                         'employee_id' => $employeeId,
                         'message' => $message,
@@ -182,7 +181,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
                 if ($existsInAppraisals) {
                     $message = "Employee ID: $employeeId already has appraisal data.";
                     Log::info($message);
-                    
+
                     $this->detailError[] = [
                         'employee_id' => $employeeId,
                         'message' => $message,
@@ -204,14 +203,14 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
 
                 // Loop through each KPI entry and sum the weightage
                 foreach ($formData as $entry) {
-                    $totalWeightage += (float)($entry['weightage'] ?? 0); // Ensure float conversion
+                    $totalWeightage += (float) ($entry['weightage'] ?? 0); // Ensure float conversion
                 }
 
                 // Validate if total weightage is exactly 100
                 if ($totalWeightage !== 100.0) {
                     $message = "Total weightage for Employee ID $employeeId must be 100%. Current total: $totalWeightage%";
                     Log::info($message);
-                    
+
                     $this->detailError[] = [
                         'employee_id' => $employeeId,
                         'message' => $message,
@@ -251,7 +250,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
                 ]);
                 Log::info("Old goals updated for Employee ID: " . $employeeId);
 
-                
+
                 $approvalRequests = DB::table('approval_requests')
                     ->where('employee_id', $employeeId)
                     ->where('category', $data['category'])
