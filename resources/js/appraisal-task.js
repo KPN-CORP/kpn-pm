@@ -35,20 +35,32 @@ $(document).ready(function() {
                             let scores = getScores(rowData);
 
                             let rowColumns = csvRows[i].split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
-                            while (rowColumns.length < 10) rowColumns.push('');
+
+                            const SCORE_START_INDEX = 7;
 
                             // masukkan semua score sesuai urutan key
-                            allScoreKeys.forEach(k => {
-                                rowColumns.push(scores[k]);
+                            allScoreKeys.forEach((k, index) => {
+                                let targetIndex = SCORE_START_INDEX + index;
+                                // Jika kolom di rowColumns sudah ada, ganti nilainya
+                                if (targetIndex < rowColumns.length) {
+                                    rowColumns[targetIndex] = scores[k];
+                                } else {
+                                    // Jika belum ada (kasus edge), tambahkan saja (seperti sebelumnya)
+                                    rowColumns.push(scores[k]);
+                                }
                             });
 
                             csvRows[i] = rowColumns.map(value => {
-                                value = value.replace(/\r/g, '');
-                                if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
-                                if (value.includes(',') || value.includes('"')) {
-                                    return `"${value.replace(/"/g, '""')}"`;
+
+                                let stringValue = String(value); 
+                                stringValue = stringValue.replace(/\r/g, ''); 
+                                if (stringValue.startsWith('"') && stringValue.endsWith('"')) {
+                                    stringValue = stringValue.slice(1, -1);
                                 }
-                                return value;
+                                if (stringValue.includes(',') || stringValue.includes('"')) {
+                                    return `"${stringValue.replace(/"/g, '""')}"`;
+                                }
+                                return stringValue;
                             }).join(",");
                         }
                     }
@@ -152,12 +164,20 @@ $(document).ready(function() {
                             });
 
                             csvRows[i] = rowColumns.map(value => {
-                                value = value.replace(/\r/g, '');
-                                if (value.startsWith('"') && value.endsWith('"')) value = value.slice(1, -1);
-                                if (value.includes(',') || value.includes('"')) {
-                                    return `"${value.replace(/"/g, '""')}"`;
+
+                                let stringValue = String(value); 
+
+                                stringValue = stringValue.replace(/\r/g, ''); 
+
+                                if (stringValue.startsWith('"') && stringValue.endsWith('"')) {
+                                    stringValue = stringValue.slice(1, -1);
                                 }
-                                return value;
+
+                                if (stringValue.includes(',') || stringValue.includes('"')) {
+                                    return `"${stringValue.replace(/"/g, '""')}"`;
+                                }
+
+                                return stringValue;
                             }).join(",");
                         }
                     }
@@ -282,7 +302,7 @@ function addChildRowToggle(table, tableId, speed = 250) {
 
 // Function to format child row content
 function formatChildRow(rowData) {
-    console.log(rowData);
+    // console.log(rowData);
     
     if (!rowData?.kpi || !rowData.kpi.kpi_status) {
         return '<div>No scores available</div>';
@@ -387,7 +407,7 @@ $(document).ready(function() {
             
             // Use validateInput to validate the field's value
             if (!validateInput(inputVal)) {
-                console.log(inputVal);
+                // console.log(inputVal);
                 $(this).siblings('.error-message').text(errorMessages);
                 $(this).addClass('border-danger');
                 isValid = false;

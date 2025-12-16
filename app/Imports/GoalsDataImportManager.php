@@ -52,7 +52,7 @@ class GoalsDataImportManager implements ToModel, WithValidation, WithHeadingRow
 
             if (!$headersChecked) {  
                 $headers = collect($row)->keys();  
-                $expectedHeaders = ['employee_id', 'kpi', 'target', 'uom', 'weightage', 'type', 'description'];  
+                $expectedHeaders = ['employee_id', 'kpi', 'target', 'uom', 'weightage', 'type'];  
 
                 if (!collect($expectedHeaders)->diff($headers)->isEmpty()) {  
                     throw ValidationException::withMessages([  

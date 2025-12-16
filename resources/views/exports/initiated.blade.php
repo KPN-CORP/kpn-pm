@@ -15,6 +15,7 @@
         <th>Current Approver ID</th>
         <th>Initiated By</th>
         <th>Initiated By ID</th>
+        <th>Description</th>
     </tr>
     </thead>
     <tbody>
@@ -41,6 +42,7 @@
                         <td>{{ $row->manager->employee_id }}</td>
                         <td>{{ $row->initiated->name }}</td>
                         <td>{{ $row->initiated->employee_id }}</td>
+                        <td>{{ $item['description'] }}</td>
                     </tr>
                 @endforeach
             @endif
