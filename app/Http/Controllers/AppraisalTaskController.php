@@ -471,19 +471,31 @@ public function getTeamData(Request $request)
 
         $achievements = Achievements::where('employee_id', $id)->where('period', $period)->get();
         
+        $contributorCheck = AppraisalContributor::where('employee_id', $id)->where('period', $period)->first();
+        $contributorTransaction = AppraisalContributor::where('employee_id', $id)
+        ->where('period', $period)
+        ->where('created_by', Auth::id())
+        ->exists(); 
+
+        $contributorData = AppraisalContributor::where('employee_id', $id)
+        ->where('period', $period)
+        ->where('created_by', Auth::id())
+        ->first(); 
+        
         $appraisal = Appraisal::with(['employee', 'approvalRequest' => function($query) use ($period) {
             $query->where('category', 'Appraisal')->where('period', $period);
+            
         }])->where('employee_id', $id)->where('period', $period)->first();
+
+        if ($contributorData) {
+            $formData = json_decode($contributorData->form_data, true);
+        } else {
+            $formData = json_decode($appraisal->form_data, true);
+        }
 
         $approverId = ($type === 'onbehalf')
             ? $appraisal->approvalRequest->current_approval_id
             : Auth::user()->employee_id;
-
-        $contributorCheck = AppraisalContributor::where('employee_id', $id)->where('period', $period)->first();
-        $contributorTransaction = AppraisalContributor::where('employee_id', $id)
-                                    ->where('period', $period)
-                                    ->where('created_by', Auth::id())
-                                    ->exists(); 
 
         $appraisalContributor = AppraisalContributor::where('employee_id', $id)->where('contributor_id', $approverId)->where('period', $period)->first();
         
@@ -509,10 +521,8 @@ public function getTeamData(Request $request)
             $approval = ApprovalLayerAppraisal::where('employee_id', $appraisal->employee_id)->where('approver_id', $approverId )->where('layer_type', '!=', 'calibrator')->first();
 
             $appraisalId = $appraisal->id;
-            
-            $data = json_decode($appraisal['form_data'], true);
-    
-            $achievement = array_filter($data['formData'], function ($form) {
+                
+            $achievement = array_filter($formData['formData'], function ($form) {
                 return $form['formName'] === 'KPI';
             });
                 
@@ -525,7 +535,6 @@ public function getTeamData(Request $request)
             }
 
             // Read the contents of the JSON file
-            $formData = json_decode($appraisal->form_data, true);
             
             $selfReviewData = [];
             foreach ($formData['formData'] as $item) {
