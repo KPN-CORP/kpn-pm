@@ -471,6 +471,7 @@ public function getTeamData(Request $request)
 
         $achievements = Achievements::where('employee_id', $id)->where('period', $period)->get();
         
+        
         $contributorCheck = AppraisalContributor::where('employee_id', $id)->where('period', $period)->first();
         $contributorTransaction = AppraisalContributor::where('employee_id', $id)
         ->where('period', $period)
@@ -487,11 +488,22 @@ public function getTeamData(Request $request)
             
         }])->where('employee_id', $id)->where('period', $period)->first();
 
-        if ($contributorData) {
+        // if ($contributorData) {
+        //     $formData = json_decode($contributorData->form_data, true);
+        // } else {
+        //     $formData = json_decode($appraisal->form_data, true);
+        // }
+        
+        if ($contributorData && $contributorData->form_data) {
             $formData = json_decode($contributorData->form_data, true);
-        } else {
+        } elseif ($appraisal && $appraisal->form_data) {
             $formData = json_decode($appraisal->form_data, true);
+        } else {
+            $formData = [
+                'formData' => []
+            ];
         }
+
 
         $approverId = ($type === 'onbehalf')
             ? $appraisal->approvalRequest->current_approval_id
@@ -522,17 +534,36 @@ public function getTeamData(Request $request)
 
             $appraisalId = $appraisal->id;
                 
-            $achievement = array_filter($formData['formData'], function ($form) {
-                return $form['formName'] === 'KPI';
-            });
+            // $achievement = array_filter($formData['formData'], function ($form) {
+            //     // return $form['formName'] === 'KPI';
+            //     return in_array($form['formName'] ?? '', ['Culture', 'Leadership']);
+            // });
                 
-            foreach ($achievement[0] as $key => $formItem) {
-                if (isset($goalData[$key])) {
-                    $combinedData[$key] = array_merge($formItem, $goalData[$key]);
-                } else {
-                    $combinedData[$key] = $formItem;
+            // foreach ($achievement[0] as $key => $formItem) {
+            //     if (isset($goalData[$key])) {
+            //         $combinedData[$key] = array_merge($formItem, $goalData[$key]);
+            //     } else {
+            //         $combinedData[$key] = $formItem;
+            //     }
+            // }
+            
+            $achievement = array_values(array_filter(
+                $formData['formData'] ?? [],
+                fn ($form) => in_array($form['formName'] ?? '', ['Culture', 'Leadership'])
+            ));
+            
+            if (empty($achievement)) {
+                $achievement = [];
+            } else {
+                foreach ($achievement[0] as $key => $formItem) {
+                    if (isset($goalData[$key])) {
+                        $combinedData[$key] = array_merge($formItem, $goalData[$key]);
+                    } else {
+                        $combinedData[$key] = $formItem;
+                    }
                 }
             }
+
 
             // Read the contents of the JSON file
             
