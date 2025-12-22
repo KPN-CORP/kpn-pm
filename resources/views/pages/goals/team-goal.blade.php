@@ -342,7 +342,7 @@
                                                             $doj = $accessMenu['doj'] ?? null;
                                                             $managerL1 = $notask?->employee?->managerL1;
                                                         @endphp
-                                                        @if ((!$filterYear || $filterYear == $period) && $doj && $goals && $notask->isManager)
+                                                        @if ((!$filterYear || $filterYear == $period) && $goals && $notask->isManager)
                                                             <button data-id="{{ encrypt($notask->employee->employee_id) }}" id="initiateBtn{{ $index }}" class="btn btn-outline-primary btn-sm">{{ __('Initiate') }}</button>
                                                         @else
                                                             <div><a href="javascript:void(0)" id="approval{{ $employeeId }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="Manager L1 : {{ $managerL1 ? $managerL1->fullname.' ('.$managerL1->employee_id.')' : '-' }}" data-bs-id="{{ $employeeId }}" class="badge bg-warning fw-bold rounded-pill py-1 px-2">view L1</a></div>
