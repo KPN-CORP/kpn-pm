@@ -997,7 +997,6 @@ public function getTeamData(Request $request)
 
     public function storeInitiate(Request $request)
     {
-        $submit_status = 'Submitted';
         $submit_type = $request->submit_type == 'submit_draft' ? 'Draft' : 'Approved';
         $messages = $request->submit_type == 'submit_draft' ? 'Draft saved successfully.' : 'Appraisal submitted successfully.';
         $period = $this->appService->appraisalPeriod();
@@ -1017,6 +1016,10 @@ public function getTeamData(Request $request)
 
         try {
             $contributorData = ApprovalLayerAppraisal::select('approver_id', 'layer_type')->where('approver_id', Auth::user()->employee_id)->where('layer_type', 'manager')->where('employee_id', $validatedData['employee_id'])->first();
+            
+            if (!$contributorData) {
+                throw new Exception('No manager layer found for this employee.');
+            }
 
             // Extract formGroupName
             $formGroupName = $validatedData['formGroupName'];
@@ -1029,6 +1032,10 @@ public function getTeamData(Request $request)
             ];
 
             $goals = Goal::with(['employee'])->where('employee_id', $validatedData['employee_id'])->where('period', $period)->first();
+            
+            if (!$goals) {
+                throw new Exception("No goals found for this period ($period).");
+            }
 
             $goalData = json_decode($goals->form_data, true);
 
@@ -1068,29 +1075,38 @@ public function getTeamData(Request $request)
                 $appraisal->form_group_id = $validatedData['form_group_id'];
                 $appraisal->category = $this->category;
                 $appraisal->form_data = json_encode($datas); // Store the form data as JSON
-                $appraisal->form_status = $submit_status;
+                $appraisal->form_status = $submit_type;
                 $appraisal->period = $period;
                 $appraisal->file = empty($paths) ? null : json_encode($paths);
                 $appraisal->created_by = Auth::user()->id;
                 
-                $appraisal->save();
+                if (!$appraisal->save()) {
+                    throw new Exception('Failed to save appraisal data.');
+                }
                 
                 $calibrationGroupID = $masterCalibration->id_calibration_group;
 
+                // dd($datas, $goalData, $contributorData->layer_type, $goals->employee, $period);
+
                 $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee, $period);
 
-                AppraisalContributor::create([
+
+                $contributor = AppraisalContributor::create([
                     'appraisal_id' => $appraisal->id,
                     'employee_id' => $validatedData['employee_id'],
                     'contributor_id' => $contributorData->approver_id,
                     'contributor_type' => $contributorData->layer_type,
                     // Add additional data here
                     'form_data' => json_encode($datas),
-                    'rating' => $formDatas['contributorRating'],
+                    'rating' => $formDatas['contributorRating'] ?? null,
                     'status' => $submit_type,
                     'period' => $period,
                     'created_by' => Auth::user()->id
                 ]);
+                
+                if (!$contributor) {
+                    throw new Exception('Failed to create appraisal contributor.');
+                }
                 
                 $snapshot =  new ApprovalSnapshots;
                 $snapshot->id = Str::uuid();
@@ -1099,7 +1115,9 @@ public function getTeamData(Request $request)
                 $snapshot->employee_id = $validatedData['employee_id'];
                 $snapshot->created_by = Auth::user()->id;
                 
-                $snapshot->save();
+                if (!$snapshot->save()) {
+                    throw new Exception('Failed to save approval snapshot.');
+                }
 
                 $approval = new ApprovalRequest();
                 $approval->form_id = $appraisal->id;
@@ -1110,7 +1128,9 @@ public function getTeamData(Request $request)
                 $approval->created_by = Auth::user()->id;
                 $approval->status = $submit_type != 'Approved' ? 'Pending' : 'Approved';
                 // Set other attributes as needed
-                $approval->save();
+                if (!$approval->save()) {
+                    throw new Exception('Failed to save approval request.');
+                }
 
                 if ($submit_type === 'Approved') {
                     $calibration = new Calibration();
@@ -1121,13 +1141,15 @@ public function getTeamData(Request $request)
                     $calibration->period = $period;
                     $calibration->created_by = Auth::user()->id;
     
-                    $calibration->save();
+                    if (!$calibration->save()) {
+                        throw new Exception('Failed to save calibration.');
+                    }
                 }
 
                 DB::commit(); // Commit the transaction
 
                 // Return a response, such as a redirect or a JSON response
-                return redirect('appraisals-task')->with('success', 'Appraisal submitted successfully.');
+                return redirect('appraisals-task')->with('success', $messages);
 
         } catch (Exception $e) {
             DB::rollBack(); // Rollback the transaction in case of an error
