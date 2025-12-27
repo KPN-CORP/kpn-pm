@@ -94,42 +94,47 @@ class AppService
     }
     
 
-    public function evaluate($achievement, $target, $type) {
-        // Ensure inputs are numeric
-        if (!is_numeric($achievement) || !is_numeric($target)) {
-            throw new Exception('Achievement and target must be numeric');
-        }
+    public function evaluate($achievement, $target, $type)
+    {
+        // 🔹 NORMALISASI TIPE DATA (INT / STRING → FLOAT)
+        $achievement = is_numeric($achievement)
+            ? (float) $achievement
+            : (float) preg_replace('/[^0-9.\-]/', '', (string) $achievement);
     
-        // Convert to floats for consistent handling
-        $achievement = floatval($achievement);
-        $target = floatval($target);
+        $target = is_numeric($target)
+            ? (float) $target
+            : (float) preg_replace('/[^0-9.\-]/', '', (string) $target);
     
-        switch (strtolower($type)) {
+        $type = strtolower(trim($type));
+    
+        switch ($type) {
+    
             case 'higher better':
-                if ($target == 0) {
+                if ($target == 0.0) {
                     return $achievement > 0 ? 100 : 0;
                 }
-                
+    
                 return ($achievement / $target) * 100;
     
             case 'lower better':
-                if ($target == 0) {
+                if ($target == 0.0) {
                     return $achievement <= 0 ? 100 : 0;
                 }
+    
                 if ($achievement <= 0) {
                     return 100;
                 }
-
+    
                 return (2 - ($achievement / $target)) * 100;
     
             case 'exact value':
-                $epsilon = 1e-6; // Adjust based on required precision
-                return abs($achievement - $target) < $epsilon ? 100 : 0;
+                return abs($achievement - $target) < 0.000001 ? 100 : 0;
     
             default:
-                throw new Exception('Invalid type'. $type);
+                throw new Exception('Invalid type: ' . $type);
         }
     }
+
 
     public function conversion($evaluate) {
         if ($evaluate < 60) {
@@ -146,7 +151,7 @@ class AppService
     }
 
     public function combineFormData($appraisalData, $goalData, $typeWeightage360, $employeeData, $period) {
-
+        
         $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $period)->first();
 
         if (!$weightageData) {
@@ -164,21 +169,29 @@ class AppService
         $jobLevel = $employeeData->job_level;
         
         $appraisalDatas = $appraisalData;
+        
 
         if (!empty($appraisalDatas['formData']) && is_array($appraisalDatas['formData'])) {
             foreach ($appraisalDatas['formData'] as &$form) {
                 if ($form['formName'] === "KPI") {
                     foreach ($form as $key => &$entry) {
+                         if (!is_numeric($key)) {
+                                continue;
+                            }
                         if (is_array($entry) && isset($goalData[$key])) {
                             $entry = array_merge($entry, $goalData[$key]);
-        
+
                             // Adding "percentage" key
                             if (isset($entry['achievement'], $entry['target'], $entry['type'])) {
-                                $entry['percentage'] = $this->evaluate($entry['achievement'], $entry['target'], $entry['type']);
+                                $entry['percentage'] = $this->evaluate(
+                                    $entry['achievement'],
+                                    $entry['target'],
+                                    $entry['type']
+                                );
+                    
                                 $entry['conversion'] = $this->conversion($entry['percentage']);
                                 $entry['final_score'] = $entry['conversion'] * $entry['weightage'] / 100;
-        
-                                // Add the final_score to the total score
+                    
                                 $totalKpiScore += $entry['final_score'];
                             }
                         }
@@ -202,6 +215,7 @@ class AppService
             // Handle the case where formData is null or not an array
             $appraisalDatas['formData'] = []; // Optionally, set to an empty array
         }
+        
         
         $weightageContent = json_decode($weightageData->form_data, true);
         
@@ -247,7 +261,7 @@ class AppService
                 break; // Exit after processing the relevant job level
             }
         }
-
+        
         $appraisalDatas['kpiWeightage360'] = $kpiWeightage360; // get KPI 360 weightage
         $appraisalDatas['cultureWeightage360'] = $cultureWeightage360 / 100; // get Culture 360 weightage
         $appraisalDatas['leadershipWeightage360'] = $leadershipWeightage360 / 100; // get Leadership 360 weightage
