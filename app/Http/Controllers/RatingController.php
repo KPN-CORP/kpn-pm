@@ -77,7 +77,7 @@ class RatingController extends Controller
                     // Ensure the employee's access_menu has accesspa = 1
                     $query->where(function($q) {
                         $q->whereRaw('json_valid(access_menu)')
-                        ->whereJsonContains('access_menu', ['createpa' => 1]);
+                        ->whereJsonContains('access_menu', ['accesspa' => 1]);
                     });
                 })
                 ->where('layer_type', 'calibrator')
@@ -510,7 +510,7 @@ class RatingController extends Controller
                 ->whereHas('employee', function ($query) {
                     $query->where(function ($q) {
                         $q->whereRaw('json_valid(access_menu)')
-                        ->whereJsonContains('access_menu', ['createpa' => 1]);
+                        ->whereJsonContains('access_menu', ['accesspa' => 1]);
                     });
                 })
                 ->where('layer_type', 'calibrator')
