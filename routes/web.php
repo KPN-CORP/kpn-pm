@@ -177,6 +177,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::post('/rating-submit', [RatingController::class, 'store'])->name('rating.submit');
 
     Route::get('/export-ratings/{level}', [RatingController::class, 'exportToExcel'])->name('rating.export');
+    Route::post('/export-ratings', [RatingController::class, 'exportToExcelOnBehalf'])->name('rating.exportonbehalf');
     Route::post('/rating/import', [RatingController::class, 'importFromExcel'])->name('rating.import');
     Route::get('/export-invalid-rating', [RatingController::class, 'exportInvalidRating'])->name('export.invalid.rating');
 
