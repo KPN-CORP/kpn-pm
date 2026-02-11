@@ -80,6 +80,16 @@ class EmployeeAppraisal extends Model
         return $this->hasMany(Calibration::class, 'employee_id', 'employee_id');
     }
 
+    public function contributors()
+    {
+        return $this->hasMany(AppraisalContributor::class, 'employee_id', 'employee_id');
+    }
+    
+    public function calibrations()
+    {
+        return $this->hasMany(Calibration::class, 'employee_id', 'employee_id');
+    }
+
     public function appraisal()
     {
         return $this->hasMany(Appraisal::class, 'employee_id', 'employee_id');

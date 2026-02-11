@@ -46,7 +46,7 @@ class RatingController extends Controller
 
             $amountOfTime = 100;
             ini_set('max_execution_time', $amountOfTime);
-            $user = $this->user;
+            $user = $request->input('user') ?? $this->user;
             $period = $this->appService->appraisalPeriod();
 
             $filterYear = $request->input('filterYear');
@@ -606,7 +606,7 @@ class RatingController extends Controller
 
                     $calibrationData = $calibration[$employeeId][$formId] ?? collect();
 
-                    $previousRating = $calibrationData->whereNotNull('rating')->first();
+                    $previousRating = $calibrationData->whereNotNull('rating')->where('approver_id', '!=', $user)->first();
                     $suggestedRating = $suggestedRatings[$employeeId][$formId];
 
                     $data->suggested_rating = $calibrationData->where('approver_id', $user)->first()
@@ -801,7 +801,7 @@ class RatingController extends Controller
                     }
 
                     if (!isset($ratingValues[$employeeId])) {
-                        $ratingValues[$employeeId] = $this->appService->ratingValue($employeeId, $this->user, $this->period);
+                        $ratingValues[$employeeId] = $this->appService->ratingValue($employeeId, $user, $this->period);
                     }
                 }
 
@@ -812,7 +812,7 @@ class RatingController extends Controller
 
                     $calibrationData = $calibration[$employeeId][$formId] ?? collect();
 
-                    $previousRating = $calibrationData->whereNotNull('rating')->first();
+                    $previousRating = $calibrationData->whereNotNull('rating')->where('approver_id','!=', $user)->first();
                     $suggestedRating = $suggestedRatings[$employeeId][$formId];
 
                     $data->suggested_rating = $calibrationData->where('approver_id', $user)->first()
