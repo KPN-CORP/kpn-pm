@@ -73,21 +73,28 @@ class AppService
     {
         $totalScore = 0;
         $totalCount = 0;
-
         foreach ($formData as $key => $section) {
-            if (is_array($section)) {
-                foreach ($section as $subSection) {
-                    if (is_array($subSection) && array_key_exists('score', $subSection)) {
-                        $score = $subSection['score'] ?? 0;
-                        $totalScore += (is_numeric($score) ? $score : 0); // Konversi null jadi 0
-                        $totalCount++;
-                    }
+            if (!is_array($section)) {
+                continue;
+            }
+
+            foreach ($section as $subSection) {
+                if (!is_array($subSection) || !array_key_exists('score', $subSection)) {
+                    continue;
+                }
+
+                $score = $subSection['score'];
+
+                // Only include numeric scores; skip null or non-numeric values
+                if (is_numeric($score)) {
+                    $totalScore += (float) $score;
+                    $totalCount++;
                 }
             }
         }
 
         if ($totalCount === 0) {
-            return 0; // Prevent division by zero
+            return 0; // Prevent division by zero and avoid counting nulls
         }
 
         return $totalScore / $totalCount;
@@ -198,13 +205,13 @@ class AppService
                     }
                 } elseif ($form['formName'] === "Culture") {
                     // Calculate average score for Culture form
-                    
-                    Log::info('Form setelah normalisasi:', $form);
-
+                    Log::info('Form setelah normalisasi | Culture:', $form);
                     $cultureAverageScore = $this->averageScore($form);
-                } elseif ($form['formName'] === "Leadership") {
+                    } elseif ($form['formName'] === "Leadership") {
+                    Log::info('Form setelah normalisasi | Leadership:', $form);
                     // Calculate average score for Culture form
                     $leadershipAverageScore = $this->averageScore($form);
+                    Log::info('Form setelah normalisasi:', $form);
                 } elseif ($form['formName'] === "Technical") {
                     // Calculate average score for Culture form
                     $technicalAverageScore = $this->averageScore($form);
