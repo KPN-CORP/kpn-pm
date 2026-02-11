@@ -227,6 +227,17 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
     {
         $appraisal = Appraisal::with(['goal'])->where('id', $contributor->appraisal_id)->first();
 
+        // If the underlying appraisal is still a Draft, skip heavy calculations
+        if ($appraisal && (($appraisal->form_status ?? null) === 'Draft' || ($contributor->status ?? null) === 'Draft')) {
+            return [
+                'formData' => [],
+                'totalKpiScore' => null,
+                'totalCultureScore' => null,
+                'totalLeadershipScore' => null,
+                'totalScore' => null,
+            ];
+        }
+
         // Prepare the goal and appraisal data
         $goalData = json_decode($appraisal->goal->form_data ?? '[]', true);
 
@@ -309,6 +320,17 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             }
         ])->where('id', $contributor->id)->get();
 
+        // If appraisal is Draft, return empty structure to avoid calculations
+        if ($datas->isNotEmpty() && (($datas->first()->form_status ?? null) === 'Draft')) {
+            return [
+                'formData' => [],
+                'totalKpiScore' => null,
+                'totalCultureScore' => null,
+                'totalLeadershipScore' => null,
+                'totalScore' => null,
+            ];
+        }
+
         if(!$datas->first()->approvalSnapshots){
             Log::info('Debug Snapshots Data', [
                 'data' => $datas->first()->employee_id, // Log only the first 10 rows
@@ -389,6 +411,18 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
     {
         $datasQuery = AppraisalContributor::with(['employee'])->where('appraisal_id', $contributor->appraisal_id);
         $datas = $datasQuery->get();
+
+        // If the appraisal itself is Draft, skip and return empty structure
+        $appraisalModel = Appraisal::where('id', $contributor->appraisal_id)->first();
+        if ($appraisalModel && (($appraisalModel->form_status ?? null) === 'Draft')) {
+            return [
+                'formData' => [],
+                'totalKpiScore' => null,
+                'totalCultureScore' => null,
+                'totalLeadershipScore' => null,
+                'totalScore' => null,
+            ];
+        }
 
         $checkSnapshot = ApprovalSnapshots::where('form_id', $contributor->appraisal_id)->where('created_by', $datas->first()->employee->id)
             ->orderBy('created_at', 'desc');
