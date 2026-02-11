@@ -248,7 +248,7 @@
                             <label class="form-label" for="location">Location</label>
                             <select class="form-select select2" name="location[]" id="location" multiple>
                                 @foreach ($locations as $item)
-                                    <option {{ in_array($item->office_area, $filterInputs['location']) ? 'selected' : '' }} value="{{ $item->office_area }}">{{ $item->office_area }}</option>
+                                    <option {{ in_array($item, $filterInputs['location']) ? 'selected' : '' }} value="{{ $item }}">{{ $item }}</option>
                                 @endforeach
                             </select>
                         </div>
@@ -260,7 +260,7 @@
                             <label class="form-label" for="unit">Unit</label>
                             <select class="form-select select2" name="unit[]" id="unit" multiple>
                                 @foreach ($units as $item)
-                                    <option {{ in_array($item->unit, $filterInputs['unit']) ? 'selected' : '' }} value="{{ $item->unit }}">{{ $item->unit }}</option>
+                                    <option {{ in_array($item, $filterInputs['unit']) ? 'selected' : '' }} value="{{ $item }}">{{ $item }}</option>
                                 @endforeach
                             </select>
                         </div>
