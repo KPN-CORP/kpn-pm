@@ -186,33 +186,32 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         $maxKpi = 10;
         $index = min($index, $maxKpi - 1); // Ensure index stays within 0-9
 
-        // Normalize / safeguard keys to avoid "Undefined array key" errors
-        $itemGroupSafe = [
-            'kpi' => $itemGroup['kpi'] ?? null,
-            'target' => $itemGroup['target'] ?? null,
-            'achievement' => $itemGroup['achievement'] ?? null,
-            'uom' => $itemGroup['uom'] ?? null,
-            'weightage' => $itemGroup['weightage'] ?? null,
-            'type' => $itemGroup['type'] ?? null,
-            'custom_uom' => $itemGroup['custom_uom'] ?? null,
-            'percentage' => $itemGroup['percentage'] ?? null,
-            'conversion' => $itemGroup['conversion'] ?? null,
-            'final_score' => $itemGroup['final_score'] ?? null,
+        $itemGroup = [
+            "kpi" => $itemGroup["kpi"],
+            "target" => $itemGroup["target"],
+            "achievement" => $itemGroup["achievement"],
+            "uom" => $itemGroup["uom"],
+            "weightage" => $itemGroup["weightage"],
+            "type" => $itemGroup["type"],
+            "custom_uom" => $itemGroup["custom_uom"],
+            "percentage" => $itemGroup["percentage"],
+            "conversion" => $itemGroup["conversion"],
+            "final_score" => $itemGroup["final_score"],
         ];
 
         // Generate headers for ALL 10 KPI positions (1-10)
         for ($kpiNumber = 1; $kpiNumber <= $maxKpi; $kpiNumber++) {
-            foreach ($itemGroupSafe as $subKey => $value) {
+            foreach ($itemGroup as $subKey => $value) {
                 $kpiKey = strtolower(trim("{$formName}_{$subKey}_{$kpiNumber}"));
                 $this->captureDynamicHeader($kpiKey);
             }
         }
 
-        // Process current KPI's data (use safe values and default to empty string)
-        foreach ($itemGroupSafe as $subKey => $value) {
+        // Process current KPI's data
+        foreach ($itemGroup as $subKey => $value) {
             $subNumber = $index + 1; // Convert to 1-based index
             $kpiKey = strtolower(trim("{$formName}_{$subKey}_{$subNumber}"));
-            $contributorRow[$kpiKey] = ['dataId' => $value ?? ''];
+            $contributorRow[$kpiKey] = ['dataId' => $value];
         }
     }
 
