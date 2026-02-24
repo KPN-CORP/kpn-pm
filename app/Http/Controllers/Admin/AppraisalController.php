@@ -423,7 +423,7 @@ private function getGroupCompanies()
                 // Tambahkan data untuk layer_type 'self' dari $datas->appraisal
                 collect($datas->appraisal)->map(function ($selfItem) {
                     $selfItem->layer_type = 'self'; // Tambahkan layer_type 'self' ke data appraisal
-                    $selfItem->layer = null; // Atur layer jika diperlukan
+                    $selfItem->layer = 'self'; // Atur layer jika diperlukan
                     return $selfItem;
                 })
             )
