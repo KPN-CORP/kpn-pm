@@ -489,12 +489,12 @@ private function getGroupCompanies()
 
                 $checkSnapshot = ApprovalSnapshots::where('form_id', $formId)->where('created_by', $datas->first()->employee->id)
                     ->orderBy('created_at', 'desc');
-
                 // Check if `datas->first()->employee->id` exists
                 if ($checkSnapshot) {
                     $query = $checkSnapshot;
-                }else{
+                }else{ 
                     $query = ApprovalSnapshots::where('form_id', $formId)
+                    ->where('form_data->formGroupName', '!=', 'Appraisal Form 360')
                     ->orderBy('created_at', 'asc');
                 }
                 
@@ -505,6 +505,7 @@ private function getGroupCompanies()
                 $goalDataCollection = [];
 
                 $formGroupContent = $this->appService->formGroupAppraisal($datas->first()->employee_id, 'Appraisal Form');
+                
                 
                 if (!$formGroupContent) {
                     $appraisalForm = ['data' => ['formData' => []]];
@@ -547,7 +548,7 @@ private function getGroupCompanies()
                     $formData[] = $appraisalData;
 
                 }
-                
+
                 foreach ($datas as $request) {
 
                     // Create data item object
@@ -579,6 +580,7 @@ private function getGroupCompanies()
                     $formData[] = $appraisalData;
 
                 }
+                
 
                 $jobLevel = $employeeData->job_level;
 
@@ -591,6 +593,7 @@ private function getGroupCompanies()
                 // $formData = $this->appService->combineFormData($result['summary'], $goalData, $result['summary']['contributor_type'], $employeeData, $request->period);     
                                 
                 $formData = $this->appService->combineSummaryFormData($result, $goalData, $employeeData, $request->period);
+                
 
                 if (isset($formData['kpiScore'])) {
                     $formData['kpiScore'] = round($formData['kpiScore'], 2);
@@ -634,11 +637,15 @@ private function getGroupCompanies()
             }elseif($id == 'employee'){
 
                 $datas = Appraisal::with([
-                    'employee', 
+                    'employee',
                     'approvalSnapshots' => function ($query) {
-                        $query->orderBy('created_at', 'desc');
+                        $query->latest()
+                            ->where('form_data->formGroupName', '!=', 'Appraisal Form 360');
                     }
-                ])->where('id', $formId)->get();
+                ])
+                ->where('id', $formId)
+                ->get();
+
 
                 $formattedData = $datas->map(function($item) {
                     $item->formatted_created_at = $this->appService->formatDate($item->created_at);
@@ -663,6 +670,7 @@ private function getGroupCompanies()
                 $appraisalData['contributor_type'] = "employee";
 
                 $appraisalData = array($appraisalData);
+                
     
                 $employeeData = $datas->first()->employee;
     
