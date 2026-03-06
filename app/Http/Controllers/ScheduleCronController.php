@@ -103,8 +103,8 @@ class ScheduleCronController extends Controller
                     // dd($employees);
 
                     foreach ($employees as $employee) {
-                        //$email = $employee->email;
-                        $email = "alfian.azis@kpn-corp.com";
+                        $email = $employee->email;
+                        // $email = "alfian.azis@kpn-corp.com";
                         $name = $employee->fullname;
                         $message = $schedule->messages;
 
