@@ -4,7 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\IntegrationEmployeeController;
 use Illuminate\Http\Request;
 
-Route::get('/integration/employees', function (Request $request) {
+Route::middleware('throttle:30,1')->get('/integration/employees', function (Request $request) {
 
     $token = str_replace('Bearer ', '', $request->header('Authorization'));
 
