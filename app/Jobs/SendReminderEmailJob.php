@@ -31,15 +31,18 @@ class SendReminderEmailJob implements ShouldQueue
     public function handle()
     {
         // generate excel untuk lampiran
-        $fileName = 'Reminder_' . $this->employee->id . '.xlsx';
+        $fileName = "Reminder_" . $this->employee->id . ".xlsx";
         $filePath = storage_path("app/temp/{$fileName}");
 
-        Excel::store(new ReminderExport($this->employee, $this->reminder), "temp/{$fileName}");
+        Excel::store(
+            new ReminderExport($this->employee, $this->reminder),
+            "temp/{$fileName}",
+        );
 
-        $trialEmail = "eriton.dewa@kpn-corp.com"; 
+        $trialEmail = "alfian.azis@kpn-corp.com";
 
         Mail::to($trialEmail)->send(
-            new ReminderMail($this->employee, $this->reminder, $filePath)
+            new ReminderMail($this->employee, $this->reminder, $filePath),
         );
 
         // === Kalau sudah mau produksi, tinggal aktifkan ini ===
