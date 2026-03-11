@@ -66,9 +66,6 @@ Route::get('sourcermb/dbauth', [SsoController::class, 'dbauthReimburse']);
 Route::get('facecard/dbauth', [SsoController::class, 'dbauthFacecard']);
 Route::get('auth-service', [SsoController::class, 'handleJWTAuth']);
 
-// Integration API: list employees (for external system integrations)
-Route::get('/api/integration/employees', [IntegrationEmployeeController::class, 'index']);
-
 Route::get('fetch-employees', [EmployeeController::class, 'fetchAndStoreEmployees']);
 Route::get('updmenu-employees', [EmployeeController::class, 'updateEmployeeAccessMenu']);
 Route::get('daily-schedules', [ScheduleController::class, 'reminderDailySchedules']);

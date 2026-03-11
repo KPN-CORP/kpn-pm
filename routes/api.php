@@ -2,18 +2,18 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\IntegrationEmployeeController;
+use Illuminate\Http\Request;
 
-/*
-|--------------------------------------------------------------------------
-| API Routes
-|--------------------------------------------------------------------------
-|
-| Here is where you can register API routes for your application. These
-| routes are loaded by the RouteServiceProvider within a group which
-| is assigned the "api" middleware group. Enjoy building your API!
-|
-*/
+Route::get('/integration/employees', function (Request $request) {
 
-Route::middleware(['auth:sanctum', 'throttle:60,1'])->group(function () {
-    Route::get('/integration/employees', [IntegrationEmployeeController::class, 'index']);
+    $token = str_replace('Bearer ', '', $request->header('Authorization'));
+
+    if ($token !== env('INTEGRATION_API_TOKEN_GA')) {
+        return response()->json([
+            'message' => 'Unauthorized'
+        ], 401);
+    }
+
+    return app(IntegrationEmployeeController::class)->index($request);
+
 });
