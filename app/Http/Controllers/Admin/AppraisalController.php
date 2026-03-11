@@ -243,30 +243,39 @@ class AppraisalController extends Controller
 
 
     private function buildApprovalStatus($employee, $ratingGroups)
-{
-    $status = [];
+    {
+        $status = [];
 
-    foreach ($employee->appraisalLayer as $layer) {
+        foreach ($employee->appraisalLayer as $layer) {
 
-        $availability = $this->checkLayerAvailability($employee, $layer);
+            $availability = $this->checkLayerAvailability($employee, $layer);
 
-        $rated = '|-';
-        if ($availability['rating'] && $employee->appraisal->first()) {
-            $groupId = $employee->appraisal->first()->formGroupAppraisal->id_rating_group;
-            $rated = '|' . ($ratingGroups[$groupId][$availability['rating']] ?? '-');
+            $rated = '|-';
+            if ($availability['rating'] && $employee->appraisal->first()) {
+                $groupId = $employee->appraisal->first()->formGroupAppraisal->id_rating_group;
+                $rated = '|' . ($ratingGroups[$groupId][$availability['rating']] ?? '-');
+            }
+
+            $finalStatus = $availability['exists'];
+
+            if ($layer->layer_type === 'calibrator') {
+                $calibration = $employee->calibration
+                    ->firstWhere('approver_id', $layer->approver_id);
+
+                $finalStatus = $calibration && $calibration->status === 'Approved';
+            }
+
+            $status[$layer->layer_type][] = [
+                'approver_id' => $layer->approver_id,
+                'layer' => $layer->layer,
+                'rating' => $rated,
+                'status' => $finalStatus,
+                'approver_name' => $layer->approver->fullname ?? 'N/A',
+            ];
         }
 
-        $status[$layer->layer_type][] = [
-            'approver_id' => $layer->approver_id,
-            'layer' => $layer->layer,
-            'rating' => $rated,
-            'status' => $availability['exists'],
-            'approver_name' => $layer->approver->fullname ?? 'N/A',
-        ];
+        return $status;
     }
-
-    return $status;
-}
 
 
     private function checkLayerAvailability($employee, $layer)

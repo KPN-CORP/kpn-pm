@@ -1,0 +1,49 @@
+{
+  "info": {
+    "name": "Integration Employees API",
+    "_postman_id": "integration-employees-collection",
+    "description": "Collection to call the secured employee integration endpoint",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Get Employees",
+      "request": {
+        "method": "GET",
+        "header": [
+          {
+            "key": "Accept",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer {{token}}",
+            "type": "text"
+          }
+        ],
+        "url": {
+          "raw": "{{host}}/api/integration/employees",
+          "host": [
+            "{{host}}"
+          ],
+          "path": [
+            "api",
+            "integration",
+            "employees"
+          ]
+        }
+      },
+      "response": []
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{token}}",
+        "type": "string"
+      }
+    ]
+  }
+}
