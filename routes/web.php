@@ -32,6 +32,7 @@ use App\Http\Controllers\RoleController;
 use App\Http\Controllers\ScheduleController;
 use App\Http\Controllers\SendbackController;
 use App\Http\Controllers\SsoController;
+use App\Http\Controllers\Api\IntegrationEmployeeController;
 use App\Http\Controllers\TaskController;
 use App\Http\Controllers\EmployeeController;
 use App\Http\Controllers\GuideController;
@@ -64,6 +65,9 @@ Route::get('dbauth', [SsoController::class, 'dbauth']);
 Route::get('sourcermb/dbauth', [SsoController::class, 'dbauthReimburse']);
 Route::get('facecard/dbauth', [SsoController::class, 'dbauthFacecard']);
 Route::get('auth-service', [SsoController::class, 'handleJWTAuth']);
+
+// Integration API: list employees (for external system integrations)
+Route::get('/api/integration/employees', [IntegrationEmployeeController::class, 'index']);
 
 Route::get('fetch-employees', [EmployeeController::class, 'fetchAndStoreEmployees']);
 Route::get('updmenu-employees', [EmployeeController::class, 'updateEmployeeAccessMenu']);
