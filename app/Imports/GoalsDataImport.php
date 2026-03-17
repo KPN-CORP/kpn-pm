@@ -267,12 +267,12 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
                     ->whereIn('id', $approvalRequests)
                     ->update(['deleted_at' => now()]);
 
-                $empId = EmployeeAppraisal::where('employee_id', $employeeId)->pluck('id')->first();
+                $empId = Employee::where('employee_id', $employeeId)->pluck('id')->first();
 
                 if ($empId) {
-                    Log::info("EmployeeAppraisal ID found for Employee ID: " . $employeeId . ". EmpId: " . $empId);
+                    Log::info("Employee ID found for Employee ID: " . $employeeId . ". EmpId: " . $empId);
                 } else {
-                    Log::error("No EmployeeAppraisal record found for Employee ID: " . $employeeId);
+                    Log::error("No Employee record found for Employee ID: " . $employeeId);
                 }
 
                 $requestId = DB::table('approval_requests')->insertGetId([
