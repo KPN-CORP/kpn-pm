@@ -261,12 +261,12 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
 
                 // Soft delete approvals linked to these requests
                 DB::table('approvals')
-                    ->whereIn('request_id', $approvalRequests->id) // Use the retrieved IDs
+                    ->where('request_id', $approvalRequests->id) // Use the retrieved IDs
                     ->update(['deleted_at' => now()]);
 
                 // Soft delete approval_requests
                 DB::table('approval_requests')
-                    ->whereIn('id', $approvalRequests->id)
+                    ->where('id', $approvalRequests->id)
                     ->update(['deleted_at' => now()]);
 
                 $empId = Employee::where('employee_id', $employeeId)->pluck('id')->first();
