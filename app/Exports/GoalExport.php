@@ -119,7 +119,7 @@ class GoalExport implements FromView, WithStyles
             $sheet->getCell("H$row")->setDataValidation(clone $validation);
         }
 
-        $sheet->getStyle('G:G')->getNumberFormat()->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_PERCENTAGE);
+        $sheet->getStyle('I:I')->getNumberFormat()->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_PERCENTAGE);
 
         return [
             1 => [
