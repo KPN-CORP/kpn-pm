@@ -156,12 +156,21 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
             DB::beginTransaction();
 
             try {
+                
+                $approvalRequests = DB::table('approval_requests')
+                ->where('employee_id', $employeeId)
+                ->where('category', $data['category'])
+                ->where('period', $data['period'])
+                ->whereNull('deleted_at')
+                ->first(); // Get the list of IDs
 
-                $existLayer = ApprovalLayer::where('approver_id', $data['current_approval_id'])
+                $current_approval_id = $data['current_approval_id'] != '-' ? $data['current_approval_id'] : $approvalRequests->current_approval_id;
+
+                $existLayer = ApprovalLayer::where('approver_id', $current_approval_id)
                     ->where('employee_id', $employeeId)->max('layer');
 
                 if (!$existLayer) {
-                    $message = "Cannot find Layer ID : " . $data['current_approval_id'] . " on Employee ID: $employeeId.";
+                    $message = "Cannot find Layer ID : " . $current_approval_id . " on Employee ID: $employeeId.";
                     Log::info($message);
 
                     $this->detailError[] = [
@@ -250,21 +259,14 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
                 ]);
                 Log::info("Old goals updated for Employee ID: " . $employeeId);
 
-
-                $approvalRequests = DB::table('approval_requests')
-                    ->where('employee_id', $employeeId)
-                    ->where('category', $data['category'])
-                    ->where('period', $data['period'])
-                    ->pluck('id'); // Get the list of IDs
-
                 // Soft delete approvals linked to these requests
                 DB::table('approvals')
-                    ->whereIn('request_id', $approvalRequests) // Use the retrieved IDs
+                    ->whereIn('request_id', $approvalRequests->id) // Use the retrieved IDs
                     ->update(['deleted_at' => now()]);
 
                 // Soft delete approval_requests
                 DB::table('approval_requests')
-                    ->whereIn('id', $approvalRequests)
+                    ->whereIn('id', $approvalRequests->id)
                     ->update(['deleted_at' => now()]);
 
                 $empId = Employee::where('employee_id', $employeeId)->pluck('id')->first();
@@ -278,7 +280,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
                 $requestId = DB::table('approval_requests')->insertGetId([
                     'form_id' => $formId,  // Gunakan UUID yang sama
                     'category' => 'Goals',
-                    'current_approval_id' => $data['current_approval_id'],
+                    'current_approval_id' => $current_approval_id,
                     'employee_id' => $employeeId,
                     'status' => 'Approved',
                     'messages' => 'import by admin',
@@ -291,7 +293,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
                 // Use the request ID in the approvals table
                 DB::table('approvals')->insert([
                     'request_id' => $requestId,  // Use the stored ID
-                    'approver_id' => $data['current_approval_id'],
+                    'approver_id' => $current_approval_id,
                     'status' => 'Approved',
                     'created_by' => $empId,
                     'created_at' => now(),
