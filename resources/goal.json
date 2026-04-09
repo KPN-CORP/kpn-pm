@@ -81,5 +81,22 @@
     },
     "Type": {
         "Type": ["Higher Better", "Lower Better", "Exact Value"]
+    },
+    "Review Period": {
+        "Items": [
+        { "value": 1, "label": "Monthly" },
+        { "value": 2, "label": "Bi-Monthly" },
+        { "value": 3, "label": "Quarterly" },
+        { "value": 6, "label": "Semester" }
+        ]
+    },
+    "Calculation Method": {
+        "Items": [
+        { "value": "average", "label": "Average" },
+        { "value": "sum", "label": "Sum/Total" },
+        { "value": "last", "label": "Last Value" },
+        { "value": "max", "label": "Max" },
+        { "value": "min", "label": "Min" }
+        ]
     }
 }

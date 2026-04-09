@@ -10,6 +10,7 @@ use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
 use App\Models\Employee;
 use App\Models\Goal;
+use App\Models\KPIAchievement;
 use App\Models\User;
 use App\Services\AppService;
 use Carbon\Carbon;
@@ -31,12 +32,15 @@ class MyGoalController extends Controller
     protected $category;
     protected $user;
     protected $appService;
+    protected $path;
+
 
     public function __construct(AppService $appService)
     {
         $this->category = 'Goals';
         $this->appService = $appService;
         $this->user = Auth::user()->employee_id;
+        $this->path = base_path('resources/goal.json');
     }
 
     function formatDate($date)
@@ -147,18 +151,18 @@ class MyGoalController extends Controller
                 $data[] = $dataItem;
         }
     
-        $path = base_path('resources/goal.json');
-    
         // Check if the JSON file exists
-        if (!File::exists($path)) {
+        if (!File::exists($this->path)) {
             abort(500, 'JSON file does not exist.');
         }
     
         // Read the contents of the JSON file
-        $options = json_decode(File::get($path), true);
+        $options = json_decode(File::get($this->path), true);
     
         $uomOption = $options['UoM'];
         $typeOption = $options['Type'];
+        $reviewPeriodOption = $options['Review Period'];
+        $calculationMethodOption = $options['Calculation Method'];
     
         $parentLink = __('Goal');
         $link = __('My Goal');
@@ -180,7 +184,7 @@ class MyGoalController extends Controller
 
         $countDraft = Goal::where('employee_id', $user)->where('category', $this->category)->where('form_status', 'Draft')->count();
     
-        return view('pages.goals.my-goal', compact('data', 'link', 'parentLink', 'uomOption', 'typeOption', 'access', 'selectYear', 'adjustByManager', 'period', 'countDraft'));
+        return view('pages.goals.my-goal', compact('data', 'link', 'parentLink', 'uomOption', 'typeOption', 'reviewPeriodOption', 'calculationMethodOption', 'access', 'selectYear', 'adjustByManager', 'period', 'countDraft'));
     }
 
     function show($id) {
@@ -244,23 +248,24 @@ class MyGoalController extends Controller
             return redirect('goals');
         }
 
-        $path = base_path('resources/goal.json');
-
         // Check if the JSON file exists
-        if (!File::exists($path)) {
+        if (!File::exists($this->path)) {
             // Handle the situation where the JSON file doesn't exist
             abort(500, 'JSON file does not exist.');
         }
 
         // Read the contents of the JSON file
-        $uomOptions = json_decode(File::get($path), true);
+        $uomOptions = json_decode(File::get($this->path), true);
 
         $uomOption = $uomOptions['UoM'];
-        
+        $typeOption = $uomOptions['Type'];
+        $reviewPeriodOption = $uomOptions['Review Period'];
+        $calculationMethodOption = $uomOptions['Calculation Method'];
+
         $parentLink = __('Goal');
         $link = 'Create';
 
-        return view('pages.goals.form', compact('datas', 'link', 'parentLink', 'uomOption', 'period'));
+        return view('pages.goals.form', compact('datas', 'link', 'parentLink', 'uomOption', 'typeOption', 'reviewPeriodOption', 'calculationMethodOption', 'period'));
 
     }
 
@@ -276,8 +281,6 @@ class MyGoalController extends Controller
 
         $parentLink = __('Goal');
         $link = __('Edit');
-
-        $path = base_path('resources/goal.json');
 
         if(!$goal){
             Session::flash('error', [
@@ -301,7 +304,7 @@ class MyGoalController extends Controller
             }
     
             // Check if the JSON file exists
-            if (!File::exists($path)) {
+            if (!File::exists($this->path)) {
                 // Handle the situation where the JSON file doesn't exist
                 abort(500, 'JSON file does not exist.');
             }
@@ -315,26 +318,32 @@ class MyGoalController extends Controller
 
             $formCount = count($formData);
 
-            $options = json_decode(File::get($path), true);
+            $options = json_decode(File::get($this->path), true);
             $uomOption = $options['UoM'];
             $typeOption = $options['Type'];
+            $reviewPeriodOption = $options['Review Period'];
+            $calculationMethodOption = $options['Calculation Method'];
 
             $selectedUoM = [];
             $selectedType = [];
             $weightage = [];
+            $selectedReviewPeriod = [];
+            $selectedCalculationMethod = [];
             $totalWeightages = 0;
             
             foreach ($formData as $index => $row) {
                 $selectedUoM[$index] = $row['uom'] ?? '';
                 $selectedType[$index] = $row['type'] ?? '';
                 $weightage[$index] = $row['weightage'] ?? '';
+                $selectedReviewPeriod[$index] = $row['review_period'] ?? '';
+                $selectedCalculationMethod[$index] = $row['calculation_method'] ?? '';
                 $totalWeightages += (float)$weightage[$index];
             }
 
 
             $data = json_decode($goal->form_data, true);
             
-            return view('pages.goals.edit', compact('goal', 'formCount', 'link', 'data', 'uomOption', 'selectedUoM', 'typeOption', 'selectedType', 'approvalRequest', 'totalWeightages', 'parentLink'));
+            return view('pages.goals.edit', compact('goal', 'formCount', 'link', 'data', 'uomOption', 'selectedUoM', 'typeOption', 'reviewPeriodOption', 'calculationMethodOption', 'selectedType', 'selectedReviewPeriod', 'selectedCalculationMethod', 'approvalRequest', 'totalWeightages', 'parentLink'));
         }
 
     }
@@ -386,6 +395,8 @@ class MyGoalController extends Controller
                 'uom.*' => 'required|string',
                 'weightage.*' => 'required|numeric|min:5|max:100',
                 'type.*' => 'required|string',
+                'review_period.*' => 'required|string',
+                'calculation_method.*' => 'required|string',
             ];
 
             $validator = Validator::make($request->all(), $rules, [
@@ -444,6 +455,8 @@ class MyGoalController extends Controller
                     'weightage' => $request->weightage[$index],
                     'type' => $request->type[$index],
                     'custom_uom' => $request->custom_uom[$index] ?? null,
+                    'review_period' => $request->review_period[$index] ?? null,
+                    'calculation_method' => $request->calculation_method[$index] ?? null,
                 ];
             }
 
@@ -535,6 +548,8 @@ class MyGoalController extends Controller
                 'uom.*' => 'required|string',
                 'weightage.*' => 'required|numeric|min:5|max:100',
                 'type.*' => 'required|string',
+                'review_period.*' => 'required|string',
+                'calculation_method.*' => 'required|string',
             ];
 
             $validator = Validator::make($request->all(), $rules, [
@@ -595,6 +610,8 @@ class MyGoalController extends Controller
                     'weightage' => $request->weightage[$index],
                     'type' => $request->type[$index],
                     'custom_uom' => $request->custom_uom[$index] ?? null,
+                    'review_period' => $request->review_period[$index] ?? null,
+                    'calculation_method' => $request->calculation_method[$index] ?? null,
                 ];
             }
 

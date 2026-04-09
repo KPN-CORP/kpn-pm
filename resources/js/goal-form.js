@@ -610,6 +610,35 @@ $(document).on('click', '#getLatestGoal', function(){
                             <span class="input-group-text">%</span>
                           </div>
                         </div>
+                        <div class="col-6 col-md-2">
+                            <div class="mb-3">
+                                <label class="form-label text-primary" for="review_period">Review Period</label>
+                                <div class="input-group">
+                                    <select class="form-select select-type" name="review_period[]" id="review_period{{ $index }}" required>
+                                        <option value="">- Select -</option>
+                                        <option value="1" ${(g.review_period===1)?"selected":""}>Monthly</option>
+                                        <option value="2" ${(g.review_period===2)?"selected":""}>Bi-Monthly</option>
+                                        <option value="3" ${(g.review_period===3)?"selected":""}>Quarterly</option>
+                                        <option value="6" ${(g.review_period===6)?"selected":""}>Semester</option>
+                                    </select>
+                                </div>                                  
+                            </div>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <div class="mb-3">
+                                <label class="form-label text-primary" for="calculation_method">Calculation Method</label>
+                                <div class="input-group">
+                                    <select class="form-select select-type" name="calculation_method[]" id="calculation_method{{ $index }}" required>
+                                        <option value="">- Select -</option>
+                                        <option value="average" ${(g.calculation_method==="average")?"selected":""}>Average</option>
+                                        <option value="sum" ${(g.calculation_method==="sum")?"selected":""}>Sum/Total</option>
+                                        <option value="last" ${(g.calculation_method==="last")?"selected":""}>Last Value</option>
+                                        <option value="max" ${(g.calculation_method==="max")?"selected":""}>Max</option>
+                                        <option value="min" ${(g.calculation_method==="min")?"selected":""}>Min</option>
+                                    </select>
+                                </div>                                  
+                            </div>
+                        </div>
                       </div>
                     </div>
                   </div>

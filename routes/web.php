@@ -46,6 +46,8 @@ use App\Http\Controllers\EmployeePAController;
 use App\Http\Controllers\FlowController;
 use App\Http\Controllers\FormAppraisalController;
 use App\Http\Controllers\FormGroupAppraisalController;
+use App\Http\Controllers\KPIAchievementController;
+use App\Http\Controllers\KPIScoreController;
 use App\Http\Controllers\PaReminderController;
 use App\Http\Controllers\Proposed360;
 use App\Http\Controllers\Proposed360Controller;
@@ -80,6 +82,10 @@ Route::get('/test-email', function () {
     return view('email.reminderschedule', compact('messages', 'name'));
 });
 
+Route::get('/kpi-achievements/{goalId}', [KPIAchievementController::class, 'index']);
+Route::get('/kpi-score/{goalId}', [KPIScoreController::class, 'calculate']);
+// Route::post('/kpi-achievements', [KPIAchievementController::class, 'store']);
+
 Route::middleware('guest')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
                 ->name('register');
@@ -104,6 +110,7 @@ Route::middleware('guest')->group(function () {
     
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
                     ->name('password.email');    
+
 });
 
 
@@ -135,7 +142,10 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     // routes/web.php
     Route::get('/goals/latest/{id}', [MyGoalController::class, 'latest'])->name('goals.latest');
 
-
+    Route::get('/achievement/{id}', [KPIAchievementController::class, 'editAchievement'])->name('goals.update-achievement');
+    Route::post('/achievement/bulk', [KPIAchievementController::class, 'bulkStore'])
+    ->name('achievement.bulk-store');
+    
     // Team Goals
     Route::get('/team-goals', [TeamGoalController::class, 'index'])->name('team-goals');
     Route::get('/team-goals/detail/{id}', [TeamGoalController::class, 'show'])->name('team-goals.detail');
@@ -450,7 +460,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     });
-
+    
 });
 
 

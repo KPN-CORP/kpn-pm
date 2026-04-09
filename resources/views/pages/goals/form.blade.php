@@ -203,10 +203,16 @@
                                       <div class="mb-3">
                                           <label class="form-label text-primary" for="type">{{ __('Type') }}</label>
                                           <select class="form-select select-type" name="type[]" id="type{{ $index }}" required>
-                                              <option value="">- Select -</option>
-                                              <option value="Higher Better">Higher Better</option>
-                                              <option value="Lower Better">Lower Better</option>
-                                              <option value="Exact Value">Exact Value</option>
+                                                <option value="">- Select -</option>
+                                                @foreach ($typeOption as $label => $options)
+                                                <optgroup label="{{ $label }}">
+                                                    @foreach ($options as $option)
+                                                        <option value="{{ $option }}">
+                                                            {{ $option }}
+                                                        </option>
+                                                    @endforeach
+                                                </optgroup>
+                                                @endforeach
                                           </select>
                                           <div class="invalid-feedback">
                                             {{ __('This field is mandatory') }}
@@ -225,6 +231,42 @@
                                           </div>                                  
                                       </div>
                                       {{ $errors->first("weightage") }}
+                                  </div>
+                                  <div class="col-6 col-md-2">
+                                      <div class="mb-3">
+                                          <label class="form-label text-primary" for="review_period">{{ __('Review Period') }}</label>
+                                          <div class="input-group">
+                                                <select class="form-select select-type" name="review_period[]" id="review_period{{ $index }}" required>
+                                                    <option value="">- Select -</option>
+                                                    @foreach ($reviewPeriodOption as $label => $options)
+                                                        @foreach ($options as $option)
+                                                            <option value="{{ $option['value'] }}">
+                                                                {{ $option['label'] }}
+                                                            </option>
+                                                        @endforeach
+                                                    @endforeach
+                                                </select>
+                                          </div>                                  
+                                      </div>
+                                      {{ $errors->first("review_period") }}
+                                  </div>
+                                  <div class="col-6 col-md-2">
+                                        <div class="mb-3">
+                                            <label class="form-label text-primary" for="calculation_method">{{ __('Calculation Method') }}</label>
+                                            <div class="input-group">
+                                                <select class="form-select select-type" name="calculation_method[]" id="calculation_method{{ $index }}" required>
+                                                    <option value="">- Select -</option>
+                                                    @foreach ($calculationMethodOption as $label => $options)
+                                                        @foreach ($options as $option)
+                                                            <option value="{{ $option['value'] }}">
+                                                                {{ $option['label'] }}
+                                                            </option>
+                                                        @endforeach
+                                                    @endforeach
+                                                </select>
+                                            </div>                                  
+                                        </div>
+                                        {{ $errors->first("calculation_method") }}
                                   </div>
                               </div>
                           </div>

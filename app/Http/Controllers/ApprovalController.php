@@ -66,11 +66,14 @@ class ApprovalController extends Controller
             foreach ($request->input('kpi', []) as $index => $kpi) {
                 $kpiData[$index] = [
                     'kpi' => $kpi,
+                    'description' => $request->description[$index] ?? '',
                     'target' => $request->target[$index],
                     'uom' => $request->uom[$index],
                     'weightage' => $request->weightage[$index],
                     'type' => $request->type[$index],
                     'custom_uom' => $request->custom_uom[$index] ?? null,
+                    'review_period' => $request->review_period[$index] ?? null,
+                    'calculation_method' => $request->calculation_method[$index] ?? null,
                 ];
             }
 
