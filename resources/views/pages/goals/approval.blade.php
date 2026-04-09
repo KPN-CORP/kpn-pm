@@ -1,6 +1,14 @@
 @extends('layouts_.vertical', ['page_title' => 'Approval Goals'])
 
 @section('css')
+<style>
+.diff-added { background: #e6fffa; border-left: 4px solid #38b2ac; padding: 8px; }
+.diff-removed { background: #ffe6e6; border-left: 4px solid #e53e3e; padding: 8px; }
+.diff-changed { background: #fffbea; border-left: 4px solid #d69e2e; padding: 8px; }
+.diff-field { margin-bottom: 5px; }
+.diff-old { color: red; text-decoration: line-through; }
+.diff-new { color: green; font-weight: bold; }
+</style>
 @endsection
 
 @section('content')
@@ -136,10 +144,90 @@
                                                   {{ $errors->first("weightage") }}
                                               </div>
                                           </div>
+                                            @php
+                                                $reviewValue = $data['review_period'] ?? '';
+                                                $reviewLabel = '-';
+
+                                                foreach ($reviewPeriodOption as $group) {
+                                                    foreach ($group as $opt) {
+                                                        if ($reviewValue == $opt['value']) {
+                                                            $reviewLabel = $opt['label'];
+                                                            break 2;
+                                                        }
+                                                    }
+                                                }
+                                            @endphp
+
+                                            <div class="col-6 col-md-2">
+                                                <div class="mb-3">
+                                                    <label class="form-label text-primary">{{ __('Review Period') }}</label>
+
+                                                    {{-- DISPLAY --}}
+                                                    <input type="text" class="form-control bg-light" value="{{ $reviewLabel }}" readonly>
+
+                                                    {{-- REAL VALUE --}}
+                                                    <input type="hidden" name="review_period[]" value="{{ $reviewValue }}">
+                                                </div>
+                                            </div>
+
+                                                                                        @php
+                                                $calcValue = $data['calculation_method'] ?? '';
+                                                $calcLabel = '-';
+
+                                                foreach ($calculationMethodOption as $group) {
+                                                    foreach ($group as $opt) {
+                                                        if ($calcValue == $opt['value']) {
+                                                            $calcLabel = $opt['label'];
+                                                            break 2;
+                                                        }
+                                                    }
+                                                }
+                                            @endphp
+
+                                            <div class="col-6 col-md-2">
+                                                <div class="mb-3">
+                                                    <label class="form-label text-primary">{{ __('Calculation Method') }}</label>
+
+                                                    {{-- DISPLAY --}}
+                                                    <input type="text" class="form-control bg-light" value="{{ $calcLabel }}" readonly>
+
+                                                    {{-- REAL VALUE --}}
+                                                    <input type="hidden" name="calculation_method[]" value="{{ $calcValue }}">
+                                                </div>
+                                            </div>
                                       </div>
+                                      @if(isset($goalHistories[$index]))
+                                        <div class="mt-3">
+                                            <label class="text-muted"><b>Changes</b></label>
+
+                                            @foreach($goalHistories[$index] as $history)
+                                                <div class="border rounded p-2 mb-2 bg-warning-subtle">
+
+                                                    <small class="text-primary">
+                                                        {{ $history['date'] }}
+                                                    </small>
+
+                                                    @foreach($history['changes'] as $field => $change)
+                                                        <div class="mt-1">
+                                                            <b>{{ ucfirst($field) }}</b> :
+                                                            <span class="text-danger text-decoration-line-through">
+                                                                {{ $change['old'] }}
+                                                            </span>
+                                                            →
+                                                            <span class="text-success fw-bold">
+                                                                {{ $change['new'] }}
+                                                            </span>
+                                                        </div>
+                                                    @endforeach
+
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
                                   </div>
                               </div>
                           @endforeach
+                            
                           <div class="row">
                               <div class="col-lg">
                                   <div class="mt-2 mb-3">

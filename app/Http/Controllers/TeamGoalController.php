@@ -428,13 +428,107 @@ class TeamGoalController extends Controller
         // Read the contents of the JSON file
         $options = json_decode(File::get($path), true);
 
-        $uomOption = $options['UoM'];
-        $typeOption = $options['Type'];
+        $uomOption = $options['UoM'] ?? [];
+        $typeOption = $options['Type'] ?? [];
+
+        $reviewPeriodOption = $options['Review Period'] ?? [];
+        $calculationMethodOption = $options['Calculation Method'] ?? [];
+
+        $reviewPeriodMap = [];
+        foreach ($reviewPeriodOption as $group) {
+            foreach ($group as $opt) {
+                $reviewPeriodMap[$opt['value']] = $opt['label'];
+            }
+        }
+
+        $calculationMethodMap = [];
+        foreach ($calculationMethodOption as $group) {
+            foreach ($group as $opt) {
+                $calculationMethodMap[$opt['value']] = $opt['label'];
+            }
+        }
+
+        // Ambil snapshot
+        $snapshots = ApprovalSnapshots::where('form_id', $id)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'created_at' => Carbon::parse($item->created_at)->format('d M Y H:i'),
+                    'data' => json_decode($item->form_data, true),
+                ];
+            })
+            ->values();
+
+        $fieldLabelMap = [
+            'review_period' => 'Review Period',
+            'calculation_method' => 'Calculation Method',
+            'kpi' => 'KPI',
+            'description' => 'Description',
+            'target' => 'Target',
+            'uom' => 'UoM',
+            'weightage' => 'Weightage',
+            'type' => 'Type',
+        ];
+
+        // GROUP PER KPI INDEX
+        $goalHistories = []; // key = kpi_index
+
+        for ($i = 0; $i < count($snapshots); $i++) {
+            $current = $snapshots[$i];
+            $previous = $snapshots[$i + 1] ?? null;
+
+            if (!$previous) continue; // skip first snapshot (no compare)
+
+            foreach ($current['data'] as $kpiIndex => $curr) {
+                $prev = $previous['data'][$kpiIndex] ?? null;
+
+                if (!$prev) continue;
+
+                $changes = [];
+
+                foreach ($curr as $field => $value) {
+
+                    $oldVal = $prev[$field] ?? null;
+                    $newVal = $value;
+
+                    // ✅ Mapping khusus Review Period
+                    if ($field === 'review_period') {
+                        $oldVal = $reviewPeriodMap[$oldVal] ?? $oldVal;
+                        $newVal = $reviewPeriodMap[$newVal] ?? $newVal;
+                    }
+
+                    // ✅ Mapping khusus Calculation Method
+                    if ($field === 'calculation_method') {
+                        $oldVal = $calculationMethodMap[$oldVal] ?? $oldVal;
+                        $newVal = $calculationMethodMap[$newVal] ?? $newVal;
+                    }
+
+                    if ($oldVal != $newVal) {
+                        $label = __($fieldLabelMap[$field] ?? ucwords(str_replace('_', ' ', $field)));
+
+                        $changes[$label] = [
+                            'old' => $oldVal,
+                            'new' => $newVal
+                        ];
+                    }
+                }
+
+                // SKIP kalau tidak ada perubahan
+                if (empty($changes)) continue;
+
+                $goalHistories[$kpiIndex][] = [
+                    'date' => $current['created_at'],
+                    'changes' => $changes
+                ];
+            }
+        }
 
         $parentLink = __('Goal');
         $link = 'Approval';
 
-        return view('pages.goals.approval', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption'));
+        return view('pages.goals.approval', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'goalHistories', 'reviewPeriodOption', 'calculationMethodOption'));
 
     }
 

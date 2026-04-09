@@ -475,11 +475,98 @@ class OnBehalfController extends Controller
 
         $uomOption = $options['UoM'];
         $typeOption = $options['Type'];
+        $reviewPeriodOption = $options['Review Period'] ?? [];
+        $calculationMethodOption = $options['Calculation Method'] ?? [];
 
+        // Mapping value → label
+        $reviewPeriodMap = [];
+        foreach ($reviewPeriodOption as $group) {
+            foreach ($group as $opt) {
+                $reviewPeriodMap[$opt['value']] = $opt['label'];
+            }
+        }
+
+        $calculationMethodMap = [];
+        foreach ($calculationMethodOption as $group) {
+            foreach ($group as $opt) {
+                $calculationMethodMap[$opt['value']] = $opt['label'];
+            }
+        }
+
+        // Field label
+        $fieldLabelMap = [
+            'review_period' => __('Review Period'),
+            'calculation_method' => __('Calculation Method'),
+            'kpi' => 'KPI',
+            'target' => 'Target',
+            'uom' => 'UoM',
+            'weightage' => 'Weightage',
+            'type' => 'Type',
+        ];
+
+        // Snapshot
+        $snapshots = ApprovalSnapshots::where('form_id', $id)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(fn($item) => [
+                'created_at' => $item->created_at,
+                'data' => json_decode($item->form_data, true),
+            ])
+            ->values();
+
+        // Group history per KPI
+        $goalHistories = [];
+
+        for ($i = 0; $i < count($snapshots); $i++) {
+            $current = $snapshots[$i];
+            $previous = $snapshots[$i + 1] ?? null;
+
+            if (!$previous) continue;
+
+            foreach ($current['data'] as $kpiIndex => $curr) {
+                $prev = $previous['data'][$kpiIndex] ?? null;
+                if (!$prev) continue;
+
+                $changes = [];
+
+                foreach ($curr as $field => $value) {
+
+                    $oldVal = $prev[$field] ?? null;
+                    $newVal = $value;
+
+                    // Mapping value → label
+                    if ($field === 'review_period') {
+                        $oldVal = $reviewPeriodMap[$oldVal] ?? $oldVal;
+                        $newVal = $reviewPeriodMap[$newVal] ?? $newVal;
+                    }
+
+                    if ($field === 'calculation_method') {
+                        $oldVal = $calculationMethodMap[$oldVal] ?? $oldVal;
+                        $newVal = $calculationMethodMap[$newVal] ?? $newVal;
+                    }
+
+                    if ($oldVal != $newVal) {
+                        $label = $fieldLabelMap[$field] ?? ucwords(str_replace('_', ' ', $field));
+
+                        $changes[$label] = [
+                            'old' => $oldVal,
+                            'new' => $newVal
+                        ];
+                    }
+                }
+
+                if (!empty($changes)) {
+                    $goalHistories[$kpiIndex][] = [
+                        'date' => \Carbon\Carbon::parse($current['created_at'])->format('d M Y H:i'),
+                        'changes' => $changes
+                    ];
+                }
+            }
+        }
         $parentLink = 'On Behalf';
         $link = 'Approval';
 
-        return view('pages.onbehalfs.approval', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption'));
+        return view('pages.onbehalfs.approval', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'goalHistories', 'reviewPeriodOption', 'calculationMethodOption'));
 
     }
     
@@ -515,6 +602,9 @@ class OnBehalfController extends Controller
         $descriptions = $request->input('description', []);
         $types = $request->input('type', []);
         $custom_uoms = $request->input('custom_uom', []);
+        $review_period = $request->input('review_period', []);
+        $calculation_method = $request->input('calculation_method', []);
+    
 
         // Menyiapkan aturan validasi
         $rules = [
@@ -551,7 +641,7 @@ class OnBehalfController extends Controller
         // Iterasi melalui input untuk mendapatkan data KPI
         foreach ($kpis as $index => $kpi) {
             // Memastikan ada nilai untuk semua input terkait
-            if (isset($targets[$index], $uoms[$index], $weightages[$index], $types[$index])) {
+            if (isset($targets[$index], $uoms[$index], $weightages[$index], $types[$index], $review_period[$index], $calculation_method[$index])) {
                 // Simpan data KPI ke dalam array dengan nomor indeks sebagai kunci
                 if($custom_uoms[$index]){
                     $customuom = $custom_uoms[$index];
@@ -566,7 +656,9 @@ class OnBehalfController extends Controller
                     'weightage' => $weightages[$index],
                     'description' => $descriptions[$index],
                     'type' => $types[$index],
-                    'custom_uom' => $customuom
+                    'custom_uom' => $customuom,
+                    'review_period' => $review_period[$index],
+                    'calculation_method' => $calculation_method[$index],
                 ];
 
                 $index++;

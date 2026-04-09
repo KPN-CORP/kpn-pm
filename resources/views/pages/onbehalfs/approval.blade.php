@@ -109,7 +109,85 @@
                                                 {{ $errors->first("weightage") }}
                                             </div>
                                         </div>
+                                        @php
+                                            $reviewValue = $data['review_period'] ?? '';
+                                            $reviewLabel = '-';
+
+                                            foreach ($reviewPeriodOption as $group) {
+                                                foreach ($group as $opt) {
+                                                    if ($reviewValue == $opt['value']) {
+                                                        $reviewLabel = $opt['label'];
+                                                        break 2;
+                                                    }
+                                                }
+                                            }
+                                        @endphp
+
+                                        <div class="col-md-2">
+                                            <div class="mb-3">
+                                                <label class="form-label text-primary">{{ __('Review Period') }}</label>
+
+                                                {{-- display --}}
+                                                <input type="text" class="form-control bg-light" value="{{ $reviewLabel }}" readonly>
+
+                                                {{-- real value --}}
+                                                <input type="hidden" name="review_period[]" value="{{ $reviewValue }}">
+                                            </div>
+                                        </div>
+                                        @php
+                                            $calcValue = $data['calculation_method'] ?? '';
+                                            $calcLabel = '-';
+
+                                            foreach ($calculationMethodOption as $group) {
+                                                foreach ($group as $opt) {
+                                                    if ($calcValue == $opt['value']) {
+                                                        $calcLabel = $opt['label'];
+                                                        break 2;
+                                                    }
+                                                }
+                                            }
+                                        @endphp
+
+                                        <div class="col-md-2">
+                                            <div class="mb-3">
+                                                <label class="form-label text-primary">{{ __('Calculation Method') }}</label>
+
+                                                {{-- display --}}
+                                                <input type="text" class="form-control bg-light" value="{{ $calcLabel }}" readonly>
+
+                                                {{-- real value --}}
+                                                <input type="hidden" name="calculation_method[]" value="{{ $calcValue }}">
+                                            </div>
+                                        </div>
                                     </div>
+                                    @if(isset($goalHistories[$index]))
+                                        <div class="mt-3">
+                                            <label class="text-muted"><b>{{ __('Changes') }}</b></label>
+
+                                            @foreach($goalHistories[$index] as $history)
+                                                <div class="border rounded p-2 mb-2 bg-warning-subtle">
+
+                                                    <small class="text-primary">
+                                                        {{ $history['date'] }}
+                                                    </small>
+
+                                                    @foreach($history['changes'] as $field => $change)
+                                                        <div class="mt-1">
+                                                            <b>{{ $field }}</b> :
+                                                            <span class="text-danger text-decoration-line-through">
+                                                                {{ $change['old'] }}
+                                                            </span>
+                                                            →
+                                                            <span class="text-success fw-bold">
+                                                                {{ $change['new'] }}
+                                                            </span>
+                                                        </div>
+                                                    @endforeach
+
+                                                </div>
+                                            @endforeach
+                                        </div>
+                                    @endif
                                 </div>
                             </div>
                             @endforeach

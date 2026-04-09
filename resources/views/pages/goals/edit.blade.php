@@ -179,6 +179,44 @@
                                           {{ $errors->first("weightage") }}
                                       </div>
                                     </div>
+                                    <div class="col-6 col-md-2">
+                                      <div class="mb-3">
+                                          <label class="form-label text-primary" for="review_period">{{ __('Review Period') }}</label>
+                                          <div class="input-group">
+                                                <select class="form-select select-type" name="review_period[]" id="review_period{{ $index }}" required>
+                                                    <option value="">- Select -</option>
+                                                    @foreach ($reviewPeriodOption as $label => $options)
+                                                        @foreach ($options as $option)
+                                                            <option value="{{ $option['value'] }}"
+                                                                {{ $row['review_period'] == $option['value'] ? 'selected' : '' }}>
+                                                                {{ $option['label'] }}
+                                                            </option>
+                                                        @endforeach
+                                                    @endforeach
+                                                </select>
+                                          </div>                                  
+                                      </div>
+                                      {{ $errors->first("review_period") }}
+                                  </div>
+                                  <div class="col-6 col-md-2">
+                                        <div class="mb-3">
+                                            <label class="form-label text-primary" for="calculation_method">{{ __('Calculation Method') }}</label>
+                                            <div class="input-group">
+                                                <select class="form-select select-type" name="calculation_method[]" id="calculation_method{{ $index }}" required>
+                                                    <option value="">- Select -</option>
+                                                    @foreach ($calculationMethodOption as $label => $options)
+                                                        @foreach ($options as $option)
+                                                            <option value="{{ $option['value'] }}"
+                                                                {{ $row['calculation_method'] == $option['value'] ? 'selected' : '' }}>
+                                                                {{ $option['label'] }}
+                                                            </option>
+                                                        @endforeach
+                                                    @endforeach
+                                                </select>
+                                            </div>                                  
+                                        </div>
+                                        {{ $errors->first("calculation_method") }}
+                                  </div>
                                 </div>
                             </div>
                         </div>
@@ -213,7 +251,7 @@
                                   @if ($goal->form_status=='Draft')
                                   <a id="submitButton" name="save_draft" class="btn btn-outline-info rounded save-draft me-1" data-id="save_draft" ><i class="fas fa-save d-sm-none"></i><span class="d-sm-inline d-none">Save as </span>Draft</a>  
                                   @endif
-                                  <a href="{{ url()->previous() }}" class="btn btn-outline-secondary rounded px-3 me-1">{{ __('Cancel') }}</a>
+                                  <a href="{{ url('goals') }}" class="btn btn-outline-secondary rounded px-3 me-1">{{ __('Cancel') }}</a>
                                   <a id="submitButton" data-id="submit_form" name="submit_form" class="btn btn-primary rounded px-3 shadow"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>{{ __('Submit') }}</a>
                               </div>
                           </div>
