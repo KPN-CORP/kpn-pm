@@ -119,74 +119,152 @@ document.addEventListener("DOMContentLoaded", function () {
             // x++; // text box increment
             // index++; // text box increment
 
-            $(wrapper).append(
-                '<div class="card border-primary border col-md-12 m-0 mt-3 bg-primary-subtle">' +
-                    "<div class='card-body'><div class='row align-items-end'><div class='col'><h5 class='card-title fs-16 mb-0 text-primary'>Goal " +
-                    (index ? index : x) +
-                    "</h5></div>" +
-                    "<div class='col-auto'><a class='btn-close btn-sm remove_field' type='button'></a></div></div>" +
-                    '<div class="row mt-2">' +
-                    '<div class="col-md">' +
-                    '<div class="mb-3 position-relative">' +
-                    '<textarea name="kpi[]" id="kpi" class="form-control overflow-hidden kpi-textarea" placeholder="input your goal.." required style="padding-right: 40px; resize: none"></textarea>'+
-                    '<div class="invalid-feedback">' + textMandatory + '</div>' +
-                    "</div>" +
-                    "</div>" +
-                    "</div>" +
-                    '<div class="row">  ' +
-                    '<div class="col-md">' +
-                    '<label class="form-label text-primary" for="kpi-description">Goal Descriptions</label>' +
-                    '<div class="mb-3 position-relative">' +
-                    '<textarea name="description[]" id="kpi-description" class="form-control overflow-hidden kpi-descriptions" rows="2" placeholder="Input goal descriptions.." style="padding-right: 40px; resize: none"></textarea>' +
-                    "</div>" +
-                    "</div>" +
-                    "</div>" +
-                    '<div class="row">' +
-                    '<div class="col-md mb-3">' +
-                    '<label class="form-label text-primary" for="target">Target</label><input type="text" oninput="validateDigits(this, '
-                    + index +
-                    ')" class="form-control" required>' +
-                    '<input type="hidden" name="target[]" id="target'
-                    + index +'">' +
-                    '<div class="invalid-feedback">' + textMandatory + '</div>' +
-                    "</div>" +
-                    '<div class="col-md mb-3">' +
-                    '<label class="form-label text-primary" for="uom">'+ uom +'</label>' +
-                    '<select class="form-select select2 select-uom" name="uom[]" id="uom' +
-                    index +
-                    '" data-id="' +
-                    index +
-                    '" title="Unit of Measure" required>' +
-                    '<option value="">- Select -</option>' +
-                    '</select><input type="text" name="custom_uom[]" id="custom_uom' +
-                    index +
-                    '" class="form-control mt-2" placeholder="Enter UoM" style="display: none" placeholder="Enter UoM">' +
-                    '<div class="invalid-feedback">' + textMandatory + '</div>' +
-                    "</div>" +
-                    '<div class="col-md mb-3">' +
-                    '<label class="form-label text-primary" for="type">'+ type +'</label>' +
-                    '<select class="form-select select-type" name="type[]" id="type' +
-                    index +
-                    '" required>' +
-                    '<option value="">- Select -</option>' +
-                    '<option value="Higher Better">Higher Better</option>' +
-                    '<option value="Lower Better">Lower Better</option>' +
-                    '<option value="Exact Value">Exact Value</option>' +
-                    "</select>" +
-                    '<div class="invalid-feedback">' + textMandatory + '</div>' +
-                    "</div>" +
-                    '<div class="col-6 col-md-2 mb-3">' +
-                    '<label class="form-label text-primary" for="weightage">'+ weightage +'</label>' +
-                    '<div class="input-group">' +
-                    '<input type="number" min="5" max="100" step="0.1" class="form-control" name="weightage[]" required>' +
-                    '<span class="input-group-text">%</span>' +
-                    '<div class="invalid-feedback">' + textMandatory + '</div>' +
-                    "</div>" +
-                    "</div>" +
-                    "</div>" +
-                    "</div>" +
-                    "</div>"
-            );
+            $(wrapper).append(`
+                <div class="card border-primary border col-md-12 m-0 mt-3 bg-primary-subtle">
+                    <div class="card-body">
+
+                    <div class="row align-items-end">
+                        <div class="col">
+                        <h5 class="card-title fs-16 mb-0 text-primary">
+                            Goal ${index ? index : x}
+                        </h5>
+                        </div>
+                        <div class="col-auto">
+                        <a class="btn-close btn-sm remove_field" type="button"></a>
+                        </div>
+                    </div>
+
+                    <!-- KPI -->
+                    <div class="row mt-2">
+                        <div class="col-md">
+                        <div class="mb-3 position-relative">
+                            <textarea name="kpi[]"
+                            class="form-control overflow-hidden kpi-textarea"
+                            placeholder="input your goal.."
+                            required
+                            style="padding-right:40px;resize:none"></textarea>
+                            <div class="invalid-feedback">${textMandatory}</div>
+                        </div>
+                        </div>
+                    </div>
+
+                    <!-- DESCRIPTION -->
+                    <div class="row">
+                        <div class="col-md">
+                        <label class="form-label text-primary">Goal Descriptions</label>
+                        <div class="mb-3 position-relative">
+                            <textarea name="description[]"
+                            class="form-control overflow-hidden kpi-descriptions"
+                            rows="2"
+                            placeholder="Input goal descriptions.."
+                            style="padding-right:40px;resize:none"></textarea>
+                        </div>
+                        </div>
+                    </div>
+
+                    <!-- TARGET -->
+                    <div class="row">
+                        <div class="col-md mb-3">
+                        <label class="form-label text-primary">Target</label>
+                        <input type="text"
+                            oninput="validateDigits(this, ${index})"
+                            class="form-control"
+                            required>
+
+                        <input type="hidden"
+                            name="target[]"
+                            id="target${index}">
+
+                        <div class="invalid-feedback">${textMandatory}</div>
+                        </div>
+
+                        <!-- UOM -->
+                        <div class="col-md mb-3">
+                        <label class="form-label text-primary">${uom}</label>
+                        <select class="form-select select2 select-uom"
+                            name="uom[]"
+                            id="uom${index}"
+                            data-id="${index}"
+                            required>
+                            <option value="">- Select -</option>
+                        </select>
+
+                        <input type="text"
+                            name="custom_uom[]"
+                            id="custom_uom${index}"
+                            class="form-control mt-2"
+                            placeholder="Enter UoM"
+                            style="display:none">
+
+                        <div class="invalid-feedback">${textMandatory}</div>
+                        </div>
+
+                        <!-- TYPE -->
+                        <div class="col-md mb-3">
+                        <label class="form-label text-primary">${type}</label>
+                        <select class="form-select select-type"
+                            name="type[]"
+                            id="type${index}"
+                            required>
+                            <option value="">- Select -</option>
+                            <option value="Higher Better">Higher Better</option>
+                            <option value="Lower Better">Lower Better</option>
+                            <option value="Exact Value">Exact Value</option>
+                        </select>
+                        <div class="invalid-feedback">${textMandatory}</div>
+                        </div>
+
+                        <!-- WEIGHT -->
+                        <div class="col-6 col-md-2 mb-3">
+                        <label class="form-label text-primary">${weightage}</label>
+                        <div class="input-group">
+                            <input type="number"
+                            min="5" max="100" step="0.1"
+                            class="form-control"
+                            name="weightage[]"
+                            required>
+                            <span class="input-group-text">%</span>
+                            <div class="invalid-feedback">${textMandatory}</div>
+                        </div>
+                        </div>
+
+                        <!-- REVIEW PERIOD -->
+                        <div class="col-6 col-md-2">
+                        <div class="mb-3">
+                            <label class="form-label text-primary">Review Period</label>
+                            <select class="form-select"
+                            name="review_period[]"
+                            required>
+                            <option value="">- Select -</option>
+                            <option value="1">Monthly</option>
+                            <option value="2">Bi-Monthly</option>
+                            <option value="3">Quarterly</option>
+                            <option value="6">Semester</option>
+                            </select>
+                        </div>
+                        </div>
+
+                        <!-- CALCULATION -->
+                        <div class="col-6 col-md-2">
+                        <div class="mb-3">
+                            <label class="form-label text-primary">Calculation Method</label>
+                            <select class="form-select"
+                            name="calculation_method[]"
+                            required>
+                            <option value="">- Select -</option>
+                            <option value="average">Average</option>
+                            <option value="sum">Sum/Total</option>
+                            <option value="last">Last Value</option>
+                            <option value="max">Max</option>
+                            <option value="min">Min</option>
+                            </select>
+                        </div>
+                        </div>
+
+                    </div>
+                    </div>
+                </div>
+                `);
              // add input box
              // Reinitialize auto-resize and character counter for new textareas
             initializeTextareaEvents();
