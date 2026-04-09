@@ -468,9 +468,12 @@ class TeamGoalController extends Controller
             })
             ->values();
 
+        $beforeSnapshot = $snapshots[1]['data'] ?? [];
+
         $fieldLabelMap = [
             'review_period' => 'Review Period',
             'calculation_method' => 'Calculation Method',
+            'calc_method' => 'Calculation Method',
             'kpi' => 'KPI',
             'description' => 'Description',
             'target' => 'Target',
@@ -480,7 +483,6 @@ class TeamGoalController extends Controller
         ];
 
         // GROUP PER KPI INDEX
-        $goalHistories = []; // key = kpi_index
 
         for ($i = 0; $i < count($snapshots); $i++) {
             $current = $snapshots[$i];
@@ -506,8 +508,8 @@ class TeamGoalController extends Controller
                         $newVal = $reviewPeriodMap[$newVal] ?? $newVal;
                     }
 
-                    // ✅ Mapping khusus Calculation Method
-                    if ($field === 'calculation_method') {
+                    // ✅ Mapping khusus Calculation Method (support both keys)
+                    if ($field === 'calculation_method' || $field === 'calc_method') {
                         $oldVal = $calculationMethodMap[$oldVal] ?? $oldVal;
                         $newVal = $calculationMethodMap[$newVal] ?? $newVal;
                     }
@@ -525,17 +527,26 @@ class TeamGoalController extends Controller
                 // SKIP kalau tidak ada perubahan
                 if (empty($changes)) continue;
 
-                $goalHistories[$kpiIndex][] = [
-                    'date' => $current['created_at'],
-                    'changes' => $changes
-                ];
             }
         }
 
         $parentLink = __('Goal');
-        $link = 'Approval';
+        $link = 'Approval';   
+        // dd($data, $beforeSnapshot, $latestSnapshot);     
 
-        return view('pages.goals.approval', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'goalHistories', 'reviewPeriodOption', 'calculationMethodOption'));
+        return view('pages.goals.approval', compact(
+            'data',
+            'link',
+            'parentLink',
+            'formData',
+            'uomOption',
+            'typeOption',
+            'reviewPeriodOption',
+            'calculationMethodOption',
+            'reviewPeriodMap',
+            'calculationMethodMap',
+            'beforeSnapshot'
+        ));
 
     }
 

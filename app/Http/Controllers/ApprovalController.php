@@ -109,6 +109,7 @@ class ApprovalController extends Controller
 
             // Update goal status
             $goal = Goal::findOrFail($request->id);
+            $goal->form_data = $jsonData;
             $goal->form_status = $statusForm;
 
             if (!$goal->save()) {
