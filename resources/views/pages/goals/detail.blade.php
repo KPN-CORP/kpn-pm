@@ -41,39 +41,51 @@
                                     </div>
                                     <div class="card-body">
                                         <div class="row">
-                                            <div class="col-lg-5 mb-3">
+                                            <div class="col-md-4 mb-2">
                                                 <div class="form-group">
                                                     <label class="form-label" for="kpi">KPI</label>
                                                     <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['kpi'] }}</p>
                                                 </div>
                                             </div>
-                                            <div class="col-lg-3 mb-3">
-                                                <div class="form-group">
-                                                    <label class="form-label" for="target">{{ __('Target In UoM') }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</label>
-                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['target'] }}</p>
-                                                </div>
-                                            </div>
-                                            <div class="col-lg-2 mb-3">
-                                                <div class="form-group">
-                                                    <label class="form-label" for="weightage">{{ __('Weightage') }}</label>
-                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['weightage'] }}%</p>
-                                                </div>
-                                            </div>
-                                            <div class="col-lg-2 mb-3">
-                                                <div class="form-group">
-                                                    <label class="form-label" for="type">{{ __('Type') }}</label>
-                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['type'] }}</p>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        <hr class="mt-0 mb-2">
-                                        <div class="row">
-                                            <div class="col-md mb-2">
+                                            <div class="col-md-8 mb-2">
                                                 <div class="form-group
                                                 ">
                                                     <label class="form-label
                                                     " for="description">Description</label>
                                                     <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['description'] ?? '-' }}</p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <hr class="mt-0 mb-2">
+                                        <div class="row">
+                                            <div class="col-md-4 mb-2">
+                                                <div class="form-group">
+                                                    <label class="form-label" for="target">{{ __('Target In UoM') }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</label>
+                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['target'] }}</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2 mb-2">
+                                                <div class="form-group">
+                                                    <label class="form-label" for="weightage">{{ __('Weightage') }}</label>
+                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['weightage'] }}%</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2 mb-2">
+                                                <div class="form-group">
+                                                    <label class="form-label" for="type">{{ __('Type') }}</label>
+                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['type'] }}</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2 mb-2">
+                                                <div class="form-group">
+                                                    <label class="form-label" for="type">{{ __('Review Period') }}</label>
+                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['review_period'] }}</p>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-2 mb-2">
+                                                <div class="form-group">
+                                                    <label class="form-label" for="type">{{ __('Calculation Method') }}</label>
+                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['calculation_method'] }}</p>
                                                 </div>
                                             </div>
                                         </div>

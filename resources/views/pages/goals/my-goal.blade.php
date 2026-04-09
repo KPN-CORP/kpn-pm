@@ -249,17 +249,31 @@
                                         <div class="mt-2">
                                             <h6 class="fw-bold text-dark mb-3" style="font-size: 0.85rem;">{{ __('Achievement Tracking') }}</h6>
                                             <div class="row g-2">
-                                                @foreach($months as $monthIndex => $month)
-                                                    @php
-                                                        $dummyValue = ($index == 0) ? ($monthIndex * 10) + 10 : 0;
-                                                    @endphp
-                                                    <div class="col-4 col-sm-3 col-md-2 col-lg-1">
-                                                        <div class="read-only-month">
-                                                            <span class="text-uppercase fw-bold text-secondary d-block mb-1" style="font-size: 0.65rem;">{{ $month }}</span>
-                                                            <span class="fw-bold text-dark" style="font-size: 1.1rem;">{{ $dummyValue }}</span>
-                                                        </div>
+                                                @foreach($months as $monthNum => $monthLabel)
+
+                                                @php
+                                                    $value = $data['ach'][$monthNum] ?? null;
+
+                                                    $formatted = is_null($value) || $value === ''
+                                                        ? '-'
+                                                        : rtrim(rtrim($value, '0'), '.');
+                                                @endphp
+
+                                                <div class="col-4 col-sm-3 col-md-2 col-lg-1">
+                                                    <div class="read-only-month">
+                                                        
+                                                        <span class="text-uppercase fw-bold text-secondary d-block mb-1" style="font-size: 0.65rem;">
+                                                            {{ $monthLabel }}
+                                                        </span>
+
+                                                        <span class="fw-bold text-dark" style="font-size: 1.1rem;">
+                                                            {{ $formatted }}
+                                                        </span>
+
                                                     </div>
-                                                @endforeach
+                                                </div>
+
+                                            @endforeach
                                             </div>
                                         </div>
                                     </div>

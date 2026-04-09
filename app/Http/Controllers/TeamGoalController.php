@@ -298,11 +298,14 @@ class TeamGoalController extends Controller
         $uomOptions = json_decode(File::get($path), true);
 
         $uomOption = $uomOptions['UoM'];
+        $typeOption = $uomOptions['Type'];
+        $reviewPeriodOption = $uomOptions['Review Period'];
+        $calculationMethodOption = $uomOptions['Calculation Method'];
         
         $parentLink = __('Goal');
         $link = 'Create';
 
-        return view('pages.goals.form', compact('datas', 'link', 'parentLink', 'uomOption', 'period'));
+        return view('pages.goals.form', compact('datas', 'link', 'parentLink', 'uomOption', 'typeOption', 'reviewPeriodOption', 'calculationMethodOption', 'period'));
 
     }
 
@@ -363,18 +366,22 @@ class TeamGoalController extends Controller
             $selectedUoM = [];
             $selectedType = [];
             $weightage = [];
+            $selectedReviewPeriod = [];
+            $selectedCalculationMethod = [];
             $totalWeightages = 0;
             
             foreach ($formData as $index => $row) {
                 $selectedUoM[$index] = $row['uom'] ?? '';
                 $selectedType[$index] = $row['type'] ?? '';
                 $weightage[$index] = $row['weightage'] ?? '';
+                $selectedReviewPeriod[$index] = $row['review_period'] ?? '';
+                $selectedCalculationMethod[$index] = $row['calculation_method'] ?? '';
                 $totalWeightages += (float)$weightage[$index];
             }
 
             $data = json_decode($goal->form_data, true);
             
-            return view('pages.goals.edit', compact('goal', 'formCount', 'link', 'data', 'uomOption', 'selectedUoM', 'typeOption', 'selectedType', 'approvalRequest', 'totalWeightages', 'parentLink'));
+            return view('pages.goals.edit', compact('goal', 'formCount', 'link', 'data', 'uomOption', 'selectedUoM', 'typeOption', 'reviewPeriodOption', 'calculationMethodOption', 'selectedType', 'selectedReviewPeriod', 'selectedCalculationMethod', 'approvalRequest', 'totalWeightages', 'parentLink'));
         }
 
     }
