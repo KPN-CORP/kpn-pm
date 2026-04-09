@@ -79,13 +79,72 @@
                                             <div class="col-md-2 mb-2">
                                                 <div class="form-group">
                                                     <label class="form-label" for="type">{{ __('Review Period') }}</label>
-                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['review_period'] }}</p>
+                                                    @php
+                                                        $rv = (string) ($data['review_period'] ?? '');
+
+                                                        $rvLabel = '-';
+
+                                                        // 🔥 coba dari option dulu
+                                                        if (!empty($reviewPeriodOption)) {
+                                                            foreach ($reviewPeriodOption as $group) {
+                                                                foreach ($group as $opt) {
+                                                                    if ($rv === (string)($opt['value'] ?? '')) {
+                                                                        $rvLabel = $opt['label'];
+                                                                        break 2;
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // 🔥 fallback kalau option tidak ada / gagal
+                                                        if ($rvLabel === '-' && $rv !== '') {
+                                                            $fallback = [
+                                                                '1'  => 'Monthly',
+                                                                '2'  => 'Bi-Monthly',
+                                                                '3'  => 'Quarterly',
+                                                                '6'  => 'Semester',
+                                                                '12' => 'Annual',
+                                                            ];
+
+                                                            $rvLabel = $fallback[$rv] ?? $rv;
+                                                        }
+                                                    @endphp
+                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $rvLabel }}</p>
                                                 </div>
                                             </div>
                                             <div class="col-md-2 mb-2">
                                                 <div class="form-group">
                                                     <label class="form-label" for="type">{{ __('Calculation Method') }}</label>
-                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['calculation_method'] }}</p>
+                                                    @php
+                                                        $cm = (string) ($data['calculation_method'] ?? '');
+
+                                                        $cmLabel = '-';
+
+                                                        if (!empty($calculationMethodOption)) {
+                                                            foreach ($calculationMethodOption as $group) {
+                                                                foreach ($group as $opt) {
+                                                                    if ($cm === (string)($opt['value'] ?? '')) {
+                                                                        $cmLabel = $opt['label'];
+                                                                        break 2;
+                                                                    }
+                                                                }
+                                                            }
+                                                        }
+
+                                                        // fallback
+                                                        if ($cmLabel === '-' && $cm !== '') {
+                                                            $fallback = [
+                                                                'average' => 'Average',
+                                                                'sum'     => 'Sum / Total',
+                                                                'last'    => 'Last Value',
+                                                                'max'     => 'Max',
+                                                                'min'     => 'Min',
+                                                            ];
+
+                                                            $cmLabel = $fallback[$cm] ?? $cm;
+                                                        }
+                                                    @endphp
+                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $cmLabel }}</p>
                                                 </div>
                                             </div>
                                         </div>

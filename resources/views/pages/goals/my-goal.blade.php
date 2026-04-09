@@ -202,12 +202,13 @@
                     </div>
                     <div class="collapse" id="collapse{{ $goalIndex }}">
                         <div class="card-body p-0">
-                            @if ($formData)
+                            @if ($row->formData)
                                 @php
                                     $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                                 @endphp
                                 
-                                @foreach ($formData as $index => $data)
+                                @foreach ($row->formData as $index => $data)
+
                                     <div class="p-3 p-md-4 {{ $loop->even ? 'bg-light-subtle' : 'bg-white' }} {{ $loop->last ? '' : 'border-bottom' }}">
                                         <div class="row g-3 mb-3">
                                             <div class="col-xl-3 col-lg-12 mb-3 mb-xl-0">
@@ -236,11 +237,39 @@
                                                     </div>
                                                     <div class="col col-md-2">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Review Period</small>
-                                                        <span class="fw-bold text-dark" style="font-size: 0.95rem;">Monthly</span>
+                                                        @php
+                                                            $rv = $data['review_period'] ?? '';
+                                                            $rvLabel = $rv ?: '-';
+                                                            if (isset($reviewPeriodOption) && is_array($reviewPeriodOption)) {
+                                                                foreach ($reviewPeriodOption as $group) {
+                                                                    foreach ($group as $opt) {
+                                                                        if ((string)$rv === (string)($opt['value'] ?? '')) {
+                                                                            $rvLabel = $opt['label'];
+                                                                            break 2;
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        @endphp
+                                                        <span class="fw-bold text-dark" style="font-size: 0.95rem;">{{ $rvLabel }}</span>
                                                     </div>
                                                     <div class="col col-md-2">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Calc Method</small>
-                                                        <span class="fw-bold text-dark" style="font-size: 0.95rem;">Average</span>
+                                                        @php
+                                                            $rv = $data['calculation_method'] ?? '';
+                                                            $rvLabel = $rv ?: '-';
+                                                            if (isset($calculationMethodOption) && is_array($calculationMethodOption)) {
+                                                                foreach ($calculationMethodOption as $group) {
+                                                                    foreach ($group as $opt) {
+                                                                        if ((string)$rv === (string)($opt['value'] ?? '')) {
+                                                                            $rvLabel = $opt['label'];
+                                                                            break 2;
+                                                                        }
+                                                                    }
+                                                                }
+                                                            }
+                                                        @endphp
+                                                        <span class="fw-bold text-dark" style="font-size: 0.95rem;">{{ $rvLabel }}</span>
                                                     </div>
                                                 </div>
                                             </div>

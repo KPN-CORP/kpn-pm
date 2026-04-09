@@ -2,7 +2,6 @@
 
 namespace App\Http\Controllers;
 
-use App\Exports\UserExport;
 use App\Models\Appraisal;
 use App\Models\Approval;
 use App\Models\ApprovalLayer;
@@ -10,9 +9,8 @@ use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
 use App\Models\Employee;
 use App\Models\Goal;
-use App\Models\KPIAchievement;
-use App\Models\User;
 use App\Services\AppService;
+use App\Services\KPIAchievementService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -23,8 +21,6 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
-use Maatwebsite\Excel\Facades\Excel;
-use RealRashid\SweetAlert\Facades\Alert;
 use stdClass;
 
 class MyGoalController extends Controller
@@ -132,25 +128,31 @@ class MyGoalController extends Controller
         $data = [];
         
         foreach ($formattedData as $request) {
-            // Check form status and creator
-                // Get fullname from approverName relation
-                $dataApprover = '';
+
+            $formData = json_decode($request->goal['form_data'], true);
+
+            $dataApprover = '';
                 if ($request->approval->first()) {
                     $approverName = $request->approval->first();
                     $dataApprover = $approverName->approverName->fullname;
                 }
-    
-                // Create an object to store request data and approver fullname
-                $dataItem = new stdClass();
-                $dataItem->request = $request;
-                $dataItem->approver_name = $dataApprover;
-                $dataItem->name = $request->name;  // Add the name
-                $dataItem->approvalLayer = $request->approvalLayer;  // Add the approval layer
-    
-                // Add the data item to the array
-                $data[] = $dataItem;
+            // ambil achievement
+            $achievementData = KPIAchievementService::getByGoal($request->form_id);
+
+            // inject ke tiap KPI
+            foreach ($formData as $i => &$kpi) {
+                $kpi['ach'] = $achievementData[$i]['ach'] ?? array_fill(1, 12, null);
+            }
+
+            $dataItem = new stdClass();
+            $dataItem->request = $request;
+            $dataItem->approver_name = $dataApprover;
+            $dataItem->formData = $formData;
+            $dataItem->name = $request->name;
+            $dataItem->approvalLayer = $request->approvalLayer;
+
+            $data[] = $dataItem;
         }
-    
         // Check if the JSON file exists
         if (!File::exists($this->path)) {
             abort(500, 'JSON file does not exist.');
@@ -180,7 +182,6 @@ class MyGoalController extends Controller
             $req->year = (int) $req->period;
             return $req;
         });
-
 
         $countDraft = Goal::where('employee_id', $user)->where('category', $this->category)->where('form_status', 'Draft')->count();
     
