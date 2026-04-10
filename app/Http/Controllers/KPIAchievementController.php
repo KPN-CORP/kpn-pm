@@ -155,7 +155,7 @@ class KPIAchievementController extends Controller
     {
         $request->validate([
             'goal_id' => 'required|string',
-            'ach' => 'required|array',
+            'ach' => 'nullable|array',
             'attachment' => 'array',
             'attachment.*.*' => 'nullable|file|mimes:pdf,png,jpg,jpeg|max:2048'
         ], [
@@ -175,8 +175,6 @@ class KPIAchievementController extends Controller
 
             foreach ($months as $month => $value) {
 
-                if ($value === null || $value === '') continue;
-
                 $month = (int)$month;
 
                 if ($month % $period !== 0) continue;
@@ -190,7 +188,7 @@ class KPIAchievementController extends Controller
 
                 if ($request->hasFile("attachment.$kpiIndex.$month")) {
 
-                    if ($existing) {
+                    if ($existing || $value === null || $value === '') {
                         if ($existing->file) {
                             Storage::disk('public')->delete($existing->file);
                         }
