@@ -95,10 +95,9 @@
             $formData = json_decode($row->request->goal['form_data'], true) ?? [];
             $oldFormData = $beforeSnapshot ?? [];
             $maxCount = max(is_array($oldFormData) ? count($oldFormData) : 0, is_array($formData) ? count($formData) : 0);
-            function isChanged($old, $new) {
+            $isChanged = function ($old, $new) {
                 return (string)$old !== (string)$new;
-            }
-            
+            };
         @endphp
 
         @for ($i = 0; $i < $maxCount; $i++)
