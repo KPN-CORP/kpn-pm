@@ -457,18 +457,20 @@ class TeamGoalController extends Controller
 
         // Ambil snapshot
         $snapshots = ApprovalSnapshots::where('form_id', $id)
+            ->where('employee_id', $this->user)
             ->orderBy('created_at', 'desc')
             ->get()
             ->map(function ($item) {
                 return [
                     'id' => $item->id,
-                    'created_at' => Carbon::parse($item->created_at)->format('d M Y H:i'),
-                    'data' => json_decode($item->form_data, true),
+                    'created_at' => $item->created_at,
+                    'data' => json_decode($item->form_data, true) ?? [],
                 ];
             })
-            ->values();
+            ->values()
+            ->toArray();
 
-        $beforeSnapshot = $snapshots[1]['data'] ?? [];
+        $beforeSnapshot = $snapshots[0]['data'] ?? [];
 
         $fieldLabelMap = [
             'review_period' => 'Review Period',
@@ -532,7 +534,6 @@ class TeamGoalController extends Controller
 
         $parentLink = __('Goal');
         $link = 'Approval';   
-        // dd($data, $beforeSnapshot, $latestSnapshot);     
 
         return view('pages.goals.approval', compact(
             'data',
@@ -549,7 +550,6 @@ class TeamGoalController extends Controller
         ));
 
     }
-
 
     public function getTooltipContent(Request $request)
     {
