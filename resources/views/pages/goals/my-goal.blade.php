@@ -97,13 +97,13 @@
                 @if ($period == $row->request->goal->period && !$row->request->appraisalCheck && $access)
                     @if (Auth::user()->employee_id == $row->request->initiated->employee_id)
                         <div class="d-flex flex-wrap gap-2">
+                                <a class="btn btn-outline-{{ $row->request->goal->form_status === 'Approved' ? 'success fw-semibold' : 'secondary' }} btn-sm" href="{{ route('goals.update-achievement', $row->request->goal->id) }}">
+                                    {{ __('Update Achievement') }}
+                                </a>
                                 @if (
                                     $row->request->goal->form_status != 'Draft' && 
                                     $row->request->created_by == Auth::user()->id
                                 )
-                                    <a class="btn btn-outline-success btn-sm fw-semibold" href="{{ route('goals.update-achievement', $row->request->goal->id) }}">
-                                    {{ __('Update Achievement') }}
-                                    </a>
                                     <a class="btn btn-outline-warning btn-sm fw-semibold" 
                                     href="{{ route('goals.edit', $row->request->goal->id) }}" 
                                     onclick="showLoader()">
@@ -114,8 +114,6 @@
                                     ($row->request->status == 'Pending' && count($row->request->approval) == 0) || 
                                     $row->request->sendback_to == $row->request->employee_id
                                 )
-                                    <a class="btn btn-outline-success btn-sm fw-semibold" href="{{ route('goals.update-achievement', $row->request->goal->id) }}">
-                                    {{ __('Update Achievement') }}
                                     </a>
                                     <a class="btn btn-outline-warning btn-sm fw-semibold" 
                                     href="{{ route('goals.edit', $row->request->goal->id) }}" 

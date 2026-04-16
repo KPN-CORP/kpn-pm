@@ -129,7 +129,7 @@ input[type=number] {
         @foreach ($formData as $index => $data)
         <div class="card shadow-sm mb-4 border-0">
             <div class="card-body p-3 p-md-4">
-                <input type="hidden" name="kpi_index[]" value="{{ $index }}">
+                <input type="hidden" name="kpi_id[]" value="{{ $data['kpi_id'] }}">
                 <input type="hidden" name="goal_id" value="{{ $id }}">
                 <input type="hidden" name="review_period[]" value="{{ $data['review_period'] }}">
                 <input type="hidden" name="calculation_method[]" value="{{ $data['calculation_method'] }}">
@@ -168,12 +168,13 @@ input[type=number] {
                     <div class="row g-2 kpi-grid" 
                         id="kpi_grid_{{ $index }}" 
                         data-review-period="{{ $data['review_period'] ?? 1 }}">
+
                         @foreach($months as $monthNum => $monthLabel)
                             @php 
-                                $monthLower = strtolower($monthLabel);
                                 $elementId = "file_{$index}_{$monthNum}"; 
                                 $inputId = "input_{$index}_{$monthNum}";
                             @endphp
+
                             <div class="col-xl-1 col-lg-2 col-md-3 col-4">
                                 <div class="month-box readonly-mode p-1 text-center position-relative">
 
@@ -210,12 +211,12 @@ input[type=number] {
                                         <span class="text-attach">FILE</span>
                                     </label>
 
-                                    {{-- 🔥 VIEW ATTACHMENT BUTTON --}}
+                                    {{-- VIEW ATTACHMENT --}}
                                     @if(!empty($data['attachment'][$monthNum]))
                                         <a href="{{ asset('storage/'.$data['attachment'][$monthNum]) }}" 
-                                        target="_blank"
-                                        class="btn-attach-mini w-100 d-block mt-1 border border-info text-info"
-                                        title="View Attachment">
+                                            target="_blank"
+                                            class="btn-attach-mini w-100 d-block mt-1 border border-info text-info"
+                                            title="View Attachment">
                                             <i class="ri-file-line"></i> VIEW
                                         </a>
                                     @endif
@@ -248,6 +249,9 @@ input[type=number] {
         const grid = document.getElementById(gridId);
         const reviewPeriod = parseInt(grid.dataset.reviewPeriod);
 
+        // 🔥 current month
+        const currentMonth = new Date().getMonth() + 1;
+
         grid.querySelectorAll('.month-box').forEach(box => {
             const input = box.querySelector('.input-compact');
             const fileInput = box.querySelector('.file-input-trigger');
@@ -256,6 +260,7 @@ input[type=number] {
 
             let isActive = false;
 
+            // 🔹 RULE review period
             if (reviewPeriod === 1) {
                 isActive = true;
             } else if (reviewPeriod === 2) {
@@ -268,7 +273,10 @@ input[type=number] {
                 isActive = (month === 12);
             }
 
-            if (isActive) {
+            // 🔥 RULE tambahan: hanya current & sebelumnya
+            const isPastOrCurrent = month <= currentMonth;
+
+            if (isActive && isPastOrCurrent) {
                 // ✅ ACTIVE
                 box.classList.remove('readonly-mode');
                 box.classList.add('edit-mode-active');
@@ -276,7 +284,6 @@ input[type=number] {
                 input.removeAttribute('readonly');
                 fileInput.removeAttribute('disabled');
 
-                // 🔥 SHOW BUTTON
                 label.style.display = 'block';
                 label.classList.remove('disabled-attach');
 
@@ -288,7 +295,6 @@ input[type=number] {
                 input.setAttribute('readonly', true);
                 fileInput.setAttribute('disabled', true);
 
-                // 🔥 HIDE BUTTON TOTAL (IMPORTANT)
                 label.style.display = 'none';
             }
         });

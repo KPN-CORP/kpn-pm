@@ -449,6 +449,7 @@ class MyGoalController extends Controller
             $kpiData = [];
             foreach ($request->input('kpi', []) as $index => $kpi) {
                 $kpiData[$index] = [
+                    'kpi_id' => Str::uuid(),
                     'kpi' => $kpi,
                     'description' => $request->description[$index] ?? '',
                     'target' => $request->target[$index],
@@ -604,6 +605,7 @@ class MyGoalController extends Controller
             $kpiData = [];
             foreach ($request->input('kpi', []) as $index => $kpi) {
                 $kpiData[$index] = [
+                    'kpi_id' => $request->kpi_id[$index] ?? Str::uuid(),
                     'kpi' => $kpi,
                     'description' => $request->description[$index] ?? '',
                     'target' => $request->target[$index],

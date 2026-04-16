@@ -650,6 +650,7 @@ class OnBehalfController extends Controller
                 }
                 
                 $kpiData[$index] = [
+                    'kpi_id' => $request->kpi_id[$index],
                     'kpi' => $kpi,
                     'target' => $targets[$index],
                     'uom' => $uoms[$index],

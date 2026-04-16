@@ -5,12 +5,24 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\KPIAchievement;
 use App\Models\Goal;
+use App\Services\AppService;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Validation\ValidationException;
 
 class KPIAchievementController extends Controller
 {
+    protected $user;
+    protected $appService;
+
+    public function __construct(AppService $appService)
+    {
+        $this->appService = $appService;
+        $this->user = Auth::user()->employee_id;
+    }
+
     public function store(Request $request)
     {
         $request->validate([
@@ -66,16 +78,26 @@ class KPIAchievementController extends Controller
         ]);
     }
 
-    public function index($goalId)
+    public function index($id)
     {
-        $goal = Goal::findOrFail($goalId);
+        $goal = Goal::findOrFail($id);
         $formData = json_decode($goal->form_data, true);
 
-        $achievements = KPIAchievement::where('goal_id', $goalId)
-            ->orderBy('kpi_index')
+        $period = $this->appService->goalPeriod();
+
+        if ($goal->form_status != "Approved") {
+            Session::flash('error', [
+                'title' => 'Cannot update Achievements',
+                'message' => "Your Goals for $period are not fully Approved."
+            ]);
+            return redirect('goals');
+        }
+
+        $achievements = KPIAchievement::where('goal_id', $id)
+            ->orderBy('id')
             ->orderBy('month')
             ->get()
-            ->groupBy('kpi_index');
+            ->groupBy('kpi_id');
 
         $result = [];
 
@@ -84,7 +106,7 @@ class KPIAchievementController extends Controller
             $data = $achievements[$index] ?? collect();
 
             $result[] = [
-                'kpi_index' => $index,
+                'kpi_id' => $kpi['kpi_id'],
                 'kpi_name'  => $kpi['kpi'],
                 'review_period' => $kpi['review_period'],
                 'calculation_method' => $kpi['calculation_method'],
@@ -99,15 +121,25 @@ class KPIAchievementController extends Controller
     {
         $parentLink = __('Achievement');
         $link = __('Edit');
+        $period = $this->appService->goalPeriod();
 
         $goal = Goal::findOrFail($id);
+
+        if ($goal->form_status != "Approved") {
+            Session::flash('error', [
+                'title' => 'Cannot update Achievements',
+                'message' => "Your Goals for $period are not fully Approved."
+            ]);
+            return redirect('goals');
+        }
 
         // KPI dari goal
         $formData = json_decode($goal->form_data, true);
 
-        $achievements =KPIAchievement::where('goal_id', $id)
+        // 🔥 group by kpi_id (SUDAH BENAR)
+        $achievements = KPIAchievement::where('goal_id', $id)
             ->get()
-            ->groupBy('kpi_index');
+            ->groupBy('kpi_id');
 
         // load options
         $options = json_decode(File::get(base_path('resources/goal.json')), true);
@@ -127,16 +159,27 @@ class KPIAchievementController extends Controller
 
         foreach ($formData as $i => $row) {
 
+            // 🔥 WAJIB: pastikan ada kpi_id
+            $kpiId = $row['kpi_id'] ?? null;
+
+            $formData[$i]['kpi_id'] = $kpiId;
+
+            // label mapping
             $formData[$i]['review_period_label'] = $mapLabel($reviewPeriodOption, $row['review_period'] ?? null);
             $formData[$i]['calculation_method_label'] = $mapLabel($calculationMethodOption, $row['calculation_method'] ?? null);
 
+            // init month 1-12
             for ($m = 1; $m <= 12; $m++) {
                 $formData[$i]['ach'][$m] = null;
+                $formData[$i]['attachment'][$m] = null;
             }
 
-            if (isset($achievements[$i])) {
-                foreach ($achievements[$i] as $ach) {
-                    $month = (int)$ach->month; // 1-12
+            // 🔥 FIX: pakai kpi_id, bukan index
+            if ($kpiId && isset($achievements[$kpiId])) {
+
+                foreach ($achievements[$kpiId] as $ach) {
+                    $month = (int)$ach->month;
+
                     $formData[$i]['ach'][$month] = $ach->value;
                     $formData[$i]['attachment'][$month] = $ach->file ?? null;
                 }
@@ -180,7 +223,7 @@ class KPIAchievementController extends Controller
                 if ($month % $period !== 0) continue;
 
                 $existing = KPIAchievement::where('goal_id', $request->goal_id)
-                    ->where('kpi_index', $kpiIndex)
+                    ->where('kpi_id', $request->kpi_id[$kpiIndex])
                     ->where('month', $month)
                     ->first();
 
@@ -204,7 +247,7 @@ class KPIAchievementController extends Controller
 
                 $achievement = new KPIAchievement();
                 $achievement->goal_id = $request->goal_id;
-                $achievement->kpi_index = $kpiIndex;
+                $achievement->kpi_id = $request->kpi_id[$kpiIndex];
                 $achievement->month = $month;
                 $achievement->value = $value;
                 $achievement->file = $filePath;
