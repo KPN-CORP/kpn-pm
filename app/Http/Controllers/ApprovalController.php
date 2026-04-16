@@ -65,6 +65,7 @@ class ApprovalController extends Controller
             $kpiData = [];
             foreach ($request->input('kpi', []) as $index => $kpi) {
                 $kpiData[$index] = [
+                    'kpi_id' => $request->kpi_id[$index],
                     'kpi' => $kpi,
                     'description' => $request->description[$index] ?? '',
                     'target' => $request->target[$index],

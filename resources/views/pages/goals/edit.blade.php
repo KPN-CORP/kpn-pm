@@ -90,6 +90,7 @@
                                 <div class="row mt-2">
                                     <div class="col-md">
                                       <div class="mb-3 position-relative">
+                                            <input type="hidden" name="kpi_id[]" value="{{ $row['kpi_id'] ?? '' }}">
                                             <textarea name="kpi[]" id="kpi" class="form-control overflow-hidden kpi-textarea pb-2 pe-3" rows="2" placeholder="Input your goals.." required style="resize: none">{{ $row['kpi'] }}</textarea>
                                             <div class="invalid-feedback">
                                                 {{ __('This field is mandatory') }}
