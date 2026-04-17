@@ -257,4 +257,20 @@ class KPIAchievementController extends Controller
 
         return redirect()->back()->with('success', 'Achievement saved');
     }
+
+    function approvalAchievement($id)
+    {
+        $parentLink = __('Achievement');
+        $link = __('Edit');
+        $period = $this->appService->goalPeriod();
+        $goal = Goal::findOrFail($id);
+        $formData = json_decode($goal->form_data, true);
+
+        return view('pages.goals.approval-achievement', compact(
+            'formData',
+            'id',
+            'parentLink',
+            'link'
+        ));
+    }
 }

@@ -82,10 +82,6 @@ Route::get('/test-email', function () {
     return view('email.reminderschedule', compact('messages', 'name'));
 });
 
-Route::get('/kpi-achievements/{goalId}', [KPIAchievementController::class, 'index']);
-Route::get('/kpi-score/{goalId}', [KPIScoreController::class, 'calculate']);
-// Route::post('/kpi-achievements', [KPIAchievementController::class, 'store']);
-
 Route::middleware('guest')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
                 ->name('register');
@@ -142,7 +138,13 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     // routes/web.php
     Route::get('/goals/latest/{id}', [MyGoalController::class, 'latest'])->name('goals.latest');
 
+    // KPI Achievement & Score
+    Route::get('/kpi-achievements/{goalId}', [KPIAchievementController::class, 'index']);
+    Route::get('/kpi-score/{goalId}', [KPIScoreController::class, 'calculate']);
+
     Route::get('/achievement/{id}', [KPIAchievementController::class, 'editAchievement'])->name('goals.update-achievement');
+    Route::get('/approval-achievement/{id}', [KPIAchievementController::class, 'approvalAchievement'])->name('goals.approval-achievement');
+
     Route::post('/achievement/bulk', [KPIAchievementController::class, 'bulkStore'])
     ->name('achievement.bulk-store');
     
