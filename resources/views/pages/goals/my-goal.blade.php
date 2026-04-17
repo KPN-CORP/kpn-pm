@@ -152,8 +152,8 @@
                                 <small class="text-muted fw-bold text-uppercase d-block" style="font-size: 0.7rem;">{{ __('Adjusted By') }}</small>
                                 <span class="text-dark fw-medium">{{ $row->request->updatedBy ? $row->request->updatedBy->name.' '.$row->request->updatedBy->employee_id : '-' }}{{ $row->request->updated_by != auth()->user()->id && empty($adjustByManager) && auth()->check() && auth()->user()->roles->isNotEmpty() && $period == $row->request->goal->period && $row->request->initiated->employee_id != $row->request->employee_id ? ' (Admin)': '' }}</span>
                             </div>
-                            <div class="col-lg col-md-4 col-12">
-                                <small class="text-muted fw-bold text-uppercase d-block mb-1" style="font-size: 0.7rem;">Status</small>
+                            <div class="col-6 col-md-4 col-xl-2">
+                                <small class="text-muted fw-bold text-uppercase d-block mb-1" style="font-size: 0.7rem;">Goal Status</small>
                                 <div>
                                     <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" 
                                         data-bs-content="{{
@@ -167,7 +167,40 @@
                                                     ) 
                                                 )
                                         }}"
-                                        class="badge {{ $row->request->goal->form_status == 'Draft' || $row->request->sendback_to == $row->request->employee_id ? 'bg-secondary' : ($row->request->appraisalCheck || $row->request->status == 'Pending' ? 'bg-warning' : ($row->request->status == 'Approved' ? 'bg-success' : 'text-bg-light'))}} rounded-pill py-1 px-2">
+                                        class="badge {{ $row->request->goal->form_status == 'Draft' || $row->request->sendback_to == $row->request->employee_id ? 'bg-secondary' : ($row->request->appraisalCheck || $row->request->status == 'Pending' ? 'bg-warning' : ($row->request->status == 'Approved' ? 'bg-success' : 'text-bg-light'))}} rounded-pill py-1 px-2 d-inline-block text-truncate" style="max-width: 100%;">
+                                        {{
+                                            $row->request->goal->form_status == 'Draft'
+                                                ? 'Draft'
+                                                : ($row->request->appraisalCheck
+                                                    ? 'Auto Approved'
+                                                    : ($row->request->status == 'Approved'
+                                                        ? __('Approved')
+                                                        : ($row->request->sendback_to == $row->request->employee_id
+                                                            ? 'Waiting Your Revision'
+                                                            : __($row->request->status)
+                                                        )
+                                                    )
+                                                )
+                                        }}
+                                    </a>
+                                </div>
+                            </div>
+                            <div class="col-6 col-md-4 col-xl-2">
+                                <small class="text-muted fw-bold text-uppercase d-block mb-1" style="font-size: 0.7rem;">Achievement Status</small>
+                                <div>
+                                    <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" 
+                                        data-bs-content="{{
+                                            $row->request->goal->form_status == 'Draft'
+                                                ? 'Draft'
+                                                : ($row->request->appraisalCheck
+                                                    ? '(Goals were auto-approved after you submitted PA '.$row->request->period .')'
+                                                    : ($row->approvalLayer && $row->request->status != 'Approved'
+                                                        ? 'Manager L'.$row->approvalLayer.' : '.$row->name
+                                                        : ($row->request->status === 'Sendback' ? $row->name : 'Approved')
+                                                    ) 
+                                                )
+                                        }}"
+                                        class="badge {{ $row->request->goal->form_status == 'Draft' || $row->request->sendback_to == $row->request->employee_id ? 'bg-secondary' : ($row->request->appraisalCheck || $row->request->status == 'Pending' ? 'bg-warning' : ($row->request->status == 'Approved' ? 'bg-success' : 'text-bg-light'))}} rounded-pill py-1 px-2 d-inline-block text-truncate" style="max-width: 100%;">
                                         {{
                                             $row->request->goal->form_status == 'Draft'
                                                 ? 'Draft'
@@ -207,33 +240,41 @@
                                 
                                 @foreach ($row->formData as $index => $data)
 
-                                    <div class="p-3 p-md-4 {{ $loop->even ? 'bg-light-subtle' : 'bg-white' }} {{ $loop->last ? '' : 'border-bottom' }}">
-                                        <div class="row g-3 mb-3">
-                                            <div class="col-xl-3 col-lg-12 mb-3 mb-xl-0">
+                                    <div class="p-4 pt-0 {{ $loop->even ? 'bg-light-subtle' : 'bg-white' }} {{ $loop->last ? '' : 'border-bottom' }}">
+                                       <div class="row g-3 mb-2">
+                                            <div class="col-md-5 col-lg-5 mb-md-0">
                                                 <small class="fw-bold text-uppercase d-block kpi-label mb-1">KPI {{ $index + 1 }}</small>
-                                                <h6 class="fw-bold text-dark mb-1">{{ $data['kpi'] }}</h6>
-                                                <p class="text-secondary mb-0 mt-2" style="white-space: pre-line; font-size: 0.85rem; line-height: 1.5;">{{ $data['description'] ?? '-' }}</p>
+                                                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">{{ $data['kpi'] }}</h6>
+                                                <p class="text-secondary mb-0" style="white-space: pre-line; font-size: 0.75rem; line-height: 1.5;">{{ $data['description'] ?? '-' }}</p>
                                             </div>
                                             
-                                            <div class="col-xl-9 col-lg-12">
-                                                <div class="row g-3">
-                                                    <div class="col col-md-2">
+                                            <div class="col-md-7 col-lg-7">
+                                                
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-3 col-sm-3">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
-                                                        <span class="fw-bold text-dark" style="font-size: 0.95rem;">{{ $data['target'] }}</span>
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['target'] }}</span>
                                                     </div>
-                                                    <div class="col col-md-2">
+                                                    <div class="col-3 col-sm-3">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
-                                                        <span class="fw-bold text-dark" style="font-size: 0.95rem;">{{ is_null($data['custom_uom']) ? $data['uom'] : $data['custom_uom'] }}</span>
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ is_null($data['custom_uom']) ? $data['uom'] : $data['custom_uom'] }}</span>
                                                     </div>
-                                                    <div class="col col-md-2">
+                                                    <div class="col-3 col-sm-3">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Weightage</small>
-                                                        <span class="fw-bold text-dark" style="font-size: 0.95rem;">{{ $data['weightage'] }}</span>
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['weightage'] }}</span>
                                                     </div>
-                                                    <div class="col col-md-2">
+                                                    <div class="col-3 col-sm-3">
+                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">30</span>
+                                                    </div>
+                                                </div>
+                                        
+                                                <div class="row g-3 mb-3">
+                                                    <div class="col-4 col-sm-4">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Type</small>
-                                                        <span class="fw-bold text-dark" style="font-size: 0.95rem;">{{ $data['type'] }}</span>
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['type'] }}</span>
                                                     </div>
-                                                    <div class="col col-md-2">
+                                                    <div class="col-4 col-sm-4">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Review Period</small>
                                                         @php
                                                             $rv = $data['review_period'] ?? '';
@@ -249,9 +290,9 @@
                                                                 }
                                                             }
                                                         @endphp
-                                                        <span class="fw-bold text-dark" style="font-size: 0.95rem;">{{ $rvLabel }}</span>
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $rvLabel }}</span>
                                                     </div>
-                                                    <div class="col col-md-2">
+                                                    <div class="col-4 col-sm-4">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Calc Method</small>
                                                         @php
                                                             $rv = $data['calculation_method'] ?? '';
@@ -267,14 +308,14 @@
                                                                 }
                                                             }
                                                         @endphp
-                                                        <span class="fw-bold text-dark" style="font-size: 0.95rem;">{{ $rvLabel }}</span>
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $rvLabel }}</span>
                                                     </div>
                                                 </div>
                                             </div>
                                         </div>
 
-                                        <div class="mt-2">
-                                            <h6 class="fw-bold text-dark mb-3" style="font-size: 0.85rem;">{{ __('Achievement Tracking') }}</h6>
+                                        <div class="mb-2">
+                                            <h6 class="fw-bold text-uppercase kpi-label">{{ __('Achievement Tracking') }}</h6>
                                             <div class="row g-2">
                                                 @foreach($months as $monthNum => $monthLabel)
 
@@ -299,7 +340,6 @@
 
                                                     </div>
                                                 </div>
-
                                             @endforeach
                                             </div>
                                         </div>
