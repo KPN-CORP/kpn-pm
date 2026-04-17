@@ -207,7 +207,7 @@
                                 </div>
                                 
                                 <div class="mb-2">
-                                    <input type="hidden" name="kpi_id[]" value="{{ $data['kpi_id'] }}">
+                                    <input type="hidden" name="kpi_id[]" value="{{ $data['kpi_id'] ?? '' }}">
                                     <textarea name="kpi[]" class="form-control form-control-sm {{ ((string)($oldData['kpi'] ?? '') !== (string)$data['kpi']) ? 'bg-primary-subtle fw-medium' : '' }}" rows="1" style="resize: none">{{ $data['kpi'] }}</textarea>
                                 </div>
                                 
@@ -383,7 +383,7 @@
                                         </div>
                                         
                                         <div class="mb-2">
-                                            <input type="hidden" name="kpi_id[]" value="{{ $data['kpi_id'] }}">
+                                            <input type="hidden" name="kpi_id[]" value="{{ $data['kpi_id'] ?? '' }}">
                                             <textarea name="kpi[]" class="form-control form-control-sm" rows="1" style="resize: none">{{ $data['kpi'] }}</textarea>
                                         </div>
                                         

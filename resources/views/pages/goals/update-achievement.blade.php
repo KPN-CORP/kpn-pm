@@ -129,7 +129,7 @@ input[type=number] {
         @foreach ($formData as $index => $data)
         <div class="card shadow-sm mb-4 border-0">
             <div class="card-body p-3 p-md-4">
-                <input type="hidden" name="kpi_id[]" value="{{ $data['kpi_id'] }}">
+                <input type="hidden" name="kpi_id[]" value="{{ $data['kpi_id'] ?? '' }}">
                 <input type="hidden" name="goal_id" value="{{ $id }}">
                 <input type="hidden" name="review_period[]" value="{{ $data['review_period'] }}">
                 <input type="hidden" name="calculation_method[]" value="{{ $data['calculation_method'] }}">
