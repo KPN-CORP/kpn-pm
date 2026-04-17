@@ -10,6 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 
 class KPIAchievementController extends Controller
@@ -209,12 +210,37 @@ class KPIAchievementController extends Controller
         $goal = Goal::findOrFail($request->goal_id);
         $formData = json_decode($goal->form_data, true);
 
+        // ensure semua KPI punya kpi_id
+        foreach ($formData as $i => $row) {
+
+            $kpiId = $request->kpi_id[$i] ?? null;
+
+            if (!$kpiId) {
+                // generate UUID baru
+                $kpiId = (string) Str::uuid();
+
+                // update ke formData
+                $formData[$i]['kpi_id'] = $kpiId;
+
+                // update ke request (biar dipakai di bawah)
+                $request->kpi_id[$i] = $kpiId;
+            }
+        }
+
+        // update goal jika ada perubahan kpi_id
+        $goal->form_data = json_encode($formData);
+        $goal->save();
+
+        // proses achievement
         foreach ($request->ach as $kpiIndex => $months) {
 
             if (!isset($formData[$kpiIndex])) continue;
 
             $kpi = $formData[$kpiIndex];
             $period = (int) $kpi['review_period'];
+
+            $kpiId = $request->kpi_id[$kpiIndex] ?? null;
+            if (!$kpiId) continue;
 
             foreach ($months as $month => $value) {
 
@@ -223,20 +249,22 @@ class KPIAchievementController extends Controller
                 if ($month % $period !== 0) continue;
 
                 $existing = KPIAchievement::where('goal_id', $request->goal_id)
-                    ->where('kpi_id', $request->kpi_id[$kpiIndex])
+                    ->where('kpi_id', $kpiId)
                     ->where('month', $month)
                     ->first();
 
                 $filePath = $existing->file ?? null;
 
+                // FILE HANDLING
                 if ($request->hasFile("attachment.$kpiIndex.$month")) {
 
-                    if ($existing || $value === null || $value === '') {
+                    if ($existing) {
                         if ($existing->file) {
                             Storage::disk('public')->delete($existing->file);
                         }
-                        $existing->delete(); // Soft delete the existing achievement
+                        $existing->delete();
                     }
+
                     $file = $request->file("attachment.$kpiIndex.$month");
 
                     $filePath = $file->store(
@@ -245,9 +273,14 @@ class KPIAchievementController extends Controller
                     );
                 }
 
+                // SKIP jika kosong semua
+                if (($value === null || $value === '') && !$filePath) {
+                    continue;
+                }
+
                 $achievement = new KPIAchievement();
                 $achievement->goal_id = $request->goal_id;
-                $achievement->kpi_id = $request->kpi_id[$kpiIndex];
+                $achievement->kpi_id = $kpiId;
                 $achievement->month = $month;
                 $achievement->value = $value;
                 $achievement->file = $filePath;
