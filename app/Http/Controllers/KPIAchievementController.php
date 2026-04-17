@@ -223,7 +223,7 @@ class KPIAchievementController extends Controller
                 $formData[$i]['kpi_id'] = $kpiId;
 
                 // update ke request (biar dipakai di bawah)
-                $request->kpi_id[$i] = $kpiId;
+                $kpiIds[$i] = $kpiId;
             }
         }
 
