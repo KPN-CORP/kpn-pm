@@ -4,7 +4,7 @@ namespace App\Services;
 use App\Models\Goal;
 use App\Models\KPIAchievement;
 
-class KPIService
+class KpiService
 {
     public static function aggregate($method, $values)
     {
