@@ -9,6 +9,13 @@ use Illuminate\Http\Request;
 
 class KPIScoreController extends Controller
 {
+    protected $kpiService;
+
+    public function __construct(KPIService $kpiService)
+    {
+        $this->kpiService = $kpiService;
+    }
+
     public function calculate($goalId)
     {
         $goal = Goal::findOrFail($goalId);
@@ -29,23 +36,23 @@ class KPIScoreController extends Controller
             ->toArray();
 
         // aggregate
-        $actual = KPIService::aggregate(
+        $actual = $this->kpiService->aggregate(
             $kpi['calculation_method'],
             $values
         );
 
         // achievement %
-        $achievement = KPIService::achievement(
+        $achievement = $this->kpiService->achievement(
             $actual,
             (float)$kpi['target'],
             $kpi['type']
         );
 
         // normalize
-        $normalized = KPIService::normalize($achievement);
+        $normalized = $this->kpiService->normalize($achievement);
 
         // final score
-        $score = KPIService::finalScore(
+        $score = $this->kpiService->finalScore(
             $normalized,
             (float)$kpi['weightage']
         );
