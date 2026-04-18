@@ -252,7 +252,7 @@
                                   @if ($goal->form_status=='Draft')
                                   <a id="submitButton" name="save_draft" class="btn btn-outline-info rounded save-draft me-1" data-id="save_draft" ><i class="fas fa-save d-sm-none"></i><span class="d-sm-inline d-none">Save as </span>Draft</a>  
                                   @endif
-                                  <a href="{{ url('goals') }}" class="btn btn-outline-secondary rounded px-3 me-1">{{ __('Cancel') }}</a>
+                                  <a href="{{ url()->previous() }}" class="btn btn-outline-secondary rounded px-3 me-1">{{ __('Cancel') }}</a>
                                   <a id="submitButton" data-id="submit_form" name="submit_form" class="btn btn-primary rounded px-3 shadow"><span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>{{ __('Submit') }}</a>
                               </div>
                           </div>
