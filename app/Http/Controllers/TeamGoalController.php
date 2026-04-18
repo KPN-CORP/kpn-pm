@@ -255,7 +255,7 @@ class TeamGoalController extends Controller
         }
 
         $noAchievements = $tasks->flatMap(fn($t) => $t->subordinates)
-            ->filter(fn($s) => empty($s->goal->form_data_parsed))
+            ->filter(fn($s) => $s->goal->hasAchievement === false)
             ->collect();
         
         $path = base_path('resources/goal.json');
