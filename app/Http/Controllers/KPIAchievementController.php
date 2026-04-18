@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\KPIAchievement;
 use App\Models\Goal;
+use App\Models\KPIAchievementSnapshot;
 use App\Services\AppService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\File;
@@ -134,10 +135,12 @@ class KPIAchievementController extends Controller
             return redirect('goals');
         }
 
+        $selfUpdate = $goal->employee_id == $this->user;
+
         // KPI dari goal
         $formData = json_decode($goal->form_data, true);
 
-        // 🔥 group by kpi_id (SUDAH BENAR)
+        // ðŸ”¥ group by kpi_id (SUDAH BENAR)
         $achievements = KPIAchievement::where('goal_id', $id)
             ->get()
             ->groupBy('kpi_id');
@@ -160,7 +163,7 @@ class KPIAchievementController extends Controller
 
         foreach ($formData as $i => $row) {
 
-            // 🔥 WAJIB: pastikan ada kpi_id
+            // ðŸ”¥ WAJIB: pastikan ada kpi_id
             $kpiId = $row['kpi_id'] ?? null;
 
             $formData[$i]['kpi_id'] = $kpiId;
@@ -175,7 +178,7 @@ class KPIAchievementController extends Controller
                 $formData[$i]['attachment'][$m] = null;
             }
 
-            // 🔥 FIX: pakai kpi_id, bukan index
+            // ðŸ”¥ FIX: pakai kpi_id, bukan index
             if ($kpiId && isset($achievements[$kpiId])) {
 
                 foreach ($achievements[$kpiId] as $ach) {
@@ -191,23 +194,30 @@ class KPIAchievementController extends Controller
             'parentLink',
             'link',
             'formData',
-            'id'
+            'id',
+            'selfUpdate'
         ));
     }
 
     public function bulkStore(Request $request)
     {
+        // $request->submit_type bisa "draft" atau "submit" ////////////////////
+        $status = $request->submit_type === 'submit' ? 'Submitted' : 'Draft';
+
+        $isSubmit = $status === 'Submitted';
+        
         $request->validate([
             'goal_id' => 'required|string',
             'ach' => 'nullable|array',
             'attachment' => 'array',
             'attachment.*.*' => 'nullable|file|mimes:pdf,png,jpg,jpeg|max:2048'
-        ], [
+            ], [
             'attachment.*.*.max' => 'Ukuran file maksimal 2MB',
             'attachment.*.*.mimes' => 'File harus PDF/JPG/PNG'
-        ]);
-
+            ]);
+            
         $goal = Goal::findOrFail($request->goal_id);
+        $employeeId = $goal->employee_id;
         $formData = json_decode($goal->form_data, true);
 
         // ensure semua KPI punya kpi_id
@@ -239,7 +249,7 @@ class KPIAchievementController extends Controller
             $kpi = $formData[$kpiIndex];
             $period = (int) $kpi['review_period'];
 
-            $kpiId = $request->kpi_id[$kpiIndex] ?? null;
+            $kpiId = $request->kpi_id[$kpiIndex] ?? $kpiIds[$kpiIndex];
             if (!$kpiId) continue;
 
             foreach ($months as $month => $value) {
@@ -285,10 +295,24 @@ class KPIAchievementController extends Controller
                 $achievement->value = $value;
                 $achievement->file = $filePath;
                 $achievement->save();
+
+                if ($isSubmit) {
+                    $achievementSnapshots = new KPIAchievementSnapshot();
+                    $achievementSnapshots->goal_id = $request->goal_id;
+                    $achievementSnapshots->kpi_id = $kpiId;
+                    $achievementSnapshots->month = $month;
+                    $achievementSnapshots->value = $value;
+                    $achievementSnapshots->file = $filePath;
+                    $achievementSnapshots->employee_id = $employeeId;
+                    $achievementSnapshots->created_by = Auth::id();
+                    $achievementSnapshots->save();
+                }
             }
         }
 
-        return redirect()->back()->with('success', 'Achievement saved');
+        return $this->user != $request->employee_id 
+                ? redirect('team-goals')->with('success', 'Achievements submitted successfully')
+                : redirect('goals')->with('success', 'Avhievements submitted successfully');
     }
 
     function approvalAchievement($id)

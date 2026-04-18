@@ -26,6 +26,19 @@
     border-style: dashed !important;
     border-width: 2px !important;
 }
+
+/* Menargetkan kotak pilihan (selection box) */
+select.is-modified + .select2-container .select2-selection {
+    background-color: rgba(171, 47, 43, 0.25) !important; 
+    border-color: rgba(171, 47, 43, 0.4) !important;
+    font-weight: 500 !important;
+}
+
+/* Opsional: Jika ingin teks di dalamnya juga berubah warna */
+select.is-modified + .select2-container .select2-selection__rendered {
+    color: #000 !important; /* Warna text-primary */
+    font-weight: 500 !important;
+}
 </style>
 @endsection
 
@@ -223,11 +236,51 @@
                                     </div>
                                     <div class="col-md-4 col-6">
                                         <label class="kpi-label text-primary">{{ __('Uom') }}</label>
-                                        <input type="text" name="uom[]" value="{{ $data['uom'] !== 'Other' ? $data['uom'] : $data['custom_uom'] }}" class="form-control form-control-sm bg-secondary-subtle {{ ((string)($oldData['uom'] ?? '') !== (string)$data['uom']) ? 'bg-primary-subtle fw-medium' : '' }}" readonly>
+
+                                        <select class="form-select form-select-sm select2 max-w-full select-uom {{ ((string)($oldData['uom'] ?? '') !== (string)$data['uom']) ? 'is-modified' : '' }}"
+                                            data-id="{{ $i }}"
+                                            name="uom[]"
+                                            id="uom{{ $i }}"
+                                            title="Unit of Measure"
+                                            required>
+
+                                            <option value="">- Select -</option>
+
+                                            @foreach ($uomOption as $label => $options)
+                                                <optgroup label="{{ $label }}">
+                                                    @foreach ($options as $option)
+                                                        <option value="{{ $option }}"
+                                                            {{ ($data['uom'] == $option || ($data['uom'] == 'Other' && $data['custom_uom'] == $option)) ? 'selected' : '' }}>
+                                                            {{ $option }}
+                                                        </option>
+                                                    @endforeach
+                                                </optgroup>
+                                            @endforeach
+
+                                        </select>
                                     </div>
                                     <div class="col-md-4 col-6">
                                         <label class="kpi-label text-primary">{{ __('Type') }}</label>
-                                        <input type="text" name="type[]" value="{{ $data['type'] }}" class="form-control form-control-sm bg-secondary-subtle {{ ((string)($oldData['type'] ?? '') !== (string)$data['type']) ? 'bg-primary-subtle fw-medium' : '' }}" readonly>
+
+                                        <select class="form-select form-select-sm select2 select-type {{ ((string)($oldData['type'] ?? '') !== (string)$data['type']) ? 'is-modified' : '' }}"
+                                            name="type[]"
+                                            id="type{{ $i }}"
+                                            required>
+
+                                            <option value="">- Select -</option>
+
+                                            @foreach ($typeOption as $label => $options)
+                                                <optgroup label="{{ $label }}">
+                                                    @foreach ($options as $option)
+                                                        <option value="{{ $option }}"
+                                                            {{ $data['type'] == $option ? 'selected' : '' }}>
+                                                            {{ $option }}
+                                                        </option>
+                                                    @endforeach
+                                                </optgroup>
+                                            @endforeach
+
+                                        </select>
                                     </div>
                                     <div class="col-md-4 col-6">
                                         <label class="kpi-label text-primary">{{ __('Weightage') }}</label>
@@ -238,7 +291,7 @@
                                     </div>
                                     <div class="col-md-4 col-6">
                                         <label class="kpi-label text-primary">Review Period</label>
-                                        <select class="form-select select-type  {{ ((string)($oldData['review_period'] ?? '') !== (string)$data['review_period']) ? 'bg-primary-subtle fw-medium' : '' }}" name="review_period[]" id="review_period{{ $index }}" required>
+                                        <select class="form-select form-select-sm select2 select-type  {{ ((string)($oldData['review_period'] ?? '') !== (string)$data['review_period']) ? 'is-modified' : '' }}" name="review_period[]" id="review_period{{ $i }}" required>
                                             <option value="">- Select -</option>
                                             @foreach ($reviewPeriodOption as $label => $options)
                                                 @foreach ($options as $option)
@@ -252,7 +305,7 @@
                                     </div>
                                     <div class="col-md-4 col-6">
                                         <label class="kpi-label text-primary">Calc Method</label>
-                                        <select class="form-select select-type {{ ((string)($oldData['calculation_method'] ?? '') !== (string)$data['calculation_method']) ? 'bg-primary-subtle fw-medium' : '' }}" name="calculation_method[]" id="calculation_method{{ $index }}" required>
+                                        <select class="form-select form-select-sm select2 select-type {{ ((string)($oldData['calculation_method'] ?? '') !== (string)$data['calculation_method']) ? 'is-modified' : '' }}" name="calculation_method[]" id="calculation_method{{ $i }}" required>
                                             <option value="">- Select -</option>
                                             @foreach ($calculationMethodOption as $label => $options)
                                                 @foreach ($options as $option)
@@ -399,11 +452,51 @@
                                             </div>
                                             <div class="col-md-4 col-6">
                                                 <label class="kpi-label text-primary">{{ __('Uom') }}</label>
-                                                <input type="text" name="uom[]" value="{{ $data['uom'] !== 'Other' ? $data['uom'] : $data['custom_uom'] }}" class="form-control form-control-sm bg-secondary-subtle" readonly>
+
+                                                <select class="form-select form-select-sm select2 max-w-full select-uom {{ ((string)($oldData['uom'] ?? '') !== (string)$data['uom']) ? 'is-modified' : '' }}"
+                                                    data-id="{{ $i }}"
+                                                    name="uom[]"
+                                                    id="uom{{ $i }}"
+                                                    title="Unit of Measure"
+                                                    required>
+
+                                                    <option value="">- Select -</option>
+
+                                                    @foreach ($uomOption as $label => $options)
+                                                        <optgroup label="{{ $label }}">
+                                                            @foreach ($options as $option)
+                                                                <option value="{{ $option }}"
+                                                                    {{ ($data['uom'] == $option || ($data['uom'] == 'Other' && $data['custom_uom'] == $option)) ? 'selected' : '' }}>
+                                                                    {{ $option }}
+                                                                </option>
+                                                            @endforeach
+                                                        </optgroup>
+                                                    @endforeach
+
+                                                </select>
                                             </div>
                                             <div class="col-md-4 col-6">
                                                 <label class="kpi-label text-primary">{{ __('Type') }}</label>
-                                                <input type="text" name="type[]" value="{{ $data['type'] }}" class="form-control form-control-sm bg-secondary-subtle" readonly>
+
+                                                <select class="form-select form-select-sm select2 select-type {{ ((string)($oldData['type'] ?? '') !== (string)$data['type']) ? 'is-modified' : '' }}"
+                                                    name="type[]"
+                                                    id="type{{ $i }}"
+                                                    required>
+
+                                                    <option value="">- Select -</option>
+
+                                                    @foreach ($typeOption as $label => $options)
+                                                        <optgroup label="{{ $label }}">
+                                                            @foreach ($options as $option)
+                                                                <option value="{{ $option }}"
+                                                                    {{ $data['type'] == $option ? 'selected' : '' }}>
+                                                                    {{ $option }}
+                                                                </option>
+                                                            @endforeach
+                                                        </optgroup>
+                                                    @endforeach
+
+                                                </select>
                                             </div>
                                             <div class="col-md-4 col-6">
                                                 <label class="kpi-label text-primary">{{ __('Weightage') }}</label>
@@ -414,7 +507,7 @@
                                             </div>
                                             <div class="col-md-4 col-6">
                                                 <label class="kpi-label text-primary">Review Period</label>
-                                                <select class="form-select select-type" name="review_period[]" id="review_period{{ $index }}" required>
+                                                <select class="form-select form-select-sm select2 select-type {{ ((string)($oldData['review_period'] ?? '') !== (string)$data['review_period']) ? 'is-modified' : '' }}" name="review_period[]" id="review_period{{ $i }}" required>
                                                     <option value="">- Select -</option>
                                                     @foreach ($reviewPeriodOption as $label => $options)
                                                         @foreach ($options as $option)
@@ -428,7 +521,7 @@
                                             </div>
                                             <div class="col-md-4 col-6">
                                                 <label class="kpi-label text-primary">Calc Method</label>
-                                                <select class="form-select select-type" name="calculation_method[]" id="calculation_method{{ $index }}" required>
+                                                <select class="form-select form-select-sm select2 select-type" name="calculation_method[]" id="calculation_method{{ $i }}" required>
                                                     <option value="">- Select -</option>
                                                     @foreach ($calculationMethodOption as $label => $options)
                                                         @foreach ($options as $option)

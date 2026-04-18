@@ -9,22 +9,25 @@ class KPIAchievementService
     {
         $data = KPIAchievement::where('goal_id', $goalId)
             ->get()
-            ->groupBy('kpi_index');
+            ->groupBy('kpi_id');
 
         $result = [];
 
-        foreach ($data as $kpiIndex => $rows) {
+        foreach ($data as $kpiId => $rows) {
 
-            // default 12 bulan = null
-            $months = array_fill(0, 12, null);
+            $months = array_fill(1, 12, null);
+            $attachments = array_fill(1, 12, null);
 
             foreach ($rows as $row) {
-                $index = $row->month - 1; // 🔥 convert ke 0-based
-                $months[$index] = $row->value;
+                $month = (int) $row->month; // langsung 1-12
+
+                $months[$month] = $row->value;
+                $attachments[$month] = $row->file ?? null;
             }
 
-            $result[$kpiIndex] = [
-                'ach' => $months
+            $result[$kpiId] = [
+                'ach' => $months,
+                'attachment' => $attachments,
             ];
         }
 

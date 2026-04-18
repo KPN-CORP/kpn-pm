@@ -19,46 +19,50 @@ class KPIScoreController extends Controller
 
         foreach ($formData as $index => $kpi) {
 
-            $values = KPIAchievement::where('goal_id', $goalId)
-                ->where('kpi_index', $index)
-                ->orderBy('month')
-                ->pluck('value')
-                ->toArray();
+        $kpiId = $kpi['kpi_id'] ?? null;
+        if (!$kpiId) continue;
 
-            // aggregate
-            $actual = KPIService::aggregate(
-                $kpi['calculation_method'],
-                $values
-            );
+        $values = KPIAchievement::where('goal_id', $goalId)
+            ->where('kpi_id', $kpiId) // 🔥 FIX
+            ->orderBy('month')
+            ->pluck('value')
+            ->toArray();
 
-            // achievement %
-            $achievement = KPIService::achievement(
-                $actual,
-                (float)$kpi['target'],
-                $kpi['type']
-            );
+        // aggregate
+        $actual = KPIService::aggregate(
+            $kpi['calculation_method'],
+            $values
+        );
 
-            // normalize
-            $normalized = KPIService::normalize($achievement);
+        // achievement %
+        $achievement = KPIService::achievement(
+            $actual,
+            (float)$kpi['target'],
+            $kpi['type']
+        );
 
-            // final score
-            $score = KPIService::finalScore(
-                $normalized,
-                (float)$kpi['weightage']
-            );
+        // normalize
+        $normalized = KPIService::normalize($achievement);
 
-            $totalScore += $score;
+        // final score
+        $score = KPIService::finalScore(
+            $normalized,
+            (float)$kpi['weightage']
+        );
 
-            $results[] = [
-                'kpi' => $kpi['kpi'],
-                'target' => $kpi['target'],
-                'actual' => round($actual, 2),
-                'achievement_percent' => round($achievement, 2),
-                'normalized' => round($normalized, 2),
-                'weight' => $kpi['weightage'],
-                'score' => round($score, 2),
-            ];
-        }
+        $totalScore += $score;
+
+        $results[] = [
+            'kpi_id' => $kpiId, // 🔥 tambahan penting
+            'kpi' => $kpi['kpi'],
+            'target' => $kpi['target'],
+            'actual' => round($actual, 2),
+            'achievement' => round($achievement, 2),
+            'normalized' => round($normalized, 2),
+            'weight' => $kpi['weightage'],
+            'score' => round($score, 2),
+        ];
+    }
 
         return response()->json([
             'goal_id' => $goalId,
