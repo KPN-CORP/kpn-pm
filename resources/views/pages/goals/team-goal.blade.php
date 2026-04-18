@@ -215,7 +215,9 @@
                                                                     <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                                 @endif
                                                             @elseif ($period == $goalPeriod && $status === 'Approved' && !$appraisalCheck)
-                                                                <a href="{{ route('goals.approval-achievement', $goalId) }}" class="btn btn-sm btn-success fw-medium me-1">Approve Achievement</a>
+                                                                @if ($firstSubordinate->goal->hasAchievement)
+                                                                    <a href="{{ route('goals.approval-achievement', $goalId) }}" class="btn btn-sm btn-success fw-medium me-1">Approve Achievement</a> 
+                                                                @endif
                                                                 <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                             @else
                                                                 <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
@@ -352,7 +354,9 @@
                                                             <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm mb-1" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                         @endif
                                                     @elseif ($period == $goalPeriod && $status === 'Approved' && !$appraisalCheck)
-                                                        <a href="{{ route('goals.approval-achievement', $goalId) }}" class="btn btn-sm btn-success mb-1 fw-medium me-1">Approve Achievement</a>
+                                                        @if ($firstSubordinate->goal->hasAchievement)
+                                                            <a href="{{ route('goals.approval-achievement', $goalId) }}" class="btn btn-sm btn-success fw-medium me-1">Approve Achievement</a> 
+                                                        @endif
                                                         <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm mb-1" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                     @else
                                                         <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm mb-1" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
@@ -755,7 +759,7 @@
                                                     </a>
                                                 </div>
                                                 <div class="col-auto d-none d-md-flex align-items-center justify-content-end">
-                                                    <a href="{{ route('goals.update-achievement', $achievementList->form_id) }}" class="btn btn-sm {{ ($isApproved || $isAutoApproved) ? 'btn-secondary' : 'btn-outline-success' }} fw-medium">
+                                                    <a href="{{ route('goals.update-achievement', $achievementList->form_id) }}" class="btn btn-sm {{ ($isApproved || $isAutoApproved) ? 'btn-outline-success' : 'btn-secondary' }} fw-medium">
                                                         Update Achievement
                                                     </a>
                                                 </div>

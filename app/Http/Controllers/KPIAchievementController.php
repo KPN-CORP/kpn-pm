@@ -128,13 +128,19 @@ class KPIAchievementController extends Controller
         $goal = Goal::findOrFail($id);
 
         if ($goal->form_status != "Approved") {
+            if ($goal->employee_id != $this->user) {
+                Session::flash('error', [
+                    'title' => 'Cannot update Achievements',
+                    'message' => "The Employee Goals for $period are not fully Approved."
+                ]);
+                
+                return redirect('team-goals');
+            }
             Session::flash('error', [
                 'title' => 'Cannot update Achievements',
                 'message' => "Your Goals for $period are not fully Approved."
             ]);
-            if ($goal->employee_id != $this->user) {
-                return redirect('team-goals');
-            }
+
             return redirect('goals');
         }
 
