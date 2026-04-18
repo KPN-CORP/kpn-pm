@@ -414,6 +414,8 @@ class TeamGoalController extends Controller
             $options = json_decode(File::get($path), true);
             $uomOption = $options['UoM'];
             $typeOption = $options['Type'];
+            $reviewPeriodOption = $options['Review Period'];
+            $calculationMethodOption = $options['Calculation Method'];
 
             $selectedUoM = [];
             $selectedType = [];
@@ -489,7 +491,6 @@ class TeamGoalController extends Controller
 
         $uomOption = $options['UoM'] ?? [];
         $typeOption = $options['Type'] ?? [];
-
         $reviewPeriodOption = $options['Review Period'] ?? [];
         $calculationMethodOption = $options['Calculation Method'] ?? [];
 
