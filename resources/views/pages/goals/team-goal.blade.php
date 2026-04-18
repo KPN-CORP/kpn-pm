@@ -217,6 +217,13 @@
                                                             @elseif ($period == $goalPeriod && $status === 'Approved' && !$appraisalCheck)
                                                                 @if ($firstSubordinate->goal->hasAchievement)
                                                                     <a href="{{ route('goals.approval-achievement', $goalId) }}" class="btn btn-sm btn-success fw-medium me-1">Approve Achievement</a> 
+                                                                @else
+                                                                    <button id="approveAchievementBtn"
+                                                                        type="button"
+                                                                        class="btn btn-sm btn-secondary fw-medium me-1"
+                                                                        style="opacity: 0.6;">
+                                                                        Approve Achievement
+                                                                    </button>
                                                                 @endif
                                                                 <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                             @else
@@ -356,6 +363,13 @@
                                                     @elseif ($period == $goalPeriod && $status === 'Approved' && !$appraisalCheck)
                                                         @if ($firstSubordinate->goal->hasAchievement)
                                                             <a href="{{ route('goals.approval-achievement', $goalId) }}" class="btn btn-sm btn-success fw-medium me-1">Approve Achievement</a> 
+                                                        @else
+                                                            <button id="approveAchievementBtn"
+                                                                type="button"
+                                                                class="btn btn-sm btn-secondary fw-medium me-1"
+                                                                style="opacity: 0.6;">
+                                                                Approve Achievement
+                                                            </button>
                                                         @endif
                                                         <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm mb-1" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                     @else
