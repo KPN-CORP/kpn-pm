@@ -132,6 +132,9 @@ class KPIAchievementController extends Controller
                 'title' => 'Cannot update Achievements',
                 'message' => "Your Goals for $period are not fully Approved."
             ]);
+            if ($goal->employee_id != $this->user) {
+                return redirect('team-goals');
+            }
             return redirect('goals');
         }
 

@@ -755,18 +755,9 @@
                                                     </a>
                                                 </div>
                                                 <div class="col-auto d-none d-md-flex align-items-center justify-content-end">
-                                                    @if ($isApproved || $isAutoApproved)
-                                                        <a href="{{ route('goals.update-achievement', $achievementList->form_id) }}" class="btn btn-sm btn-outline-success fw-medium">
-                                                            Update Achievement
-                                                        </a>
-                                                    @else
-                                                        <button id="approveAchievementBtn"
-                                                            type="button"
-                                                            class="btn btn-sm btn-secondary fw-medium me-1"
-                                                            style="opacity: 0.6;">
-                                                            Update Achievement
-                                                        </button>
-                                                    @endif
+                                                    <a href="{{ route('goals.update-achievement', $achievementList->form_id) }}" class="btn btn-sm {{ ($isApproved || $isAutoApproved) ? 'btn-secondary' : 'btn-outline-success' }} fw-medium">
+                                                        Update Achievement
+                                                    </a>
                                                 </div>
                                             </div>
                                         </div>
@@ -829,24 +820,25 @@
 </div>
 @endsection
 @push('scripts')
+@if(Session::has('error'))
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+    Swal.fire({
+      icon: "error",
+      title: "{{ Session::get('error')['title'] }}",
+      text: "{{ Session::get('error')['message'] }}",
+      confirmButtonText: "OK",
+    });
+  });
+</script>
+@endif
+
     <script>
         document.addEventListener("DOMContentLoaded", function () {
             document.querySelectorAll('.mini-progress-bar').forEach(function (el) {
                 setTimeout(() => {
                     el.style.width = el.dataset.width;
                 }, 100);
-            });
-        });
-        document.addEventListener('DOMContentLoaded', function () {
-            const btn = document.getElementById('approveAchievementBtn');
-
-            btn.addEventListener('click', function () {
-                Swal.fire({
-                    icon: 'warning',
-                    title: 'Cannot Approve Achievement',
-                    html: '<b>There are revisions on the Goals</b><br>Please review them before approval.',
-                    confirmButtonText: 'OK',
-                });
             });
         });
     </script>
