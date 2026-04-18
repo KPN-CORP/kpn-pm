@@ -6,14 +6,17 @@ use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Services\AppService;
+use App\Services\KPIService;
 
 class NotificationMiddleware
 {
     protected $appService;
+    protected $kpiService;
 
-    public function __construct(AppService $appService)
+    public function __construct(AppService $appService, KPIService $kpiService)
     {
         $this->appService = $appService;
+        $this->kpiService = $kpiService;
     }
 
     /**
