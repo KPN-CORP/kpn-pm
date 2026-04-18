@@ -11,6 +11,12 @@ input[type=number] {
     -moz-appearance: textfield;
 }
 
+.kpi-label {
+    color: #9e2a2b;
+    font-size: 0.7rem;
+    letter-spacing: 0.5px;
+}
+
 .month-box {
     border-radius: 6px;
     transition: all 0.3s ease;
@@ -107,7 +113,7 @@ input[type=number] {
 @section('content')
 <div class="container-fluid">
     <div class="mb-3">
-        <a href="{{ route('goals') }}" class="btn border border-dark-subtle btn-sm text-secondary fw-medium btn-back">
+        <a href="{{ $selfUpdate ? route('goals') : route('team-goals') }}" class="btn border border-dark-subtle btn-sm text-secondary fw-medium btn-back">
             <i class="ri-arrow-left-line me-1 arrow-icon"></i> {{ __('Back') }}
         </a>
     </div>
@@ -116,7 +122,7 @@ input[type=number] {
         <h4 class="m-0 font-weight-bold text-primary">{{ __('Update Achievement') }}</h4>
     </div>
 
-    <form action="{{ route('achievement.bulk-store') }}" method="POST" enctype="multipart/form-data">
+    <form id="achievementForm" action="{{ route('achievement.bulk-store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         @php
             $months = [
@@ -133,28 +139,46 @@ input[type=number] {
                 <input type="hidden" name="goal_id" value="{{ $id }}">
                 <input type="hidden" name="review_period[]" value="{{ $data['review_period'] }}">
                 <input type="hidden" name="calculation_method[]" value="{{ $data['calculation_method'] }}">
-                <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-start border-bottom pb-3 mb-3">
-                    <div class="mb-2 mb-md-0 me-md-3">
-                        <small class="fw-bold text-primary text-uppercase mb-1 d-block" style="letter-spacing: 0.5px;">KPI {{ $index + 1 }}</small>
-                        <h5 class="fw-bold text-dark mb-1">{{ $data['kpi'] }}</h5>
-                        <p class="text-secondary mb-0 small" style="white-space: pre-line; line-height: 1.4;">{{ $data['description'] ?? '-' }}</p>
-                    </div>
-                    
-                    <div class="d-flex flex-wrap gap-2 mt-2 mt-md-0 align-content-start">
-                        <span class="badge bg-light text-dark border border-secondary-subtle px-2 py-1 fw-medium">
-                            <i class="ri-focus-2-line text-muted me-1"></i> Target: {{ $data['target'] }}
-                        </span>
-                        <span class="badge bg-light text-dark border border-secondary-subtle px-2 py-1 fw-medium">
-                            <i class="ri-pie-chart-line text-muted me-1"></i> {{ $data['weightage'] }}%
-                        </span>
-                        <span class="badge bg-light text-dark border border-secondary-subtle px-2 py-1 fw-medium">
-                            <i class="ri-arrow-up-down-line text-muted me-1"></i> {{ $data['type'] }}
-                        </span>
-                        <span class="badge bg-light text-dark border border-secondary-subtle px-2 py-1 fw-medium">
-                            <i class="ri-calendar-line text-muted me-1"></i> 
-                            {{ $data['review_period_label'] }} - {{ $data['calculation_method_label'] }}
-                        </span>
-                    </div>
+                <div class="row g-3">
+                    <div class="col-md-5 col-lg-5 mb-md-0">
+                                                <small class="fw-bold text-uppercase d-block kpi-label mb-1">KPI {{ $index + 1 }}</small>
+                                                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">{{ $data['kpi'] }}</h6>
+                                                <p class="text-secondary mb-0" style="white-space: pre-line; font-size: 0.85rem; line-height: 1.5;">{{ $data['description'] ?? '-' }}</p>
+                                            </div>
+                    <div class="col-md-7 col-lg-7">
+                        <div class="row g-3 mb-3">
+                                                    <div class="col-3 col-sm-3">
+                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['target'] }}</span>
+                                                    </div>
+                                                    <div class="col-3 col-sm-3">
+                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ is_null($data['custom_uom']) ? $data['uom'] : $data['custom_uom'] }}</span>
+                                                    </div>
+                                                    <div class="col-3 col-sm-3">
+                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Weightage</small>
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['weightage'] }}</span>
+                                                    </div>
+                                                     <div class="col-3 col-sm-3">
+                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">30</span>
+                                                    </div>
+                                                </div>
+                        <div class="row g-3 mb-3">
+                                                    <div class="col-4 col-sm-4">
+                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Type</small>
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['type'] }}</span>
+                                                    </div>
+                                                    <div class="col-4 col-sm-4">
+                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Review Period</small>
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['review_period_label'] }}</span>
+                                                    </div>
+                                                    <div class="col-4 col-sm-4">
+                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Calc Method</small>
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['calculation_method_label'] }}</span>
+                                                    </div>
+                                                </div>
+                                            </div>
                 </div>
 
                 <div>
@@ -230,12 +254,15 @@ input[type=number] {
             </div>
         </div>
         @endforeach
-
+        <input type="hidden" name="submit_type" id="submitType">
         <div class="card shadow mt-4 sticky-bottom border-top-0" style="bottom: 20px; z-index: 100;">
             <div class="card-body py-2 d-flex justify-content-end align-items-center bg-white rounded border border-light">
-                <a href="{{ route('goals') }}" class="btn btn-light text-secondary border me-2 px-3 btn-sm fw-medium">{{ __('Cancel') }}</a>
-                <button type="submit" class="btn btn-success px-4 shadow-sm fw-bold btn-sm">
-                    <i class="ri-save-line me-1"></i> {{ __('Save Data') }}
+                <button data-id="draft" type="button" class="btn btn-secondary me-2 px-3 shadow-sm fw-bold btn-sm">
+                    <i class="ri-save-line me-1"></i> {{ __('Save as Draft') }}
+                </button>
+                <a href="{{ $selfUpdate ? route('goals') : route('team-goals') }}" class="btn btn-light text-secondary border me-2 px-3 btn-sm fw-medium">{{ __('Cancel') }}</a>
+                <button data-id="submit" type="button" class="btn btn-success px-3 shadow-sm fw-bold btn-sm">
+                    <i class="ri-save-line me-1"></i> {{ __('Submit') }}
                 </button>
             </div>
         </div>
@@ -245,6 +272,128 @@ input[type=number] {
 
 @push('scripts')
 <script>
+    document.addEventListener('DOMContentLoaded', function () {
+
+        document.querySelectorAll('[id^="kpi_grid_"]').forEach(grid => {
+            const index = grid.id.split('_').pop();
+
+            updateEditTriggerState(`kpi_grid_${index}`, `trigger_${index}`);
+        });
+
+        const buttons = document.querySelectorAll('button[data-id]');
+        const submitInput = document.getElementById('submitType');
+        const form = document.getElementById('achievementForm');
+
+        buttons.forEach(button => {
+            button.addEventListener('click', function (e) {
+                e.preventDefault();
+
+                const type = this.getAttribute('data-id');
+                submitInput.value = type;
+
+                const isSubmit = type === 'submit';
+
+                Swal.fire({
+                    title: 'Are you sure?',
+                    text: isSubmit 
+                        ? "This data will be submitted!" 
+                        : "This data will be saved as draft!",
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#3085d6',
+                    cancelButtonColor: '#d33',
+                    confirmButtonText: isSubmit 
+                        ? 'Yes, submit it!' 
+                        : 'Yes, save it!'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+
+                        // disable semua tombol (prevent double submit)
+                        buttons.forEach(btn => btn.disabled = true);
+
+                        // optional loading
+                        Swal.fire({
+                            title: 'Processing...',
+                            allowOutsideClick: false,
+                            didOpen: () => {
+                                Swal.showLoading();
+                            }
+                        });
+
+                        form.submit();
+                    }
+                });
+            });
+        });
+
+    });
+
+    function isEditAllowed(grid) {
+        const reviewPeriod = parseInt(grid.dataset.reviewPeriod);
+        const currentMonth = new Date().getMonth() + 1;
+
+        // cek apakah ada minimal 1 bulan yang valid
+        let allowed = false;
+
+        grid.querySelectorAll('.month-box').forEach(box => {
+            const input = box.querySelector('.input-compact');
+            if (!input) return;
+
+            const month = parseInt(input.dataset.month);
+
+            let isActive = false;
+
+            if (reviewPeriod === 1) {
+                isActive = true;
+            } else if (reviewPeriod === 2) {
+                isActive = (month % 2 === 0);
+            } else if (reviewPeriod === 3) {
+                isActive = (month % 3 === 0);
+            } else if (reviewPeriod === 6) {
+                isActive = (month % 6 === 0);
+            } else if (reviewPeriod === 12) {
+                isActive = (month === 12);
+            }
+
+            const isPastOrCurrent = month <= currentMonth;
+
+            if (isActive && isPastOrCurrent) {
+                allowed = true;
+            }
+        });
+
+        return allowed;
+    }
+
+    function updateEditTriggerState(gridId, triggerId) {
+        const grid = document.getElementById(gridId);
+        const trigger = document.getElementById(triggerId);
+
+        if (!grid || !trigger) return;
+
+        const allowed = isEditAllowed(grid);
+
+        if (!allowed) {
+            // ❌ disable trigger
+            trigger.classList.remove('text-danger');
+            trigger.classList.add('text-secondary');
+            trigger.style.pointerEvents = 'none';
+            trigger.style.opacity = '0.6';
+            trigger.innerHTML = '<i class="ri-lock-line"></i> Not Available Yet';
+        } else {
+            // ✅ aktif
+            trigger.classList.remove('text-secondary');
+            trigger.classList.add('text-danger');
+            trigger.style.pointerEvents = 'auto';
+            trigger.style.opacity = '1';
+            trigger.innerHTML = '<i class="ri-edit-2-line"></i> Click to Edit';
+
+            trigger.onclick = function () {
+                enableEditMode(gridId, null, triggerId);
+            };
+        }
+    }
+
     function enableEditMode(gridId, inputId, triggerId) {
         const grid = document.getElementById(gridId);
         const reviewPeriod = parseInt(grid.dataset.reviewPeriod);

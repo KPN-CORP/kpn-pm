@@ -4,6 +4,16 @@ import numeral from 'numeral';
 
 import bootstrap from "bootstrap/dist/js/bootstrap.bundle.min.js";
 
+$('.select2').each(function() {
+    var isModified = $(this).hasClass('is-modified');
+    
+    $(this).select2({
+        width: '100%',
+        // Menambahkan class ke container pembungkus select2
+        containerCssClass: isModified ? 'bg-primary-subtle fw-medium' : ''
+    });
+});
+
 document.addEventListener('DOMContentLoaded', function () {
     // Initialize all dropdowns on the page
     const dropdownTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="dropdown"]'));

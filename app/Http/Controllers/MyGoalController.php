@@ -11,6 +11,7 @@ use App\Models\Employee;
 use App\Models\Goal;
 use App\Services\AppService;
 use App\Services\KPIAchievementService;
+use App\Services\KPIService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -29,14 +30,16 @@ class MyGoalController extends Controller
     protected $user;
     protected $appService;
     protected $path;
+    protected $kpiService;
 
 
-    public function __construct(AppService $appService)
+    public function __construct(AppService $appService, KPIService $kpiService)
     {
-        $this->category = 'Goals';
-        $this->appService = $appService;
-        $this->user = Auth::user()->employee_id;
-        $this->path = base_path('resources/goal.json');
+            $this->category = 'Goals';
+            $this->appService = $appService;
+            $this->user = Auth::user()->employee_id;
+            $this->path = base_path('resources/goal.json');
+            $this->kpiService = $kpiService;
     }
 
     function formatDate($date)
@@ -132,16 +135,45 @@ class MyGoalController extends Controller
             $formData = json_decode($request->goal['form_data'], true);
 
             $dataApprover = '';
-                if ($request->approval->first()) {
-                    $approverName = $request->approval->first();
-                    $dataApprover = $approverName->approverName->fullname;
-                }
-            // ambil achievement
+            if ($request->approval->first()) {
+                $approverName = $request->approval->first();
+                $dataApprover = $approverName->approverName->fullname;
+            }
+
+            // ambil achievement (harus sudah group by kpi_id)
             $achievementData = KPIAchievementService::getByGoal($request->form_id);
 
-            // inject ke tiap KPI
+            // inject ke tiap KPI (pakai kpi_id, bukan index)
             foreach ($formData as $i => &$kpi) {
-                $kpi['ach'] = $achievementData[$i]['ach'] ?? array_fill(1, 12, null);
+
+                $kpiId = $kpi['kpi_id'] ?? null;
+
+                $kpi['ach'] = $kpiId && isset($achievementData[$kpiId]['ach'])
+                    ? $achievementData[$kpiId]['ach']
+                    : array_fill(1, 12, null);
+
+                $kpi['attachment'] = $kpiId && isset($achievementData[$kpiId]['attachment'])
+                    ? $achievementData[$kpiId]['attachment']
+                    : array_fill(1, 12, null);
+
+                $values = collect($kpi['ach'])
+                    ->filter(fn($v) => $v !== null && $v !== '')
+                    ->values()
+                    ->toArray();
+
+                $actual = $this->kpiService->aggregate(
+                    $kpi['calculation_method'] ?? 'last',
+                    $values
+                );
+
+                $achievement = $this->kpiService->achievement(
+                    $actual,
+                    (float)($kpi['target'] ?? 0),
+                    $kpi['type'] ?? 'Higher Better'
+                );
+
+                $kpi['actual'] = round($actual, 2);
+                $kpi['achievement'] = round($achievement, 2);
             }
 
             $dataItem = new stdClass();
@@ -153,6 +185,8 @@ class MyGoalController extends Controller
 
             $data[] = $dataItem;
         }
+
+        // dd($data);
         // Check if the JSON file exists
         if (!File::exists($this->path)) {
             abort(500, 'JSON file does not exist.');
@@ -449,7 +483,6 @@ class MyGoalController extends Controller
             $kpiData = [];
             foreach ($request->input('kpi', []) as $index => $kpi) {
                 $kpiData[$index] = [
-                    'kpi_id' => Str::uuid(),
                     'kpi' => $kpi,
                     'description' => $request->description[$index] ?? '',
                     'target' => $request->target[$index],
@@ -459,6 +492,7 @@ class MyGoalController extends Controller
                     'custom_uom' => $request->custom_uom[$index] ?? null,
                     'review_period' => $request->review_period[$index] ?? null,
                     'calculation_method' => $request->calculation_method[$index] ?? null,
+                    'kpi_id' => Str::uuid(),
                 ];
             }
 
@@ -605,7 +639,6 @@ class MyGoalController extends Controller
             $kpiData = [];
             foreach ($request->input('kpi', []) as $index => $kpi) {
                 $kpiData[$index] = [
-                    'kpi_id' => $request->kpi_id[$index] ?? Str::uuid(),
                     'kpi' => $kpi,
                     'description' => $request->description[$index] ?? '',
                     'target' => $request->target[$index],
@@ -615,6 +648,7 @@ class MyGoalController extends Controller
                     'custom_uom' => $request->custom_uom[$index] ?? null,
                     'review_period' => $request->review_period[$index] ?? null,
                     'calculation_method' => $request->calculation_method[$index] ?? null,
+                    'kpi_id' => $request->kpi_id[$index] ?? Str::uuid(),
                 ];
             }
 

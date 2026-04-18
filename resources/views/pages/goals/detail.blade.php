@@ -116,35 +116,20 @@
                                                 <div class="form-group">
                                                     <label class="form-label" for="type">{{ __('Calculation Method') }}</label>
                                                     @php
-                                                        $cm = (string) ($data['calculation_method'] ?? '');
-
-                                                        $cmLabel = '-';
-
-                                                        if (!empty($calculationMethodOption)) {
-                                                            foreach ($calculationMethodOption as $group) {
-                                                                foreach ($group as $opt) {
-                                                                    if ($cm === (string)($opt['value'] ?? '')) {
-                                                                        $cmLabel = $opt['label'];
-                                                                        break 2;
+                                                            $rv = $data['calculation_method'] ?? '';
+                                                            $rvLabel = $rv ?: '-';
+                                                            if (isset($calculationMethodOption) && is_array($calculationMethodOption)) {
+                                                                foreach ($calculationMethodOption as $group) {
+                                                                    foreach ($group as $opt) {
+                                                                        if ((string)$rv === (string)($opt['value'] ?? '')) {
+                                                                            $rvLabel = $opt['label'];
+                                                                            break 2;
+                                                                        }
                                                                     }
                                                                 }
                                                             }
-                                                        }
-
-                                                        // fallback
-                                                        if ($cmLabel === '-' && $cm !== '') {
-                                                            $fallback = [
-                                                                'average' => 'Average',
-                                                                'sum'     => 'Sum / Total',
-                                                                'last'    => 'Last Value',
-                                                                'max'     => 'Max',
-                                                                'min'     => 'Min',
-                                                            ];
-
-                                                            $cmLabel = $fallback[$cm] ?? $cm;
-                                                        }
-                                                    @endphp
-                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $cmLabel }}</p>
+                                                        @endphp
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $rvLabel }}</span>
                                                 </div>
                                             </div>
                                         </div>

@@ -6,9 +6,6 @@ import bootstrap from "bootstrap/dist/js/bootstrap.bundle.min.js";
 
 import { GoogleGenAI } from "@google/genai";
 
-import select2 from "select2"
-select2(); 
-
 document.addEventListener('DOMContentLoaded', function () {
     // Initialize all popovers on the page
     const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
@@ -74,19 +71,31 @@ document.addEventListener("DOMContentLoaded", function () {
 
 // Function to fetch UoM data and populate select element
 function populateUoMSelect($select, callback) {
+
+    // ✅ Guard: jika element tidak ada → skip
+    if (!$select || $select.length === 0) {
+        console.warn('UoM select element not found, skipping...');
+        if (typeof callback === "function") callback();
+        return;
+    }
+
     fetch("/units-of-measurement")
         .then(r => r.json())
         .then(data => {
 
-            // Reset + Tambahkan default option
-            $select
-                .empty()
-                .append('<option value="">- Select -</option>'); // DEFAULT
+            // ✅ Guard: jika data tidak valid
+            if (!data || !data.UoM) {
+                console.warn('UoM data empty or invalid');
+                return;
+            }
+
+            // Reset + default option
+            $select.empty().append('<option value="">- Select -</option>');
 
             Object.keys(data.UoM).forEach(category => {
                 const $optgroup = $('<optgroup>').attr("label", category);
 
-                data.UoM[category].forEach(unit => {
+                (data.UoM[category] || []).forEach(unit => {
                     $optgroup.append(`<option value="${unit}">${unit}</option>`);
                 });
 
@@ -96,7 +105,16 @@ function populateUoMSelect($select, callback) {
         .then(() => {
             if (typeof callback === "function") callback();
         })
-        .catch(err => console.error("Error fetching UoM data:", err));
+        .catch(err => {
+            console.error("Error fetching UoM data:", err);
+
+            // ✅ Fallback: tetap isi default option biar tidak kosong
+            if ($select && $select.length > 0) {
+                $select.empty().append('<option value="">- Select -</option>');
+            }
+
+            if (typeof callback === "function") callback();
+        });
 }
 
 document.addEventListener("DOMContentLoaded", function () {

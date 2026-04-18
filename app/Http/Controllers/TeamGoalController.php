@@ -13,6 +13,8 @@ use App\Models\Goal;
 use App\Models\Schedule;
 use App\Models\User;
 use App\Services\AppService;
+use App\Services\KPIAchievementService;
+use App\Services\KPIService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -33,13 +35,15 @@ class TeamGoalController extends Controller
     protected $user;
     protected $appService;
     protected $period;
+    protected $kpiService;
 
-    public function __construct(AppService $appService)
+    public function __construct(AppService $appService, KPIService $kpiService)
     {
         $this->category = 'Goals';
         $this->appService = $appService;
         $this->user = Auth::user()->employee_id;
         $this->period = $this->appService->goalPeriod();
+        $this->kpiService = $kpiService;
     }
 
     function index(Request $request) {
@@ -130,6 +134,52 @@ class TeamGoalController extends Controller
 
                 $subordinate->appraisalCheck = $appraisalCheck;
 
+                // Add object to array $data
+                
+                $formData = json_decode($subordinate->goal->form_data, true);
+
+                $achievementData = KPIAchievementService::getByGoal($subordinate->goal->id);
+
+                foreach ($formData as $i => &$kpi) {
+
+                    $kpiId = $kpi['kpi_id'] ?? null;
+
+                    // 🔥 inject achievement
+                    $kpi['ach'] = $kpiId && isset($achievementData[$kpiId]['ach'])
+                        ? $achievementData[$kpiId]['ach']
+                        : array_fill(1, 12, null);
+
+                    $kpi['attachment'] = $kpiId && isset($achievementData[$kpiId]['attachment'])
+                        ? $achievementData[$kpiId]['attachment']
+                        : array_fill(1, 12, null);
+
+                    // 🔥 ambil values (non-null)
+                    $values = collect($kpi['ach'])
+                        ->filter(fn($v) => $v !== null && $v !== '')
+                        ->values()
+                        ->toArray();
+
+                    // 🔥 CALCULATE KPI
+                    $actual = $this->kpiService->aggregate(
+                        $kpi['calculation_method'] ?? 'last',
+                        $values
+                    );
+
+                    $achievement = $this->kpiService->achievement(
+                        $actual,
+                        (float)($kpi['target'] ?? 0),
+                        $kpi['type'] ?? 'Higher Better'
+                    );
+
+                    // 🔥 inject hasil ke KPI (SETELAH attachment sesuai request kamu)
+                    $kpi['actual'] = round($actual, 2);
+                    $kpi['achievement'] = round($achievement, 2);
+                }
+                unset($kpi);
+
+                $subordinate->goal->form_data_parsed = $formData;
+                $subordinate->goal->hasAchievement = collect($formData)->pluck('ach')->flatten()->filter(fn($v) => $v !== null && $v !== '')->isNotEmpty();
+
                 return $subordinate;
             });
         });
@@ -189,10 +239,6 @@ class TeamGoalController extends Controller
         
                 // Create object to store request and approver fullname
                 $dataItem->approver_name = $dataApprover;
-        
-                // Add object to array $data
-                
-                $formData = json_decode($firstSubordinate->goal->form_data, true);
             }
             } else {
             // Handle case when subordinates is empty
@@ -207,6 +253,10 @@ class TeamGoalController extends Controller
 
             $data[] = $dataItem;
         }
+
+        $noAchievements = $tasks->flatMap(fn($t) => $t->subordinates)
+            ->filter(fn($s) => !empty($s->goal))
+            ->collect();
         
         $path = base_path('resources/goal.json');
 
@@ -221,6 +271,8 @@ class TeamGoalController extends Controller
 
         $uomOption = $options['UoM'];
         $typeOption = $options['Type'];
+        $reviewPeriodOption = $options['Review Period'];
+        $calculationMethodOption = $options['Calculation Method'];
 
         $parentLink = __('Goal');
         $link = __('Task Box');
@@ -233,7 +285,7 @@ class TeamGoalController extends Controller
         ->orderBy('period', 'ASC')
         ->get();
 
-        return view('pages.goals.team-goal', compact('data', 'tasks', 'notasks', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'selectYear', 'period'));
+        return view('pages.goals.team-goal', compact('data', 'tasks', 'notasks', 'noAchievements', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'reviewPeriodOption', 'calculationMethodOption', 'selectYear', 'period'));
        
     }
     

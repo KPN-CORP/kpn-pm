@@ -51,6 +51,59 @@
     text-align: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
+
+.btn-attach-mini {
+    font-size: 0.65rem;
+    padding: 2px 0;
+    margin: 0;
+    border-radius: 3px;
+    cursor: pointer;
+    background-color: #fff;
+    border: 1px solid #dee2e6;
+    color: #6c757d;
+    transition: all 0.2s;
+}
+
+.btn-attach-mini.disabled-attach {
+    cursor: not-allowed;
+    background-color: #f8f9fa;
+    opacity: 0.6;
+}
+
+.btn-attach-mini.has-file {
+    background-color: #198754;
+    border-color: #198754;
+    color: #fff;
+    opacity: 1 !important;
+}
+.mini-progress {
+    height: 4px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.mini-progress-bar {
+    height: 100%;
+    border-radius: 10px;
+    background: linear-gradient(
+        90deg,
+        #0d6efd 25%,
+        #88c6f9 50%,
+        #0d6efd 75%
+    );
+    background-size: 200% 100%;
+    animation: progressFlow 1.5s linear infinite;
+}
+@keyframes progressFlow {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
 </style>
 @endsection
 
@@ -261,14 +314,34 @@
                                                     </div>
                                                     <div class="col-3 col-sm-3">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Weightage</small>
-                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['weightage'] }}</span>
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['weightage'] }}%</span>
                                                     </div>
+                                                    @if(isset($data['review_period']))
                                                     <div class="col-3 col-sm-3">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
-                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">30</span>
+
+                                                        <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">
+                                                            {{ $data['achievement'] ?? '0' }}%
+                                                        </span>
+
+                                                        @php
+                                                            $percent = (int) ($data['achievement'] ?? 0);
+                                                        @endphp
+
+                                                        <div class="mini-progress">
+                                                            <div class="mini-progress-bar bg-success"
+                                                                data-width="{{ $percent }}%"></div>
+                                                        </div>
                                                     </div>
+                                                    @else
+                                                    <div class="col-3 col-sm-3">
+                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Type</small>
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['type'] }}</span>
+                                                    </div>
+                                                    @endif
                                                 </div>
                                         
+                                                @if(isset($data['review_period']))
                                                 <div class="row g-3 mb-3">
                                                     <div class="col-4 col-sm-4">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Type</small>
@@ -311,9 +384,10 @@
                                                         <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $rvLabel }}</span>
                                                     </div>
                                                 </div>
+                                                @endif
                                             </div>
                                         </div>
-
+                                        @if(isset($data['review_period']))
                                         <div class="mb-2">
                                             <h6 class="fw-bold text-uppercase kpi-label">{{ __('Achievement Tracking') }}</h6>
                                             <div class="row g-2">
@@ -327,8 +401,8 @@
                                                         : rtrim(rtrim($value, '0'), '.');
                                                 @endphp
 
-                                                <div class="col-4 col-sm-3 col-md-2 col-lg-1">
-                                                    <div class="read-only-month">
+                                                <div class="col-4 col-sm-3 col-md-2 col-lg-1 ">
+                                                    <div class="read-only-month pb-1">
                                                         
                                                         <span class="text-uppercase fw-bold text-secondary d-block mb-1" style="font-size: 0.65rem;">
                                                             {{ $monthLabel }}
@@ -337,12 +411,22 @@
                                                         <span class="fw-bold text-dark" style="font-size: 1.1rem;">
                                                             {{ $formatted }}
                                                         </span>
+                                                        {{-- VIEW ATTACHMENT --}}
+                                                        @if(!empty($data['attachment'][$monthNum]))
+                                                            <a href="{{ asset('storage/'.$data['attachment'][$monthNum]) }}" 
+                                                                target="_blank"
+                                                                class="btn-attach-mini w-100 d-block mt-2 border border-info text-info"
+                                                                title="View Attachment">
+                                                                <i class="ri-file-line"></i> VIEW
+                                                            </a>
+                                                        @endif
 
                                                     </div>
                                                 </div>
                                             @endforeach
                                             </div>
                                         </div>
+                                        @endif
                                     </div>
                                 @endforeach
                             @else
@@ -421,5 +505,13 @@
 
   window.filterGoals = filterGoals;
 </script>
-
+<script>
+        document.addEventListener("DOMContentLoaded", function () {
+        document.querySelectorAll('.mini-progress-bar').forEach(function (el) {
+            setTimeout(() => {
+                el.style.width = el.dataset.width;
+            }, 100);
+        });
+    });
+    </script>
 @endpush

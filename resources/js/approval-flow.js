@@ -66,9 +66,18 @@ document.addEventListener("DOMContentLoaded", function () {
     });    
 
 
-    const stepsContainer = document.getElementById('steps-container');
     const addStepButton = document.getElementById('add-step');
-    const additionalSettingsModal = new bootstrap.Modal(document.getElementById('additionalSettingsModal'));
+    document.addEventListener('DOMContentLoaded', function () {
+        const modalEl = document.getElementById('additionalSettingsModal');
+
+        // ✅ Guard: pastikan element ada
+        if (!modalEl) {
+            console.warn('Modal #additionalSettingsModal not found');
+            return;
+        }
+
+        const additionalSettingsModal = new bootstrap.Modal(modalEl);
+    });    
     const modalCurrentStepIndexInput = document.getElementById('modal-current-step-index');
     const modalStepDisplay = document.getElementById('modal-step-display');
     const saveModalSettingsButton = document.getElementById('saveModalSettings');
@@ -162,21 +171,37 @@ document.addEventListener("DOMContentLoaded", function () {
     };
 
     // Event listener untuk menambah baris baru
-    addStepButton.addEventListener('click', function () {
+    document.addEventListener('click', function (e) {
+        const addStepButton = e.target.closest('#addStepButton');
+        if (!addStepButton) return;
+
+        let stepsContainer = document.getElementById('stepsContainer');
+
+        // ✅ Guard wajib
+        if (!stepsContainer) {
+            console.warn('stepsContainer not found');
+            return;
+        }
+
         const newIndex = stepsContainer.querySelectorAll('tr').length;
+
         const newRow = document.createElement('tr');
         newRow.classList.add('align-middle');
         newRow.dataset.index = newIndex;
 
-        // Buat HTML untuk opsi approver roles
+        // ✅ Safe build options
         let approverOptionsHtml = '<option></option>';
-        for (const [id, name] of Object.entries(approverData)) {
-            approverOptionsHtml += `<option value="${name}">${name}</option>`;
+        if (typeof approverData === 'object') {
+            Object.entries(approverData).forEach(([id, name]) => {
+                approverOptionsHtml += `<option value="${name}">${name}</option>`;
+            });
         }
 
         let employeeOptionsHtml = '<option></option>';
-        for (const [id, item] of Object.entries(employeeData)) {
-            employeeOptionsHtml += `<option value="${item.id}">${item.value}</option>`;
+        if (typeof employeeData === 'object') {
+            Object.entries(employeeData).forEach(([id, item]) => {
+                employeeOptionsHtml += `<option value="${item.id}">${item.value}</option>`;
+            });
         }
 
         newRow.innerHTML = `
@@ -184,18 +209,22 @@ document.addEventListener("DOMContentLoaded", function () {
             <td>R${newIndex + 1}</td>
             <td>
                 <input type="text" name="steps[${newIndex}][step_name]" class="form-control form-control-sm">
-                <input type="hidden" name="steps[${newIndex}][step_number]" value="${newIndex + 1}" class="form-control form-control-sm">
+                <input type="hidden" name="steps[${newIndex}][step_number]" value="${newIndex + 1}">
             </td>
             <td class="approvers-cell">
                 <div class="form-group mb-2">
-                    <label for="steps-${newIndex}-approver_role" class="form-label">Select Approvers</label>
-                    <select multiple name="steps[${newIndex}][approver_role][]" class="form-select form-select-sm mb-1 select360" id="steps-${newIndex}-approver_role" required data-placeholder="Select approver">
+                    <label class="form-label">Select Approvers</label>
+                    <select multiple name="steps[${newIndex}][approver_role][]" 
+                        class="form-select form-select-sm mb-1 select360"
+                        data-placeholder="Select approver" required>
                         ${approverOptionsHtml}
                     </select>
                 </div>
                 <div class="form-group">
-                    <label for="steps-${newIndex}-approver_user_id" class="form-label">Select Employee (Optional)</label>
-                    <select multiple name="steps[${newIndex}][approver_user_id][]" class="form-select form-select-sm mb-1 select360" id="steps-${newIndex}-approver_user_id" data-placeholder="Select employee">
+                    <label class="form-label">Select Employee (Optional)</label>
+                    <select multiple name="steps[${newIndex}][approver_user_id][]" 
+                        class="form-select form-select-sm mb-1 select360"
+                        data-placeholder="Select employee">
                         ${employeeOptionsHtml}
                     </select>
                 </div>
@@ -204,85 +233,197 @@ document.addEventListener("DOMContentLoaded", function () {
                 <input type="number" name="steps[${newIndex}][allotted_time]" class="form-control form-control-sm">
             </td>
             <td class="text-center">
-                <button type="button" class="btn btn-sm btn-light d-none rounded py-1 px-2 m-1 fs-14 additional-settings-btn" data-bs-toggle="modal" data-bs-target="#additionalSettingsModal" data-step-index="${newIndex}">
+                <button type="button"
+                    class="btn btn-sm btn-light d-none rounded py-1 px-2 m-1 fs-14 additional-settings-btn"
+                    data-bs-toggle="modal"
+                    data-bs-target="#additionalSettingsModal"
+                    data-step-index="${newIndex}">
                     <i class="ri-more-2-fill"></i>
                 </button>
-                <button type="button" class="btn btn-sm btn-light rounded py-1 px-2 fs-14 remove-step"><i class="ri-delete-bin-line"></i></button>
+
+                <button type="button"
+                    class="btn btn-sm btn-light rounded py-1 px-2 fs-14 remove-step">
+                    <i class="ri-delete-bin-line"></i>
+                </button>
             </td>
         `;
+
         stepsContainer.appendChild(newRow);
-        
-        // Inisialisasi select2 pada baris baru
+
+        // ✅ Init select2 (safe)
         newRow.querySelectorAll('.select360').forEach(el => {
-            initializeSelect2(el);
+            if (typeof initializeSelect2 === 'function') {
+                initializeSelect2(el);
+            }
             el.classList.remove('select360');
         });
 
-        updateStepNumbersAndNames();
+        // ✅ Update numbering
+        if (typeof updateStepNumbersAndNames === 'function') {
+            updateStepNumbersAndNames();
+        }
     });
 
     // Event listener untuk menghapus baris dan membuka modal (delegasi event)
-    stepsContainer.addEventListener('click', function (event) {
-        const removeBtn = event.target.closest('.remove-step');
-        if (removeBtn) {
-            if (stepsContainer.children.length > 1) {
-                removeBtn.closest('tr').remove();
-                updateStepNumbersAndNames();
-            } else {
-                alert('At least one approval step is required.');
-            }
-        }
+    let stepsContainer = document.getElementById('stepsContainer');
 
-        const settingsBtn = event.target.closest('.additional-settings-btn');
-        if (settingsBtn) {
+    if (stepsContainer) {
+
+        stepsContainer.addEventListener('click', function (event) {
+
+            // =========================
+            // REMOVE STEP
+            // =========================
+            const removeBtn = event.target.closest('.remove-step');
+            if (removeBtn) {
+
+                if (stepsContainer.children.length > 1) {
+                    const row = removeBtn.closest('tr');
+                    if (row) row.remove();
+
+                    if (typeof updateStepNumbersAndNames === 'function') {
+                        updateStepNumbersAndNames();
+                    }
+                } else {
+                    alert('At least one approval step is required.');
+                }
+
+                return; // stop lanjut ke logic lain
+            }
+
+            // =========================
+            // OPEN SETTINGS MODAL
+            // =========================
+            const settingsBtn = event.target.closest('.additional-settings-btn');
+            if (!settingsBtn) return;
+
             const stepIndex = settingsBtn.dataset.stepIndex;
-            modalCurrentStepIndexInput.value = stepIndex;
-            modalStepDisplay.textContent = parseInt(stepIndex) + 1;
 
-            // Isi modal dengan data yang ada
-            resetModalForm();
-            const existingSettings = getOldStepSettings(stepIndex);
-            
-            const hiddenInput = stepsContainer.querySelector(`tr[data-index="${stepIndex}"] input[name="steps[${stepIndex}][settings_json]"]`);
-            let currentSettings = {};
-            if(hiddenInput && hiddenInput.value) {
-                currentSettings = JSON.parse(hiddenInput.value);
+            // ✅ Guard element modal
+            if (!stepIndex) return;
+
+            if (typeof modalCurrentStepIndexInput !== 'undefined' && modalCurrentStepIndexInput) {
+                modalCurrentStepIndexInput.value = stepIndex;
             }
-            
-            const finalSettings = {...existingSettings, ...currentSettings};
 
-            // Isi setiap field di modal berdasarkan finalSettings
-            $('#modal_settings_hide_stage_from').val(finalSettings.hide_stage_from);
-            $('#modal_settings_form_visibility').val(finalSettings.form_visibility);
-            // ... dan seterusnya untuk semua field
-            
-            additionalSettingsModal.show();
-        }
-    });
+            if (typeof modalStepDisplay !== 'undefined' && modalStepDisplay) {
+                modalStepDisplay.textContent = parseInt(stepIndex) + 1;
+            }
+
+            // Reset modal
+            if (typeof resetModalForm === 'function') {
+                resetModalForm();
+            }
+
+            // Ambil existing settings
+            let existingSettings = {};
+            if (typeof getOldStepSettings === 'function') {
+                existingSettings = getOldStepSettings(stepIndex) || {};
+            }
+
+            // Ambil dari hidden input
+            let currentSettings = {};
+            try {
+                const hiddenInput = stepsContainer.querySelector(
+                    `tr[data-index="${stepIndex}"] input[name="steps[${stepIndex}][settings_json]"]`
+                );
+
+                if (hiddenInput && hiddenInput.value) {
+                    currentSettings = JSON.parse(hiddenInput.value);
+                }
+            } catch (err) {
+                console.warn('Invalid JSON in settings_json', err);
+            }
+
+            const finalSettings = { ...existingSettings, ...currentSettings };
+
+            // =========================
+            // SET VALUE KE MODAL (SAFE)
+            // =========================
+            if (window.$) {
+                $('#modal_settings_hide_stage_from').val(finalSettings.hide_stage_from ?? null);
+                $('#modal_settings_form_visibility').val(finalSettings.form_visibility ?? null);
+                // tambahkan field lain di sini
+            }
+
+            // =========================
+            // SHOW MODAL (SAFE)
+            // =========================
+            const modalEl = document.getElementById('additionalSettingsModal');
+
+            if (!modalEl) {
+                console.warn('Modal #additionalSettingsModal not found');
+                return;
+            }
+
+            const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.show();
+        });
+
+    } else {
+        console.warn('stepsContainer not found');
+    }
 
     // Event listener untuk tombol simpan di modal
-    saveModalSettingsButton.addEventListener('click', function() {
-        saveModalFormDataToRow();
-        additionalSettingsModal.hide();
+    document.addEventListener('DOMContentLoaded', function () {
+
+        const saveModalSettingsButton = document.getElementById('saveModalSettingsButton');
+        const modalElement = document.getElementById('additionalSettingsModal');
+
+        if (!saveModalSettingsButton || !modalElement) return;
+
+        const additionalSettingsModal = bootstrap.Modal.getOrCreateInstance(modalElement);
+
+        saveModalSettingsButton.addEventListener('click', function () {
+            try {
+                if (typeof saveModalFormDataToRow === 'function') {
+                    saveModalFormDataToRow();
+                }
+
+                additionalSettingsModal.hide();
+
+            } catch (error) {
+                console.error('Error saving modal settings:', error);
+            }
+        });
+
     });
 
     // Panggil sekali saat load untuk memastikan data old('settings_json') dimuat
     function loadInitialSettings() {
+
+        if (!stepsContainer) return;
+
         const rows = stepsContainer.querySelectorAll('tr');
+
         rows.forEach((row, index) => {
-            const settings = getOldStepSettings(index);
-            if (Object.keys(settings).length > 0) {
-                 let hiddenInput = row.querySelector(`input[name="steps[${index}][settings_json]"]`);
-                if (!hiddenInput) {
-                    hiddenInput = document.createElement('input');
-                    hiddenInput.type = 'hidden';
-                    hiddenInput.name = `steps[${index}][settings_json]`;
-                    row.querySelector('td:last-child').appendChild(hiddenInput);
-                }
-                hiddenInput.value = JSON.stringify(settings);
+
+            const settings = getOldStepSettings?.(index) || {};
+
+            if (!settings || typeof settings !== 'object') return;
+
+            if (Object.keys(settings).length === 0) return;
+
+            let hiddenInput = row.querySelector(`input[name="steps[${index}][settings_json]"]`);
+
+            // Cari container terakhir dengan fallback
+            const containerCell = row.querySelector('td:last-child') || row;
+
+            if (!hiddenInput) {
+                hiddenInput = document.createElement('input');
+                hiddenInput.type = 'hidden';
+                hiddenInput.name = `steps[${index}][settings_json]`;
+
+                containerCell.appendChild(hiddenInput);
             }
+
+            try {
+                hiddenInput.value = JSON.stringify(settings);
+            } catch (error) {
+                console.error('Failed to stringify settings:', error);
+            }
+
         });
     }
-    
     loadInitialSettings();
 });

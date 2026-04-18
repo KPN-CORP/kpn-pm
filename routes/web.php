@@ -73,6 +73,8 @@ Route::get('updmenu-employees', [EmployeeController::class, 'updateEmployeeAcces
 Route::get('daily-schedules', [ScheduleController::class, 'reminderDailySchedules']);
 Route::get('schedule-PA', [ScheduleController::class, 'DailyUpdateSchedulePA']);
 
+    Route::get('/kpi-score/{goalId}', [KPIScoreController::class, 'calculate']);
+
 Route::get('wa-employee/{id}', [EmployeeController::class, 'getEmployeeFromWA']);
 
 Route::get('/test-email', function () {
@@ -140,7 +142,6 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
 
     // KPI Achievement & Score
     Route::get('/kpi-achievements/{goalId}', [KPIAchievementController::class, 'index']);
-    Route::get('/kpi-score/{goalId}', [KPIScoreController::class, 'calculate']);
 
     Route::get('/achievement/{id}', [KPIAchievementController::class, 'editAchievement'])->name('goals.update-achievement');
     Route::get('/approval-achievement/{id}', [KPIAchievementController::class, 'approvalAchievement'])->name('goals.approval-achievement');

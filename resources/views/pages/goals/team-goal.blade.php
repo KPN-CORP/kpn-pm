@@ -15,6 +15,34 @@
     text-align: center;
     box-shadow: 0 2px 4px rgba(0,0,0,0.02);
 }
+.mini-progress {
+    height: 4px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.mini-progress-bar {
+    height: 100%;
+    border-radius: 10px;
+    background: linear-gradient(
+        90deg,
+        #0d6efd 25%,
+        #88c6f9 50%,
+        #0d6efd 75%
+    );
+    background-size: 200% 100%;
+    animation: progressFlow 1.5s linear infinite;
+}
+@keyframes progressFlow {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
 </style>
 @endsection
 
@@ -134,7 +162,7 @@
                                         $goalId = $firstSubordinate ? $firstSubordinate->goal->id : null;
                                         $appraisalCheck = $firstSubordinate ? $firstSubordinate->appraisalCheck : null;
                                         $goalPeriod = $firstSubordinate ? $firstSubordinate->goal->period : null;
-                                        $goalData = $firstSubordinate ? $firstSubordinate->goal['form_data'] : null;
+                                        $goalData = $firstSubordinate ? $firstSubordinate->goal : null;
                                         $createdAt = $firstSubordinate ? $firstSubordinate->formatted_created_at : null;
                                         $updatedAt = $firstSubordinate ? $firstSubordinate->formatted_updated_at : null;
                                         $updatedBy = $firstSubordinate ? $firstSubordinate->updatedBy : null;
@@ -149,7 +177,8 @@
                                         $goals = $accessMenu['goals'] ?? null;
                                         $doj = $accessMenu['doj'] ?? null;
                                         
-                                        $formDataArr = json_decode($goalData, true) ?? [];
+                                        $formDataArr = $firstSubordinate->goal->form_data_parsed ?? [];
+                                        
                                         $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
                                     @endphp
                                     <div class="row mt-2 mb-2 task-card" data-status="{{ $formStatus == 'Draft' ? 'draft' : ($status == 'Pending' ? __('Pending') : ($subordinates->isNotEmpty() ? ($status == 'Sendback' ? __('Waiting For Revision') : __($status)) : 'no data')) }}">
@@ -177,7 +206,12 @@
                                                                 <a class="btn btn-sm me-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ $status === 'Sendback' ? __('Revise Goals') : __('Edit') }}</a>
                                                                 @if ($status != 'Sendback' && Auth::user()->employee_id != $firstSubordinate->initiated->employee_id && !$appraisalCheck)
                                                                     <a href="{{ route('team-goals.approval', $goalId) }}" class="btn btn-sm btn-primary fw-medium me-1" onclick="showLoader()">Approve Goal</a>
-                                                                    <button type="button" class="btn btn-sm btn-secondary fw-medium me-1" disabled style="opacity: 0.6; cursor: not-allowed;">Approve Achievement</button>
+                                                                    <button id="approveAchievementBtn"
+                                                                            type="button"
+                                                                            class="btn btn-sm btn-secondary fw-medium me-1"
+                                                                            style="opacity: 0.6;">
+                                                                        Approve Achievement
+                                                                    </button>
                                                                     <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                                 @endif
                                                             @elseif ($period == $goalPeriod && $status === 'Approved' && !$appraisalCheck)
@@ -223,9 +257,68 @@
                                                 </div>
                                                 <div class="col-6 col-md-4 col-xl-2">
                                                     <small class="text-muted fw-bold text-uppercase d-block mb-1" style="font-size: 0.7rem;">Goal Status</small>
-                                                    <span class="badge {{ $subordinates->isNotEmpty() ? ($formStatus == 'Draft' || $status == 'Sendback' ? 'bg-dark-subtle text-dark' : ($status === 'Approved' || $appraisalCheck ? 'bg-success' : 'bg-warning')) : 'bg-dark-subtle text-secondary'}} rounded-pill py-1 px-2 d-inline-block text-truncate" style="max-width: 100%;">
-                                                        {{ $appraisalCheck ? __('Approved') : ($formStatus == 'Draft' ? 'Draft': ($status == 'Pending' ? __('Pending') : ($subordinates->isNotEmpty() ? ($status == 'Sendback' ? __('Waiting For Revision') : __($status)) : 'No Data'))) }}
-                                                    </span>
+                                                    @php
+                                                        $hasData = $subordinates->isNotEmpty();
+
+                                                        $isDraft = $formStatus == 'Draft';
+                                                        $isSendbackSelf = $sendbackTo == $employeeId;
+                                                        $isAutoApproved = $appraisalCheck;
+                                                        $isApproved = $status == 'Approved';
+                                                        $isPending = $status == 'Pending';
+
+                                                        // Badge Class
+                                                        if (!$hasData) {
+                                                            $badgeClass = 'bg-dark-subtle text-secondary';
+                                                        } elseif ($isDraft || $isSendbackSelf) {
+                                                            $badgeClass = 'bg-secondary';
+                                                        } elseif ($isAutoApproved || $isPending) {
+                                                            $badgeClass = 'bg-warning';
+                                                        } elseif ($isApproved) {
+                                                            $badgeClass = 'bg-success';
+                                                        } else {
+                                                            $badgeClass = 'text-bg-light';
+                                                        }
+
+                                                        // Label
+                                                        if (!$hasData) {
+                                                            $label = 'No Data';
+                                                        } elseif ($isDraft) {
+                                                            $label = 'Draft';
+                                                        } elseif ($isAutoApproved) {
+                                                            $label = 'Auto Approved';
+                                                        } elseif ($isApproved) {
+                                                            $label = __('Approved');
+                                                        } elseif ($isSendbackSelf) {
+                                                            $label = 'Waiting Your Revision';
+                                                        } else {
+                                                            $label = __($status);
+                                                        }
+
+                                                        // Popover Content
+                                                        if (!$hasData) {
+                                                            $popover = 'No Data';
+                                                        } elseif ($isDraft) {
+                                                            $popover = 'Draft';
+                                                        } elseif ($isAutoApproved) {
+                                                            $popover = '(Goals were auto-approved after you submitted PA '.$goalPeriod.')';
+                                                        } elseif ($approvalLayer && !$isApproved) {
+                                                            $popover = 'Manager L'.$approvalLayer.' : '.$employeeName;
+                                                        } elseif ($status === 'Sendback') {
+                                                            $popover = $employeeName;
+                                                        } else {
+                                                            $popover = 'Approved';
+                                                        }
+                                                    @endphp
+
+                                                    <a href="javascript:void(0)"
+                                                    data-bs-id="{{ $employeeId }}"
+                                                    data-bs-toggle="popover"
+                                                    data-bs-trigger="hover focus"
+                                                    data-bs-content="{{ $popover }}"
+                                                    class="badge {{ $badgeClass }} rounded-pill py-1 px-2 d-inline-block text-truncate"
+                                                    style="max-width: 100%;">
+                                                        {{ $label }}
+                                                    </a>
                                                 </div>
                                                 <div class="col-6 col-md-4 col-xl-2">
                                                     <small class="text-muted fw-bold text-uppercase d-block mb-1" style="font-size: 0.7rem;">Achieve Status</small>
@@ -250,7 +343,12 @@
                                                         <a class="btn btn-sm me-1 mb-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ $status === 'Sendback' ? __('Revise Goals') : __('Edit') }}</a>
                                                         @if ($status != 'Sendback' && Auth::user()->employee_id != $firstSubordinate->initiated->employee_id && !$appraisalCheck)
                                                             <a href="{{ route('team-goals.approval', $goalId) }}" class="btn btn-sm btn-primary mb-1 fw-medium me-1" onclick="showLoader()">Approve Goal</a>
-                                                            <button type="button" class="btn btn-sm btn-secondary mb-1 fw-medium me-1" disabled style="opacity: 0.6; cursor: not-allowed;">Approve Achievement</button>
+                                                            <button id="approveAchievementBtn"
+                                                                    type="button"
+                                                                    class="btn btn-sm btn-secondary fw-medium me-1"
+                                                                    style="opacity: 0.6;">
+                                                                Approve Achievement
+                                                            </button>
                                                             <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm mb-1" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                         @endif
                                                     @elseif ($period == $goalPeriod && $status === 'Approved' && !$appraisalCheck)
@@ -275,43 +373,55 @@
                                                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                                                 </div>
                                                 <div class="modal-body p-0 bg-white">
-                                                    @if(count($formDataArr) > 0)
-                                                        @foreach ($formDataArr as $kpiIndex => $data)
+                                                    @if(!empty($formDataArr) && is_array($formDataArr))
+                                                        @foreach ($formDataArr as $kpiIndex => $row)
                                                         <div class="p-4 pt-4 {{ $loop->even ? 'bg-light-subtle' : 'bg-white' }} {{ $loop->last ? '' : 'border-bottom' }}">
                                                             <div class="row g-3">
                                                                 <div class="col-md-5 col-lg-5 mb-md-0">
                                                                     <small class="fw-bold text-uppercase d-block kpi-label mb-1" style="color: #9e2a2b;">KPI {{ $kpiIndex + 1 }}</small>
-                                                                    <h6 class="fw-bold text-dark mb-1" style="font-size: 0.95rem;">{{ $data['kpi'] ?? '-' }}</h6>
-                                                                    <p class="text-secondary mb-0 mt-2" style="white-space: pre-line; font-size: 0.85rem; line-height: 1.5;">{{ $data['description'] ?? '-' }}</p>
+                                                                    <h6 class="fw-bold text-dark mb-1" style="font-size: 0.95rem;">{{ $row['kpi'] ?? '-' }}</h6>
+                                                                    <p class="text-secondary mb-0 mt-2" style="white-space: pre-line; font-size: 0.85rem; line-height: 1.5;">{{ $row['description'] ?? '-' }}</p>
                                                                 </div>
                                                                 <div class="col-md-7 col-lg-7">
                                                                     <div class="row g-3 mb-3">
                                                                         <div class="col-3 col-sm-3">
                                                                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
-                                                                            <span class="fw-bold text-dark" style="font-size: 0.95rem;">{{ $data['target'] ?? '-' }}</span>
+                                                                            <span class="fw-bold text-dark" style="font-size: 0.95rem;">{{ $row['target'] ?? '-' }}</span>
                                                                         </div>
                                                                         <div class="col-3 col-sm-3">
                                                                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
-                                                                            <span class="fw-bold text-dark" style="font-size: 0.95rem;">{{ (isset($data['uom']) && $data['uom'] !== 'Other') ? $data['uom'] : ($data['custom_uom'] ?? '-') }}</span>
+                                                                            <span class="fw-bold text-dark" style="font-size: 0.95rem;">{{ (isset($row['uom']) && $row['uom'] !== 'Other') ? $row['uom'] : ($row['custom_uom'] ?? '-') }}</span>
                                                                         </div>
                                                                         <div class="col-3 col-sm-3">
                                                                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Weightage</small>
-                                                                            <span class="fw-bold text-dark" style="font-size: 0.95rem;">{{ $data['weightage'] ?? '0' }}%</span>
+                                                                            <span class="fw-bold text-dark" style="font-size: 0.95rem;">{{ $row['weightage'] ?? '0' }}%</span>
                                                                         </div>
                                                                         <div class="col-3 col-sm-3">
                                                                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
-                                                                            <span class="fw-bold text-dark" style="font-size: 0.95rem;">30</span>
+
+                                                                            <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">
+                                                                                {{ $row['achievement'] ?? '0' }}%
+                                                                            </span>
+
+                                                                            @php
+                                                                                $percent = (int) ($row['achievement'] ?? 0);
+                                                                            @endphp
+
+                                                                            <div class="mini-progress">
+                                                                                <div class="mini-progress-bar bg-success"
+                                                                                    data-width="{{ $percent }}%"></div>
+                                                                            </div>
                                                                         </div>
                                                                     </div>
                                                                     <div class="row g-3 mb-3">
                                                                         <div class="col-4 col-sm-4">
                                                                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Type</small>
-                                                                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['type'] ?? '-' }}</span>
+                                                                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $row['type'] ?? '-' }}</span>
                                                                         </div>
                                                                         <div class="col-4 col-sm-4">
                                                                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Review Period</small>
                                                                             @php
-                                                                                $rv = $data['review_period'] ?? '';
+                                                                                $rv = $row['review_period'] ?? '';
                                                                                 $rvLabel = $rv ?: '-';
                                                                                 if (isset($reviewPeriodOption) && is_array($reviewPeriodOption)) {
                                                                                     foreach ($reviewPeriodOption as $group) {
@@ -329,7 +439,7 @@
                                                                         <div class="col-4 col-sm-4">
                                                                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Calc Method</small>
                                                                             @php
-                                                                                $rv = $data['calculation_method'] ?? '';
+                                                                                $rv = $row['calculation_method'] ?? '';
                                                                                 $rvLabel = $rv ?: '-';
                                                                                 if (isset($calculationMethodOption) && is_array($calculationMethodOption)) {
                                                                                     foreach ($calculationMethodOption as $group) {
@@ -348,19 +458,53 @@
                                                                 </div>
                                                             </div>
                                                             <div class="mt-4">
-                                                                <h6 class="fw-bold text-uppercase kpi-label mb-2">{{ __('Achievement Tracking') }}</h6>
+                                                                <h6 class="fw-bold text-uppercase kpi-label mb-2">
+                                                                    {{ __('Achievement Tracking') }}
+                                                                </h6>
+
                                                                 <div class="row g-2">
                                                                     @foreach($months as $monthNum => $monthLabel)
-                                                                    @php
-                                                                        $value = $data['ach'][$monthNum] ?? null;
-                                                                        $formatted = is_null($value) || $value === '' ? '-' : rtrim(rtrim($value, '0'), '.');
-                                                                    @endphp
-                                                                    <div class="col-4 col-sm-3 col-md-2 col-lg-1">
-                                                                        <div class="read-only-month border rounded p-2 text-center" style="background-color: #fcfcfc;">
-                                                                            <span class="text-uppercase fw-bold text-secondary d-block mb-1" style="font-size: 0.65rem;">{{ $monthLabel }}</span>
-                                                                            <span class="fw-bold text-dark" style="font-size: 1.1rem;">{{ $formatted }}</span>
+
+                                                                        @php
+                                                                            $ach = $row['ach'] ?? [];
+                                                                            $attachments = $row['attachment'] ?? [];
+
+                                                                            $value = $ach[$monthNum] ?? null;
+
+                                                                            $formatted = is_null($value) || $value === '' 
+                                                                                ? '-' 
+                                                                                : rtrim(rtrim($value, '0'), '.');
+
+                                                                            $file = $attachments[$monthNum] ?? null;
+                                                                        @endphp
+
+                                                                        <div class="col-4 col-sm-3 col-md-2 col-lg-1">
+                                                                            <div class="read-only-month border rounded p-2 text-center
+                                                                                {{ $value ? 'bg-primary-subtle border-primary' : '' }}">
+
+                                                                                {{-- Month --}}
+                                                                                <span class="text-uppercase fw-bold text-secondary d-block mb-1" style="font-size: 0.65rem;">
+                                                                                    {{ $monthLabel }}
+                                                                                </span>
+
+                                                                                {{-- Value --}}
+                                                                                <span class="fw-bold text-dark d-block" style="font-size: 1.1rem;">
+                                                                                    {{ $formatted }}
+                                                                                </span>
+
+                                                                                {{-- Attachment --}}
+                                                                                @if($file)
+                                                                                    <a href="{{ asset('storage/'.$file) }}" 
+                                                                                    target="_blank"
+                                                                                    class="d-block mt-1 text-info small fw-semibold border border-info rounded p-1"
+                                                                                    style="font-size: 0.6rem;">
+                                                                                        VIEW
+                                                                                    </a>
+                                                                                @endif
+
+                                                                            </div>
                                                                         </div>
-                                                                    </div>
+
                                                                     @endforeach
                                                                 </div>
                                                             </div>
@@ -531,13 +675,117 @@
                 </div>
 
                 <div class="tab-pane fade" id="inner-achievement" role="tabpanel" aria-labelledby="inner-achievement-tab">
-                    <div class="card mt-3 shadow-sm border-0">
-                        <div class="card-body text-center p-5">
-                            <i class="ri-medal-line text-muted mb-3" style="font-size: 3rem;"></i>
-                            <h5 class="text-muted">Achievement Data</h5>
-                            <p class="text-secondary mb-0">List of not initiated achievements will appear here.</p>
+                    <div class="collapse show" id="dataTasks">
+                            <div class="card mb-0 mt-2">
+                                <div class="card-body py-1" id="task-container-1">
+                                    @forelse ($noAchievements as $index => $achievementList)
+                                    <div class="row mt-2 mb-2 task-card" 
+                                        data-status="{{ $achievementList->goal->form_status == 'Draft' ? 'draft' : ($achievementList->status == 'Pending' ? __('Pending') : __($achievementList->status ?? 'no data')) }}">
+                                        <div class="col-12">
+                                            <div class="row">
+                                                <div class="col-md mb-sm-0 p-2">
+                                                    <div id="tooltip-container">
+                                                        <img src="{{ asset('storage/app/public/img/profiles/user.png') }}" alt="image" class="avatar-xs rounded-circle me-1" data-bs-container="#tooltip-container" data-bs-toggle="tooltip" data-bs-placement="bottom"  data-bs-original-title="{{ __('Initiated By') }} {{ $achievementList->employee->fullname.' ('.$achievementList->employee->employee_id.')' }}">
+                                                        {{ $achievementList->employee->fullname }} <span class="text-muted">{{ $achievementList->employee->employee_id }}</span>
+                                                    </div>
+                                                </div>
+                                                <div class="col-6 col-md-4 col-xl-2">
+                                                    <small class="text-muted fw-bold text-uppercase d-block mb-1" style="font-size: 0.7rem;">Goal Status</small>
+                                                    @php
+                                                        $hasData = $achievementList;
+
+                                                        $isDraft = $achievementList->goal->form_status == 'Draft';
+                                                        $isSendbackSelf = $achievementList->sendback_to == $achievementList->employee_id;
+                                                        $isAutoApproved = $achievementList->appraisalCheck;
+                                                        $isApproved = $achievementList->status == 'Approved';
+                                                        $isPending = $achievementList->status == 'Pending';
+
+                                                        // Badge Class
+                                                        if (!$hasData) {
+                                                            $badgeClass = 'bg-dark-subtle text-secondary';
+                                                        } elseif ($isDraft || $isSendbackSelf) {
+                                                            $badgeClass = 'bg-secondary';
+                                                        } elseif ($isAutoApproved || $isPending) {
+                                                            $badgeClass = 'bg-warning';
+                                                        } elseif ($isApproved) {
+                                                            $badgeClass = 'bg-success';
+                                                        } else {
+                                                            $badgeClass = 'text-bg-light';
+                                                        }
+
+                                                        // Label
+                                                        if (!$hasData) {
+                                                            $label = 'No Data';
+                                                        } elseif ($isDraft) {
+                                                            $label = 'Draft';
+                                                        } elseif ($isAutoApproved) {
+                                                            $label = 'Auto Approved';
+                                                        } elseif ($isApproved) {
+                                                            $label = __('Approved');
+                                                        } elseif ($isSendbackSelf) {
+                                                            $label = 'Waiting Your Revision';
+                                                        } else {
+                                                            $label = __($status);
+                                                        }
+
+                                                        // Popover Content
+                                                        if (!$hasData) {
+                                                            $popover = 'No Data';
+                                                        } elseif ($isDraft) {
+                                                            $popover = 'Draft';
+                                                        } elseif ($isAutoApproved) {
+                                                            $popover = '(Goals were auto-approved after you submitted PA '.$goalPeriod.')';
+                                                        } elseif ($achievementList->approvalLayer && !$isApproved) {
+                                                            $popover = 'Manager L'.$achievementList->approvalLayer.' : '.$achievementList->name;
+                                                        } elseif ($status === 'Sendback') {
+                                                            $popover = $achievementList->name;
+                                                        } else {
+                                                            $popover = 'Approved';
+                                                        }
+                                                    @endphp
+
+                                                    <a href="javascript:void(0)"
+                                                    data-bs-id="{{ $achievementList->employee_id }}"
+                                                    data-bs-toggle="popover"
+                                                    data-bs-trigger="hover focus"
+                                                    data-bs-content="{{ $popover }}"
+                                                    class="badge {{ $badgeClass }} rounded-pill py-1 px-2 d-inline-block text-truncate"
+                                                    style="max-width: 100%;">
+                                                        {{ $label }}
+                                                    </a>
+                                                </div>
+                                                <div class="col-auto d-none d-md-flex align-items-center justify-content-end">
+                                                    @if ($isApproved || $isAutoApproved)
+                                                        <a href="{{ route('goals.update-achievement', $achievementList->form_id) }}" class="btn btn-sm btn-outline-success fw-medium">
+                                                            Update Achievement
+                                                        </a>
+                                                    @else
+                                                        <button id="approveAchievementBtn"
+                                                            type="button"
+                                                            class="btn btn-sm btn-secondary fw-medium me-1"
+                                                            style="opacity: 0.6;">
+                                                            Update Achievement
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                            </div>
+                                        </div>
+                                        @if($index < count($tasks) - 1)
+                                            <div class="col-12"><hr class="mb-1 mt-2"></div>
+                                        @endif
+                                    </div>
+                                    @empty
+                                    <div class="card mt-3 shadow-sm border-0">
+                                        <div class="card-body text-center p-5">
+                                            <i class="ri-medal-line text-muted mb-3" style="font-size: 3rem;"></i>
+                                            <h5 class="text-muted">Achievement Data</h5>
+                                            <p class="text-secondary mb-0">List of not initiated achievements will appear here.</p>
+                                        </div>
+                                    </div>
+                                    @endforelse
+                                </div>
+                            </div>
                         </div>
-                    </div>
                 </div>
             </div>
         </div>
@@ -580,3 +828,26 @@
     </div>
 </div>
 @endsection
+@push('scripts')
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+            document.querySelectorAll('.mini-progress-bar').forEach(function (el) {
+                setTimeout(() => {
+                    el.style.width = el.dataset.width;
+                }, 100);
+            });
+        });
+        document.addEventListener('DOMContentLoaded', function () {
+            const btn = document.getElementById('approveAchievementBtn');
+
+            btn.addEventListener('click', function () {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Cannot Approve Achievement',
+                    html: '<b>There are revisions on the Goals</b><br>Please review them before approval.',
+                    confirmButtonText: 'OK',
+                });
+            });
+        });
+    </script>
+@endpush

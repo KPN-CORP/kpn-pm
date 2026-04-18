@@ -650,7 +650,6 @@ class OnBehalfController extends Controller
                 }
                 
                 $kpiData[$index] = [
-                    'kpi_id' => $request->kpi_id[$index],
                     'kpi' => $kpi,
                     'target' => $targets[$index],
                     'uom' => $uoms[$index],
@@ -660,6 +659,7 @@ class OnBehalfController extends Controller
                     'custom_uom' => $customuom,
                     'review_period' => $review_period[$index],
                     'calculation_method' => $calculation_method[$index],
+                    'kpi_id' => $request->kpi_id[$index],
                 ];
 
                 $index++;
