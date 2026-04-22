@@ -7,8 +7,11 @@ use App\Models\KPIAchievement;
 use App\Models\Goal;
 use App\Models\KPIAchievementSnapshot;
 use App\Services\AppService;
+use App\Services\KpiService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
@@ -18,10 +21,12 @@ class KPIAchievementController extends Controller
 {
     protected $user;
     protected $appService;
+    protected $kpiService;
 
-    public function __construct(AppService $appService)
+    public function __construct(AppService $appService, KpiService $kpiService)
     {
         $this->appService = $appService;
+        $this->kpiService = $kpiService;
         $this->user = Auth::user()->employee_id;
     }
 
@@ -210,133 +215,250 @@ class KPIAchievementController extends Controller
 
     public function bulkStore(Request $request)
     {
-        // $request->submit_type bisa "draft" atau "submit" ////////////////////
-        $status = $request->submit_type === 'submit' ? 'Submitted' : 'Draft';
+        try {
+            DB::beginTransaction();
 
-        $isSubmit = $status === 'Submitted';
-        
-        $request->validate([
-            'goal_id' => 'required|string',
-            'ach' => 'nullable|array',
-            'attachment' => 'array',
-            'attachment.*.*' => 'nullable|file|mimes:pdf,png,jpg,jpeg|max:2048'
+            // ================= VALIDATION =================
+            $request->validate([
+                'goal_id' => 'required|string',
+                'ach' => 'nullable|array',
+                'attachment' => 'array',
+                'attachment.*.*' => 'nullable|file|mimes:pdf,png,jpg,jpeg|max:2048'
             ], [
-            'attachment.*.*.max' => 'Ukuran file maksimal 2MB',
-            'attachment.*.*.mimes' => 'File harus PDF/JPG/PNG'
+                'attachment.*.*.max' => 'Ukuran file maksimal 2MB',
+                'attachment.*.*.mimes' => 'File harus PDF/JPG/PNG'
             ]);
+
+            // ================= GET GOAL =================
+            $goal = Goal::findOrFail($request->goal_id);
+            $employeeId = $goal->employee_id;
+            $formData = json_decode($goal->form_data, true);
+
             
-        $goal = Goal::findOrFail($request->goal_id);
-        $employeeId = $goal->employee_id;
-        $formData = json_decode($goal->form_data, true);
+            // ================= STATUS =================
+            if ($request->submit_type === 'draft') {
+                $status = 'Draft';
+            } else {
+                $status = $employeeId != $this->user ? 'Approved' : 'Pending';
+            }
 
-        // ensure semua KPI punya kpi_id
-        foreach ($formData as $i => $row) {
+            $isSubmit = $status != 'Draft';
 
-            $kpiId = $request->kpi_id[$i] ?? null;
+            $approverId = $this->kpiService->layerApproval($employeeId);
 
-            if (!$kpiId) {
-                // generate UUID baru
-                $kpiId = (string) Str::uuid();
+            // ================= ENSURE KPI ID =================
+            $kpiIds = [];
 
-                // update ke formData
-                $formData[$i]['kpi_id'] = $kpiId;
+            foreach ($formData as $i => $row) {
+                $kpiId = $request->kpi_id[$i] ?? null;
 
-                // update ke request (biar dipakai di bawah)
+                if (!$kpiId) {
+                    $kpiId = (string) Str::uuid();
+                    $formData[$i]['kpi_id'] = $kpiId;
+                }
+
                 $kpiIds[$i] = $kpiId;
             }
-        }
 
-        // update goal jika ada perubahan kpi_id
-        $goal->form_data = json_encode($formData);
-        $goal->save();
+            // update goal
+            $goal->form_data = json_encode($formData);
+            $goal->save();
 
-        // proses achievement
-        foreach ($request->ach as $kpiIndex => $months) {
+            // ================= PROCESS ACHIEVEMENT =================
+            foreach ($request->ach as $kpiIndex => $months) {
 
-            if (!isset($formData[$kpiIndex])) continue;
+                if (!isset($formData[$kpiIndex])) continue;
 
-            $kpi = $formData[$kpiIndex];
-            $period = (int) $kpi['review_period'];
+                $kpi = $formData[$kpiIndex];
+                $period = (int) $kpi['review_period'];
 
-            $kpiId = $request->kpi_id[$kpiIndex] ?? $kpiIds[$kpiIndex];
-            if (!$kpiId) continue;
+                $kpiId = $request->kpi_id[$kpiIndex] ?? $kpiIds[$kpiIndex];
+                if (!$kpiId) continue;
 
-            foreach ($months as $month => $value) {
+                foreach ($months as $month => $value) {
 
-                $month = (int)$month;
+                    $month = (int)$month;
 
-                if ($month % $period !== 0) continue;
+                    if ($month % $period !== 0) continue;
 
-                $existing = KPIAchievement::where('goal_id', $request->goal_id)
-                    ->where('kpi_id', $kpiId)
-                    ->where('month', $month)
-                    ->first();
+                    $existing = KPIAchievement::where('goal_id', $request->goal_id)
+                        ->where('kpi_id', $kpiId)
+                        ->where('month', $month)
+                        ->first();
 
-                $filePath = $existing->file ?? null;
+                    $filePath = $existing->file ?? null;
 
-                // FILE HANDLING
-                if ($request->hasFile("attachment.$kpiIndex.$month")) {
+                    // FILE HANDLING
+                    if ($request->hasFile("attachment.$kpiIndex.$month")) {
 
-                    if ($existing) {
-                        if ($existing->file) {
-                            Storage::disk('public')->delete($existing->file);
+                        if ($existing) {
+                            if ($existing->file) {
+                                Storage::disk('public')->delete($existing->file);
+                            }
+                            $existing->delete();
                         }
-                        $existing->delete();
+
+                        $file = $request->file("attachment.$kpiIndex.$month");
+
+                        $filePath = $file->store(
+                            "kpi-achievements/{$request->goal_id}/{$kpiIndex}",
+                            'public'
+                        );
                     }
 
-                    $file = $request->file("attachment.$kpiIndex.$month");
+                    // SKIP jika kosong semua
+                    if (($value === null || $value === '') && !$filePath) {
+                        continue;
+                    }
 
-                    $filePath = $file->store(
-                        "kpi-achievements/{$request->goal_id}/{$kpiIndex}",
-                        'public'
-                    );
-                }
+                    $achievement = new KPIAchievement();
+                    $achievement->goal_id = $request->goal_id;
+                    $achievement->kpi_id = $kpiId;
+                    $achievement->month = $month;
+                    $achievement->value = $value;
+                    $achievement->file = $filePath;
+                    $achievement->current_approver_employee_id = $approverId ?? null;
+                    $achievement->approval_status = $status;
+                    $achievement->save();
 
-                // SKIP jika kosong semua
-                if (($value === null || $value === '') && !$filePath) {
-                    continue;
-                }
-
-                $achievement = new KPIAchievement();
-                $achievement->goal_id = $request->goal_id;
-                $achievement->kpi_id = $kpiId;
-                $achievement->month = $month;
-                $achievement->value = $value;
-                $achievement->file = $filePath;
-                $achievement->save();
-
-                if ($isSubmit) {
-                    $achievementSnapshots = new KPIAchievementSnapshot();
-                    $achievementSnapshots->goal_id = $request->goal_id;
-                    $achievementSnapshots->kpi_id = $kpiId;
-                    $achievementSnapshots->month = $month;
-                    $achievementSnapshots->value = $value;
-                    $achievementSnapshots->file = $filePath;
-                    $achievementSnapshots->employee_id = $employeeId;
-                    $achievementSnapshots->created_by = Auth::id();
-                    $achievementSnapshots->save();
+                    if ($isSubmit) {
+                        $achievementSnapshots = new KPIAchievementSnapshot();
+                        $achievementSnapshots->goal_id = $request->goal_id;
+                        $achievementSnapshots->kpi_id = $kpiId;
+                        $achievementSnapshots->month = $month;
+                        $achievementSnapshots->value = $value;
+                        $achievementSnapshots->file = $filePath;
+                        $achievementSnapshots->employee_id = $this->user;
+                        $achievementSnapshots->current_approver_employee_id = $approverId ?? null;
+                        $achievementSnapshots->approval_status = $status;
+                        $achievementSnapshots->created_by = Auth::id();
+                        $achievementSnapshots->save();
+                    }
                 }
             }
-        }
 
-        return $this->user != $request->employee_id 
+            DB::commit();
+
+            return $this->user != $request->employee_id
                 ? redirect('team-goals')->with('success', 'Achievements submitted successfully')
-                : redirect('goals')->with('success', 'Avhievements submitted successfully');
+                : redirect('goals')->with('success', 'Achievements submitted successfully');
+
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+
+            // log error (penting untuk debugging production)
+            Log::error('Bulk KPI Achievement Error', [
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ]);
+
+            return back()->with('error', 'Achievements submitted failed!');
+        }
     }
 
-    function approvalAchievement($id)
+    public function approvalAchievement($id)
     {
-        $parentLink = __('Achievement');
-        $link = __('Edit');
-        $period = $this->appService->goalPeriod();
-        $goal = Goal::findOrFail($id);
-        $formData = json_decode($goal->form_data, true);
+        try {
+            $parentLink = __('Achievement');
+            $link = __('Approval');
 
-        return view('pages.goals.approval-achievement', compact(
-            'formData',
-            'id',
-            'parentLink',
-            'link'
-        ));
+            $goal = Goal::with('employee')->findOrFail($id);
+
+            $formData = json_decode($goal->form_data, true) ?? [];
+
+            // ✅ CURRENT
+            $achievements = KPIAchievement::where('goal_id', $id)
+                ->orderBy('month')
+                ->get()
+                ->groupBy('kpi_id');
+
+            // ✅ SNAPSHOT
+            $snapshots = KPIAchievementSnapshot::where('goal_id', $id)
+                ->where('employee_id', $this->user)
+                ->orderByDesc('created_at')
+                ->get()
+                ->groupBy('kpi_id');
+                // dd($snapshots);
+
+            $months = [
+                1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
+                5 => 'May', 6 => 'Jun', 7 => 'Jul', 8 => 'Aug',
+                9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dec'
+            ];
+
+            foreach ($formData as $i => $row) {
+
+                $kpiId = $row['kpi_id'] ?? null;
+
+                // INIT AFTER
+                $formData[$i]['months'] = [];
+
+                foreach ($months as $num => $label) {
+                    $formData[$i]['months'][$num] = [
+                        'label' => $label,
+                        'value' => null,
+                        'file'  => null,
+                    ];
+                }
+
+                // AFTER
+                if ($kpiId && $achievements->has($kpiId)) {
+                    foreach ($achievements[$kpiId] as $ach) {
+                        $m = (int) $ach->month;
+
+                        $formData[$i]['months'][$m]['value'] = $ach->value;
+                        $formData[$i]['months'][$m]['file']  = $ach->file;
+                    }
+                }
+
+                // INIT BEFORE
+                $formData[$i]['old_months'] = [];
+
+                foreach ($months as $num => $label) {
+                    $formData[$i]['old_months'][$num] = [
+                        'label' => $label,
+                        'value' => null,
+                        'file'  => null,
+                    ];
+                }
+
+                // BEFORE
+                if ($kpiId && $snapshots->has($kpiId)) {
+
+                    $latestPerMonth = $snapshots[$kpiId]
+                        ->groupBy('month')
+                        ->map(fn($items) => $items->sortByDesc('created_at')->first());
+
+                    foreach ($latestPerMonth as $month => $snap) {
+                        $m = (int) $month;
+
+                        $formData[$i]['old_months'][$m]['value'] = $snap->value;
+                        $formData[$i]['old_months'][$m]['file']  = $snap->file;
+                    }
+                }
+
+                // FLAG
+                $formData[$i]['has_old_data'] = collect($formData[$i]['old_months'])
+                    ->pluck('value')
+                    ->filter()
+                    ->isNotEmpty();
+            }
+            // 🔥 LANGSUNG PAKAI formData (TIDAK PERLU $kpis LAGI)
+
+            $employee = $goal->employee;
+
+            return view('pages.goals.approval-achievement', [
+                'kpis' => $formData,
+                'employee' => $employee,
+                'id' => $id,
+                'parentLink' => $parentLink,
+                'link' => $link
+            ]);
+
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
     }
 }

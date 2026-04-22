@@ -47,7 +47,6 @@ use App\Http\Controllers\FlowController;
 use App\Http\Controllers\FormAppraisalController;
 use App\Http\Controllers\FormGroupAppraisalController;
 use App\Http\Controllers\KPIAchievementController;
-use App\Http\Controllers\KPIScoreController;
 use App\Http\Controllers\PaReminderController;
 use App\Http\Controllers\Proposed360;
 use App\Http\Controllers\Proposed360Controller;
@@ -72,8 +71,6 @@ Route::get('fetch-employees', [EmployeeController::class, 'fetchAndStoreEmployee
 Route::get('updmenu-employees', [EmployeeController::class, 'updateEmployeeAccessMenu']);
 Route::get('daily-schedules', [ScheduleController::class, 'reminderDailySchedules']);
 Route::get('schedule-PA', [ScheduleController::class, 'DailyUpdateSchedulePA']);
-
-    Route::get('/kpi-score/{goalId}', [KPIScoreController::class, 'calculate']);
 
 Route::get('wa-employee/{id}', [EmployeeController::class, 'getEmployeeFromWA']);
 

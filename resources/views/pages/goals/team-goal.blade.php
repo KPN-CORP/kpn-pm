@@ -216,7 +216,7 @@
                                                                 @endif
                                                             @elseif ($period == $goalPeriod && $status === 'Approved' && !$appraisalCheck)
                                                                 @if ($firstSubordinate->goal->hasAchievement)
-                                                                    <a href="{{ route('goals.approval-achievement', $goalId) }}" class="btn btn-sm btn-success fw-medium me-1">Approve Achievement</a> 
+                                                                    <a href="{{ $status === 'Approved' ? route('goals.update-achievement', $goalId) : route('goals.approval-achievement', $goalId) }}" class="btn btn-sm btn-success fw-medium me-1">{{ $status === 'Approved' ? 'Update Achievement' : 'Approve Achievement' }}</a> 
                                                                 @else
                                                                     <button id="approveAchievementBtn"
                                                                         type="button"
@@ -330,10 +330,42 @@
                                                     </a>
                                                 </div>
                                                 <div class="col-6 col-md-4 col-xl-2">
-                                                    <small class="text-muted fw-bold text-uppercase d-block mb-1" style="font-size: 0.7rem;">Achieve Status</small>
-                                                    <span class="badge bg-warning rounded-pill py-1 px-2 d-inline-block text-truncate" style="max-width: 100%;">
-                                                        Pending
-                                                    </span>
+                                                    <small class="text-muted fw-bold text-uppercase d-block mb-1" style="font-size: 0.7rem;">Achievement Status</small>
+                                                    @php
+                                                        $achievement = $firstSubordinate->goal->achievement_status ?? [];
+
+                                                        $status = $achievement['approval_status'] ?? null;
+                                                        $approver = $achievement['current_approver_employee'] ?? '-';
+                                                        $date = isset($achievement['approval_date'])
+                                                            ? \Carbon\Carbon::parse($achievement['approval_date'])->format('d M Y H:i')
+                                                            : '-';
+
+                                                        $label = $status ?? 'No Data';
+
+                                                        $badgeClass = match ($status) {
+                                                            'Approved' => 'bg-success',
+                                                            'Pending' => 'bg-warning',
+                                                            'Rejected' => 'bg-danger',
+                                                            default => 'bg-secondary'
+                                                        };
+
+                                                        $popover = "
+                                                            <strong>Approver:</strong> {$approver}<br>
+                                                            <strong>Status:</strong> {$label}<br>
+                                                            <strong>Date:</strong> {$date}
+                                                        ";
+                                                    @endphp
+
+                                                    <a href="javascript:void(0)"
+                                                    data-bs-id="{{ $employeeId }}"
+                                                    data-bs-toggle="popover"
+                                                    data-bs-trigger="hover focus"
+                                                    data-bs-html="true"
+                                                    data-bs-content="{!! $popover !!}"
+                                                    class="badge {{ $badgeClass }} rounded-pill py-1 px-2 d-inline-block text-truncate"
+                                                    style="max-width: 100%;">
+                                                        {{ __($label) }}
+                                                    </a>
                                                 </div>
                                             </div>
                                         </div>

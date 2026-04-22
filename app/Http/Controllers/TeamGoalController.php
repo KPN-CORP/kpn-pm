@@ -10,6 +10,7 @@ use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
 use App\Models\Employee;
 use App\Models\Goal;
+use App\Models\KPIAchievement;
 use App\Models\Schedule;
 use App\Models\User;
 use App\Services\AppService;
@@ -141,10 +142,11 @@ class TeamGoalController extends Controller
                 $achievementData = KPIAchievementService::getByGoal($subordinate->goal->id);
 
                 foreach ($formData as $i => &$kpi) {
-
+                    
+                    
                     $kpiId = $kpi['kpi_id'] ?? null;
 
-                    // 🔥 inject achievement
+                    // inject achievement
                     $kpi['ach'] = $kpiId && isset($achievementData[$kpiId]['ach'])
                         ? $achievementData[$kpiId]['ach']
                         : array_fill(1, 12, null);
@@ -153,13 +155,13 @@ class TeamGoalController extends Controller
                         ? $achievementData[$kpiId]['attachment']
                         : array_fill(1, 12, null);
 
-                    // 🔥 ambil values (non-null)
+                    // ambil values (non-null)
                     $values = collect($kpi['ach'])
                         ->filter(fn($v) => $v !== null && $v !== '')
                         ->values()
                         ->toArray();
 
-                    // 🔥 CALCULATE KPI
+                    // CALCULATE KPI
                     $actual = $this->kpiService->aggregate(
                         $kpi['calculation_method'] ?? 'last',
                         $values
@@ -171,7 +173,7 @@ class TeamGoalController extends Controller
                         $kpi['type'] ?? 'Higher Better'
                     );
 
-                    // 🔥 inject hasil ke KPI (SETELAH attachment sesuai request kamu)
+                    // inject hasil ke KPI (SETELAH attachment sesuai request kamu)
                     $kpi['actual'] = round($actual, 2);
                     $kpi['achievement'] = round($achievement, 2);
                 }
@@ -179,6 +181,23 @@ class TeamGoalController extends Controller
 
                 $subordinate->goal->form_data_parsed = $formData;
                 $subordinate->goal->hasAchievement = collect($formData)->pluck('ach')->flatten()->filter(fn($v) => $v !== null && $v !== '')->isNotEmpty();
+
+                $latestApproval = KPIAchievement::with('approver')
+                    ->where('goal_id', $subordinate->goal->id)
+                    ->latest('updated_at')
+                    ->first();
+
+                if ($latestApproval) {
+                    $subordinate->goal->achievement_status = [
+                        'current_approver_employee' => $latestApproval->approver
+                            ? $latestApproval->approver->fullname . ' (' . $latestApproval->approver->employee_id . ')'
+                            : null,
+                        'approval_status' => $latestApproval->approval_status,
+                        'approval_date' => $latestApproval->updated_at,
+                    ];
+                } else {
+                    $subordinate->goal->achievement_status = null;
+                }
 
                 return $subordinate;
             });

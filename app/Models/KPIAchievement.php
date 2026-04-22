@@ -19,4 +19,9 @@ class KPIAchievement extends Model
         'month',
         'value'
     ];
+
+    public function approver()
+    {
+        return $this->belongsTo(Employee::class, 'current_approver_employee_id', 'employee_id');
+    }
 }

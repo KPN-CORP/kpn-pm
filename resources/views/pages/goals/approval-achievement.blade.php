@@ -76,29 +76,31 @@
                 <div class="col-md-6">
                     <div class="d-flex mb-1">
                         <div class="text-muted small fw-medium" style="width: 110px;">Employee Name</div>
-                        <div class="fw-semibold small text-dark">: Metta Saputra (Dummy)</div>
+                        <div class="fw-semibold small text-dark">
+                            : {{ $employee->fullname ?? '-' }}
+                        </div>
                     </div>
                     <div class="d-flex mb-1">
                         <div class="text-muted small fw-medium" style="width: 110px;">Employee ID</div>
-                        <div class="fw-semibold small text-dark">: 12345678</div>
+                        <div class="fw-semibold small text-dark">: {{ $employee->employee_id ?? '-' }}</div>
                     </div>
                     <div class="d-flex">
                         <div class="text-muted small fw-medium" style="width: 110px;">Job Level</div>
-                        <div class="fw-semibold small text-dark">: Staff</div>
+                        <div class="fw-semibold small text-dark">: {{ $employee->job_level ?? '-' }}</div>
                     </div>
                 </div>
                 <div class="col-md-6">
                     <div class="d-flex mb-1">
                         <div class="text-muted small fw-medium" style="width: 110px;">Business Unit</div>
-                        <div class="fw-semibold small text-dark">: IT Technology</div>
+                        <div class="fw-semibold small text-dark">: {{ $employee->group_company ?? '-' }}</div>
                     </div>
                     <div class="d-flex mb-1">
                         <div class="text-muted small fw-medium" style="width: 110px;">Division</div>
-                        <div class="fw-semibold small text-dark">: Software Development</div>
+                        <div class="fw-semibold small text-dark">: {{ $employee->unit ?? '-' }}</div>
                     </div>
                     <div class="d-flex">
                         <div class="text-muted small fw-medium" style="width: 110px;">Designation</div>
-                        <div class="fw-semibold small text-dark">: Programmer</div>
+                        <div class="fw-semibold small text-dark">: {{ $employee->designation ?? '-' }}</div>
                     </div>
                 </div>
             </div>
@@ -112,26 +114,9 @@
 
         @php
             $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-            
-            $dummyData = [
-                [
-                    'kpi' => 'Create recruitment module',
-                    'target' => '100',
-                    'uom' => '%',
-                    'weightage' => '50',
-                    'has_old_data' => true 
-                ],
-                [
-                    'kpi' => 'Maintain Server Uptime',
-                    'target' => '99',
-                    'uom' => '%',
-                    'weightage' => '50',
-                    'has_old_data' => false 
-                ]
-            ];
         @endphp
 
-        @foreach ($dummyData as $i => $data)
+        @foreach ($kpis as $i => $data)
         
         @if ($data['has_old_data'])
         
@@ -161,17 +146,35 @@
                                 <h6 class="fw-bold text-secondary mb-0" style="font-size: 0.8rem;"><i class="ri-history-line me-1"></i>BEFORE (Previous Achievement)</h6>
                             </div>
                             
+                            @if ($data['has_old_data'])
                             <div class="row g-2">
-                                @foreach($months as $monthIndex => $month)
-                                <div class="col-xl-1 col-lg-2 col-md-3 col-4">
-                                    <div class="month-box month-box-old">
-                                        <span class="month-label">{{ $month }}</span>
-                                        <input type="text" value="{{ $monthIndex * 5 }}" class="month-input month-input-old" readonly>
-                                        <a href="#" class="btn btn-outline-secondary btn-evid">FILE</a>
+                                @foreach($data['old_months'] as $month)
+
+                                    <div class="col-xl-1 col-lg-2 col-md-3 col-4">
+                                        <div class="month-box month-box-old">
+                                            <span class="month-label">{{ $month['label'] }}</span>
+
+                                            <input type="text"
+                                                value="{{ $month['value'] ?? '-' }}"
+                                                class="month-input month-input-old"
+                                                readonly>
+
+                                            @if(!empty($old['file']))
+                                                <a href="{{ asset('storage/'.$month['file']) }}"
+                                                target="_blank"
+                                                class="btn btn-outline-secondary btn-evid">
+                                                    FILE
+                                                </a>
+                                            @else
+                                                <span class="btn btn-outline-secondary btn-evid disabled">
+                                                    NONE
+                                                </span>
+                                            @endif
+                                        </div>
                                     </div>
-                                </div>
                                 @endforeach
                             </div>
+                            @endif
                         </div>
                     </div>
                 </div>
@@ -184,14 +187,30 @@
                             </div>
                             
                             <div class="row g-2">
-                                @foreach($months as $monthIndex => $month)
-                                <div class="col-xl-1 col-lg-2 col-md-3 col-4">
-                                    <div class="month-box border-primary border-opacity-25">
-                                        <span class="month-label text-primary">{{ $month }}</span>
-                                        <input type="text" name="ach[{{$i}}][{{$month}}]" value="{{ ($monthIndex * 5) + 5 }}" class="month-input">
-                                        <a href="#" class="btn btn-success btn-evid border-0">VIEW</a>
+                                @foreach($data['months'] as $month)
+                                    <div class="col-xl-1 col-lg-2 col-md-3 col-4">
+                                        <div class="month-box border-primary border-opacity-25">
+                                            <span class="month-label text-primary">{{ $month['label'] }}</span>
+
+                                            <input type="text"
+                                                name="ach[{{$i}}][{{$month['value']}}]"
+                                                value="{{ $month['value'] ?? '' }}"
+                                                class="month-input"
+                                                placeholder="-">
+
+                                            @if(!empty($month['file']))
+                                                <a href="{{ asset('storage/'.$month['file']) }}"
+                                                target="_blank"
+                                                class="btn btn-success btn-evid border-0">
+                                                    VIEW
+                                                </a>
+                                            @else
+                                                <span class="btn btn-outline-secondary btn-evid disabled">
+                                                    NONE
+                                                </span>
+                                            @endif
+                                        </div>
                                     </div>
-                                </div>
                                 @endforeach
                             </div>
                         </div>
@@ -206,7 +225,12 @@
             
             <div class="row mb-3 bg-white p-2 rounded border mx-0 align-items-center">
                 <div class="col-md-5">
-                    <div class="kpi-label text-primary">KPI {{ $i + 1 }} <span class="badge bg-success ms-1" style="font-size: 0.6rem;">FIRST SUBMISSION</span></div>
+                    <div class="kpi-label text-primary">
+                        KPI {{ $i + 1 }}
+                        <span class="badge bg-success ms-1" style="font-size: 0.6rem;">
+                            FIRST SUBMISSION
+                        </span>
+                    </div>
                     <div class="fw-bold text-dark" style="font-size: 0.85rem;">{{ $data['kpi'] }}</div>
                 </div>
                 <div class="col-md-3 col-6 mt-2 mt-md-0">
@@ -224,18 +248,30 @@
                     <div class="card border-primary border-opacity-50 bg-white shadow-sm h-100">
                         <div class="card-body p-2">
                             <div class="row g-2">
-                                @foreach($months as $monthIndex => $month)
-                                <div class="col-xl-1 col-lg-2 col-md-3 col-4">
-                                    <div class="month-box border-primary border-opacity-25">
-                                        <span class="month-label text-primary">{{ $month }}</span>
-                                        <input type="text" name="ach[{{$i}}][{{$month}}]" value="{{ $monthIndex == 0 ? '99' : '' }}" class="month-input" placeholder="-">
-                                        @if($monthIndex == 0)
-                                            <a href="#" class="btn btn-success btn-evid border-0">VIEW</a>
-                                        @else
-                                            <span class="btn btn-outline-secondary btn-evid disabled" style="opacity: 0.5;">NONE</span>
-                                        @endif
+                                @foreach($data['months'] as $month)
+                                    <div class="col-xl-1 col-lg-2 col-md-3 col-4">
+                                        <div class="month-box border-primary border-opacity-25">
+                                            <span class="month-label text-primary">{{ $month['label'] }}</span>
+
+                                            <input type="text"
+                                                name="ach[{{$i}}][{{$month['value']}}]"
+                                                value="{{ $month['value'] ?? '' }}"
+                                                class="month-input"
+                                                placeholder="-">
+
+                                            @if(!empty($month['file']))
+                                                <a href="{{ asset('storage/'.$month['file']) }}"
+                                                target="_blank"
+                                                class="btn btn-success btn-evid border-0">
+                                                    VIEW
+                                                </a>
+                                            @else
+                                                <span class="btn btn-outline-secondary btn-evid disabled">
+                                                    NONE
+                                                </span>
+                                            @endif
+                                        </div>
                                     </div>
-                                </div>
                                 @endforeach
                             </div>
                         </div>
@@ -269,7 +305,7 @@
                                     <a class="dropdown-item py-1" href="#">Metta Saputra (12345678)</a>
                                 </div> 
                             </div>
-                            <a href="#" class="btn btn-outline-secondary btn-sm fw-medium">{{ __('Cancel') }}</a>
+                            <a href="{{ route('team-goals') }}" class="btn btn-light text-secondary border px-3 btn-sm fw-medium">{{ __('Cancel') }}</a>
                             <button type="submit" class="btn btn-primary btn-sm fw-medium px-4">
                                 {{ __('Approve') }}
                             </button>

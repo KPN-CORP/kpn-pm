@@ -506,12 +506,12 @@
   window.filterGoals = filterGoals;
 </script>
 <script>
-        document.addEventListener("DOMContentLoaded", function () {
-        document.querySelectorAll('.mini-progress-bar').forEach(function (el) {
-            setTimeout(() => {
-                el.style.width = el.dataset.width;
-            }, 100);
-        });
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll('.mini-progress-bar').forEach(function (el) {
+        setTimeout(() => {
+            el.style.width = el.dataset.width;
+        }, 100);
     });
-    </script>
+});
+</script>
 @endpush
