@@ -1,6 +1,7 @@
 <?php 
 namespace App\Services;
 
+use App\Models\ApprovalLayer;
 use App\Models\Goal;
 use App\Models\KPIAchievement;
 
@@ -102,5 +103,19 @@ class KpiService
             'total_score' => round($totalScore, 2),
             'kpis' => $results
         ];
+    }
+
+    function layerApproval($employeeId)
+    {
+        $approvalLayer = ApprovalLayer::query()
+            ->where('employee_id', $employeeId)
+            ->orderBy('layer')
+            ->first();
+
+        if (!$approvalLayer) {
+            return null; // Atau lempar exception jika perlu
+        }
+
+        return $approvalLayer->approver_id;
     }
 }

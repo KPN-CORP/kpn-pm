@@ -106,7 +106,34 @@ input[type=number] {
     background-color: #198754;
     color: #fff;
 }
+.mini-progress {
+    height: 4px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 4px;
+}
 
+.mini-progress-bar {
+    height: 100%;
+    border-radius: 10px;
+    background: linear-gradient(
+        90deg,
+        #0d6efd 25%,
+        #88c6f9 50%,
+        #0d6efd 75%
+    );
+    background-size: 200% 100%;
+    animation: progressFlow 1.5s linear infinite;
+}
+@keyframes progressFlow {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
 </style>
 @endsection
 
@@ -159,9 +186,21 @@ input[type=number] {
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Weightage</small>
                                                         <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['weightage'] }}</span>
                                                     </div>
-                                                     <div class="col-3 col-sm-3">
+                                                    <div class="col-3 col-sm-3">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
-                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">30</span>
+
+                                                        <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">
+                                                            {{ $data['achievement'] ?? '0' }}%
+                                                        </span>
+
+                                                        @php
+                                                            $percent = (int) ($data['achievement'] ?? 0);
+                                                        @endphp
+
+                                                        <div class="mini-progress">
+                                                            <div class="mini-progress-bar bg-success"
+                                                                data-width="{{ $percent }}%"></div>
+                                                        </div>
                                                     </div>
                                                 </div>
                         <div class="row g-3 mb-3">
@@ -544,5 +583,14 @@ input[type=number] {
         });
     }
 
+</script>
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll('.mini-progress-bar').forEach(function (el) {
+        setTimeout(() => {
+            el.style.width = el.dataset.width;
+        }, 100);
+    });
+});
 </script>
 @endpush
