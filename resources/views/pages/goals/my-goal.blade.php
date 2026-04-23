@@ -158,7 +158,7 @@
                 @if ($period == $row->request->goal->period && !$row->request->appraisalCheck && $access)
                     @if (Auth::user()->employee_id == $row->request->initiated->employee_id)
                         <div class="d-flex flex-wrap gap-2">
-                            @if ($status === 'Approved' || $achievementCreatedBy ?? $achievementCreatedBy === Auth::user()->id)
+                            @if (!$achievement || $status === 'Approved' || $achievementCreatedBy ?? $achievementCreatedBy === Auth::id())
                                 <a class="btn btn-outline-{{ $row->request->goal->form_status === 'Approved' ? 'success fw-semibold' : 'secondary' }} btn-sm" href="{{ route('goals.update-achievement', $row->request->goal->id) }}">
                                     {{ __('Update Achievement') }}
                                 </a>
