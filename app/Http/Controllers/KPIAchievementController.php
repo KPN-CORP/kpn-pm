@@ -346,7 +346,7 @@ class KPIAchievementController extends Controller
                     $achievement->file = $filePath;
                     $achievement->current_approver_employee_id = $approverId ?? null;
                     $achievement->approval_status = $status;
-                    $achievement->approval_status = Auth::id();
+                    $achievement->created_by = Auth::id();
                     $achievement->save();
 
                     if ($isSubmit) {

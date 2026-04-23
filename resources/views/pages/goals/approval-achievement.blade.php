@@ -306,7 +306,8 @@
                                 </div> 
                             </div> --}}
                             <a href="{{ route('team-goals') }}" class="btn btn-light text-secondary border px-3 btn-sm fw-medium">{{ __('Cancel') }}</a>
-                            <button type="submit" class="btn btn-primary btn-sm fw-medium px-4">
+                            {{-- <button type="submit" class="btn btn-primary btn-sm fw-medium px-4"> --}}
+                            <button type="button" class="btn btn-primary btn-sm fw-medium px-4">
                                 {{ __('Approve') }}
                             </button>
                         </div>

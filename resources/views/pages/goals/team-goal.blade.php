@@ -229,7 +229,15 @@
                                                                 @endif
                                                             @elseif ($period == $goalPeriod && $status === 'Approved' && !$appraisalCheck)
                                                                 @if ($firstSubordinate->goal->hasAchievement)
-                                                                    <a href="{{ (!$achievement || $achievementStatus === 'Approved' || $achievementCreatedBy ?? $achievementCreatedBy === Auth::user()->id)  ? route('goals.update-achievement', $goalId) : route('goals.approval-achievement', $goalId) }}" class="btn btn-sm btn-success fw-medium me-1">{{ (!$achievement || $achievementStatus === 'Approved' || $achievementCreatedBy ?? $achievementCreatedBy === Auth::user()->id) ? 'Update Achievement' : 'Approve Achievement' }}</a> 
+                                                                    <a href="{{ ($achievementStatus === 'Approved' || $achievementCreatedBy === Auth::user()->id)
+                                                                        ? route('goals.update-achievement', $goalId)
+                                                                        : route('goals.approval-achievement', $goalId) }}"
+                                                                    class="btn btn-sm btn-success fw-medium me-1">
+
+                                                                        {{ ($achievementStatus === 'Approved' || $achievementCreatedBy === Auth::user()->id)
+                                                                            ? 'Update Achievement'
+                                                                            : 'Approve Achievement' }}
+                                                                    </a>
                                                                 @else
                                                                     {{-- <button id="approveAchievementBtn"
                                                                         type="button"
