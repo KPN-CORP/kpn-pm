@@ -7,6 +7,7 @@ use App\Models\KPIAchievement;
 use App\Models\Goal;
 use App\Models\KPIAchievementSnapshot;
 use App\Services\AppService;
+use App\Services\KPIAchievementService;
 use App\Services\KpiService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -174,6 +175,9 @@ class KPIAchievementController extends Controller
             }
             return '-';
         };
+        
+        $achievementData = KPIAchievementService::getByGoal($goal->id) ?? [];
+        $isEmptyAchievement = empty($achievementData);
 
         foreach ($formData as $i => $row) {
 
@@ -200,14 +204,37 @@ class KPIAchievementController extends Controller
 
                     $formData[$i]['ach'][$month] = $ach->value;
                     $formData[$i]['attachment'][$month] = $ach->file ?? null;
+                    
                 }
             }
+
+            $values = collect($formData[$i]['ach'])
+                ->filter(fn($v) => $v !== null && $v !== '')
+                ->values()
+                ->toArray();
+
+            $actual = $this->kpiService->aggregate(
+                $formData[$i]['calculation_method'] ?? 'last',
+                $values
+            );
+
+            $achievement = $isEmptyAchievement
+            ? 0
+            : $this->kpiService->achievement(
+                $actual,
+                (float)($formData[$i]['target'] ?? 0),
+                $formData[$i]['type'] ?? 'Higher Better'
+            );
+
+            $formData[$i]['actual'] = round($actual, 2);
+            $formData[$i]['achievement'] = round($achievement, 2);
         }
 
         return view('pages.goals.update-achievement', compact(
             'parentLink',
             'link',
             'formData',
+            'goal',
             'id',
             'selfUpdate'
         ));
@@ -319,6 +346,7 @@ class KPIAchievementController extends Controller
                     $achievement->file = $filePath;
                     $achievement->current_approver_employee_id = $approverId ?? null;
                     $achievement->approval_status = $status;
+                    $achievement->approval_status = Auth::id();
                     $achievement->save();
 
                     if ($isSubmit) {

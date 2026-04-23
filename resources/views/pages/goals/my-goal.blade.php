@@ -143,6 +143,14 @@
         @forelse ($data as $goalIndex => $row)
             @php
                 $formData = json_decode($row->request->goal['form_data'], true);
+                $achievement = $row->request->achievement_status ?? [];
+
+                $status = $achievement['approval_status'] ?? null;
+                $approver = $achievement['current_approver_employee'] ?? '-';
+                $date = isset($achievement['approval_date'])
+                ? \Carbon\Carbon::parse($achievement['approval_date'])->format('d M Y H:i')
+                : '-';
+                $achievementCreatedBy = $achievement['created_by'] ?? null;
             @endphp
             <div class="card shadow-sm mb-4 py-0 goal-card border-0" data-year="{{ $row->request->period }}">
             <div class="card-header bg-white py-2 d-flex flex-wrap align-items-center justify-content-between gap-2 border-bottom">
@@ -150,9 +158,11 @@
                 @if ($period == $row->request->goal->period && !$row->request->appraisalCheck && $access)
                     @if (Auth::user()->employee_id == $row->request->initiated->employee_id)
                         <div class="d-flex flex-wrap gap-2">
+                            @if ($status === 'Approved' || $achievementCreatedBy ?? $achievementCreatedBy === Auth::user()->id)
                                 <a class="btn btn-outline-{{ $row->request->goal->form_status === 'Approved' ? 'success fw-semibold' : 'secondary' }} btn-sm" href="{{ route('goals.update-achievement', $row->request->goal->id) }}">
                                     {{ __('Update Achievement') }}
                                 </a>
+                            @endif
                                 @if (
                                     $row->request->goal->form_status != 'Draft' && 
                                     $row->request->created_by == Auth::user()->id
@@ -241,33 +251,51 @@
                             <div class="col-6 col-md-4 col-xl-2">
                                 <small class="text-muted fw-bold text-uppercase d-block mb-1" style="font-size: 0.7rem;">Achievement Status</small>
                                 <div>
-                                    <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" 
-                                        data-bs-content="{{
-                                            $row->request->goal->form_status == 'Draft'
-                                                ? 'Draft'
-                                                : ($row->request->appraisalCheck
-                                                    ? '(Goals were auto-approved after you submitted PA '.$row->request->period .')'
-                                                    : ($row->approvalLayer && $row->request->status != 'Approved'
-                                                        ? 'Manager L'.$row->approvalLayer.' : '.$row->name
-                                                        : ($row->request->status === 'Sendback' ? $row->name : 'Approved')
-                                                    ) 
-                                                )
-                                        }}"
-                                        class="badge {{ $row->request->goal->form_status == 'Draft' || $row->request->sendback_to == $row->request->employee_id ? 'bg-secondary' : ($row->request->appraisalCheck || $row->request->status == 'Pending' ? 'bg-warning' : ($row->request->status == 'Approved' ? 'bg-success' : 'text-bg-light'))}} rounded-pill py-1 px-2 d-inline-block text-truncate" style="max-width: 100%;">
-                                        {{
-                                            $row->request->goal->form_status == 'Draft'
-                                                ? 'Draft'
-                                                : ($row->request->appraisalCheck
-                                                    ? 'Auto Approved'
-                                                    : ($row->request->status == 'Approved'
-                                                        ? __('Approved')
-                                                        : ($row->request->sendback_to == $row->request->employee_id
-                                                            ? 'Waiting Your Revision'
-                                                            : __($row->request->status)
-                                                        )
-                                                    )
-                                                )
-                                        }}
+                                    @php
+                                        $label = $status ?? 'No Data';
+
+                                        $badgeClass = match ($status) {
+                                            'Approved' => 'bg-success',
+                                            'Pending' => 'bg-warning',
+                                            'Rejected' => 'bg-danger',
+                                            default => 'bg-secondary'
+                                        };
+
+                                        $userId = Auth::user()->id;
+
+                                        $popover = match (true) {
+                                            $status === 'Approved' => "
+                                                <strong>Approver:</strong> {$approver}<br>
+                                                <strong>Status:</strong> {$label}<br>
+                                                <strong>Approval Date:</strong> {$date}
+                                            ",
+
+                                            $status === 'Pending' => "
+                                                <strong>Approver:</strong> {$approver}<br>
+                                                <strong>Status:</strong> {$label}<br>
+                                            ",
+
+                                            $status === 'Draft' && $achievementCreatedBy !== $userId => "
+                                                <strong>Created By:</strong> {$approver}<br>
+                                                <strong>Status:</strong> {$label}<br>
+                                            ",
+
+                                            default => ""
+                                        };
+
+                                    @endphp
+
+                                    <a href="javascript:void(0)"
+                                    data-bs-id="{{ $row->request->employee_id }}"
+                                    class="badge {{ $badgeClass }} rounded-pill py-1 px-2 d-inline-block text-truncate"
+                                    style="max-width: 100%;"
+
+                                    data-bs-toggle="popover"
+                                    data-bs-trigger="hover focus"
+                                    data-bs-html="true"
+                                    data-bs-content="{!! $popover !!}"
+                                    >
+                                        {{ __($label) }}
                                     </a>
                                 </div>
                             </div>
@@ -288,7 +316,11 @@
                         <div class="card-body p-0">
                             @if ($row->formData)
                                 @php
-                                    $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                    $months = [
+                                        1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
+                                        5 => 'May', 6 => 'Jun', 7 => 'Jul', 8 => 'Aug',
+                                        9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dec'
+                                    ];
                                 @endphp
                                 
                                 @foreach ($row->formData as $index => $data)

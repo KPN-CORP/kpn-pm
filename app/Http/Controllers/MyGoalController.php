@@ -9,6 +9,7 @@ use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
 use App\Models\Employee;
 use App\Models\Goal;
+use App\Models\KPIAchievement;
 use App\Services\AppService;
 use App\Services\KPIAchievementService;
 use App\Services\KpiService;
@@ -116,6 +117,24 @@ class MyGoalController extends Controller
                                                     ->where('approver_id', $item->current_approval_id)
                                                     ->value('layer');
             }
+            
+            $latestApproval = KPIAchievement::with('approver')
+                ->where('goal_id', $item->form_id)
+                ->latest('updated_at')
+                ->first();
+
+            if ($latestApproval) {
+                $item->achievement_status = [
+                    'current_approver_employee' => $latestApproval->approver
+                        ? $latestApproval->approver->fullname . ' (' . $latestApproval->approver->employee_id . ')'
+                        : null,
+                    'approval_status' => $latestApproval->approval_status,
+                    'approval_date' => $latestApproval->updated_at,
+                    'created_by' => $latestApproval->created_by,
+                ];
+            } else {
+                $item->achievement_status = null;
+            }
     
             return $item;
         });
@@ -141,7 +160,10 @@ class MyGoalController extends Controller
             }
 
             // ambil achievement (harus sudah group by kpi_id)
-            $achievementData = KPIAchievementService::getByGoal($request->form_id);
+            $achievementData = KPIAchievementService::getByGoal($request->form_id) ?? [];
+            $isEmptyAchievement = empty($achievementData);
+
+            // dd($formData);
 
             // inject ke tiap KPI (pakai kpi_id, bukan index)
             foreach ($formData as $i => &$kpi) {
@@ -166,7 +188,9 @@ class MyGoalController extends Controller
                     $values
                 );
 
-                $achievement = $this->kpiService->achievement(
+                $achievement = $isEmptyAchievement
+                ? 0
+                : $this->kpiService->achievement(
                     $actual,
                     (float)($kpi['target'] ?? 0),
                     $kpi['type'] ?? 'Higher Better'
@@ -174,6 +198,7 @@ class MyGoalController extends Controller
 
                 $kpi['actual'] = round($actual, 2);
                 $kpi['achievement'] = round($achievement, 2);
+
             }
 
             $dataItem = new stdClass();
@@ -186,7 +211,6 @@ class MyGoalController extends Controller
             $data[] = $dataItem;
         }
 
-        // dd($data);
         // Check if the JSON file exists
         if (!File::exists($this->path)) {
             abort(500, 'JSON file does not exist.');

@@ -296,7 +296,7 @@
                 <div class="d-flex flex-column flex-md-row justify-content-end align-items-center">
                     <div class="w-100 w-md-auto">
                         <div class="d-flex flex-wrap justify-content-center justify-content-md-end gap-2">
-                            <div class="dropdown">
+                            {{-- <div class="dropdown">
                                 <button class="btn btn-warning btn-sm fw-medium dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     {{ __('Send Back') }}
                                 </button>
@@ -304,7 +304,7 @@
                                     <h6 class="dropdown-header text-dark fw-bold">Select person below:</h6>
                                     <a class="dropdown-item py-1" href="#">Metta Saputra (12345678)</a>
                                 </div> 
-                            </div>
+                            </div> --}}
                             <a href="{{ route('team-goals') }}" class="btn btn-light text-secondary border px-3 btn-sm fw-medium">{{ __('Cancel') }}</a>
                             <button type="submit" class="btn btn-primary btn-sm fw-medium px-4">
                                 {{ __('Approve') }}
