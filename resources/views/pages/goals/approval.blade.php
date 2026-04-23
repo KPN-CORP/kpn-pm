@@ -170,7 +170,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                             @foreach ($reviewPeriodOption as $label => $options)
                                                 @foreach ($options as $option)
                                                     <option value="{{ $option['value'] }}"
-                                                        {{ $oldData['review_period'] == $option['value'] ? 'selected' : '' }}>
+                                                        {{ ($oldData['review_period'] ?? '') == $option['value'] ? 'selected' : '' }}>
                                                         {{ $option['label'] }}
                                                     </option>
                                                 @endforeach
@@ -184,7 +184,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                             @foreach ($calculationMethodOption as $label => $options)
                                                 @foreach ($options as $option)
                                                     <option value="{{ $option['value'] }}"
-                                                        {{ $oldData['calculation_method'] == $option['value'] ? 'selected' : '' }}>
+                                                        {{ ($oldData['calculation_method'] ?? '') == $option['value'] ? 'selected' : '' }}>
                                                         {{ $option['label'] }}
                                                     </option>
                                                 @endforeach
