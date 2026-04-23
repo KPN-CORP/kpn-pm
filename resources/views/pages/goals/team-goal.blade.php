@@ -176,17 +176,30 @@
                                         $accessMenu = json_decode($firstSubordinate->employee->access_menu, true);
                                         $goals = $accessMenu['goals'] ?? null;
                                         $doj = $accessMenu['doj'] ?? null;
+
+                                        $achievement = $firstSubordinate->goal->achievement_status ?? [];
+
+                                        $achievementStatus = $achievement['approval_status'] ?? null;
+                                        $approver = $achievement['current_approver_employee'] ?? '-';
+                                        $date = isset($achievement['approval_date'])
+                                            ? \Carbon\Carbon::parse($achievement['approval_date'])->format('d M Y H:i')
+                                            : '-';
+                                        $achievementCreatedBy = $achievement['created_by'] ?? null;
                                         
                                         $formDataArr = $firstSubordinate->goal->form_data_parsed ?? [];
                                         
-                                        $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+                                        $months = [
+                                            1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
+                                            5 => 'May', 6 => 'Jun', 7 => 'Jul', 8 => 'Aug',
+                                            9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dec'
+                                        ];
                                     @endphp
                                     <div class="row mt-2 mb-2 task-card" data-status="{{ $formStatus == 'Draft' ? 'draft' : ($status == 'Pending' ? __('Pending') : ($subordinates->isNotEmpty() ? ($status == 'Sendback' ? __('Waiting For Revision') : __($status)) : 'no data')) }}">
                                         <div class="col-12">
                                             <div class="row">
                                                 <div class="col-md mb-sm-0 p-2">
                                                     <div id="tooltip-container">
-                                                        <img src="{{ asset('storage/app/public/img/profiles/user.png') }}" alt="image" class="avatar-xs rounded-circle me-1" data-bs-container="#tooltip-container" data-bs-toggle="tooltip" data-bs-placement="bottom"  data-bs-original-title="{{ __('Initiated By') }} {{ $task->employee->fullname.' ('.$task->employee->employee_id.')' }}">
+                                                        {{-- <img src="{{ asset('storage/app/public/img/profiles/user.png') }}" alt="image" class="avatar-xs rounded-circle me-1" data-bs-container="#tooltip-container" data-bs-toggle="tooltip" data-bs-placement="bottom"  data-bs-original-title="{{ __('Initiated By') }} {{ $task->employee->fullname.' ('.$task->employee->employee_id.')' }}"> --}}
                                                         {{ $task->employee->fullname }} <span class="text-muted">{{ $task->employee->employee_id }}</span>
                                                     </div>
                                                 </div>
@@ -206,24 +219,24 @@
                                                                 <a class="btn btn-sm me-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ $status === 'Sendback' ? __('Revise Goals') : __('Edit') }}</a>
                                                                 @if ($status != 'Sendback' && Auth::user()->employee_id != $firstSubordinate->initiated->employee_id && !$appraisalCheck)
                                                                     <a href="{{ route('team-goals.approval', $goalId) }}" class="btn btn-sm btn-primary fw-medium me-1" onclick="showLoader()">Approve Goal</a>
-                                                                    <button id="approveAchievementBtn"
+                                                                    {{-- <button id="approveAchievementBtn"
                                                                             type="button"
                                                                             class="btn btn-sm btn-secondary fw-medium me-1"
                                                                             style="opacity: 0.6;">
                                                                         Approve Achievement
-                                                                    </button>
+                                                                    </button> --}}
                                                                     <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                                 @endif
                                                             @elseif ($period == $goalPeriod && $status === 'Approved' && !$appraisalCheck)
                                                                 @if ($firstSubordinate->goal->hasAchievement)
-                                                                    <a href="{{ $status === 'Approved' ? route('goals.update-achievement', $goalId) : route('goals.approval-achievement', $goalId) }}" class="btn btn-sm btn-success fw-medium me-1">{{ $status === 'Approved' ? 'Update Achievement' : 'Approve Achievement' }}</a> 
+                                                                    <a href="{{ ($achievementStatus === 'Approved' || $achievementCreatedBy ?? $achievementCreatedBy === Auth::user()->id)  ? route('goals.update-achievement', $goalId) : route('goals.approval-achievement', $goalId) }}" class="btn btn-sm btn-success fw-medium me-1">{{ ($achievementStatus === 'Approved' || $achievementCreatedBy ?? $achievementCreatedBy === Auth::user()->id) ? 'Update Achievement' : 'Approve Achievement' }}</a> 
                                                                 @else
-                                                                    <button id="approveAchievementBtn"
+                                                                    {{-- <button id="approveAchievementBtn"
                                                                         type="button"
                                                                         class="btn btn-sm btn-secondary fw-medium me-1"
                                                                         style="opacity: 0.6;">
                                                                         Approve Achievement
-                                                                    </button>
+                                                                    </button> --}}
                                                                 @endif
                                                                 <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                             @else
@@ -332,38 +345,40 @@
                                                 <div class="col-6 col-md-4 col-xl-2">
                                                     <small class="text-muted fw-bold text-uppercase d-block mb-1" style="font-size: 0.7rem;">Achievement Status</small>
                                                     @php
-                                                        $achievement = $firstSubordinate->goal->achievement_status ?? [];
+                                                        
+                                                        $label = $achievementStatus ?? 'No Data';
 
-                                                        $status = $achievement['approval_status'] ?? null;
-                                                        $approver = $achievement['current_approver_employee'] ?? '-';
-                                                        $date = isset($achievement['approval_date'])
-                                                            ? \Carbon\Carbon::parse($achievement['approval_date'])->format('d M Y H:i')
-                                                            : '-';
-
-                                                        $label = $status ?? 'No Data';
-
-                                                        $badgeClass = match ($status) {
+                                                        $badgeClass = match ($achievementStatus) {
                                                             'Approved' => 'bg-success',
                                                             'Pending' => 'bg-warning',
                                                             'Rejected' => 'bg-danger',
                                                             default => 'bg-secondary'
                                                         };
 
-                                                        $popover = "
+                                                        $popover = $achievementStatus != 'Approved' ? "
                                                             <strong>Approver:</strong> {$approver}<br>
                                                             <strong>Status:</strong> {$label}<br>
-                                                            <strong>Date:</strong> {$date}
+                                                        " : "
+                                                            <strong>Approver:</strong> {$approver}<br>
+                                                            <strong>Status:</strong> {$label}<br>
+                                                            <strong>Approval Date:</strong> {$date}
                                                         ";
+
+                                                        $showPopover = !in_array($achievementStatus, [null, 'Draft']);
                                                     @endphp
 
                                                     <a href="javascript:void(0)"
-                                                    data-bs-id="{{ $employeeId }}"
-                                                    data-bs-toggle="popover"
-                                                    data-bs-trigger="hover focus"
-                                                    data-bs-html="true"
-                                                    data-bs-content="{!! $popover !!}"
+                                                    data-bs-id="{{ $firstSubordinate->employee_id }}"
                                                     class="badge {{ $badgeClass }} rounded-pill py-1 px-2 d-inline-block text-truncate"
-                                                    style="max-width: 100%;">
+                                                    style="max-width: 100%;"
+
+                                                    @if($showPopover)
+                                                        data-bs-toggle="popover"
+                                                        data-bs-trigger="hover focus"
+                                                        data-bs-html="true"
+                                                        data-bs-content="{!! $popover !!}"
+                                                    @endif
+                                                    >
                                                         {{ __($label) }}
                                                     </a>
                                                 </div>
@@ -384,24 +399,24 @@
                                                         <a class="btn btn-sm me-1 mb-1 btn-outline-warning fw-semibold {{ Auth::user()->employee_id == $firstSubordinate->initiated->employee_id ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ $status === 'Sendback' ? __('Revise Goals') : __('Edit') }}</a>
                                                         @if ($status != 'Sendback' && Auth::user()->employee_id != $firstSubordinate->initiated->employee_id && !$appraisalCheck)
                                                             <a href="{{ route('team-goals.approval', $goalId) }}" class="btn btn-sm btn-primary mb-1 fw-medium me-1" onclick="showLoader()">Approve Goal</a>
-                                                            <button id="approveAchievementBtn"
+                                                            {{-- <button id="approveAchievementBtn"
                                                                     type="button"
                                                                     class="btn btn-sm btn-secondary fw-medium me-1"
                                                                     style="opacity: 0.6;">
                                                                 Approve Achievement
-                                                            </button>
+                                                            </button> --}}
                                                             <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm mb-1" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                         @endif
                                                     @elseif ($period == $goalPeriod && $status === 'Approved' && !$appraisalCheck)
                                                         @if ($firstSubordinate->goal->hasAchievement)
                                                             <a href="{{ route('goals.approval-achievement', $goalId) }}" class="btn btn-sm btn-success fw-medium me-1">Approve Achievement</a> 
                                                         @else
-                                                            <button id="approveAchievementBtn"
+                                                            {{-- <button id="approveAchievementBtn"
                                                                 type="button"
                                                                 class="btn btn-sm btn-secondary fw-medium me-1"
                                                                 style="opacity: 0.6;">
                                                                 Approve Achievement
-                                                            </button>
+                                                            </button> --}}
                                                         @endif
                                                         <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm mb-1" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                     @else
@@ -680,7 +695,7 @@
                                             <div class="row mt-2 mb-2 task-card d-flex" data-status="no data">
                                                 <div class="col-12 col-md-6 p-2 d-flex align-items-center">
                                                     <div id="tooltip-container">
-                                                        <img src="{{ asset('storage/app/public/img/profiles/user.png') }}" alt="image" class="avatar-xs rounded-circle me-1" data-bs-container="#tooltip-container" data-bs-toggle="tooltip" data-bs-placement="bottom"  data-bs-original-title="{{ $notask->employee->fullname.' ('.$notask->employee->employee_id.')' }}">
+                                                        {{-- <img src="{{ asset('storage/app/public/img/profiles/user.png') }}" alt="image" class="avatar-xs rounded-circle me-1" data-bs-container="#tooltip-container" data-bs-toggle="tooltip" data-bs-placement="bottom"  data-bs-original-title="{{ $notask->employee->fullname.' ('.$notask->employee->employee_id.')' }}"> --}}
                                                         {{ $notask->employee->fullname }} <span class="text-muted">{{ $notask->employee->employee_id }}</span>
                                                     </div>
                                                 </div>
@@ -735,7 +750,7 @@
                                             <div class="row">
                                                 <div class="col-md mb-sm-0 p-2">
                                                     <div id="tooltip-container">
-                                                        <img src="{{ asset('storage/app/public/img/profiles/user.png') }}" alt="image" class="avatar-xs rounded-circle me-1" data-bs-container="#tooltip-container" data-bs-toggle="tooltip" data-bs-placement="bottom"  data-bs-original-title="{{ __('Initiated By') }} {{ $achievementList->employee->fullname.' ('.$achievementList->employee->employee_id.')' }}">
+                                                        {{-- <img src="{{ asset('storage/app/public/img/profiles/user.png') }}" alt="image" class="avatar-xs rounded-circle me-1" data-bs-container="#tooltip-container" data-bs-toggle="tooltip" data-bs-placement="bottom"  data-bs-original-title="{{ __('Initiated By') }} {{ $achievementList->employee->fullname.' ('.$achievementList->employee->employee_id.')' }}"> --}}
                                                         {{ $achievementList->employee->fullname }} <span class="text-muted">{{ $achievementList->employee->employee_id }}</span>
                                                     </div>
                                                 </div>
