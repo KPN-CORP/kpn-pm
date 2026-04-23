@@ -397,7 +397,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                                     @foreach ($calculationMethodOption as $label => $options)
                                                         @foreach ($options as $option)
                                                             <option value="{{ $option['value'] }}"
-                                                                {{ $oldData['calculation_method'] == $option['value'] ? 'selected' : '' }}>
+                                                                {{ ($oldData['calculation_method'] ?? '') == $option['value'] ? 'selected' : '' }}>
                                                                 {{ $option['label'] }}
                                                             </option>
                                                         @endforeach
