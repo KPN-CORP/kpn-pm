@@ -7,6 +7,7 @@ use App\Models\KPIAchievement;
 use App\Models\Goal;
 use App\Models\KPIAchievementSnapshot;
 use App\Services\AppService;
+use App\Services\KPIAchievementService;
 use App\Services\KpiService;
 use App\Services\KPIAchievementSnapshotService;
 use Illuminate\Support\Facades\Auth;
@@ -176,6 +177,9 @@ class KPIAchievementController extends Controller
             return '-';
         };
 
+        $achievementData = KPIAchievementService::getByGoal($goal->id) ?? [];
+        $isEmptyAchievement = empty($achievementData);
+
         foreach ($formData as $i => $row) {
 
             // ðŸ”¥ WAJIB: pastikan ada kpi_id
@@ -201,14 +205,37 @@ class KPIAchievementController extends Controller
 
                     $formData[$i]['ach'][$month] = $ach->value;
                     $formData[$i]['attachment'][$month] = $ach->file ?? null;
+
                 }
             }
+
+            $values = collect($formData[$i]['ach'])
+                ->filter(fn($v) => $v !== null && $v !== '')
+                ->values()
+                ->toArray();
+
+            $actual = $this->kpiService->aggregate(
+                $formData[$i]['calculation_method'] ?? 'last',
+                $values
+            );
+
+            $achievement = $isEmptyAchievement
+            ? 0
+            : $this->kpiService->achievement(
+                $actual,
+                (float)($formData[$i]['target'] ?? 0),
+                $formData[$i]['type'] ?? 'Higher Better'
+            );
+
+            $formData[$i]['actual'] = round($actual, 2);
+            $formData[$i]['achievement'] = round($achievement, 2);
         }
 
         return view('pages.goals.update-achievement', compact(
             'parentLink',
             'link',
             'formData',
+            'goal',
             'id',
             'selfUpdate'
         ));

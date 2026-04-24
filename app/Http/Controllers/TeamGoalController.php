@@ -143,7 +143,6 @@ class TeamGoalController extends Controller
 
                 foreach ($formData as $i => &$kpi) {
                     
-                    
                     $kpiId = $kpi['kpi_id'] ?? null;
 
                     // inject achievement
@@ -194,6 +193,7 @@ class TeamGoalController extends Controller
                             : null,
                         'approval_status' => $latestApproval->approval_status,
                         'approval_date' => $latestApproval->updated_at,
+                        'created_by' => $latestApproval->created_by,
                     ];
                 } else {
                     $subordinate->goal->achievement_status = null;

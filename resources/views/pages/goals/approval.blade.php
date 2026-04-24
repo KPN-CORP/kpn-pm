@@ -112,8 +112,42 @@ select.is-modified + .select2-container .select2-selection__rendered {
             $oldCount = is_array($oldFormData) ? count($oldFormData) : 0;
             $newCount = is_array($formData) ? count($formData) : 0;
 
+            $diff = $newCount - $oldCount;
+
+            if ($diff > 0) {
+                $label = "+{$diff} KPI added";
+                $badgeClass = "bg-success";
+                $icon = "bi-arrow-up";
+            } elseif ($diff < 0) {
+                $label = abs($diff) . " KPI remove";
+                $badgeClass = "bg-danger";
+                $icon = "bi-arrow-down";
+            } else {
+                $label = "No Changes";
+                $badgeClass = "bg-secondary";
+                $icon = "bi-dash";
+            }
+
             $isCountDifferent = $oldCount !== $newCount;
         @endphp
+
+        @if ($isCountDifferent)
+            <div class="p-2 mb-3 rounded shadow-sm bg-primary-subtle d-flex justify-content-between align-items-center"
+                style="border: 1px solid #eef0f2;">
+
+                <div>
+                    <div class="fw-semibold">KPI Changes</div>
+                    <small class="text-muted">
+                        Before: {{ $oldCount }} | After: {{ $newCount }}
+                    </small>
+                </div>
+
+                <span class="badge {{ $badgeClass }} d-flex align-items-center gap-1">
+                    <i class="bi {{ $icon }}"></i>
+                    {{ $label }}
+                </span>
+            </div>
+        @endif
 
         @if(!$isCountDifferent)
             @for ($i = 0; $i < $maxCount; $i++)
@@ -170,7 +204,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                             @foreach ($reviewPeriodOption as $label => $options)
                                                 @foreach ($options as $option)
                                                     <option value="{{ $option['value'] }}"
-                                                        {{ $oldData['review_period'] == $option['value'] ? 'selected' : '' }}>
+                                                        {{ ($oldData['review_period'] ?? '') == $option['value'] ? 'selected' : '' }}>
                                                         {{ $option['label'] }}
                                                     </option>
                                                 @endforeach
@@ -184,7 +218,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                             @foreach ($calculationMethodOption as $label => $options)
                                                 @foreach ($options as $option)
                                                     <option value="{{ $option['value'] }}"
-                                                        {{ $oldData['calculation_method'] == $option['value'] ? 'selected' : '' }}>
+                                                        {{ ($oldData['calculation_method'] ?? '') == $option['value'] ? 'selected' : '' }}>
                                                         {{ $option['label'] }}
                                                     </option>
                                                 @endforeach
@@ -336,77 +370,77 @@ select.is-modified + .select2-container .select2-selection__rendered {
                     <div class="col">
                         @for ($i = 0; $i < $maxCount; $i++)
                             @php $oldData = $oldFormData[$i] ?? []; @endphp
-                                <div class="card shadow-none border" style="background-color: #fafafa;">
-                                    <div class="card-body p-3">
-                                        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-                                            <div class="d-flex align-items-center gap-2">
-                                                <h6 class="card-title fw-bold text-secondary mb-0" style="font-size: 0.85rem;">Goal {{ $i + 1 }}</h6>
-                                            </div>
-                                            @if(!isset($formData[$i]))
-                                                {{-- <span class="badge bg-danger">DELETED</span> --}}
-                                            @endif
+                            <div class="card shadow-none border" style="background-color: #fafafa;">
+                                <div class="card-body p-3">
+                                    <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                                        <div class="d-flex align-items-center gap-2">
+                                            <h6 class="card-title fw-bold text-secondary mb-0" style="font-size: 0.85rem;">Goal {{ $i + 1 }}</h6>
                                         </div>
-                                        
-                                        <div class="mb-2">
-                                            <textarea class="form-control form-control-sm text-muted bg-light" rows="1" readonly style="resize: none">{{ $oldData['kpi'] ?? '-' }}</textarea>
+                                        @if(!isset($formData[$i]))
+                                            {{-- <span class="badge bg-danger">DELETED</span> --}}
+                                        @endif
+                                    </div>
+                                    
+                                    <div class="mb-2">
+                                        <textarea class="form-control form-control-sm text-muted bg-light" rows="2" readonly style="resize: none; height: auto; max-height: 72px; overflow-y: auto;">{{ $oldData['kpi'] ?? '-' }}</textarea>
+                                    </div>
+                                    
+                                    <div class="mb-3">
+                                        <label class="kpi-label text-secondary">Goal Descriptions</label>
+                                        <textarea class="form-control form-control-sm text-muted bg-light" rows="3" style="resize: none; height: auto; max-height: 72px; overflow-y: auto;" readonly>{{ $oldData['description'] ?? "-" }}</textarea>
+                                    </div>
+                                    
+                                    <div class="row g-2">
+                                        <div class="col-md-4 col-6">
+                                            <label class="kpi-label text-secondary">Target</label>
+                                            <input type="text" value="{{ $oldData['target'] ?? '-' }}" class="form-control form-control-sm text-muted bg-light" readonly>
                                         </div>
-                                        
-                                        <div class="mb-3">
-                                            <label class="kpi-label text-secondary">Goal Descriptions</label>
-                                            <textarea class="form-control form-control-sm text-muted bg-light" rows="2" style="resize: none" readonly>{{ $oldData['description'] ?? "-" }}</textarea>
+                                        <div class="col-md-4 col-6">
+                                            <label class="kpi-label text-secondary">UoM</label>
+                                            <input type="text" value="{{ isset($oldData['uom']) && $oldData['uom'] !== 'Other' ? $oldData['uom'] : ($oldData['custom_uom'] ?? '-') }}" class="form-control form-control-sm text-muted bg-light" readonly>
                                         </div>
-                                        
-                                        <div class="row g-2">
-                                            <div class="col-md-4 col-6">
-                                                <label class="kpi-label text-secondary">Target</label>
-                                                <input type="text" value="{{ $oldData['target'] ?? '-' }}" class="form-control form-control-sm text-muted bg-light" readonly>
+                                        <div class="col-md-4 col-6">
+                                            <label class="kpi-label text-secondary">Type</label>
+                                            <input type="text" value="{{ $oldData['type'] ?? '-' }}" class="form-control form-control-sm text-muted bg-light" readonly>
+                                        </div>
+                                        <div class="col-md-4 col-6">
+                                            <label class="kpi-label text-secondary">Weightage</label>
+                                            <div class="input-group input-group-sm flex-nowrap">
+                                                <input type="number" class="form-control text-center text-muted bg-light" value="{{ $oldData['weightage'] ?? '0' }}" readonly>
+                                                <span class="input-group-text bg-secondary text-white border-secondary">%</span>
                                             </div>
-                                            <div class="col-md-4 col-6">
-                                                <label class="kpi-label text-secondary">UoM</label>
-                                                <input type="text" value="{{ isset($oldData['uom']) && $oldData['uom'] !== 'Other' ? $oldData['uom'] : ($oldData['custom_uom'] ?? '-') }}" class="form-control form-control-sm text-muted bg-light" readonly>
-                                            </div>
-                                            <div class="col-md-4 col-6">
-                                                <label class="kpi-label text-secondary">Type</label>
-                                                <input type="text" value="{{ $oldData['type'] ?? '-' }}" class="form-control form-control-sm text-muted bg-light" readonly>
-                                            </div>
-                                            <div class="col-md-4 col-6">
-                                                <label class="kpi-label text-secondary">Weightage</label>
-                                                <div class="input-group input-group-sm flex-nowrap">
-                                                    <input type="number" class="form-control text-center text-muted bg-light" value="{{ $oldData['weightage'] ?? '0' }}" readonly>
-                                                    <span class="input-group-text bg-secondary text-white border-secondary">%</span>
-                                                </div>
-                                            </div>
-                                            <div class="col-md-4 col-6">
-                                                <label class="kpi-label text-secondary">Review Period</label>
-                                                <select class="form-select form-select-sm text-muted bg-light" disabled>
-                                                    <option value="">- Select -</option>
-                                                    @foreach ($reviewPeriodOption as $label => $options)
-                                                        @foreach ($options as $option)
-                                                            <option value="{{ $option['value'] }}"
-                                                                {{ $oldData['review_period'] == $option['value'] ? 'selected' : '' }}>
-                                                                {{ $option['label'] }}
-                                                            </option>
-                                                        @endforeach
+                                        </div>
+                                        <div class="col-md-4 col-6">
+                                            <label class="kpi-label text-secondary">Review Period</label>
+                                            <select class="form-select form-select-sm text-muted bg-light" disabled>
+                                                <option value="">- Select -</option>
+                                                @foreach ($reviewPeriodOption as $label => $options)
+                                                    @foreach ($options as $option)
+                                                        <option value="{{ $option['value'] }}"
+                                                            {{ ($oldData['review_period'] ?? '') == $option['value'] ? 'selected' : '' }}>
+                                                            {{ $option['label'] }}
+                                                        </option>
                                                     @endforeach
-                                                </select>
-                                            </div>
-                                            <div class="col-md-4 col-6">
-                                                <label class="kpi-label text-secondary">Calc Method</label>
-                                                <select class="form-select form-select-sm text-muted bg-light" disabled>
-                                                    <option value="">- Select -</option>
-                                                    @foreach ($calculationMethodOption as $label => $options)
-                                                        @foreach ($options as $option)
-                                                            <option value="{{ $option['value'] }}"
-                                                                {{ $oldData['calculation_method'] == $option['value'] ? 'selected' : '' }}>
-                                                                {{ $option['label'] }}
-                                                            </option>
-                                                        @endforeach
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                        <div class="col-md-4 col-6">
+                                            <label class="kpi-label text-secondary">Calc Method</label>
+                                            <select class="form-select form-select-sm text-muted bg-light" disabled>
+                                                <option value="">- Select -</option>
+                                                @foreach ($calculationMethodOption as $label => $options)
+                                                    @foreach ($options as $option)
+                                                        <option value="{{ $option['value'] }}"
+                                                            {{ ($oldData['calculation_method'] ?? '') == $option['value'] ? 'selected' : '' }}>
+                                                            {{ $option['label'] }}
+                                                        </option>
                                                     @endforeach
-                                                </select>
-                                            </div>
+                                                @endforeach
+                                            </select>
                                         </div>
                                     </div>
                                 </div>
+                            </div>
                         @endfor
                     </div>
                 </div>
@@ -437,12 +471,12 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                         
                                         <div class="mb-2">
                                             <input type="hidden" name="kpi_id[]" value="{{ $data['kpi_id'] ?? '' }}">
-                                            <textarea name="kpi[]" class="form-control form-control-sm" rows="1" style="resize: none">{{ $data['kpi'] }}</textarea>
+                                            <textarea name="kpi[]" class="form-control form-control-sm" rows="2" style="resize: none; height: auto; max-height: 72px; overflow-y: auto;">{{ $data['kpi'] }}</textarea>
                                         </div>
                                         
                                         <div class="mb-3">
                                             <label class="kpi-label text-primary">Goal Descriptions</label>
-                                            <textarea name="description[]" class="form-control form-control-sm" rows="2" style="resize: none">{{ $data['description'] ?? "" }}</textarea>
+                                            <textarea name="description[]" class="form-control form-control-sm" rows="3" style="resize: none; height: auto; max-height: 72px; overflow-y: auto;">{{ $data['description'] ?? "" }}</textarea>
                                         </div>
                                         
                                         <div class="row g-2">
@@ -453,7 +487,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                             <div class="col-md-4 col-6">
                                                 <label class="kpi-label text-primary">{{ __('Uom') }}</label>
 
-                                                <select class="form-select form-select-sm select2 max-w-full select-uom {{ ((string)($oldData['uom'] ?? '') !== (string)$data['uom']) ? 'is-modified' : '' }}"
+                                                <select class="form-select form-select-sm select2 max-w-full select-uom"
                                                     data-id="{{ $i }}"
                                                     name="uom[]"
                                                     id="uom{{ $i }}"
@@ -478,7 +512,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                             <div class="col-md-4 col-6">
                                                 <label class="kpi-label text-primary">{{ __('Type') }}</label>
 
-                                                <select class="form-select form-select-sm select2 select-type {{ ((string)($oldData['type'] ?? '') !== (string)$data['type']) ? 'is-modified' : '' }}"
+                                                <select class="form-select form-select-sm select2 select-type"
                                                     name="type[]"
                                                     id="type{{ $i }}"
                                                     required>
@@ -507,7 +541,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                             </div>
                                             <div class="col-md-4 col-6">
                                                 <label class="kpi-label text-primary">Review Period</label>
-                                                <select class="form-select form-select-sm select2 select-type {{ ((string)($oldData['review_period'] ?? '') !== (string)$data['review_period']) ? 'is-modified' : '' }}" name="review_period[]" id="review_period{{ $i }}" required>
+                                                <select class="form-select form-select-sm select2 select-type" name="review_period[]" id="review_period{{ $i }}" required>
                                                     <option value="">- Select -</option>
                                                     @foreach ($reviewPeriodOption as $label => $options)
                                                         @foreach ($options as $option)

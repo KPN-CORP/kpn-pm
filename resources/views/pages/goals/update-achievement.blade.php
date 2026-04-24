@@ -296,6 +296,7 @@ input[type=number] {
         <input type="hidden" name="submit_type" id="submitType">
         <div class="card shadow mt-4 sticky-bottom border-top-0" style="bottom: 20px; z-index: 100;">
             <div class="card-body py-2 d-flex justify-content-end align-items-center bg-white rounded border border-light">
+                <input type="hidden" name="employee_id" value="{{ $goal->employee_id }}">
                 <button data-id="draft" type="button" class="btn btn-secondary me-2 px-3 shadow-sm fw-bold btn-sm">
                     <i class="ri-save-line me-1"></i> {{ __('Save as Draft') }}
                 </button>
