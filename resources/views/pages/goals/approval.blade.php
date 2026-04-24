@@ -382,12 +382,12 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                     </div>
                                     
                                     <div class="mb-2">
-                                        <textarea class="form-control form-control-sm text-muted bg-light" rows="1" readonly style="resize: none">{{ $oldData['kpi'] ?? '-' }}</textarea>
+                                        <textarea class="form-control form-control-sm text-muted bg-light" rows="2" readonly style="resize: none; height: auto; max-height: 72px; overflow-y: auto;">{{ $oldData['kpi'] ?? '-' }}</textarea>
                                     </div>
                                     
                                     <div class="mb-3">
                                         <label class="kpi-label text-secondary">Goal Descriptions</label>
-                                        <textarea class="form-control form-control-sm text-muted bg-light" rows="2" style="resize: none" readonly>{{ $oldData['description'] ?? "-" }}</textarea>
+                                        <textarea class="form-control form-control-sm text-muted bg-light" rows="3" style="resize: none; height: auto; max-height: 72px; overflow-y: auto;" readonly>{{ $oldData['description'] ?? "-" }}</textarea>
                                     </div>
                                     
                                     <div class="row g-2">
@@ -471,12 +471,12 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                         
                                         <div class="mb-2">
                                             <input type="hidden" name="kpi_id[]" value="{{ $data['kpi_id'] ?? '' }}">
-                                            <textarea name="kpi[]" class="form-control form-control-sm" rows="1" style="resize: none">{{ $data['kpi'] }}</textarea>
+                                            <textarea name="kpi[]" class="form-control form-control-sm" rows="2" style="resize: none; height: auto; max-height: 72px; overflow-y: auto;">{{ $data['kpi'] }}</textarea>
                                         </div>
                                         
                                         <div class="mb-3">
                                             <label class="kpi-label text-primary">Goal Descriptions</label>
-                                            <textarea name="description[]" class="form-control form-control-sm" rows="2" style="resize: none">{{ $data['description'] ?? "" }}</textarea>
+                                            <textarea name="description[]" class="form-control form-control-sm" rows="3" style="resize: none; height: auto; max-height: 72px; overflow-y: auto;">{{ $data['description'] ?? "" }}</textarea>
                                         </div>
                                         
                                         <div class="row g-2">
