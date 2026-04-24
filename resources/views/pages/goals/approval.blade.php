@@ -112,8 +112,42 @@ select.is-modified + .select2-container .select2-selection__rendered {
             $oldCount = is_array($oldFormData) ? count($oldFormData) : 0;
             $newCount = is_array($formData) ? count($formData) : 0;
 
+            $diff = $newCount - $oldCount;
+
+            if ($diff > 0) {
+                $label = "+{$diff} KPI added";
+                $badgeClass = "bg-success";
+                $icon = "bi-arrow-up";
+            } elseif ($diff < 0) {
+                $label = abs($diff) . " KPI remove";
+                $badgeClass = "bg-danger";
+                $icon = "bi-arrow-down";
+            } else {
+                $label = "No Changes";
+                $badgeClass = "bg-secondary";
+                $icon = "bi-dash";
+            }
+
             $isCountDifferent = $oldCount !== $newCount;
         @endphp
+
+        @if ($isCountDifferent)
+            <div class="p-2 mb-3 rounded shadow-sm bg-primary-subtle d-flex justify-content-between align-items-center"
+                style="border: 1px solid #eef0f2;">
+
+                <div>
+                    <div class="fw-semibold">KPI Changes</div>
+                    <small class="text-muted">
+                        Before: {{ $oldCount }} | After: {{ $newCount }}
+                    </small>
+                </div>
+
+                <span class="badge {{ $badgeClass }} d-flex align-items-center gap-1">
+                    <i class="bi {{ $icon }}"></i>
+                    {{ $label }}
+                </span>
+            </div>
+        @endif
 
         @if(!$isCountDifferent)
             @for ($i = 0; $i < $maxCount; $i++)
@@ -453,7 +487,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                             <div class="col-md-4 col-6">
                                                 <label class="kpi-label text-primary">{{ __('Uom') }}</label>
 
-                                                <select class="form-select form-select-sm select2 max-w-full select-uom {{ ((string)($oldData['uom'] ?? '') !== (string)$data['uom']) ? 'is-modified' : '' }}"
+                                                <select class="form-select form-select-sm select2 max-w-full select-uom"
                                                     data-id="{{ $i }}"
                                                     name="uom[]"
                                                     id="uom{{ $i }}"
@@ -478,7 +512,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                             <div class="col-md-4 col-6">
                                                 <label class="kpi-label text-primary">{{ __('Type') }}</label>
 
-                                                <select class="form-select form-select-sm select2 select-type {{ ((string)($oldData['type'] ?? '') !== (string)$data['type']) ? 'is-modified' : '' }}"
+                                                <select class="form-select form-select-sm select2 select-type"
                                                     name="type[]"
                                                     id="type{{ $i }}"
                                                     required>
@@ -507,7 +541,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                             </div>
                                             <div class="col-md-4 col-6">
                                                 <label class="kpi-label text-primary">Review Period</label>
-                                                <select class="form-select form-select-sm select2 select-type {{ ((string)($oldData['review_period'] ?? '') !== (string)$data['review_period']) ? 'is-modified' : '' }}" name="review_period[]" id="review_period{{ $i }}" required>
+                                                <select class="form-select form-select-sm select2 select-type" name="review_period[]" id="review_period{{ $i }}" required>
                                                     <option value="">- Select -</option>
                                                     @foreach ($reviewPeriodOption as $label => $options)
                                                         @foreach ($options as $option)
