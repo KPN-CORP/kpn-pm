@@ -14,12 +14,20 @@ class KPIAchievementSnapshot extends Model
     protected $table = 'kpi_achievement_snapshots';
 
     protected $fillable = [
-        'goal_id',
-        'kpi_index',
-        'month',
-        'value',
-        'file',
-        'employee_id',
-        'created_by'
+        "kpi_achievement_id",
+        "goal_id",
+        "kpi_id",
+        "month",
+        "value",
+        "file",
+        "employee_id",
+        "current_approver_employee_id",
+        "approval_status",
+        "approval_date",
+        "approval_info",
+        "created_by",
+        "created_at",
+        "updated_at",
+        "deleted_at"
     ];
 }

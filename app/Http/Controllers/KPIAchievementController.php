@@ -8,6 +8,7 @@ use App\Models\Goal;
 use App\Models\KPIAchievementSnapshot;
 use App\Services\AppService;
 use App\Services\KpiService;
+use App\Services\KPIAchievementSnapshotService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -70,7 +71,7 @@ class KPIAchievementController extends Controller
         $achievement = KPIAchievement::updateOrCreate(
             [
                 'goal_id'   => $request->goal_id,
-                'kpi_index' => $request->kpi_index,
+                'kpi_id' => $request->kpi_index,
                 'month'     => $request->month,
             ],
             [
@@ -138,7 +139,7 @@ class KPIAchievementController extends Controller
                     'title' => 'Cannot update Achievements',
                     'message' => "The Employee Goals for $period are not fully Approved."
                 ]);
-                
+
                 return redirect('team-goals');
             }
             Session::flash('error', [
@@ -234,7 +235,6 @@ class KPIAchievementController extends Controller
             $employeeId = $goal->employee_id;
             $formData = json_decode($goal->form_data, true);
 
-            
             // ================= STATUS =================
             if ($request->submit_type === 'draft') {
                 $status = 'Draft';
@@ -286,7 +286,7 @@ class KPIAchievementController extends Controller
                         ->where('month', $month)
                         ->first();
 
-                    $filePath = $existing->file ?? null;
+                    $filePath = $existing ? ($existing->file ?? null) : null;
 
                     // FILE HANDLING
                     if ($request->hasFile("attachment.$kpiIndex.$month")) {
@@ -311,28 +311,31 @@ class KPIAchievementController extends Controller
                         continue;
                     }
 
-                    $achievement = new KPIAchievement();
-                    $achievement->goal_id = $request->goal_id;
-                    $achievement->kpi_id = $kpiId;
-                    $achievement->month = $month;
-                    $achievement->value = $value;
-                    $achievement->file = $filePath;
-                    $achievement->current_approver_employee_id = $approverId ?? null;
-                    $achievement->approval_status = $status;
-                    $achievement->save();
+                    $achievement = null;
+
+                    if ($existing) {
+                        $existing->value = $value;
+                        $existing->file = $filePath;
+                        $existing->current_approver_employee_id = $approverId ?? null;
+                        $existing->approval_status = $status;
+
+                        $existing->save();
+
+                        $achievement = $existing;
+                    } else {
+                        $achievement = new KPIAchievement();
+                        $achievement->goal_id = $request->goal_id;
+                        $achievement->kpi_id = $kpiId;
+                        $achievement->month = $month;
+                        $achievement->value = $value;
+                        $achievement->file = $filePath;
+                        $achievement->current_approver_employee_id = $approverId ?? null;
+                        $achievement->approval_status = $status;
+                        $achievement->save();
+                    }
 
                     if ($isSubmit) {
-                        $achievementSnapshots = new KPIAchievementSnapshot();
-                        $achievementSnapshots->goal_id = $request->goal_id;
-                        $achievementSnapshots->kpi_id = $kpiId;
-                        $achievementSnapshots->month = $month;
-                        $achievementSnapshots->value = $value;
-                        $achievementSnapshots->file = $filePath;
-                        $achievementSnapshots->employee_id = $this->user;
-                        $achievementSnapshots->current_approver_employee_id = $approverId ?? null;
-                        $achievementSnapshots->approval_status = $status;
-                        $achievementSnapshots->created_by = Auth::id();
-                        $achievementSnapshots->save();
+                        KPIAchievementSnapshotService::insertOne($achievement, $this->user, Auth::id());
                     }
                 }
             }
