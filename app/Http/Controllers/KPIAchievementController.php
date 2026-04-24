@@ -352,6 +352,9 @@ class KPIAchievementController extends Controller
 
                         if ($status == "Approved") {
                             $existing->approval_date = $timeNow;
+                        } else if ($status == "Pending") {
+                            $existing->approval_date = null;
+                            $existing->approval_info = null;
                         }
 
                         $existing->save();
