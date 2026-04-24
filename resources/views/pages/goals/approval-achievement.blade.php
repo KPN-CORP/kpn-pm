@@ -107,9 +107,10 @@
         </div>
     </div>
 
-    <form id="achievementApprovalForm" action="#" method="post">
+    <form id="achievementApprovalForm" action="{{ route('goals.approval-achievement-approve') }}" method="post">
         @csrf
 
+        <input type="hidden" name="goal_id" value="{{ $id }}" style="display: none" />
         <h6 class="fw-bold text-dark mb-3 mt-4">{{ __('Achievement Target') }} 2025</h6>
 
         @php
@@ -187,13 +188,13 @@
                             </div>
 
                             <div class="row g-2">
-                                @foreach($data['months'] as $month)
+                                @foreach($data['months'] as $monthIdx => $month)
                                     <div class="col-xl-1 col-lg-2 col-md-3 col-4">
                                         <div class="month-box border-primary border-opacity-25">
                                             <span class="month-label text-primary">{{ $month['label'] }}</span>
 
                                             <input type="text"
-                                                name="ach[{{$i}}][{{$month['value']}}]"
+                                                name="ach[{{$data['kpi_id']}}][{{$monthIdx}}]"
                                                 value="{{ $month['value'] ?? '' }}"
                                                 class="month-input"
                                                 placeholder="-">
@@ -248,13 +249,13 @@
                     <div class="card border-primary border-opacity-50 bg-white shadow-sm h-100">
                         <div class="card-body p-2">
                             <div class="row g-2">
-                                @foreach($data['months'] as $month)
+                                @foreach($data['months'] as $monthIdx => $month)
                                     <div class="col-xl-1 col-lg-2 col-md-3 col-4">
                                         <div class="month-box border-primary border-opacity-25">
                                             <span class="month-label text-primary">{{ $month['label'] }}</span>
 
                                             <input type="text"
-                                                name="ach[{{$i}}][{{$month['value']}}]"
+                                                name="ach[{{$data['kpi_id']}}][{{$monthIdx}}]"
                                                 value="{{ $month['value'] ?? '' }}"
                                                 class="month-input"
                                                 placeholder="-">

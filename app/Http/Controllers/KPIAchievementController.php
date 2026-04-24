@@ -257,6 +257,8 @@ class KPIAchievementController extends Controller
                 'attachment.*.*.mimes' => 'File harus PDF/JPG/PNG'
             ]);
 
+            $timeNow = now();
+
             // ================= GET GOAL =================
             $goal = Goal::findOrFail($request->goal_id);
             $employeeId = $goal->employee_id;
@@ -338,17 +340,21 @@ class KPIAchievementController extends Controller
                         continue;
                     }
 
-                    $achievement = null;
-
                     if ($existing) {
+                        if ($isSubmit) {
+                            KPIAchievementSnapshotService::insertOne($existing, $this->user, Auth::id());
+                        }
+
                         $existing->value = $value;
                         $existing->file = $filePath;
                         $existing->current_approver_employee_id = $approverId ?? null;
                         $existing->approval_status = $status;
 
-                        $existing->save();
+                        if ($status == "Approved") {
+                            $existing->approval_date = $timeNow;
+                        }
 
-                        $achievement = $existing;
+                        $existing->save();
                     } else {
                         $achievement = new KPIAchievement();
                         $achievement->goal_id = $request->goal_id;
@@ -358,11 +364,12 @@ class KPIAchievementController extends Controller
                         $achievement->file = $filePath;
                         $achievement->current_approver_employee_id = $approverId ?? null;
                         $achievement->approval_status = $status;
-                        $achievement->save();
-                    }
 
-                    if ($isSubmit) {
-                        KPIAchievementSnapshotService::insertOne($achievement, $this->user, Auth::id());
+                        $achievement->save();
+
+                        if ($isSubmit) {
+                            KPIAchievementSnapshotService::insertOne($achievement, $this->user, Auth::id());
+                        }
                     }
                 }
             }
@@ -488,6 +495,43 @@ class KPIAchievementController extends Controller
             ]);
 
         } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
+    }
+
+    public function approvalAchievementApprove(Request $request) {
+        try {
+            $request->validate([
+                'goal_id' => 'required|string',
+                'ach' => 'nullable|array'
+            ], []);
+
+            $timeNow = now();
+            $goalID = $request->goal_id;
+            $newValues =  $request->ach;
+
+            $kpiAchievements = KPIAchievement::where("goal_id", $goalID)
+                ->where("approval_status", "Pending")
+                ->whereNull("deleted_at")
+                ->get();
+
+            foreach ($kpiAchievements as $val) {
+                if (isset($newValues[$val->kpi_id]) && isset($newValues[$val->kpi_id][$val->month])) {
+                    $val->value = $newValues[$val->kpi_id][$val->month];
+                }
+
+                if ($request->messages) {
+                    $val->approval_info = $request->messages;
+                }
+
+                $val->approval_status = "Approved";
+                $val->approval_date = $timeNow;
+
+                $val->save();
+            }
+
+            return redirect('team-goals')->with('success', 'Achievements approved successfully');
+        } catch (Exception $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
     }

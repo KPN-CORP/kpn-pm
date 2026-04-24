@@ -142,6 +142,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
 
     Route::get('/achievement/{id}', [KPIAchievementController::class, 'editAchievement'])->name('goals.update-achievement');
     Route::get('/approval-achievement/{id}', [KPIAchievementController::class, 'approvalAchievement'])->name('goals.approval-achievement');
+    Route::post('/approval-achievement/approve', [KPIAchievementController::class, 'approvalAchievementApprove'])->name('goals.approval-achievement-approve');
 
     Route::post('/achievement/bulk', [KPIAchievementController::class, 'bulkStore'])
     ->name('achievement.bulk-store');
