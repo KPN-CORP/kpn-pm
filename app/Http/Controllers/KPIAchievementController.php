@@ -416,7 +416,6 @@ class KPIAchievementController extends Controller
 
             // ✅ SNAPSHOT
             $snapshots = KPIAchievementSnapshot::where('goal_id', $id)
-                ->where('employee_id', $this->user)
                 ->orderByDesc('created_at')
                 ->get()
                 ->groupBy('kpi_id');
