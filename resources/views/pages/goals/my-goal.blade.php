@@ -164,22 +164,22 @@
                                 </a>
                             @endif
                                 @if (
-                                    $row->request->goal->form_status != 'Draft' && 
+                                    $row->request->goal->form_status != 'Draft' &&
                                     $row->request->created_by == Auth::user()->id
                                 )
-                                    <a class="btn btn-outline-warning btn-sm fw-semibold" 
-                                    href="{{ route('goals.edit', $row->request->goal->id) }}" 
+                                    <a class="btn btn-outline-warning btn-sm fw-semibold"
+                                    href="{{ route('goals.edit', $row->request->goal->id) }}"
                                     onclick="showLoader()">
                                     {{ __('Revise Goals') }}
                                     </a>
                                 @elseif (
-                                    $row->request->goal->form_status == 'Draft' || 
-                                    ($row->request->status == 'Pending' && count($row->request->approval) == 0) || 
+                                    $row->request->goal->form_status == 'Draft' ||
+                                    ($row->request->status == 'Pending' && count($row->request->approval) == 0) ||
                                     $row->request->sendback_to == $row->request->employee_id
                                 )
                                     </a>
-                                    <a class="btn btn-outline-warning btn-sm fw-semibold" 
-                                    href="{{ route('goals.edit', $row->request->goal->id) }}" 
+                                    <a class="btn btn-outline-warning btn-sm fw-semibold"
+                                    href="{{ route('goals.edit', $row->request->goal->id) }}"
                                     onclick="showLoader()">
                                     {{ $row->request->status === 'Sendback' ? __('Revise Goals') : __('Edit') }}
                                     </a>
@@ -218,7 +218,7 @@
                             <div class="col-6 col-md-4 col-xl-2">
                                 <small class="text-muted fw-bold text-uppercase d-block mb-1" style="font-size: 0.7rem;">Goal Status</small>
                                 <div>
-                                    <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" 
+                                    <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus"
                                         data-bs-content="{{
                                             $row->request->goal->form_status == 'Draft'
                                                 ? 'Draft'
@@ -227,7 +227,7 @@
                                                     : ($row->approvalLayer && $row->request->status != 'Approved'
                                                         ? 'Manager L'.$row->approvalLayer.' : '.$row->name
                                                         : ($row->request->status === 'Sendback' ? $row->name : 'Approved')
-                                                    ) 
+                                                    )
                                                 )
                                         }}"
                                         class="badge {{ $row->request->goal->form_status == 'Draft' || $row->request->sendback_to == $row->request->employee_id ? 'bg-secondary' : ($row->request->appraisalCheck || $row->request->status == 'Pending' ? 'bg-warning' : ($row->request->status == 'Approved' ? 'bg-success' : 'text-bg-light'))}} rounded-pill py-1 px-2 d-inline-block text-truncate" style="max-width: 100%;">
@@ -322,7 +322,7 @@
                                         9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dec'
                                     ];
                                 @endphp
-                                
+
                                 @foreach ($row->formData as $index => $data)
 
                                     <div class="p-4 pt-0 {{ $loop->even ? 'bg-light-subtle' : 'bg-white' }} {{ $loop->last ? '' : 'border-bottom' }}">
@@ -332,9 +332,9 @@
                                                 <h6 class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">{{ $data['kpi'] }}</h6>
                                                 <p class="text-secondary mb-0" style="white-space: pre-line; font-size: 0.75rem; line-height: 1.5;">{{ $data['description'] ?? '-' }}</p>
                                             </div>
-                                            
+
                                             <div class="col-md-7 col-lg-7">
-                                                
+
                                                 <div class="row g-3 mb-3">
                                                     <div class="col-3 col-sm-3">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
@@ -372,7 +372,7 @@
                                                     </div>
                                                     @endif
                                                 </div>
-                                        
+
                                                 @if(isset($data['review_period']))
                                                 <div class="row g-3 mb-3">
                                                     <div class="col-4 col-sm-4">
@@ -435,7 +435,7 @@
 
                                                 <div class="col-4 col-sm-3 col-md-2 col-lg-1 ">
                                                     <div class="read-only-month pb-1">
-                                                        
+
                                                         <span class="text-uppercase fw-bold text-secondary d-block mb-1" style="font-size: 0.65rem;">
                                                             {{ $monthLabel }}
                                                         </span>
@@ -445,7 +445,7 @@
                                                         </span>
                                                         {{-- VIEW ATTACHMENT --}}
                                                         @if(!empty($data['attachment'][$monthNum]))
-                                                            <a href="{{ asset('storage/'.$data['attachment'][$monthNum]) }}" 
+                                                            <a href="{{ asset('storage/'.$data['attachment'][$monthNum]) }}"
                                                                 target="_blank"
                                                                 class="btn-attach-mini w-100 d-block mt-2 border border-info text-info"
                                                                 title="View Attachment">
@@ -463,11 +463,11 @@
                                 @endforeach
                             @else
                                 <div class="p-4 text-center text-muted">No form data available.</div>
-                            @endif 
+                            @endif
                         </div>
                     </div>
                 </div>
-            
+
         @empty
             <div class="card shadow-sm border-0 mb-4">
                 <div class="card-body text-center py-5">

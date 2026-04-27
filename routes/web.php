@@ -97,14 +97,14 @@ Route::middleware('guest')->group(function () {
 
     Route::post('reset-password', [NewPasswordController::class, 'store'])
                 ->name('password.store');
-                
+
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])
                     ->name('password.request');
-                    
+
     Route::get('reset-password-email', [PasswordResetLinkController::class, 'selfResetView']);
-    
+
     Route::post('forgot-password', [PasswordResetLinkController::class, 'store'])
-                    ->name('password.email');    
+                    ->name('password.email');
 
 });
 
@@ -142,10 +142,11 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
 
     Route::get('/achievement/{id}', [KPIAchievementController::class, 'editAchievement'])->name('goals.update-achievement');
     Route::get('/approval-achievement/{id}', [KPIAchievementController::class, 'approvalAchievement'])->name('goals.approval-achievement');
+    Route::post('/approval-achievement/approve', [KPIAchievementController::class, 'approvalAchievementApprove'])->name('goals.approval-achievement-approve');
 
     Route::post('/achievement/bulk', [KPIAchievementController::class, 'bulkStore'])
     ->name('achievement.bulk-store');
-    
+
     // Team Goals
     Route::get('/team-goals', [TeamGoalController::class, 'index'])->name('team-goals');
     Route::get('/team-goals/detail/{id}', [TeamGoalController::class, 'show'])->name('team-goals.detail');
@@ -161,14 +162,14 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
 
     // My Appraisal
     Route::get('/appraisals', [MyAppraisalController::class, 'index'])->name('appraisals');
-    
+
     Route::get('/appraisals/create/{id}', [MyAppraisalController::class, 'create'])->name('form.appraisal');
     Route::get('/appraisals/edit/{id}', [MyAppraisalController::class, 'edit'])->name('edit.appraisal');
     Route::post('/appraisals/submit', [MyAppraisalController::class, 'store'])->name('appraisal.submit');
     Route::post('/appraisals/update', [MyAppraisalController::class, 'update'])->name('appraisal.update');
     Route::post('/appraisals/update', [MyAppraisalController::class, 'update'])->name('appraisal.update');
     Route::post('/appraisals/file/destroy', [MyAppraisalController::class, 'destroyFile'])->name('delete.attachment');
-    
+
     // Team Appraisal
     Route::get('/appraisals-task', [AppraisalTaskController::class, 'index'])->name('appraisals-task');
     Route::get('/appraisals-task/detail/{id}', [AppraisalTaskController::class, 'detail'])->name('appraisals-task.detail');
@@ -179,10 +180,10 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
 
     Route::get('/appraisals-task/teams-data', [AppraisalTaskController::class, 'getTeamData']);
     Route::get('/appraisals-task/360-data', [AppraisalTaskController::class, 'get360Data']);
-    
+
     // Appraisal 360
     Route::get('/appraisals-task/review/{id}', [AppraisalTaskController::class, 'review'])->name('appraisals-360.review');
-    
+
     // Rating | Calibration
     Route::get('/rating', [RatingController::class, 'index'])->name('rating');
     Route::post('/rating-submit', [RatingController::class, 'store'])->name('rating.submit');
@@ -192,7 +193,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::post('/rating/import', [RatingController::class, 'importFromExcel'])->name('rating.import');
     Route::get('/export-invalid-rating', [RatingController::class, 'exportInvalidRating'])->name('export.invalid.rating');
 
-    
+
     // Approval
     Route::post('/approval/goal', [ApprovalController::class, 'store'])->name('approval.goal');
 
@@ -212,12 +213,12 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::post('/initiatedReport', [ExportExcelController::class, 'initiated'])->name('team-goals.initiated');
     // Route::get('/export/goals', [ReportController::class, 'exportGoal'])->name('export.goal');
     Route::post('/get-report-content', [ReportController::class, 'getReportContent'])->name('reports.content');
-    
+
     Route::get('/changes-group-company', [ReportController::class, 'changesGroupCompany']);
     Route::get('/changes-company', [ReportController::class, 'changesCompany']);
-    
+
     // Authentication
-    
+
     Route::get('verify-email', EmailVerificationPromptController::class)
                 ->name('verification.notice');
 
@@ -251,11 +252,11 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::post('/proposed360/resubmit', [Proposed360Controller::class, 'resubmit'])->name('proposed360.resubmit');
         Route::post('/proposed360/action', [Proposed360Controller::class, 'action'])->name('proposed360.action');
     });
-    
+
     Route::post('/approval/{approvalRequest}/action', [ApprovalController::class, 'processAction'])->name('approval.action');
-    
-    
-    
+
+
+
     // ============================ Administrator ===================================
 
     Route::middleware(['permission:viewschedule'])->group(function () {
@@ -316,15 +317,15 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::post('/update-layer', [LayerController::class, 'updatelayer'])->name('update-layer');
         Route::post('/import-layer', [LayerController::class, 'importLayer'])->name('import-layer');
         Route::post('/history-show', [LayerController::class, 'show'])->name('history-show');
-        
-        
+
+
         Route::get('/layer-appraisal', [LayerController::class, 'layerAppraisal'])->name('layer-appraisal');
         Route::get('/layer-appraisal/edit/{id}', [LayerController::class, 'layerAppraisalEdit'])->name('layer-appraisal.edit');
         Route::post('/layer-appraisal/import', [LayerController::class, 'layerAppraisalImport'])->name('layer-appraisal.import');
         Route::post('/layer-appraisal/update', [LayerController::class, 'layerAppraisalUpdate'])->name('layer-appraisal.update');
         Route::get('/export-invalid-layer-appraisal', [LayerController::class, 'exportInvalidLayerAppraisal'])->name('export.invalid.layer.appraisal');
         Route::get('/employee-layer-appraisal/details/{employeeId}', [LayerController::class, 'getEmployeeLayerDetails']);
-        
+
         // Admin Tasks
         Route::get('admin-tasks', [AdminTasksController::class, 'index'])->name('admin-tasks');
         Route::get('admin-tasks/detail/{id}', [AdminTasksController::class, 'detail'])->name('admin-tasks.detail');
@@ -336,13 +337,13 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::get('/approval-history/detail/{id}', [AdminTasksController::class, 'detailHistory'])
             ->name('approval-history.detail');
 
-    
+
     });
 
     Route::middleware(['permission:viewaudittrail'])->group(function () {
         Route::get('audit-trail', [AuditTrailController::class, 'index'])->name('audit-trail');
     });
-    
+
     Route::middleware(['permission:viewrole'])->group(function () {
         // Roles
         Route::get('/roles', [RoleController::class, 'index'])->name('roles');
@@ -379,11 +380,11 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::get('/reminders/{id}/edit', [PaReminderController::class, 'edit'])->name('reminders.edit');
         Route::put('/reminders/{id}', [PaReminderController::class, 'update'])->name('reminders.update');
     });
-    
+
     Route::middleware(['permission:reportpa'])->group(function () {
         Route::get('/admin-appraisal', [AdminAppraisalController::class, 'index'])->name('admin.appraisal');
         Route::get('/admin-appraisal/details/{id}', [AdminAppraisalController::class, 'detail'])->name('admin.appraisal.details');
-        
+
         Route::post('/check-file', [AdminAppraisalController::class, 'checkFileAvailability']); // Check file existence
         Route::post('/check-jobs', [AdminAppraisalController::class, 'checkJobAvailability']); // Check file existence
         Route::get('/appraisal-details/download/{fileName}', [AdminAppraisalController::class, 'downloadFile']);
@@ -393,7 +394,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::post('/export-appraisal-detail', [AdminAppraisalController::class, 'exportAppraisalDetail']);
 
     });
-    
+
     Route::middleware(['permission:viewonbehalf'])->group(function () {
         // Approval-Admin
         Route::post('/admin/approval/goal', [AdminOnBehalfController::class, 'store'])->name('admin.approval.goal');
@@ -412,9 +413,9 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         // Revoke
         Route::post('/admin/goals-revoke', [AdminOnBehalfController::class, 'goalsRevoke'])->name('admin.goals.revoke');
     });
-    
+
     Route::middleware(['permission:viewreport'])->group(function () {
-        
+
         Route::get('/reports-admin', [AdminReportController::class, 'index'])->name('admin.reports');
         // Route::get('/admin/get-report-content/{reportType}', [AdminReportController::class, 'getReportContent']);
         Route::post('/admin/get-report-content', [AdminReportController::class, 'getReportContent']);
@@ -434,7 +435,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::get('/approval-flow/edit/{id}', [ApprovalFlowController::class, 'edit'])->name('approval-flow.edit');
         Route::put('/approval-flow/{id}', [ApprovalFlowController::class, 'update'])->name('approval-flow.update');
         Route::delete('/approval-flow/{id}', [ApprovalFlowController::class, 'destroy'])->name('approval-flow.destroy');
-        
+
         // Flow
         Route::get('/flows', [FlowController::class, 'index'])->name('flows.index');
         Route::get('/flows-data', [FlowController::class, 'data'])->name('flows.data');
@@ -443,7 +444,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::get('/flows/edit/{id}', [FlowController::class, 'edit'])->name('flows.edit');
         Route::put('/flows/{id}', [FlowController::class, 'update'])->name('flows.update');
         Route::delete('/flows/{id}', [FlowController::class, 'destroy'])->name('flows.destroy');
-        
+
         // Assignment
         Route::get('/assignments', [AssignmentController::class, 'index'])->name('assignments.index');
         Route::get('/assignments-data', [AssignmentController::class, 'data'])->name('assignments.data');
@@ -453,14 +454,14 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::put('/assignments/{id}', [AssignmentController::class, 'update'])->name('assignments.update');
         Route::delete('/assignments/{id}', [AssignmentController::class, 'destroy'])->name('assignments.destroy');
     });
-    
+
     Route::middleware(['permission:viewimport', 'role:superadmin'])->group(function () {
         Route::get('/import-rating', [AdminImportController::class, 'index'])->name('importRating');
         Route::post('/import-rating/store', [AdminImportController::class, 'storeRating'])->name('importRating.store');
         Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');
 
     });
-    
+
 });
 
 

@@ -14,10 +14,18 @@ class KPIAchievement extends Model
     protected $table = 'kpi_achievements';
 
     protected $fillable = [
-        'goal_id',
-        'kpi_index',
-        'month',
-        'value'
+        "goal_id",
+        "kpi_id",
+        "month",
+        "value",
+        "file",
+        "current_approver_employee_id",
+        "approval_status",
+        "approval_date",
+        "approval_info",
+        "created_at",
+        "updated_at",
+        "deleted_at"
     ];
 
     public function approver()

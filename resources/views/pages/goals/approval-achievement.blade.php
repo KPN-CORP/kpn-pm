@@ -107,9 +107,10 @@
         </div>
     </div>
 
-    <form id="achievementApprovalForm" action="#" method="post">
+    <form id="achievementApprovalForm" action="{{ route('goals.approval-achievement-approve') }}" method="post">
         @csrf
-        
+
+        <input type="hidden" name="goal_id" value="{{ $id }}" style="display: none" />
         <h6 class="fw-bold text-dark mb-3 mt-4">{{ __('Achievement Target') }} 2025</h6>
 
         @php
@@ -117,11 +118,11 @@
         @endphp
 
         @foreach ($kpis as $i => $data)
-        
+
         @if ($data['has_old_data'])
-        
+
         <div class="p-3 mb-4 rounded shadow-sm" style="background-color: #f8f9fa; border: 1px solid #eef0f2;">
-            
+
             <div class="row mb-3 bg-white p-2 rounded border mx-0">
                 <div class="col-md-5">
                     <div class="kpi-label text-primary">KPI {{ $i + 1 }}</div>
@@ -138,14 +139,14 @@
             </div>
 
             <div class="row align-items-stretch">
-                
+
                 <div class="col-lg-12 mb-3 mb-lg-0">
                     <div class="card shadow-none border h-100" style="background-color: #fafafa;">
                         <div class="card-body p-2">
                             <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
                                 <h6 class="fw-bold text-secondary mb-0" style="font-size: 0.8rem;"><i class="ri-history-line me-1"></i>BEFORE (Previous Achievement)</h6>
                             </div>
-                            
+
                             @if ($data['has_old_data'])
                             <div class="row g-2">
                                 @foreach($data['old_months'] as $month)
@@ -185,15 +186,15 @@
                             <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom border-primary border-opacity-25">
                                 <h6 class="fw-bold text-primary mb-0" style="font-size: 0.8rem;"><i class="ri-file-edit-line me-1"></i>AFTER (Current Submission)</h6>
                             </div>
-                            
+
                             <div class="row g-2">
-                                @foreach($data['months'] as $month)
+                                @foreach($data['months'] as $monthIdx => $month)
                                     <div class="col-xl-1 col-lg-2 col-md-3 col-4">
                                         <div class="month-box border-primary border-opacity-25">
                                             <span class="month-label text-primary">{{ $month['label'] }}</span>
 
                                             <input type="text"
-                                                name="ach[{{$i}}][{{$month['value']}}]"
+                                                name="ach[{{$data['kpi_id']}}][{{$monthIdx}}]"
                                                 value="{{ $month['value'] ?? '' }}"
                                                 class="month-input"
                                                 placeholder="-">
@@ -220,9 +221,9 @@
         </div>
 
         @else
-        
+
         <div class="p-3 mb-4 rounded shadow-sm" style="background-color: #f8f9fa; border: 1px solid #eef0f2;">
-            
+
             <div class="row mb-3 bg-white p-2 rounded border mx-0 align-items-center">
                 <div class="col-md-5">
                     <div class="kpi-label text-primary">
@@ -248,13 +249,13 @@
                     <div class="card border-primary border-opacity-50 bg-white shadow-sm h-100">
                         <div class="card-body p-2">
                             <div class="row g-2">
-                                @foreach($data['months'] as $month)
+                                @foreach($data['months'] as $monthIdx => $month)
                                     <div class="col-xl-1 col-lg-2 col-md-3 col-4">
                                         <div class="month-box border-primary border-opacity-25">
                                             <span class="month-label text-primary">{{ $month['label'] }}</span>
 
                                             <input type="text"
-                                                name="ach[{{$i}}][{{$month['value']}}]"
+                                                name="ach[{{$data['kpi_id']}}][{{$monthIdx}}]"
                                                 value="{{ $month['value'] ?? '' }}"
                                                 class="month-input"
                                                 placeholder="-">
@@ -283,7 +284,7 @@
         @endif
 
         @endforeach
-        
+
         <div class="card shadow-sm border-0 mt-2 mb-4">
             <div class="card-body p-2 px-3 bg-light rounded border">
                 <label class="kpi-label text-dark">Messages*</label>
@@ -303,11 +304,11 @@
                                 <div class="dropdown-menu shadow-sm" style="font-size: 0.8rem;">
                                     <h6 class="dropdown-header text-dark fw-bold">Select person below:</h6>
                                     <a class="dropdown-item py-1" href="#">Metta Saputra (12345678)</a>
-                                </div> 
+                                </div>
                             </div> --}}
                             <a href="{{ route('team-goals') }}" class="btn btn-light text-secondary border px-3 btn-sm fw-medium">{{ __('Cancel') }}</a>
                             {{-- <button type="submit" class="btn btn-primary btn-sm fw-medium px-4"> --}}
-                            <button type="button" class="btn btn-primary btn-sm fw-medium px-4">
+                            <button type="submit" class="btn btn-primary btn-sm fw-medium px-4">
                                 {{ __('Approve') }}
                             </button>
                         </div>

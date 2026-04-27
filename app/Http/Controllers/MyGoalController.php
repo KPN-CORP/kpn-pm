@@ -60,13 +60,13 @@ class MyGoalController extends Controller
         $user = $this->user;
 
         $period = $this->appService->goalPeriod();
-    
+
         // Retrieve the selected year from the request
         $filterYear = $request->input('filterYear');
-        
+
         // Retrieve approval requests
         $datasQuery = ApprovalRequest::with([
-            'employee', 'goal', 'updatedBy', 'adjustedBy', 'initiated', 'manager', 
+            'employee', 'goal', 'updatedBy', 'adjustedBy', 'initiated', 'manager',
             'approval' => function ($query) {
                 $query->with('approverName'); // Load nested relationship
             }
@@ -75,19 +75,19 @@ class MyGoalController extends Controller
             $query->where('employee_id', $user)->orWhere('approver_id', $user);
         })
         ->where('employee_id', $user)->where('category', $this->category)->orderBy('created_at', 'DESC');
-    
+
         // Apply additional filtering based on the selected year
         if (!empty($filterYear)) {
             $datasQuery->where('period', $filterYear);
         }
-        
+
         $datas = $datasQuery->get();
 
         $formattedData = $datas->map(function($item) {
 
             $appraisalCheck = Appraisal::where('goals_id', $item->form_id)->exists();
 
-            
+
             $item->appraisalCheck = $appraisalCheck;
 
             // Format created_at
@@ -97,7 +97,7 @@ class MyGoalController extends Controller
             } else {
                 $item->formatted_created_at = $createdDate->format('d M Y');
             }
-            
+
             // Format updated_at
             $updatedDate = !$item->updated_by ? Carbon::parse($item->goal->updated_at) : Carbon::parse($item->updated_at);
             // dd($updatedDate);
@@ -106,7 +106,7 @@ class MyGoalController extends Controller
             } else {
                 $item->formatted_updated_at = $updatedDate->format('d M Y');
             }
-    
+
             // Determine name and approval layer
             if ($item->sendback_to == $item->employee->employee_id) {
                 $item->name = $item->employee->fullname . ' (' . $item->employee->employee_id . ')';
@@ -117,7 +117,7 @@ class MyGoalController extends Controller
                                                     ->where('approver_id', $item->current_approval_id)
                                                     ->value('layer');
             }
-            
+
             $latestApproval = KPIAchievement::with('approver')
                 ->where('goal_id', $item->form_id)
                 ->latest('updated_at')
@@ -135,10 +135,10 @@ class MyGoalController extends Controller
             } else {
                 $item->achievement_status = null;
             }
-    
+
             return $item;
         });
-    
+
         if (!empty($datas->first()->updatedBy)) {
             $adjustByManager = ApprovalLayer::where('approver_id', $datas->first()->updatedBy->employee_id)
                                             ->where('employee_id', $datas->first()->employee_id)
@@ -146,9 +146,9 @@ class MyGoalController extends Controller
         } else {
             $adjustByManager = null;
         }
-        
+
         $data = [];
-        
+
         foreach ($formattedData as $request) {
 
             $formData = json_decode($request->goal['form_data'], true);
@@ -176,6 +176,10 @@ class MyGoalController extends Controller
 
                 $kpi['attachment'] = $kpiId && isset($achievementData[$kpiId]['attachment'])
                     ? $achievementData[$kpiId]['attachment']
+                    : array_fill(1, 12, null);
+
+                $kpi['approval_status'] = $kpiId && isset($achievementData[$kpiId]['approval_status'])
+                    ? $achievementData[$kpiId]['approval_status']
                     : array_fill(1, 12, null);
 
                 $values = collect($kpi['ach'])
@@ -215,22 +219,22 @@ class MyGoalController extends Controller
         if (!File::exists($this->path)) {
             abort(500, 'JSON file does not exist.');
         }
-    
+
         // Read the contents of the JSON file
         $options = json_decode(File::get($this->path), true);
-    
+
         $uomOption = $options['UoM'];
         $typeOption = $options['Type'];
         $reviewPeriodOption = $options['Review Period'];
         $calculationMethodOption = $options['Calculation Method'];
-    
+
         $parentLink = __('Goal');
         $link = __('My Goal');
-    
+
         $employee = Employee::where('employee_id', $user)->first();
         $access_menu = json_decode($employee->access_menu, true);
         $access = ($access_menu['goals'] ?? false) && ($access_menu['doj'] ?? false);
-    
+
         $selectYear = ApprovalRequest::where('employee_id', $user)
         ->where('category', $this->category)
         ->select('period')
@@ -242,16 +246,16 @@ class MyGoalController extends Controller
         });
 
         $countDraft = Goal::where('employee_id', $user)->where('category', $this->category)->where('form_status', 'Draft')->count();
-    
+
         return view('pages.goals.my-goal', compact('data', 'link', 'parentLink', 'uomOption', 'typeOption', 'reviewPeriodOption', 'calculationMethodOption', 'access', 'selectYear', 'adjustByManager', 'period', 'countDraft'));
     }
 
     function show($id) {
         $data = Goal::find($id);
-        
+
         return view('pages.goals.modal', compact('data')); //modal body hilang ketika modal show bentrok dengan view goal
     }
-    
+
     function create($id) {
 
         $id = decrypt($id);
@@ -294,7 +298,7 @@ class MyGoalController extends Controller
             return redirect('goals');
         }
 
-        $datas = ApprovalLayer::with(['employee'])->where('employee_id', $id)->where('layer', 1)->get();  
+        $datas = ApprovalLayer::with(['employee'])->where('employee_id', $id)->where('layer', 1)->get();
         if (!$datas->first()) {
             Session::flash('error', [
                 'title' => 'Cannot create goal',
@@ -355,19 +359,19 @@ class MyGoalController extends Controller
                     'title' => 'Permission Denied',
                     'message' => "You do not have permission to edit this goal."
                 ]);
-    
+
                 if ($this->user != $goal->employee_id) {
                     return redirect('team-goals');
                 }
                 return redirect('goals');
             }
-    
+
             // Check if the JSON file exists
             if (!File::exists($this->path)) {
                 // Handle the situation where the JSON file doesn't exist
                 abort(500, 'JSON file does not exist.');
             }
-            
+
             $approvalRequest = ApprovalRequest::with(['employee' => function($q) {
                 $q->select('id', 'fullname', 'employee_id', 'designation_name', 'job_level', 'group_company', 'unit');
             }])->where('form_id', $goal->id)->first();
@@ -389,7 +393,7 @@ class MyGoalController extends Controller
             $selectedReviewPeriod = [];
             $selectedCalculationMethod = [];
             $totalWeightages = 0;
-            
+
             foreach ($formData as $index => $row) {
                 $selectedUoM[$index] = $row['uom'] ?? '';
                 $selectedType[$index] = $row['type'] ?? '';
@@ -401,7 +405,7 @@ class MyGoalController extends Controller
 
 
             $data = json_decode($goal->form_data, true);
-            
+
             return view('pages.goals.edit', compact('goal', 'formCount', 'link', 'data', 'uomOption', 'selectedUoM', 'typeOption', 'reviewPeriodOption', 'calculationMethodOption', 'selectedType', 'selectedReviewPeriod', 'selectedCalculationMethod', 'approvalRequest', 'totalWeightages', 'parentLink'));
         }
 
@@ -566,7 +570,7 @@ class MyGoalController extends Controller
                 $approval->approver_id = Auth::user()->employee_id;
                 $approval->created_by = Auth::id();
                 $approval->status = 'Approved';
-    
+
                 if (!$approval->save()) {
                     throw new Exception("Failed to record approval");
                 }
@@ -574,7 +578,7 @@ class MyGoalController extends Controller
 
             DB::commit();
 
-            return $user != $request->employee_id 
+            return $user != $request->employee_id
                 ? redirect('team-goals')->with('success', 'Goal saved successfully')
                 : redirect('goals')->with('success', 'Goal saved successfully');
 
@@ -625,18 +629,18 @@ class MyGoalController extends Controller
 
         $statusRequest = 'Pending';
 
-        $approver = null;	
-        
+        $approver = null;
+
         $firstLayer = ApprovalLayer::where('employee_id', $request->employee_id)->orderBy('layer', 'asc')->first();
-        $approver = $firstLayer->approver_id;	
+        $approver = $firstLayer->approver_id;
 
         if($request->employee_id != $user){
             $nextLayer = ApprovalLayer::where('approver_id', $user)
                                         ->where('employee_id', $request->employee_id)->max('layer');
-    
+
             // Cari approver_id pada layer selanjutnya
             $nextApprover = ApprovalLayer::where('layer', $nextLayer + 1)->where('employee_id', $request->employee_id)->value('approver_id');
-    
+
             if (!$nextApprover) {
                 $approver = $user;
                 $statusRequest = 'Approved';
@@ -653,7 +657,7 @@ class MyGoalController extends Controller
         try {
             // Get existing goal
             $goal = Goal::findOrFail($request->id);
-            
+
             // Check ownership
             if ($goal->employee_id != $request->employee_id) {
                 throw new Exception("You don't have permission to update this goal");
@@ -679,7 +683,7 @@ class MyGoalController extends Controller
             // Update goal record
             $goal->form_data = json_encode($kpiData);
             $goal->form_status = $submit_status;
-            
+
             if (!$goal->save()) {
                 throw new Exception("Failed to update goal data");
             }
@@ -694,7 +698,7 @@ class MyGoalController extends Controller
             $approvalRequest->sendback_to = null;
             $approvalRequest->updated_by = Auth::id();
             $approvalRequest->updated_at = now(); // Explicitly set updated_at
-            
+
             if (!$approvalRequest->save()) {
                 throw new Exception("Failed to update approval request");
             }
@@ -706,7 +710,7 @@ class MyGoalController extends Controller
             $snapshot->form_data = $goal->form_data;
             $snapshot->employee_id = $request->employee_id;
             $snapshot->created_by = Auth::id();
-            
+
             if (!$snapshot->save()) {
                 throw new Exception("Failed to create approval snapshot");
             }
@@ -716,14 +720,14 @@ class MyGoalController extends Controller
                 $existingApproval = Approval::where('request_id', $approvalRequest->id)
                     ->where('approver_id', Auth::user()->employee_id)
                     ->first();
-            
+
                 if (!$existingApproval) {
                     $approval = new Approval();
                     $approval->request_id = $approvalRequest->id;
                     $approval->approver_id = Auth::user()->employee_id;
                     $approval->created_by = Auth::id();
                     $approval->status = 'Approved';
-            
+
                     if (!$approval->save()) {
                         throw new Exception("Failed to record approval");
                     }
@@ -733,11 +737,11 @@ class MyGoalController extends Controller
                     // Optional: update other fields
                     $existingApproval->save();
                 }
-            }            
+            }
 
             DB::commit();
 
-            return $user != $request->employee_id 
+            return $user != $request->employee_id
                 ? redirect('team-goals')->with('success', 'Goal updated successfully')
                 : redirect('goals')->with('success', 'Goal updated successfully');
 
@@ -758,14 +762,14 @@ class MyGoalController extends Controller
     // GoalController.php
     public function latest($id)
     {
-        
+
         $latest = Goal::where('employee_id', $id)->orderByDesc('period')->first();
 
         $data = [];
         if ($latest) {
             // pastikan selalu array
-            $data = is_string($latest->form_data) 
-                ? json_decode($latest->form_data, true) 
+            $data = is_string($latest->form_data)
+                ? json_decode($latest->form_data, true)
                 : $latest->form_data;
         }
 
