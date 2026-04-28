@@ -228,7 +228,7 @@
                                                                     <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                                                 @endif
                                                             @elseif ($period == $goalPeriod && $status === 'Approved' && !$appraisalCheck)
-                                                                @if ($firstSubordinate->goal->hasAchievement)
+                                                                @if ($firstSubordinate->goal->hasAchievement && $firstSubordinate->isFirstLayer)
                                                                     <a href="{{ ($achievementStatus === 'Approved' || $achievementCreatedBy === Auth::user()->id)
                                                                         ? route('goals.update-achievement', $goalId)
                                                                         : route('goals.approval-achievement', $goalId) }}"
@@ -457,22 +457,29 @@
                                                                 </div>
                                                                 <div class="col-md-7 col-lg-7">
                                                                     <div class="row g-3 mb-3">
-                                                                        <div class="col-3 col-sm-3">
+
+                                                                        <!-- Row 1 -->
+                                                                        <div class="col-3">
                                                                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
-                                                                            <span class="fw-bold text-dark" style="font-size: 0.95rem;">{{ $row['target'] ?? '-' }}</span>
+                                                                            <span class="fw-bold text-dark">{{ $row['target'] ?? '-' }}</span>
                                                                         </div>
-                                                                        <div class="col-3 col-sm-3">
+
+                                                                        <div class="col-3">
                                                                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
-                                                                            <span class="fw-bold text-dark" style="font-size: 0.95rem;">{{ (isset($row['uom']) && $row['uom'] !== 'Other') ? $row['uom'] : ($row['custom_uom'] ?? '-') }}</span>
+                                                                            <span class="fw-bold text-dark">
+                                                                                {{ (isset($row['uom']) && $row['uom'] !== 'Other') ? $row['uom'] : ($row['custom_uom'] ?? '-') }}
+                                                                            </span>
                                                                         </div>
-                                                                        <div class="col-3 col-sm-3">
+
+                                                                        <div class="col-3">
                                                                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Weightage</small>
-                                                                            <span class="fw-bold text-dark" style="font-size: 0.95rem;">{{ $row['weightage'] ?? '0' }}%</span>
+                                                                            <span class="fw-bold text-dark">{{ $row['weightage'] ?? '0' }}%</span>
                                                                         </div>
-                                                                        <div class="col-3 col-sm-3">
+
+                                                                        <div class="col-3">
                                                                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
 
-                                                                            <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">
+                                                                            <span class="fw-bold text-dark d-block">
                                                                                 {{ $row['achievement'] ?? '0' }}%
                                                                             </span>
 
@@ -485,13 +492,14 @@
                                                                                     data-width="{{ $percent }}%"></div>
                                                                             </div>
                                                                         </div>
-                                                                    </div>
-                                                                    <div class="row g-3 mb-3">
-                                                                        <div class="col-4 col-sm-4">
+
+                                                                        <!-- Row 2 -->
+                                                                        <div class="col-3">
                                                                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Type</small>
-                                                                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $row['type'] ?? '-' }}</span>
+                                                                            <span class="fw-bold text-dark">{{ $row['type'] ?? '-' }}</span>
                                                                         </div>
-                                                                        <div class="col-4 col-sm-4">
+
+                                                                        <div class="col-3">
                                                                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Review Period</small>
                                                                             @php
                                                                                 $rv = $row['review_period'] ?? '';
@@ -507,9 +515,10 @@
                                                                                     }
                                                                                 }
                                                                             @endphp
-                                                                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $rvLabel }}</span>
+                                                                            <span class="fw-bold text-dark">{{ $rvLabel }}</span>
                                                                         </div>
-                                                                        <div class="col-4 col-sm-4">
+
+                                                                        <div class="col-3">
                                                                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Calc Method</small>
                                                                             @php
                                                                                 $rv = $row['calculation_method'] ?? '';
@@ -525,7 +534,11 @@
                                                                                     }
                                                                                 }
                                                                             @endphp
-                                                                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $rvLabel }}</span>
+                                                                            <span class="fw-bold text-dark">{{ $rvLabel }}</span>
+                                                                        </div>
+                                                                        <div class="col-3">
+                                                                            <small class="fw-bold text-uppercase d-block kpi-label mb-1"></small>
+                                                                            <span class="fw-bold text-dark"></span>
                                                                         </div>
                                                                     </div>
                                                                 </div>

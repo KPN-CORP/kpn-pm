@@ -199,6 +199,10 @@ class TeamGoalController extends Controller
                     $subordinate->goal->achievement_status = null;
                 }
 
+                $isFirstLayer = ApprovalLayer::where('employee_id', $subordinate->employee_id)->where('approver_id', $this->user)->where('layer', 1)->first();
+                    
+                $subordinate->isFirstLayer = $isFirstLayer;
+
                 return $subordinate;
             });
         });

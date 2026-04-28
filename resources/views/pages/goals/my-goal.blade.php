@@ -375,11 +375,11 @@
 
                                                 @if(isset($data['review_period']))
                                                 <div class="row g-3 mb-3">
-                                                    <div class="col-4 col-sm-4">
+                                                    <div class="col-3 col-sm-3">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Type</small>
                                                         <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['type'] }}</span>
                                                     </div>
-                                                    <div class="col-4 col-sm-4">
+                                                    <div class="col-3 col-sm-3">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Review Period</small>
                                                         @php
                                                             $rv = $data['review_period'] ?? '';
@@ -397,7 +397,7 @@
                                                         @endphp
                                                         <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $rvLabel }}</span>
                                                     </div>
-                                                    <div class="col-4 col-sm-4">
+                                                    <div class="col-3 col-sm-3">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Calc Method</small>
                                                         @php
                                                             $rv = $data['calculation_method'] ?? '';
@@ -414,6 +414,10 @@
                                                             }
                                                         @endphp
                                                         <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $rvLabel }}</span>
+                                                    </div>
+                                                    <div class="col-3">
+                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1"></small>
+                                                        <span class="fw-bold text-dark"></span>
                                                     </div>
                                                 </div>
                                                 @endif
