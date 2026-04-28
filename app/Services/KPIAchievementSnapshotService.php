@@ -5,6 +5,7 @@ namespace App\Services;
 use Illuminate\Support\Facades\Log;
 use App\Models\KPIAchievement;
 use App\Models\KPIAchievementSnapshot;
+use Exception;
 
 class KPIAchievementSnapshotService {
     public static function insertMany(array $kpiAchievements, $employeeID, $userID) {

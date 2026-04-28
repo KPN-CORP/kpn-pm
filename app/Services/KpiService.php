@@ -118,4 +118,24 @@ class KpiService
 
         return $approvalLayer->approver_id;
     }
+
+    function normalizeDecimal($value)
+    {
+        if ($value === null || $value === '') {
+            return null;
+        }
+
+        // hapus spasi
+        $value = trim($value);
+
+        // ganti koma jadi titik
+        $value = str_replace(',', '.', $value);
+
+        // validasi numeric
+        if (!is_numeric($value)) {
+            return null; // atau throw error kalau mau strict
+        }
+
+        return round((float)$value, 2);
+    }
 }

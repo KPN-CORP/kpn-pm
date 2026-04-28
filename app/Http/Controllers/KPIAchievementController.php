@@ -10,6 +10,7 @@ use App\Services\AppService;
 use App\Services\KPIAchievementService;
 use App\Services\KpiService;
 use App\Services\KPIAchievementSnapshotService;
+use Exception;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
@@ -339,13 +340,15 @@ class KPIAchievementController extends Controller
                     if (($value === null || $value === '') && !$filePath) {
                         continue;
                     }
+                    
+                    $normalizedValue = $this->kpiService->normalizeDecimal($value);   
 
                     if ($existing) {
                         if ($isSubmit) {
                             KPIAchievementSnapshotService::insertOne($existing, $this->user, Auth::id());
                         }
 
-                        $existing->value = $value;
+                        $existing->value = $normalizedValue;
                         $existing->file = $filePath;
                         $existing->current_approver_employee_id = $approverId ?? null;
                         $existing->approval_status = $status;
@@ -353,6 +356,7 @@ class KPIAchievementController extends Controller
                         if ($status == "Approved") {
                             $existing->approval_date = $timeNow;
                         } else if ($status == "Pending") {
+                            $existing->created_by = Auth::id();
                             $existing->approval_date = null;
                             $existing->approval_info = null;
                         }
@@ -363,10 +367,11 @@ class KPIAchievementController extends Controller
                         $achievement->goal_id = $request->goal_id;
                         $achievement->kpi_id = $kpiId;
                         $achievement->month = $month;
-                        $achievement->value = $value;
+                        $achievement->value = $normalizedValue;
                         $achievement->file = $filePath;
                         $achievement->current_approver_employee_id = $approverId ?? null;
                         $achievement->approval_status = $status;
+                        $achievement->created_by = Auth::id();
 
                         $achievement->save();
 
@@ -519,7 +524,10 @@ class KPIAchievementController extends Controller
 
             foreach ($kpiAchievements as $val) {
                 if (isset($newValues[$val->kpi_id]) && isset($newValues[$val->kpi_id][$val->month])) {
-                    $val->value = $newValues[$val->kpi_id][$val->month];
+
+                    $rawValue = $newValues[$val->kpi_id][$val->month];
+
+                    $val->value = $this->kpiService->normalizeDecimal($rawValue);
                 }
 
                 if ($request->messages) {
