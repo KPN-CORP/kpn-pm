@@ -173,8 +173,9 @@ class TeamGoalController extends Controller
                     );
 
                     // inject hasil ke KPI (SETELAH attachment sesuai request kamu)
-                    $kpi['actual'] = round($actual, 2);
-                    $kpi['achievement'] = round($achievement, 2);
+                    $kpi['values'] = $values;
+                    $kpi['actual'] = empty($values) ? '-' : round($actual, 2);
+                    $kpi['achievement'] = empty($values) ? 0 : round($achievement, 2);
                 }
                 unset($kpi);
 
@@ -307,6 +308,8 @@ class TeamGoalController extends Controller
         ->selectRaw('DISTINCT schedule_periode as period')
         ->orderBy('period', 'ASC')
         ->get();
+
+        // dd($tasks);
 
         return view('pages.goals.team-goal', compact('data', 'tasks', 'notasks', 'noAchievements', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'reviewPeriodOption', 'calculationMethodOption', 'selectYear', 'period'));
        

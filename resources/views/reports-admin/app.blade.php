@@ -1,6 +1,36 @@
 @extends('layouts_.vertical', ['page_title' => 'Reports'])
 
 @section('css')
+<style>
+  .mini-progress {
+    height: 4px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 4px;
+}
+
+.mini-progress-bar {
+    height: 100%;
+    border-radius: 10px;
+    background: linear-gradient(
+        90deg,
+        #0d6efd 25%,
+        #88c6f9 50%,
+        #0d6efd 75%
+    );
+    background-size: 200% 100%;
+    animation: progressFlow 1.5s linear infinite;
+}
+@keyframes progressFlow {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+</style>
 @endsection
 @section('content')
 <meta name="csrf-token" content="{{ csrf_token() }}">
@@ -23,6 +53,7 @@
                         <option value="EmployeePA">Employee PA</option>
                       @endcan
                     @endif
+                    <option value="Achievement">Achievement</option>
                     </select>
                   </div>
                 </div>
@@ -57,7 +88,10 @@
               <input type="hidden" name="export_company" id="export_company">
               <input type="hidden" name="export_location" id="export_location">
               <input type="hidden" name="export_period" id="export_period">
-              <a id="export" onclick="exportExcel()" class="btn btn-outline-secondary px-4 shadow disabled"><i class="ri-arrow-circle-down-line"></i> Download</a>
+              <button type="button" id="exportBtn" onclick="exportExcel()" 
+                  class="btn btn-outline-secondary px-4 shadow">
+                  <i class="ri-arrow-circle-down-line"></i> Download
+              </button>
             </form>
           </div>
         </div>

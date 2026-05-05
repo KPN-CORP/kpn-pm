@@ -59,6 +59,8 @@ use App\Http\Controllers\WeightageController;
 use App\Imports\ApprovalLayerAppraisalImport;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\NotificationMiddleware;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 Route::get('language/{locale}', [LanguageController::class, 'switchLanguage'])->name('language.switch');
 
@@ -209,6 +211,12 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
 
     Route::post('/export', [ExportExcelController::class, 'export'])->name('export');
     Route::post('/admin-export', [ExportExcelController::class, 'exportAdmin'])->name('admin.export');
+    Route::get('/check-file', function (Request $request) {
+
+        $exists = Storage::disk('public')->exists($request->file);
+
+        return response()->json(['exists' => $exists]);
+    });
     Route::post('/notInitiatedReport', [ExportExcelController::class, 'notInitiated'])->name('team-goals.notInitiated');
     Route::post('/initiatedReport', [ExportExcelController::class, 'initiated'])->name('team-goals.initiated');
     // Route::get('/export/goals', [ReportController::class, 'exportGoal'])->name('export.goal');

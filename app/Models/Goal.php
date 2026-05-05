@@ -31,5 +31,13 @@ class Goal extends Model
     {
         return $this->belongsTo(Appraisal::class, 'id', 'goals_id');
     }
+    public function achievement()
+    {
+        return $this->belongsTo(KPIAchievement::class, 'id', 'goal_id');
+    }
+    public function achievementList()
+    {
+        return $this->hasMany(KPIAchievement::class, 'id', 'goal_id');
+    }
 
 }

@@ -200,9 +200,8 @@ class MyGoalController extends Controller
                     $kpi['type'] ?? 'Higher Better'
                 );
 
-                $kpi['actual'] = round($actual, 2);
-                $kpi['achievement'] = round($achievement, 2);
-
+                $kpi['actual'] = empty($values) ? '-' : round($actual, 2);
+                $kpi['achievement'] = empty($values) ? 0 : round($achievement, 2);
             }
 
             $dataItem = new stdClass();

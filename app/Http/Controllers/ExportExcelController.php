@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\AchievementReportExport;
 use App\Exports\EmployeeDetailExport;
 use App\Exports\EmployeeExport;
 use App\Exports\GoalExport;
@@ -12,6 +13,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\EmployeepaExport;
 use App\Services\AppService;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 
 class ExportExcelController extends Controller
 {
@@ -67,31 +69,127 @@ class ExportExcelController extends Controller
     public function exportAdmin(Request $request) 
     {
         $reportType = $request->export_report_type;
-        $groupCompany = $request->export_group_company;
-        $company = $request->export_company;
-        $location = $request->export_location;
         $period = $request->export_period;
+
+        $groupCompany = $request->export_group_company
+            ? explode(',', $request->export_group_company)
+            : [];
+
+        $company = $request->export_company
+            ? explode(',', $request->export_company)
+            : [];
+
+        $location = $request->export_location
+            ? explode(',', $request->export_location)
+            : [];
+
+        if (!$reportType) {
+            abort(400, 'Report type is required');
+        }
+
+        if (!$period) {
+            abort(400, 'Period is required');
+        }
 
         $permissionGroupCompanies = $this->permissionGroupCompanies;
         $permissionCompanies = $this->permissionCompanies;
         $permissionLocations = $this->permissionLocations;
-        
+
         $admin = 1;
 
-        if($reportType==='Goal'){
-            $goal = new GoalExport($period, $groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
-            return Excel::download($goal, 'goals.xlsx');
-        }
-        if($reportType==='Employee'){
-            $employee = new EmployeeExport($groupCompany, $location, $company, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
-            return Excel::download($employee, 'employee.xlsx');
-        }
-        if($reportType==='EmployeePA'){
-            $employee = new EmployeepaExport($groupCompany, $location, $company, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
-            return Excel::download($employee, 'employeePA.xlsx');
-        }
-        return;
+        return match ($reportType) {
 
+            'Goal' => Excel::download(
+                new GoalExport(
+                    $period,
+                    $groupCompany,
+                    $location,
+                    $company,
+                    $admin,
+                    $permissionLocations,
+                    $permissionCompanies,
+                    $permissionGroupCompanies
+                ),
+                'goals.xlsx'
+            ),
+
+            'Employee' => Excel::download(
+                new EmployeeExport(
+                    $groupCompany,
+                    $location,
+                    $company,
+                    $permissionLocations,
+                    $permissionCompanies,
+                    $permissionGroupCompanies
+                ),
+                'employee.xlsx'
+            ),
+
+            'EmployeePA' => Excel::download(
+                new EmployeepaExport(
+                    $groupCompany,
+                    $location,
+                    $company,
+                    $permissionLocations,
+                    $permissionCompanies,
+                    $permissionGroupCompanies
+                ),
+                'employeePA.xlsx'
+            ),
+            
+            'Achievement' => $this->queueAchievementExport(
+                $groupCompany,
+                $location,
+                $company,
+                $period,
+                $permissionLocations,
+                $permissionCompanies,
+                $permissionGroupCompanies
+            ),
+
+            default => abort(400, 'Invalid report type'),
+        };
+    }
+
+    private function queueAchievementExport(
+        $groupCompany,
+        $location,
+        $company,
+        $period,
+        $permissionLocations,
+        $permissionCompanies,
+        $permissionGroupCompanies
+    ) {
+        $fileName = 'exports/achievement_' . now()->format('Ymd_His') . '.xlsx';
+
+        Log::info('🚀 Queue Export Triggered', [
+        'file' => $fileName,
+        'groupCompany' => $groupCompany,
+        'location' => $location,
+        'company' => $company,
+    ]);
+
+        Excel::queue(
+            new AchievementReportExport(
+                $groupCompany,
+                $location,
+                $company,
+                $period,
+                $permissionLocations,
+                $permissionCompanies,
+                $permissionGroupCompanies
+            ),
+            $fileName,
+            'public'
+        );
+
+            Log::info('📥 Queue Job Dispatched');
+
+
+        return response()->json([
+            'status' => 'queued',
+            'file' => $fileName
+        ]);
     }
 
     public function notInitiated(Request $request) 
