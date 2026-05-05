@@ -8,7 +8,7 @@ use App\Models\Goal;
 use App\Models\KPIAchievementSnapshot;
 use App\Services\AppService;
 use App\Services\KPIAchievementService;
-use App\Services\KpiService;
+use App\Services\KPIService;
 use App\Services\KPIAchievementSnapshotService;
 use Exception;
 use Illuminate\Support\Facades\Auth;
@@ -26,7 +26,7 @@ class KPIAchievementController extends Controller
     protected $appService;
     protected $kpiService;
 
-    public function __construct(AppService $appService, KpiService $kpiService)
+    public function __construct(AppService $appService, KPIService $kpiService)
     {
         $this->appService = $appService;
         $this->kpiService = $kpiService;

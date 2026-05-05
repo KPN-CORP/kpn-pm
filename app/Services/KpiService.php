@@ -5,7 +5,7 @@ use App\Models\ApprovalLayer;
 use App\Models\Goal;
 use App\Models\KPIAchievement;
 
-class KpiService
+class KPIService
 {
     public static function aggregate($method, $values)
     {
