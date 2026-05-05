@@ -12,7 +12,7 @@ use App\Models\Goal;
 use App\Models\KPIAchievement;
 use App\Services\AppService;
 use App\Services\KPIAchievementService;
-use App\Services\KpiService;
+use App\Services\KPIService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -34,7 +34,7 @@ class MyGoalController extends Controller
     protected $kpiService;
 
 
-    public function __construct(AppService $appService, KpiService $kpiService)
+    public function __construct(AppService $appService, KPIService $kpiService)
     {
             $this->category = 'Goals';
             $this->appService = $appService;

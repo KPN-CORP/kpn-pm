@@ -15,7 +15,7 @@ use App\Models\Schedule;
 use App\Models\User;
 use App\Services\AppService;
 use App\Services\KPIAchievementService;
-use App\Services\KpiService;
+use App\Services\KPIService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -38,7 +38,7 @@ class TeamGoalController extends Controller
     protected $period;
     protected $kpiService;
 
-    public function __construct(AppService $appService, KpiService $kpiService)
+    public function __construct(AppService $appService, KPIService $kpiService)
     {
         $this->category = 'Goals';
         $this->appService = $appService;
