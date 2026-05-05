@@ -17,6 +17,7 @@ use App\Models\Location;
 use App\Models\Report;
 use App\Models\Schedule;
 use App\Services\KPIAchievementService;
+use App\Services\KPIService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -37,12 +38,15 @@ class ReportController extends Controller
     protected $roles;
     protected $category;
     protected $path;
+    protected $kpiService;
     
-    public function __construct()
+    public function __construct(KPIService $kpiService)
     {
         $this->category = 'Goals';
         $this->roles = Auth::user()->roles;
         $this->path = base_path('resources/goal.json');
+
+        $this->kpiService = $kpiService;
         
         $restrictionData = [];
         if(!is_null($this->roles)){
@@ -375,14 +379,14 @@ class ReportController extends Controller
                         ->values()
                         ->toArray();
 
-                    $actual = app()->make(\App\Services\KPIService::class)->aggregate(
+                    $actual = $this->kpiService->aggregate(
                         $kpi['calculation_method'] ?? 'last',
                         $values
                     );
 
                     $achievementValue = $isEmptyAchievement
                         ? 0
-                        : app()->make(\App\Services\KPIService::class)->achievement(
+                        : $this->kpiService->achievement(
                             $actual,
                             (float)($kpi['target'] ?? 0),
                             $kpi['type'] ?? 'Higher Better'
