@@ -228,8 +228,8 @@ class KPIAchievementController extends Controller
                 $formData[$i]['type'] ?? 'Higher Better'
             );
 
-            $formData[$i]['actual'] = round($actual, 2);
-            $formData[$i]['achievement'] = round($achievement, 2);
+            $formData[$i]['actual'] = empty($values) ? '-' : round($actual, 2);
+            $formData[$i]['achievement'] = empty($values) ? 0 : round($achievement, 2);
         }
 
         return view('pages.goals.update-achievement', compact(

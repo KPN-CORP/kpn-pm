@@ -131,7 +131,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
             $isCountDifferent = $oldCount !== $newCount;
         @endphp
 
-        @if ($isCountDifferent)
+        @if ($isCountDifferent && $oldCount > 0)
             <div class="p-2 mb-3 rounded shadow-sm bg-primary-subtle d-flex justify-content-between align-items-center"
                 style="border: 1px solid #eef0f2;">
 

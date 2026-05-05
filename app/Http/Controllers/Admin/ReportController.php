@@ -16,10 +16,12 @@ use App\Models\Goal;
 use App\Models\Location;
 use App\Models\Report;
 use App\Models\Schedule;
+use App\Services\KPIAchievementService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
@@ -34,11 +36,13 @@ class ReportController extends Controller
     protected $permissionLocations;
     protected $roles;
     protected $category;
+    protected $path;
     
     public function __construct()
     {
         $this->category = 'Goals';
         $this->roles = Auth::user()->roles;
+        $this->path = base_path('resources/goal.json');
         
         $restrictionData = [];
         if(!is_null($this->roles)){
@@ -126,6 +130,7 @@ class ReportController extends Controller
         ]);
     }
     
+    // public function getReportContent($report_type)
     public function getReportContent(Request $request)
     {
         $user = Auth::user();
@@ -135,6 +140,11 @@ class ReportController extends Controller
         $group_company = $request->input('group_company', []);
         $location = $request->input('location', []);
         $company = $request->input('company', []);
+        // $report_type = $report_type;
+        // $period = 2026;
+        // $group_company = [];
+        // $location = [];
+        // $company = [];
         $permissionLocations = $this->permissionLocations;
         $permissionCompanies = $this->permissionCompanies;
         $permissionGroupCompanies = $this->permissionGroupCompanies;
@@ -243,7 +253,6 @@ class ReportController extends Controller
                 $employee->access_menu = json_decode($employee->access_menu, true);
             }
             $route = 'reports-admin.employee';
-        // } elseif ($request->reportType === 'EmployeePA') {
         } elseif ($report_type === 'EmployeePA') {
             $query = EmployeeAppraisal::query()->orderBy('fullname'); // Start with Employee model
 
@@ -295,6 +304,143 @@ class ReportController extends Controller
             $link = __('Report');
 
             return view($route, compact('data', 'link', 'filters', 'designations','departments','companies','locations', 'jobLevel'));
+        } elseif ($report_type === 'Achievement') {
+            
+            $query = Goal::with([
+                'employee',
+                'achievement' => function ($q) {
+                    $q->whereNotNull('id');
+                },
+                'achievement.approver'
+            ]);
+
+            $query->whereHas('employee', function ($q) use ($group_company, $location, $company) {
+                if (!empty($group_company)) {
+                    $q->whereIn('group_company', $group_company);
+                }
+
+                if (!empty($location)) {
+                    $q->whereIn('work_area_code', $location);
+                }
+
+                if (!empty($company)) {
+                    $q->whereIn('contribution_level_code', $company);
+                }
+            });
+
+            $query->where('period', $period ?? date('Y'));
+
+            $data = $query->get();
+
+            $approvalLayers = ApprovalLayer::whereIn(
+                'employee_id',
+                $data->pluck('employee_id')->filter()->unique()
+            )
+            ->where('layer', 1)
+            ->get()
+            ->keyBy(function ($item) {
+                return $item->employee_id . '-' . $item->approver_id;
+            });
+
+            $data->map(function($item) use ($approvalLayers) {
+
+                $formData = json_decode($item->form_data, true) ?? [];
+
+                // ambil achievement KPI (service kamu)
+                $achievementData = KPIAchievementService::getByGoal($item->id) ?? [];
+                $isEmptyAchievement = empty($achievementData);
+
+                foreach ($formData as &$kpi) {
+
+                    $kpiId = $kpi['kpi_id'] ?? null;
+
+                    // inject monthly achievement
+                    $kpi['ach'] = $kpiId && isset($achievementData[$kpiId]['ach'])
+                        ? $achievementData[$kpiId]['ach']
+                        : array_fill(1, 12, null);
+
+                    $kpi['attachment'] = $kpiId && isset($achievementData[$kpiId]['attachment'])
+                        ? $achievementData[$kpiId]['attachment']
+                        : array_fill(1, 12, null);
+
+                    $kpi['approval_status'] = $kpiId && isset($achievementData[$kpiId]['approval_status'])
+                        ? $achievementData[$kpiId]['approval_status']
+                        : array_fill(1, 12, null);
+
+                    // ========================
+                    // HITUNG ACTUAL & ACHIEVEMENT
+                    // ========================
+                    $values = collect($kpi['ach'])
+                        ->filter(fn($v) => $v !== null && $v !== '')
+                        ->values()
+                        ->toArray();
+
+                    $actual = app()->make(\App\Services\KPIService::class)->aggregate(
+                        $kpi['calculation_method'] ?? 'last',
+                        $values
+                    );
+
+                    $achievementValue = $isEmptyAchievement
+                        ? 0
+                        : app()->make(\App\Services\KPIService::class)->achievement(
+                            $actual,
+                            (float)($kpi['target'] ?? 0),
+                            $kpi['type'] ?? 'Higher Better'
+                        );
+                    
+                    $options = [];
+
+                    if (File::exists($this->path)) {
+                        $options = json_decode(File::get($this->path), true) ?? [];
+                    }
+
+                    $reviewPeriodMap = collect($options['Review Period'] ?? [])
+                        ->flatten(1)
+                        ->pluck('label', 'value')
+                        ->toArray();
+
+                    $calculationMethodMap = collect($options['Calculation Method'] ?? [])
+                        ->flatten(1)
+                        ->pluck('label', 'value')
+                        ->toArray();
+
+                    $kpi['actual'] = round($actual, 2);
+                    $kpi['achievement'] = round($achievementValue, 2);
+
+                    $kpi['review_period_label'] = $reviewPeriodMap[$kpi['review_period'] ?? ''] ?? '-';
+                    $kpi['calculation_method_label'] = $calculationMethodMap[$kpi['calculation_method'] ?? ''] ?? '-';
+                }
+
+                // inject ke item
+                $item->formData = $formData;
+
+                $achievement = $item->achievement;
+
+                if ($achievement) {
+                    $achievement->formatted_created_at = Carbon::parse($achievement->created_at)->format('d M Y g:ia');
+                    $achievement->formatted_updated_at = Carbon::parse($achievement->updated_at)->format('d M Y g:ia');
+
+                    $approver = optional($achievement->approver);
+
+                    $item->achievement->name = $approver->fullname
+                        ? $approver->fullname . ' (' . $approver->employee_id . ')'
+                        : '-';
+
+                    $key = $item->employee_id . '-' . $achievement->current_approver_employee_id;
+
+                    $layerData = $approvalLayers->get($key);
+
+                    $item->achievement->approvalLayer = $layerData->layer ?? null;
+
+                } else {
+                    $item->achievement->name = '-';
+                    $item->achievement->approvalLayer = null;
+                }
+
+                return $item;
+            });
+
+            $route = 'reports-admin.achievement';
         }else {
             $data = collect(); // Empty collection for unknown report types
             $route = 'reports-admin.empty';

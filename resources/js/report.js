@@ -5,7 +5,6 @@ function hideLoader() {
 }
 
 import bootstrap from "bootstrap/dist/js/bootstrap.bundle.min.js";
-import { log } from 'handlebars';
 
 function adminReportType(val) {
     $("#report_type").val(val);
@@ -292,24 +291,98 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function exportExcel() {
-    const exportForm = $("#exportForm");
+
+    const exportBtn = $("#exportBtn");
+
+    exportBtn.prop('disabled', true).text('Processing...');
+
+    
     const reportType = $("#report_type").val();
-    const groupCompany = $("#group_company").val();
-    const company = $("#company").val();
-    const location = $("#location").val();
+    const groupCompany = $("#group_company").val() || [];
+    const company = $("#company").val() || [];
+    const location = $("#location").val() || [];
     const period = $("#filterYear").val();
-    
-    $("#export_report_type").val(reportType);
-    $("#export_group_company").val(groupCompany);
-    $("#export_company").val(company);
-    $("#export_location").val(location);
-    $("#export_period").val(period);
-    
-    // Submit the form
-    exportForm.submit();
+    const csrfToken = document
+    .querySelector('meta[name="csrf-token"]')
+    .getAttribute('content');
+
+    // 🔥 HANDLE ACHIEVEMENT (QUEUE)
+    if (reportType === 'Achievement') {
+
+        // console.log('🚀 Trigger Achievement Export');
+
+        $.ajax({
+            url: "/admin-export",
+            type: "POST",
+            headers: {
+                'X-CSRF-TOKEN': csrfToken
+            },
+            data: {
+                export_report_type: reportType,
+                export_group_company: groupCompany.join(','),
+                export_company: company.join(','),
+                export_location: location.join(','),
+                export_period: period,
+            },
+            success: function(res) {
+
+                // console.log('✅ Queue success:', res);
+
+                alert('Export on process...');
+
+                // 🔥 polling download
+                checkFile(res.file);
+            },
+            error: function(err) {
+
+                console.error('❌ Export error:', err);
+
+                alert('Export gagal');
+            },
+            complete: function() {
+                exportBtn.prop('disabled', false)
+                    .html('<i class="ri-arrow-circle-down-line"></i> Download');
+            }
+        });
+
+    } else {
+
+        console.log('📥 Trigger Normal Export');
+
+        // 🔥 FORM SUBMIT (NON-QUEUE)
+        $("#export_report_type").val(reportType);
+        $("#export_group_company").val(groupCompany.join(','));
+        $("#export_company").val(company.join(','));
+        $("#export_location").val(location.join(','));
+        $("#export_period").val(period);
+
+        $("#exportForm").submit();
+
+        exportBtn.prop('disabled', false)
+            .html('<i class="ri-arrow-circle-down-line"></i> Download');
+    }
 }
 
 window.exportExcel = exportExcel;
+
+function checkFile(filePath) {
+
+    let interval = setInterval(() => {
+
+        $.get('/check-file', { file: filePath }, function(res) {
+
+            if (res.exists) {
+
+                clearInterval(interval);
+
+                window.location.href = '/storage/' + filePath;
+
+            }
+
+        });
+
+    }, 5000);
+}
 
 function handleDeleteEmployeePA(element) {
     var id = element.getAttribute('data-id');
