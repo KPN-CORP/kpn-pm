@@ -28,19 +28,42 @@
                     @foreach ($data as $row)
                     <tr>
                         <td>
-                            <p class="m-0">{{ $row->employee->fullname }} <span class="text-muted">{{ $row->employee_id }}</span></p>
+                            <p class="m-0">{{ optional($row->employee)->fullname ?? '-' }} <span class="text-muted">{{ $row->employee_id ?? '-' }}</span></p>
                         </td>
                         <td class="text-center">
                             <a href="javascript:void(0)" class="btn btn-light btn-sm font-weight-medium" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $row->id }}"><i class="ri-search-line"></i></a>
                         </td>
                         <td class="text-center">
-                            <a href="javascript:void(0)" data-bs-id="achievement-{{ $row->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->achievement->approval_status=='Pending' ? $row->achievement->approval_status : ($row->achievement->approvalLayer ? 'Manager L'.$row->achievement->approvalLayer.' : '.$row->achievement->name : $row->achievement->name) }}" class="badge {{ $row->achievement->approval_status == 'Approved' ? 'bg-success' : 'bg-secondary' }} px-1">{{  $row->achievement->approval_status }}</a>
+                            @php
+                                $achievement = $row->achievement;
+                            @endphp
+
+                            <a href="javascript:void(0)"
+                            data-bs-content="{{
+                                    optional($achievement)->approval_status == 'Pending'
+                                    ? optional($achievement)->approval_status
+                                    : (optional($achievement)->approvalLayer
+                                        ? 'Manager L'.optional($achievement)->approvalLayer.' : '.optional($achievement)->name
+                                        : optional($achievement)->name)
+                                }}"
+                            class="badge {{
+                                    optional($achievement)->approval_status == 'Approved'
+                                    ? 'bg-success'
+                                    : 'bg-secondary'
+                            }}">
+                            {{ optional($achievement)->approval_status ?? '-' }}
+                            </a>
                         </td>
                         <td>
                             {{ $row->period }}
                         </td>
-                        <td class="text-center">{{ $row->achievement->formatted_created_at }}</td>
-                        <td class="text-center">{{ $row->achievement->formatted_updated_at }}</td>
+                        <td class="text-center">
+                            {{ optional($row->achievement)->formatted_created_at ?? '-' }}
+                        </td>
+
+                        <td class="text-center">
+                            {{ optional($row->achievement)->formatted_updated_at ?? '-' }}
+                        </td>
 
                         @php
                             $formDataArr = $row->formData ?? [];
@@ -99,7 +122,7 @@
 
                                                             <div class="col-3">
                                                                 <small class="fw-bold text-uppercase">Target</small>
-                                                                <div>{{ $kpi['target'] ?? '-' }}</div>
+                                                                <div>{{ data_get($kpi, 'target', '-') }}</div>
                                                             </div>
 
                                                             <div class="col-3">
@@ -134,12 +157,12 @@
 
                                                             <div class="col-3">
                                                                 <small class="fw-bold text-uppercase d-block kpi-label mb-1">Review Period</small>
-                                                                <span>{{ $kpi['review_period_label'] }}</span>
+                                                                <span>{{ data_get($kpi, 'review_period_label', '-') }}</span>
                                                             </div>
 
                                                             <div class="col-3">
                                                                 <small class="fw-bold text-uppercase">Calc</small>
-                                                                <div>{{ $kpi['calculation_method_label']}}</div>
+                                                                <div>{{ data_get($kpi, 'calculation_method_label', '-') }}</div>
                                                             </div>
 
                                                         </div>
