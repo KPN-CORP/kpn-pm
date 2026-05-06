@@ -170,10 +170,10 @@ input[type=number] {
                     <div class="col-md-5 col-lg-5 mb-md-0">
                                                 <small class="fw-bold text-uppercase d-block kpi-label mb-1">KPI {{ $index + 1 }}</small>
                                                 <h6 class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">{{ $data['kpi'] }}</h6>
-                                                <p class="text-secondary mb-0" style="white-space: pre-line; font-size: 0.85rem; line-height: 1.5;">{{ $data['description'] ?? '-' }}</p>
+                                                <p class="text-secondary mb-0" style="font-size: 0.85rem; line-height: 1.5;">{{ $data['description'] ?? '-' }}</p>
                                             </div>
-                    <div class="col-md-7 col-lg-7">
-                        <div class="row g-3 mb-3">
+                                            <div class="col-md-7 col-lg-7">
+                                                <div class="row g-3 mb-3">
                                                     <div class="col-3 col-sm-3">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
                                                         <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['target'] }}</span>

@@ -405,13 +405,31 @@ class KPIAchievementController extends Controller
 
     public function approvalAchievement($id)
     {
-        try {
+        // try {
             $parentLink = __('Achievement');
             $link = __('Approval');
 
             $goal = Goal::with('employee')->findOrFail($id);
 
             $formData = json_decode($goal->form_data, true) ?? [];
+
+            $options = json_decode(File::get(base_path('resources/goal.json')), true);
+
+        $reviewPeriodOption = $options['Review Period'] ?? [];
+        $calculationMethodOption = $options['Calculation Method'] ?? [];
+
+        // helper mapping
+        $mapLabel = function ($options, $value) {
+            foreach ($options as $group) {
+                foreach ($group as $opt) {
+                    if ($opt['value'] == $value) return $opt['label'];
+                }
+            }
+            return '-';
+        };
+
+        $achievementData = KPIAchievementService::getByGoal($goal->id) ?? [];
+        $isEmptyAchievement = empty($achievementData);
 
             // ✅ CURRENT
             $achievements = KPIAchievement::where('goal_id', $id)
@@ -421,6 +439,7 @@ class KPIAchievementController extends Controller
 
             // ✅ SNAPSHOT
             $snapshots = KPIAchievementSnapshot::where('goal_id', $id)
+                ->where('approval_status', 'Approved')
                 ->orderByDesc('created_at')
                 ->get()
                 ->groupBy('kpi_id');
@@ -438,6 +457,9 @@ class KPIAchievementController extends Controller
 
                 // INIT AFTER
                 $formData[$i]['months'] = [];
+
+                $formData[$i]['review_period_label'] = $mapLabel($reviewPeriodOption, $row['review_period'] ?? null);
+                $formData[$i]['calculation_method_label'] = $mapLabel($calculationMethodOption, $row['calculation_method'] ?? null);
 
                 foreach ($months as $num => $label) {
                     $formData[$i]['months'][$num] = [
@@ -488,6 +510,44 @@ class KPIAchievementController extends Controller
                     ->pluck('value')
                     ->filter()
                     ->isNotEmpty();
+
+                // init month 1-12
+                for ($m = 1; $m <= 12; $m++) {
+                    $formData[$i]['ach'][$m] = null;
+                    $formData[$i]['attachment'][$m] = null;
+                }
+
+                if ($kpiId && isset($achievements[$kpiId])) {
+
+                    foreach ($achievements[$kpiId] as $ach) {
+                        $month = (int)$ach->month;
+
+                        $formData[$i]['ach'][$month] = $ach->value;
+                        $formData[$i]['attachment'][$month] = $ach->file ?? null;
+
+                    }
+                }
+                
+                $values = collect($formData[$i]['ach'])
+                    ->filter(fn($v) => $v !== null && $v !== '')
+                    ->values()
+                    ->toArray();
+
+                $actual = $this->kpiService->aggregate(
+                    $formData[$i]['calculation_method'] ?? 'last',
+                    $values
+                );
+
+                $achievement = $isEmptyAchievement
+                ? 0
+                : $this->kpiService->achievement(
+                    $actual,
+                    (float)($formData[$i]['target'] ?? 0),
+                    $formData[$i]['type'] ?? 'Higher Better'
+                );
+
+                $formData[$i]['actual'] = empty($values) ? '-' : round($actual, 2);
+                $formData[$i]['achievement'] = empty($values) ? 0 : round($achievement, 2);
             }
             // 🔥 LANGSUNG PAKAI formData (TIDAK PERLU $kpis LAGI)
 
@@ -501,9 +561,9 @@ class KPIAchievementController extends Controller
                 'link' => $link
             ]);
 
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', $e->getMessage());
-        }
+        // } catch (\Exception $e) {
+        //     return redirect()->back()->with('error', $e->getMessage());
+        // }
     }
 
     public function approvalAchievementApprove(Request $request) {
