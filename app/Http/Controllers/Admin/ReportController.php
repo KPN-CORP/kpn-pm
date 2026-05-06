@@ -312,11 +312,8 @@ class ReportController extends Controller
             
             $query = Goal::with([
                 'employee',
-                'achievement' => function ($q) {
-                    $q->whereNotNull('id');
-                },
                 'achievement.approver'
-            ]);
+            ])->whereHas('achievement.approver');
 
             $query->whereHas('employee', function ($q) use ($group_company, $location, $company) {
                 if (!empty($group_company)) {
@@ -421,12 +418,13 @@ class ReportController extends Controller
                 $achievement = $item->achievement;
 
                 if ($achievement) {
+
                     $achievement->formatted_created_at = Carbon::parse($achievement->created_at)->format('d M Y g:ia');
                     $achievement->formatted_updated_at = Carbon::parse($achievement->updated_at)->format('d M Y g:ia');
 
                     $approver = optional($achievement->approver);
 
-                    $item->achievement->name = $approver->fullname
+                    $achievement->name = $approver->fullname
                         ? $approver->fullname . ' (' . $approver->employee_id . ')'
                         : '-';
 
@@ -434,11 +432,21 @@ class ReportController extends Controller
 
                     $layerData = $approvalLayers->get($key);
 
-                    $item->achievement->approvalLayer = $layerData->layer ?? null;
+                    $achievement->approvalLayer = $layerData->layer ?? null;
+
+                    // 🔥 RE-ASSIGN BALIK
+                    $item->achievement = $achievement;
 
                 } else {
-                    $item->achievement->name = '-';
-                    $item->achievement->approvalLayer = null;
+
+                    // 🔥 JANGAN SET KE RELATION LANGSUNG
+                    $item->setRelation('achievement', (object)[
+                        'name' => '-',
+                        'approvalLayer' => null,
+                        'formatted_created_at' => '-',
+                        'formatted_updated_at' => '-',
+                        'approval_status' => '-',
+                    ]);
                 }
 
                 return $item;
