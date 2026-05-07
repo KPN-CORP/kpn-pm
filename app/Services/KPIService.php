@@ -150,7 +150,6 @@ class KPIService
 
         return round((float)$value, 2);
     }
-<<<<<<< HEAD:app/Services/KpiService.php
 
     private static function calculateAverage(array $values, int $reviewPeriod): float
     {
@@ -176,6 +175,3 @@ class KPIService
         return $total / $divisor;
     }
 }
-=======
-}
->>>>>>> ab0515b19d5d78eb144ab251abd3f1ae2025cf6e:app/Services/KPIService.php
