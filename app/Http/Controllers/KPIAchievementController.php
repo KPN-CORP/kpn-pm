@@ -405,7 +405,7 @@ class KPIAchievementController extends Controller
 
     public function approvalAchievement($id)
     {
-        // try {
+        try {
             $parentLink = __('Achievement');
             $link = __('Approval');
 
@@ -527,7 +527,7 @@ class KPIAchievementController extends Controller
 
                     }
                 }
-                
+
                 $values = collect($formData[$i]['ach'])
                     ->filter(fn($v) => $v !== null && $v !== '')
                     ->values()
@@ -561,48 +561,81 @@ class KPIAchievementController extends Controller
                 'link' => $link
             ]);
 
-        // } catch (\Exception $e) {
-        //     return redirect()->back()->with('error', $e->getMessage());
-        // }
-    }
-
-    public function approvalAchievementApprove(Request $request) {
-        try {
-            $request->validate([
-                'goal_id' => 'required|string',
-                'ach' => 'nullable|array'
-            ], []);
-
-            $timeNow = now();
-            $goalID = $request->goal_id;
-            $newValues =  $request->ach;
-
-            $kpiAchievements = KPIAchievement::where("goal_id", $goalID)
-                ->where("approval_status", "Pending")
-                ->whereNull("deleted_at")
-                ->get();
-
-            foreach ($kpiAchievements as $val) {
-                if (isset($newValues[$val->kpi_id]) && isset($newValues[$val->kpi_id][$val->month])) {
-
-                    $rawValue = $newValues[$val->kpi_id][$val->month];
-
-                    $val->value = $this->kpiService->normalizeDecimal($rawValue);
-                }
-
-                if ($request->messages) {
-                    $val->approval_info = $request->messages;
-                }
-
-                $val->approval_status = "Approved";
-                $val->approval_date = $timeNow;
-
-                $val->save();
-            }
-
-            return redirect('team-goals')->with('success', 'Achievements approved successfully');
-        } catch (Exception $e) {
+        } catch (\Exception $e) {
             return redirect()->back()->with('error', $e->getMessage());
         }
     }
+
+    public function approvalAchievementApprove(Request $request)
+{
+    try {
+
+        DB::beginTransaction();
+
+        $request->validate([
+            'goal_id' => 'required|string',
+            'ach' => 'nullable|array'
+        ], []);
+
+        $timeNow = now();
+        $goalID = $request->goal_id;
+        $newValues = $request->ach;
+
+        $kpiAchievements = KPIAchievement::where("goal_id", $goalID)
+            ->where("approval_status", "Pending")
+            ->whereNull("deleted_at")
+            ->get();
+
+        foreach ($kpiAchievements as $val) {
+
+            // ================= INSERT SNAPSHOT =================
+            KPIAchievementSnapshotService::insertOne(
+                $val,
+                $this->user,
+                Auth::id()
+            );
+
+            // ================= UPDATE VALUE =================
+            if (
+                isset($newValues[$val->kpi_id]) &&
+                isset($newValues[$val->kpi_id][$val->month])
+            ) {
+
+                $rawValue = $newValues[$val->kpi_id][$val->month];
+
+                $val->value = $this->kpiService->normalizeDecimal($rawValue);
+            }
+
+            // ================= APPROVAL INFO =================
+            if ($request->messages) {
+                $val->approval_info = $request->messages;
+            }
+
+            // ================= APPROVAL STATUS =================
+            $val->approval_status = "Approved";
+            $val->approval_date = $timeNow;
+
+            $val->save();
+        }
+
+        DB::commit();
+
+        return redirect('team-goals')
+            ->with('success', 'Achievements approved successfully');
+
+    } catch (\Throwable $e) {
+
+        DB::rollBack();
+
+        Log::error('Approval Achievement Error', [
+            'message' => $e->getMessage(),
+            'line' => $e->getLine(),
+            'file' => $e->getFile(),
+        ]);
+
+        return redirect()
+            ->back()
+            ->with('error', $e->getMessage());
+    }
+}
 }
