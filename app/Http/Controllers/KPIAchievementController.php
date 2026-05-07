@@ -157,12 +157,14 @@ class KPIAchievementController extends Controller
         // KPI dari goal
         $formData = json_decode($goal->form_data, true);
 
-        // ðŸ”¥ group by kpi_id (SUDAH BENAR)
         $achievements = KPIAchievement::where('goal_id', $id)
             ->get()
             ->groupBy('kpi_id');
 
-        // load options
+        $approvalInfo = KPIAchievement::where('goal_id', $id)
+            ->first();
+
+            // load options
         $options = json_decode(File::get(base_path('resources/goal.json')), true);
 
         $reviewPeriodOption = $options['Review Period'] ?? [];
@@ -183,7 +185,6 @@ class KPIAchievementController extends Controller
 
         foreach ($formData as $i => $row) {
 
-            // ðŸ”¥ WAJIB: pastikan ada kpi_id
             $kpiId = $row['kpi_id'] ?? null;
 
             $formData[$i]['kpi_id'] = $kpiId;
@@ -198,7 +199,6 @@ class KPIAchievementController extends Controller
                 $formData[$i]['attachment'][$m] = null;
             }
 
-            // ðŸ”¥ FIX: pakai kpi_id, bukan index
             if ($kpiId && isset($achievements[$kpiId])) {
 
                 foreach ($achievements[$kpiId] as $ach) {
@@ -217,7 +217,7 @@ class KPIAchievementController extends Controller
 
             $actual = $this->kpiService->aggregate(
                 $formData[$i]['calculation_method'] ?? 'last',
-                $values
+                $values, $row['review_period'] ?? null
             );
 
             $achievement = $isEmptyAchievement
@@ -238,7 +238,8 @@ class KPIAchievementController extends Controller
             'formData',
             'goal',
             'id',
-            'selfUpdate'
+            'selfUpdate',
+            'approvalInfo'
         ));
     }
 
@@ -358,7 +359,6 @@ class KPIAchievementController extends Controller
                         } else if ($status == "Pending") {
                             $existing->created_by = Auth::id();
                             $existing->approval_date = null;
-                            $existing->approval_info = null;
                         }
 
                         $existing->save();
@@ -392,7 +392,7 @@ class KPIAchievementController extends Controller
 
             DB::rollBack();
 
-            // log error (penting untuk debugging production)
+            // log error
             Log::error('Bulk KPI Achievement Error', [
                 'message' => $e->getMessage(),
                 'line' => $e->getLine(),
@@ -406,10 +406,7 @@ class KPIAchievementController extends Controller
     public function approvalAchievement($id)
     {
         try {
-            $parentLink = __('Achievement');
-            $link = __('Approval');
-
-            $goal = Goal::with('employee')->findOrFail($id);
+            $goal = Goal::with('employee.managerL1')->findOrFail($id);
 
             $formData = json_decode($goal->form_data, true) ?? [];
 
@@ -429,7 +426,16 @@ class KPIAchievementController extends Controller
         };
 
         $achievementData = KPIAchievementService::getByGoal($goal->id) ?? [];
+
+        $approvalInfo = KPIAchievement::where('goal_id', $goal->id)
+            ->value('approval_info');
+
         $isEmptyAchievement = empty($achievementData);
+
+        $isManager = KPIAchievement::where('goal_id', $goal->id)
+                ->where('approval_status', 'Pending')
+                ->where('current_approver_employee_id', $this->user)
+                ->exists();
 
             // ✅ CURRENT
             $achievements = KPIAchievement::where('goal_id', $id)
@@ -535,7 +541,7 @@ class KPIAchievementController extends Controller
 
                 $actual = $this->kpiService->aggregate(
                     $formData[$i]['calculation_method'] ?? 'last',
-                    $values
+                    $values, $row['review_period'] ?? null
                 );
 
                 $achievement = $isEmptyAchievement
@@ -549,16 +555,19 @@ class KPIAchievementController extends Controller
                 $formData[$i]['actual'] = empty($values) ? '-' : round($actual, 2);
                 $formData[$i]['achievement'] = empty($values) ? 0 : round($achievement, 2);
             }
-            // 🔥 LANGSUNG PAKAI formData (TIDAK PERLU $kpis LAGI)
 
             $employee = $goal->employee;
+            $parentLink = $isManager ? __('Achievement') : __('On Behalf');
+            $link = __('Approval');
 
             return view('pages.goals.approval-achievement', [
                 'kpis' => $formData,
                 'employee' => $employee,
+                'approvalInfo' => $approvalInfo,
                 'id' => $id,
                 'parentLink' => $parentLink,
-                'link' => $link
+                'link' => $link,
+                'isManager' => $isManager
             ]);
 
         } catch (\Exception $e) {
@@ -567,75 +576,92 @@ class KPIAchievementController extends Controller
     }
 
     public function approvalAchievementApprove(Request $request)
-{
-    try {
+    {
+        try {
 
-        DB::beginTransaction();
+            DB::beginTransaction();
 
-        $request->validate([
-            'goal_id' => 'required|string',
-            'ach' => 'nullable|array'
-        ], []);
+            $request->validate([
+                'goal_id' => 'required|string',
+                'ach' => 'nullable|array'
+            ]);
 
-        $timeNow = now();
-        $goalID = $request->goal_id;
-        $newValues = $request->ach;
+            $timeNow = now();
 
-        $kpiAchievements = KPIAchievement::where("goal_id", $goalID)
-            ->where("approval_status", "Pending")
-            ->whereNull("deleted_at")
-            ->get();
+            $goalID = $request->goal_id;
 
-        foreach ($kpiAchievements as $val) {
+            $newValues = $request->ach;
 
-            // ================= INSERT SNAPSHOT =================
-            KPIAchievementSnapshotService::insertOne(
-                $val,
-                $this->user,
-                Auth::id()
-            );
+            $sendbackMessage = $request->sendback_message;
 
-            // ================= UPDATE VALUE =================
-            if (
-                isset($newValues[$val->kpi_id]) &&
-                isset($newValues[$val->kpi_id][$val->month])
-            ) {
+            // ================= APPROVER VALIDATION =================
 
-                $rawValue = $newValues[$val->kpi_id][$val->month];
+            $hasInvalidApprover = KPIAchievement::where('goal_id', $goalID)
+                ->where('approval_status', 'Pending')
+                ->where('current_approver_employee_id', '!=', $this->user)
+                ->exists();
 
-                $val->value = $this->kpiService->normalizeDecimal($rawValue);
+            // ================= GET DATA =================
+
+            $kpiAchievements = KPIAchievement::where("goal_id", $goalID)
+                ->where("approval_status", "Pending")
+                ->whereNull("deleted_at")
+                ->get();
+
+            foreach ($kpiAchievements as $val) {
+
+                KPIAchievementSnapshotService::insertOne(
+                    $val,
+                    $this->user,
+                    Auth::id()
+                );
+
+                if (
+                    isset($newValues[$val->kpi_id]) &&
+                    isset($newValues[$val->kpi_id][$val->month])
+                ) {
+
+                    $rawValue = $newValues[$val->kpi_id][$val->month];
+
+                    $val->value = $this->kpiService->normalizeDecimal($rawValue);
+                }
+
+                if ($request->messages) {
+                    $val->approval_info = $request->messages;
+                }
+
+                if ($sendbackMessage) {
+                    $val->approval_info = $sendbackMessage;
+                    $val->approval_status = "Draft";
+                } else {
+                    $val->approval_info = null;
+                    $val->approval_status = "Approved";
+                }
+
+                $val->approval_date = $timeNow;
+
+                $val->save();
             }
 
-            // ================= APPROVAL INFO =================
-            if ($request->messages) {
-                $val->approval_info = $request->messages;
+            DB::commit();
+
+            if ($hasInvalidApprover) {
+
+                return redirect()
+                    ->route('onbehalf')
+                    ->with('success', 'Achievements approved successfully');
             }
 
-            // ================= APPROVAL STATUS =================
-            $val->approval_status = "Approved";
-            $val->approval_date = $timeNow;
+            return redirect('team-goals')
+                ->with('success', 'Achievements approved successfully');
 
-            $val->save();
+        } catch (\Throwable $e) {
+
+            DB::rollBack();
+
+            return redirect()
+                ->back()
+                ->with('error', $e->getMessage());
         }
-
-        DB::commit();
-
-        return redirect('team-goals')
-            ->with('success', 'Achievements approved successfully');
-
-    } catch (\Throwable $e) {
-
-        DB::rollBack();
-
-        Log::error('Approval Achievement Error', [
-            'message' => $e->getMessage(),
-            'line' => $e->getLine(),
-            'file' => $e->getFile(),
-        ]);
-
-        return redirect()
-            ->back()
-            ->with('error', $e->getMessage());
     }
-}
 }

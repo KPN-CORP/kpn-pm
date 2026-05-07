@@ -55,7 +55,8 @@ class AchievementReportExport implements FromQuery, WithMapping, WithHeadings, W
     public function query()
     {
         $query = Goal::with('employee')
-            ->where('period', $this->period ?? date('Y'));
+            ->where('period', $this->period ?? date('Y'))
+            ->whereHas('achievement');
 
         $query->whereHas('employee', function ($q) {
             if (!empty($this->permissionGroupCompanies)) {
@@ -87,6 +88,8 @@ class AchievementReportExport implements FromQuery, WithMapping, WithHeadings, W
         $formData       = json_decode($item->form_data, true) ?? [];
         $achievementData = KPIAchievementService::getByGoal($item->id) ?? [];
 
+        $isEmptyAchievement = empty($achievementData);
+
         $reviewPeriodMap = collect($this->options['Review Period'] ?? [])
             ->flatten(1)
             ->pluck('label', 'value')
@@ -112,10 +115,12 @@ class AchievementReportExport implements FromQuery, WithMapping, WithHeadings, W
 
             $actual = app(KPIService::class)->aggregate(
                 $kpi['calculation_method'] ?? 'last',
-                $values
+                $values, $kpi['review_period'] ?? null
             );
 
-            $achievement = app(KPIService::class)->achievement(
+            $achievement = $isEmptyAchievement
+            ? 0
+            : app(KPIService::class)->achievement(
                 $actual,
                 (float)($kpi['target'] ?? 0),
                 $kpi['type'] ?? 'Higher Better'

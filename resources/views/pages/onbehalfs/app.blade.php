@@ -22,6 +22,7 @@
                   <select name="category" id="category" onchange="changeCategory(this.value)" class="form-select border-dark-subtle" @style('width: 120px')>
                       <option value="">- select -</option>
                       <option value="Goals">Goals</option>
+                      <option value="Achievement">Achievement</option>
                       <option value="Appraisal">Appraisal</option>
                       <option value="Rating">Rating</option>
                   </select>

@@ -7,21 +7,33 @@ use App\Models\KPIAchievement;
 
 class KPIService
 {
-    public static function aggregate($method, $values)
+    public static function aggregate(
+        string $method,
+        array $values,
+        ?int $reviewPeriod = null
+    ): float
     {
-        if (empty($values)) return 0;
+        if (empty($values)) {
+            return 0;
+        }
 
         return match ($method) {
-            'average' => array_sum($values) / count($values),
-            'sum'     => array_sum($values),
-            'last'    => end($values),
-            'max'     => max($values),
-            'min'     => min($values),
-            default   => 0,
+
+            'average' => self::calculateAverage($values, $reviewPeriod),
+
+            'sum' => array_sum($values),
+
+            'last' => (float) end($values),
+
+            'max' => max($values),
+
+            'min' => min($values),
+
+            default => 0,
         };
     }
 
-    public static function achievement($actual, $target, $type)
+    public static function achievement(float $actual, float $target, string $type)
     {
         if ($target == 0) return 0;
 
@@ -33,17 +45,17 @@ class KPIService
         };
     }
 
-    public static function normalize($score)
+    public static function normalize(float $score): float
     {
         return min(max($score, 0), 150); // cap 150%
     }
 
-    public static function finalScore($normalized, $weight)
+    public static function finalScore(float $normalized, float $weight)
     {
         return ($normalized * $weight) / 100;
     }
 
-    public static function calculate($goalId)
+    public static function calculate(string $goalId)
     {
         $goal = Goal::findOrFail($goalId);
         $formData = json_decode($goal->form_data, true);
@@ -67,8 +79,8 @@ class KPIService
                 ->toArray();
 
             $actual = self::aggregate(
-                $kpi['calculation_method'],
-                $values
+                $kpi['calculation_method'] ?? 'last',
+                $values, $kpi['review_period'] ?? null
             );
 
             $achievement = self::achievement(
@@ -105,7 +117,7 @@ class KPIService
         ];
     }
 
-    function layerApproval($employeeId)
+    function layerApproval(string $employeeId)
     {
         $approvalLayer = ApprovalLayer::query()
             ->where('employee_id', $employeeId)
@@ -119,7 +131,7 @@ class KPIService
         return $approvalLayer->approver_id;
     }
 
-    function normalizeDecimal($value)
+    function normalizeDecimal(float $value): ?float
     {
         if ($value === null || $value === '') {
             return null;
@@ -138,4 +150,32 @@ class KPIService
 
         return round((float)$value, 2);
     }
+<<<<<<< HEAD:app/Services/KpiService.php
+
+    private static function calculateAverage(array $values, int $reviewPeriod): float
+    {
+        $total = array_sum($values);
+
+        $divisor = match ((int) $reviewPeriod) {
+
+            1 => 12, // Monthly
+
+            2 => 6,  // Bi-Monthly
+
+            3 => 4,  // Quarterly
+
+            6 => 2,  // Semester
+
+            default => count($values),
+        };
+
+        if ($divisor <= 0) {
+            return 0;
+        }
+
+        return $total / $divisor;
+    }
 }
+=======
+}
+>>>>>>> ab0515b19d5d78eb144ab251abd3f1ae2025cf6e:app/Services/KPIService.php

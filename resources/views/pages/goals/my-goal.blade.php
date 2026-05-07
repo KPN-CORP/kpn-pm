@@ -145,7 +145,8 @@
                 $formData = json_decode($row->request->goal['form_data'], true);
                 $achievement = $row->request->achievement_status ?? [];
 
-                $status = $achievement['approval_status'] ?? null;
+                $achievementStatus = $achievement['approval_status'] ?? null;
+                $achievementApprovalInfo = $achievement['approval_info'] ?? null;
                 $approver = $achievement['current_approver_employee'] ?? '-';
                 $date = isset($achievement['approval_date'])
                 ? \Carbon\Carbon::parse($achievement['approval_date'])->format('d M Y H:i')
@@ -158,9 +159,9 @@
                 @if ($period == $row->request->goal->period && !$row->request->appraisalCheck && $access)
                     @if (Auth::user()->employee_id == $row->request->initiated->employee_id)
                         <div class="d-flex flex-wrap gap-2">
-                            @if (!$achievement || $status === 'Approved' || $achievementCreatedBy ?? $achievementCreatedBy === Auth::id())
-                                <a class="btn btn-outline-{{ $row->request->goal->form_status === 'Approved' ? 'success fw-semibold' : 'secondary' }} btn-sm" href="{{ route('goals.update-achievement', $row->request->goal->id) }}">
-                                    {{ __('Update Achievement') }}
+                            @if (!$achievement || $achievementStatus === 'Approved' || $achievementCreatedBy ?? $achievementCreatedBy === Auth::id())
+                                <a class="btn btn-outline-{{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? 'warning' : ($row->request->goal->form_status === 'Approved' ? 'success fw-semibold' : 'secondary') }} btn-sm" href="{{ route('goals.update-achievement', $row->request->goal->id) }}">
+                                    {{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? __('Revise Achievement') : __('Update Achievement') }}
                                 </a>
                             @endif
                                 @if (
@@ -252,9 +253,9 @@
                                 <small class="text-muted fw-bold text-uppercase d-block mb-1" style="font-size: 0.7rem;">Achievement Status</small>
                                 <div>
                                     @php
-                                        $label = $status ?? 'No Data';
+                                        $label = $achievementApprovalInfo && $achievementStatus == 'Draft' ? 'Waiting your revision' : ($achievementStatus ?? 'No Data');
 
-                                        $badgeClass = match ($status) {
+                                        $badgeClass = match ($achievementStatus) {
                                             'Approved' => 'bg-success',
                                             'Pending' => 'bg-warning',
                                             'Rejected' => 'bg-danger',
@@ -264,18 +265,18 @@
                                         $userId = Auth::user()->id;
 
                                         $popover = match (true) {
-                                            $status === 'Approved' => "
+                                            $achievementStatus === 'Approved' => "
                                                 <strong>Approver:</strong> {$approver}<br>
                                                 <strong>Status:</strong> {$label}<br>
                                                 <strong>Approval Date:</strong> {$date}
                                             ",
 
-                                            $status === 'Pending' => "
+                                            $achievementStatus === 'Pending' => "
                                                 <strong>Approver:</strong> {$approver}<br>
                                                 <strong>Status:</strong> {$label}<br>
                                             ",
 
-                                            $status === 'Draft' && $achievementCreatedBy !== $userId => "
+                                            $achievementStatus === 'Draft' && $achievementCreatedBy !== $userId => "
                                                 <strong>Created By:</strong> {$approver}<br>
                                                 <strong>Status:</strong> {$label}<br>
                                             ",
@@ -302,8 +303,14 @@
                         </div>
                         @if ($row->request->sendback_messages && $row->request->sendback_to == $row->request->employee_id && !$row->request->appraisalCheck)
                             <div class="alert alert-warning border-0 mt-3 p-3">
-                                <strong class="d-block mb-1"><i class="ri-feedback-line me-1"></i> Revision Notes:</strong>
+                                <strong class="d-block mb-1"><i class="ri-feedback-line me-1"></i> Goal Revision Notes:</strong>
                                 <span class="text-dark">{{ $row->request->sendback_messages }}</span>
+                            </div>
+                        @endif
+                        @if ($achievementApprovalInfo)
+                            <div class="alert alert-warning border-0 mt-3 p-3">
+                                <strong class="d-block mb-1"><i class="ri-feedback-line me-1"></i> Achievement Revision Notes:</strong>
+                                <span class="text-dark">{{ $achievementApprovalInfo }}</span>
                             </div>
                         @endif
                         <div class="card-footer bg-light border-top d-flex p-2">

@@ -378,7 +378,7 @@ class ReportController extends Controller
 
                     $actual = $this->kpiService->aggregate(
                         $kpi['calculation_method'] ?? 'last',
-                        $values
+                        $values, $kpi['review_period'] ?? null
                     );
 
                     $achievementValue = $isEmptyAchievement

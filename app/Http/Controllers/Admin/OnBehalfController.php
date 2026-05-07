@@ -20,6 +20,8 @@ use App\Models\Location;
 use App\Models\MasterRating;
 use App\Models\User;
 use App\Services\AppService;
+use App\Services\KPIAchievementService;
+use App\Services\KPIService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\RedirectResponse;
@@ -46,13 +48,17 @@ class OnBehalfController extends Controller
     protected $category;
     protected $appService;
     protected $user;
+    protected $kpiService;
+    protected $path;
     
-    public function __construct(AppService $appService)
+    public function __construct(AppService $appService, KPIService $kpiService)
     {
+        $this->kpiService = $kpiService;
         $this->category = 'Goals';
         $this->appService = $appService;
         $this->roles = Auth::user()->roles;
         $this->user = Auth::user();
+        $this->path = base_path('resources/goal.json');
         
         $restrictionData = [];
         if(!is_null($this->roles)){
@@ -407,6 +413,158 @@ class OnBehalfController extends Controller
                 'data' => collect($data)->take(5), // limit preview in log
             ]);
         }
+
+        if ($filterCategory == 'Achievement') {
+            
+            $query = Goal::with([
+                'employee',
+                'achievement.approver'
+            ])->whereHas('achievement.approver');
+
+            $query->whereHas('employee', function ($q) use ($group_company, $location, $company) {
+                if (!empty($group_company)) {
+                    $q->whereIn('group_company', $group_company);
+                }
+
+                if (!empty($location)) {
+                    $q->whereIn('work_area_code', $location);
+                }
+
+                if (!empty($company)) {
+                    $q->whereIn('contribution_level_code', $company);
+                }
+            });
+
+            $query->where('period', $period ?? date('Y'));
+
+            $data = $query->get();
+
+            $approvalLayers = ApprovalLayer::whereIn(
+                'employee_id',
+                $data->pluck('employee_id')->filter()->unique()
+            )
+            ->where('layer', 1)
+            ->get()
+            ->keyBy(function ($item) {
+                return $item->employee_id . '-' . $item->approver_id;
+            });
+
+            $data->map(function($item) use ($approvalLayers) {
+
+                $formData = json_decode($item->form_data, true) ?? [];
+
+                // ambil achievement KPI (service kamu)
+                $achievementData = KPIAchievementService::getByGoal($item->id) ?? [];
+                $isEmptyAchievement = empty($achievementData);
+
+                foreach ($formData as &$kpi) {
+
+                    $kpiId = $kpi['kpi_id'] ?? null;
+
+                    // inject monthly achievement
+                    $kpi['ach'] = $kpiId && isset($achievementData[$kpiId]['ach'])
+                        ? $achievementData[$kpiId]['ach']
+                        : array_fill(1, 12, null);
+
+                    $kpi['attachment'] = $kpiId && isset($achievementData[$kpiId]['attachment'])
+                        ? $achievementData[$kpiId]['attachment']
+                        : array_fill(1, 12, null);
+
+                    $kpi['approval_status'] = $kpiId && isset($achievementData[$kpiId]['approval_status'])
+                        ? $achievementData[$kpiId]['approval_status']
+                        : array_fill(1, 12, null);
+
+                    // ========================
+                    // HITUNG ACTUAL & ACHIEVEMENT
+                    // ========================
+                    $values = collect($kpi['ach'])
+                        ->filter(fn($v) => $v !== null && $v !== '')
+                        ->values()
+                        ->toArray();
+
+                    $actual = $this->kpiService->aggregate(
+                        $kpi['calculation_method'] ?? 'last',
+                        $values, $kpi['review_period'] ?? null
+                    );
+
+                    $achievementValue = $isEmptyAchievement
+                        ? 0
+                        : $this->kpiService->achievement(
+                            $actual,
+                            (float)($kpi['target'] ?? 0),
+                            $kpi['type'] ?? 'Higher Better'
+                        );
+                    
+                    $options = [];
+
+                    if (File::exists($this->path)) {
+                        $options = json_decode(File::get($this->path), true) ?? [];
+                    }
+
+                    $reviewPeriodMap = collect($options['Review Period'] ?? [])
+                        ->flatten(1)
+                        ->pluck('label', 'value')
+                        ->toArray();
+
+                    $calculationMethodMap = collect($options['Calculation Method'] ?? [])
+                        ->flatten(1)
+                        ->pluck('label', 'value')
+                        ->toArray();
+
+                    $kpi['actual'] = round($actual, 2);
+                    $kpi['achievement'] = round($achievementValue, 2);
+
+                    $kpi['review_period_label'] = $reviewPeriodMap[$kpi['review_period'] ?? ''] ?? '-';
+                    $kpi['calculation_method_label'] = $calculationMethodMap[$kpi['calculation_method'] ?? ''] ?? '-';
+                }
+
+                // inject ke item
+                $item->formData = $formData;
+
+                $achievement = $item->achievement;
+
+                if ($achievement) {
+
+                    $achievement->formatted_created_at = Carbon::parse($achievement->created_at)->format('d M Y g:ia');
+                    $achievement->formatted_updated_at = Carbon::parse($achievement->updated_at)->format('d M Y g:ia');
+
+                    $approver = optional($achievement->approver);
+
+                    $achievement->name = $approver->fullname
+                        ? $approver->fullname . ' (' . $approver->employee_id . ')'
+                        : '-';
+
+                    $key = $item->employee_id . '-' . $achievement->current_approver_employee_id;
+
+                    $layerData = $approvalLayers->get($key);
+
+                    $achievement->approvalLayer = $layerData->layer ?? null;
+
+                    // 🔥 RE-ASSIGN BALIK
+                    $item->achievement = $achievement;
+
+                } else {
+
+                    // 🔥 JANGAN SET KE RELATION LANGSUNG
+                    $item->setRelation('achievement', (object)[
+                        'name' => '-',
+                        'approvalLayer' => null,
+                        'formatted_created_at' => '-',
+                        'formatted_updated_at' => '-',
+                        'approval_status' => '-',
+                    ]);
+                }
+
+                return $item;
+            });
+
+            Log::info('OnBehalf - Appraisal Data:', [
+                'category' => $category,
+                'filter_category' => $filterCategory,
+                'count' => count($data),
+                'data' => collect($data)->take(5), // limit preview in log
+            ]);
+        }
     
         
         $locations = $this->locations;
@@ -419,6 +577,8 @@ class OnBehalfController extends Controller
             return view('pages.onbehalfs.appraisal', compact('data', 'link', 'parentLink', 'locations', 'companies', 'groupCompanies'));
         } elseif ($filterCategory == 'Rating') {
             return view('pages.onbehalfs.calibrator', compact('data', 'link', 'parentLink', 'locations', 'companies', 'groupCompanies'));
+        } elseif ($filterCategory == 'Achievement') {
+            return view('pages.onbehalfs.achievement', compact('data', 'link', 'parentLink', 'locations', 'companies', 'groupCompanies'));
         } else {
             return view('pages.onbehalfs.empty');
         }
