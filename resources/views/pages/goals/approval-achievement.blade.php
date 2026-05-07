@@ -271,14 +271,15 @@
                                         class="ri-file-edit-line me-1"></i>Current Achievement</h6>
                             </div>
 
-                            <div class="row g-2">
+                            <div class="row g-2" id="kpi_grid_{{$i}}"
+    data-review-period="{{$data['review_period']}}">
                                 @foreach($data['months'] as $monthIdx => $month)
                                 <div class="col-xl-1 col-lg-2 col-md-3 col-4">
                                     <div class="month-box border-primary border-opacity-25">
                                         <span class="month-label text-primary">{{ $month['label'] }}</span>
 
                                         <input type="text" name="ach[{{$data['kpi_id']}}][{{$monthIdx}}]"
-                                            value="{{ $month['value'] ?? '' }}" class="month-input" placeholder="-">
+                                            value="{{ $month['value'] ?? '' }}" class="month-input input-compact" placeholder="-" data-month="{{ $monthIdx }}">
 
                                         @if(!empty($month['file']))
                                         <a href="{{ asset('storage/'.$month['file']) }}" target="_blank"
@@ -373,14 +374,15 @@
                 <div class="col-12">
                     <div class="card border-primary border-opacity-50 bg-white shadow-sm h-100">
                         <div class="card-body p-2">
-                            <div class="row g-2">
+                            <div class="row g-2" id="kpi_grid_{{$i}}"
+    data-review-period="{{$data['review_period']}}">
                                 @foreach($data['months'] as $monthIdx => $month)
                                 <div class="col-xl-1 col-lg-2 col-md-3 col-4">
                                     <div class="month-box border-primary border-opacity-25">
                                         <span class="month-label text-primary">{{ $month['label'] }}</span>
 
                                         <input type="text" name="ach[{{$data['kpi_id']}}][{{$monthIdx}}]"
-                                            value="{{ $month['value'] ?? '' }}" class="month-input" placeholder="-">
+                                            value="{{ $month['value'] ?? '' }}" class="month-input input-compact" data-month="{{ $monthIdx }}" placeholder="-">
 
                                         @if(!empty($month['file']))
                                         <a href="{{ asset('storage/'.$month['file']) }}" target="_blank"
@@ -437,6 +439,84 @@
 @endsection
 
 @push('scripts')
+<script>
+
+document.addEventListener('DOMContentLoaded', function () {
+
+    document.querySelectorAll('[id^="kpi_grid_"]').forEach(grid => {
+        applyReviewPeriod(grid);
+    });
+
+});
+
+function applyReviewPeriod(grid) {
+
+    const reviewPeriod = parseInt(grid.dataset.reviewPeriod);
+
+    // current month (1-12)
+    const currentMonth = new Date().getMonth() + 1;
+
+    grid.querySelectorAll('.month-box').forEach(box => {
+
+        const input = box.querySelector('.input-compact');
+
+        if (!input) return;
+
+        const month = parseInt(input.dataset.month);
+
+        let isActive = false;
+
+        // ================= REVIEW PERIOD RULE =================
+
+        if (reviewPeriod === 1) {
+
+            isActive = true;
+
+        } else if (reviewPeriod === 2) {
+
+            isActive = (month % 2 === 0);
+
+        } else if (reviewPeriod === 3) {
+
+            isActive = (month % 3 === 0);
+
+        } else if (reviewPeriod === 6) {
+
+            isActive = (month % 6 === 0);
+
+        } else if (reviewPeriod === 12) {
+
+            isActive = (month === 12);
+        }
+
+        // ================= CURRENT / PAST ONLY =================
+
+        const isPastOrCurrent = month <= currentMonth;
+
+        // ================= APPLY =================
+
+        if (isActive && isPastOrCurrent) {
+
+            // ✅ ENABLE
+            input.removeAttribute('disabled');
+
+            box.classList.remove('readonly-mode');
+            box.classList.add('edit-mode-active');
+
+        } else {
+
+            // ❌ DISABLE
+            input.setAttribute('disabled', true);
+
+            box.classList.remove('edit-mode-active');
+            box.classList.add('readonly-mode');
+            box.classList.add('month-box-old');
+        }
+
+    });
+}
+
+</script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll('.mini-progress-bar').forEach(function (el) {
