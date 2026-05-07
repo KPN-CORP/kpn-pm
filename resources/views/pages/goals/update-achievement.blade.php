@@ -149,6 +149,13 @@ input[type=number] {
         <h4 class="m-0 font-weight-bold text-primary">{{ __('Update Achievement') }}</h4>
     </div>
 
+    @if ($approvalInfo)
+        <div class="alert alert-warning border-0 mt-3 p-3">
+            <strong class="d-block mb-1"><i class="ri-feedback-line me-1"></i> Achievement Revision Notes:</strong>
+            <span class="text-dark">{{ $approvalInfo->approval_info }}</span>
+        </div>
+    @endif
+
     <form id="achievementForm" action="{{ route('achievement.bulk-store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         @php

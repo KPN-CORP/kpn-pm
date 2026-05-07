@@ -182,17 +182,17 @@
                                 </div>
                                 <div class="col-12 col-md-3 d-flex flex-wrap gap-1 justify-content-md-end mt-2 mt-md-0">
                                     @if ($period == $goalPeriod && $formStatus != 'Draft' && $status != 'Sendback' && !$appraisalCheck && $goals)
-                                        <a class="btn btn-sm btn-outline-warning fw-semibold {{ (Auth::user()->employee_id == ($firstSubordinate->initiated->employee_id ?? null) || Auth::user()->employee_id == ($task->employee->managerL1->employee_id ?? null)) ? '' : 'd-none' }}" href="{{ route('goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Revise Goals') }}</a>
+                                        <a class="btn btn-sm btn-outline-warning fw-semibold {{ (Auth::user()->employee_id == ($firstSubordinate->initiated->employee_id ?? null)) ? '' : 'd-none' }}" href="{{ route('goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Revise Goals') }}</a>
                                     @endif
 
                                     @if ($period == $goalPeriod && $task->employee->employee_id == Auth::user()->employee_id || !$subordinates->isNotEmpty() || $formStatus == 'Draft')
                                         @if ($formStatus == 'submitted' || $formStatus == 'Approved' || $appraisalCheck)
                                             <a href="javascript:void(0)" class="btn btn-outline-secondary btn-sm" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                         @endif
-                                        <a class="btn btn-sm btn-outline-warning fw-semibold {{ (Auth::user()->employee_id == ($firstSubordinate->initiated->employee_id ?? null) || Auth::user()->employee_id == ($task->employee->managerL1->employee_id ?? null)) ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Edit') }}</a>
+                                        <a class="btn btn-sm btn-outline-warning fw-semibold {{ (Auth::user()->employee_id == ($firstSubordinate->initiated->employee_id ?? null)) ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Edit') }}</a>
                                     @else
-                                        @if ($period == $goalPeriod && $approverId == Auth::user()->employee_id && $status === 'Pending' || $sendbackTo == Auth::user()->employee_id && $status === 'Sendback' || !$subordinates->isNotEmpty() || (Auth::user()->employee_id == ($firstSubordinate->initiated->employee_id ?? null) || Auth::user()->employee_id == ($task->employee->managerL1->employee_id ?? null)) && $status === 'Sendback' && $task->employee->employee_id != Auth::user()->employee_id)
-                                            <a class="btn btn-sm btn-outline-warning fw-semibold {{ (Auth::user()->employee_id == ($firstSubordinate->initiated->employee_id ?? null) || Auth::user()->employee_id == ($task->employee->managerL1->employee_id ?? null)) ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ $status === 'Sendback' ? __('Revise Goals') : __('Edit') }}</a>
+                                        @if ($period == $goalPeriod && $approverId == Auth::user()->employee_id && $status === 'Pending' || $sendbackTo == Auth::user()->employee_id && $status === 'Sendback' || !$subordinates->isNotEmpty() || (Auth::user()->employee_id == ($firstSubordinate->initiated->employee_id ?? null)) && $status === 'Sendback' && $task->employee->employee_id != Auth::user()->employee_id)
+                                            <a class="btn btn-sm btn-outline-warning fw-semibold {{ (Auth::user()->employee_id == ($firstSubordinate->initiated->employee_id ?? null)) ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ $status === 'Sendback' ? __('Revise Goals') : __('Edit') }}</a>
                                             
                                             @if ($status != 'Sendback' && Auth::user()->employee_id != ($firstSubordinate->initiated->employee_id ?? null) && !$appraisalCheck)
                                                 <a href="{{ route('team-goals.approval', $goalId) }}" class="btn btn-sm btn-primary fw-medium" onclick="showLoader()">Approve Goal</a>
@@ -267,7 +267,10 @@
                     @foreach ($tasks as $index => $task)
                         @php
                             $subordinates = $task->subordinates;
-                            $firstSubordinate = $subordinates->isNotEmpty() ? $subordinates->first() : null;
+                            $firstSubordinate = $task->subordinates
+                            ->first(function ($subordinate) {
+                                return optional($subordinate->goal)->hasAchievement;
+                            });
                             if(!$firstSubordinate) continue;
 
                             $goalId = $firstSubordinate->goal->id;
@@ -277,6 +280,7 @@
                             
                             $achievement = $firstSubordinate->goal->achievement_status ?? [];
                             $achievementStatus = $achievement['approval_status'] ?? null;
+                            $achievementInfo = $achievement['approval_info'] ?? null;
                             $approver = $achievement['current_approver_employee'] ?? '-';
                             $date = isset($achievement['approval_date']) ? \Carbon\Carbon::parse($achievement['approval_date'])->format('d M Y H:i') : '-';
                             $achievementCreatedBy = $achievement['created_by'] ?? null;
@@ -296,7 +300,7 @@
                                 default => 'bg-secondary'
                             };
 
-                            $achLabel = $achievementStatus ?? 'Draft';
+                            $achLabel = $achievementInfo && $achievementStatus == 'Draft' ? 'Waiting for revision' : ($achievementStatus == 'Pending' ? 'Waiting for approval' : $achievementStatus);
                             $achPopover = $achievementStatus != 'Approved' ? "
                                 <strong>Approver:</strong> {$approver}<br>
                                 <strong>Status:</strong> {$achLabel}<br>
@@ -327,7 +331,7 @@
                                     </div>
                                 </div>
                                 <div class="col-12 col-md-3 d-flex flex-wrap gap-1 justify-content-md-end mt-2 mt-md-0">
-                                    @if ($firstSubordinate->goal->hasAchievement && $firstSubordinate->isFirstLayer)
+                                    @if ($firstSubordinate->goal->hasAchievement && $firstSubordinate->isFirstLayer && ($achievementStatus == 'Pending' || !$achievementInfo))
                                         <a href="{{ ($achievementStatus === 'Approved' || $achievementCreatedBy === Auth::user()->id) ? route('goals.update-achievement', $goalId) : route('goals.approval-achievement', $goalId) }}" class="btn btn-sm btn-success fw-medium">
                                             {{ ($achievementStatus === 'Approved' || $achievementCreatedBy === Auth::user()->id) ? 'Update Achievement' : 'Approve Achievement' }}
                                         </a>
@@ -431,10 +435,16 @@
         <div class="modal-dialog modal-xl modal-dialog-scrollable">
             <div class="modal-content border-0 shadow-lg">
                 <div class="modal-header bg-light border-bottom px-4">
-                    <h5 class="modal-title text-dark fw-bold mb-0"><i class="ri-file-list-3-line me-2 text-primary"></i>Goal Details - {{ $task->employee->fullname }}</h5>
+                    <h5 class="modal-title text-dark fw-bold mb-0"><i class="ri-file-list-3-line me-2 text-primary"></i>Achievement Details - {{ $task->employee->fullname }}</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body p-0 bg-white">
+                    @if ($firstSubordinate->goal->achievement_status)
+                        <div class="alert alert-warning border-0 p-3">
+                            <strong class="d-block mb-1"><i class="ri-feedback-line me-1"></i> Revision Notes:</strong>
+                            <span class="text-dark">{{ $firstSubordinate->goal->achievement_status['approval_info'] }}</span>
+                        </div>
+                    @endif
                     @if(!empty($formDataArr) && is_array($formDataArr))
                         @foreach ($formDataArr as $kpiIndex => $row)
                         <div class="p-4 {{ $loop->even ? 'bg-light-subtle' : 'bg-white' }} {{ $loop->last ? '' : 'border-bottom' }}">

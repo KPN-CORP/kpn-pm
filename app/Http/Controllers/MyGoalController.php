@@ -129,6 +129,7 @@ class MyGoalController extends Controller
                         ? $latestApproval->approver->fullname . ' (' . $latestApproval->approver->employee_id . ')'
                         : null,
                     'approval_status' => $latestApproval->approval_status,
+                    'approval_info' => $latestApproval->approval_info,
                     'approval_date' => $latestApproval->updated_at,
                     'created_by' => $latestApproval->created_by,
                 ];
@@ -189,9 +190,9 @@ class MyGoalController extends Controller
 
                 $actual = $this->kpiService->aggregate(
                     $kpi['calculation_method'] ?? 'last',
-                    $values
+                    $values, $kpi['review_period'] ?? null
                 );
-
+                
                 $achievement = $isEmptyAchievement
                 ? 0
                 : $this->kpiService->achievement(
@@ -199,7 +200,7 @@ class MyGoalController extends Controller
                     (float)($kpi['target'] ?? 0),
                     $kpi['type'] ?? 'Higher Better'
                 );
-
+  
                 $kpi['actual'] = empty($values) ? '-' : round($actual, 2);
                 $kpi['achievement'] = empty($values) ? 0 : round($achievement, 2);
             }

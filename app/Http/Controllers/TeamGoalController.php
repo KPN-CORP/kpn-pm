@@ -163,7 +163,7 @@ class TeamGoalController extends Controller
                     // CALCULATE KPI
                     $actual = $this->kpiService->aggregate(
                         $kpi['calculation_method'] ?? 'last',
-                        $values
+                        $values, $kpi['review_period'] ?? null
                     );
 
                     $achievement = $this->kpiService->achievement(
@@ -193,6 +193,7 @@ class TeamGoalController extends Controller
                             ? $latestApproval->approver->fullname . ' (' . $latestApproval->approver->employee_id . ')'
                             : null,
                         'approval_status' => $latestApproval->approval_status,
+                        'approval_info' => $latestApproval->approval_info,
                         'approval_date' => $latestApproval->updated_at,
                         'created_by' => $latestApproval->created_by,
                     ];
@@ -308,8 +309,6 @@ class TeamGoalController extends Controller
         ->selectRaw('DISTINCT schedule_periode as period')
         ->orderBy('period', 'ASC')
         ->get();
-
-        // dd($tasks);
 
         return view('pages.goals.team-goal', compact('data', 'tasks', 'notasks', 'noAchievements', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'reviewPeriodOption', 'calculationMethodOption', 'selectYear', 'period'));
        

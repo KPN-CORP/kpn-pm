@@ -1,4 +1,4 @@
-@extends('layouts_.vertical', ['page_title' => 'Approval Achievement'])
+@extends('layouts_.vertical', ['page_title' => $isManager ? 'Approval Achievement' : 'On Behalf'])
 
 @section('css')
 <style>
@@ -149,7 +149,13 @@
         @csrf
 
         <input type="hidden" name="goal_id" value="{{ $id }}" style="display: none" />
-        <h6 class="fw-bold text-dark mb-3 mt-4">{{ __('Achievement Target') }} 2025</h6>
+        <h6 class="fw-bold text-dark mb-3 mt-4">{{ __('Achievement Target') }} {{ now()->year }} </h6>
+        @if ($approvalInfo)
+            <div class="alert alert-warning border-0 mt-3 p-3">
+                <strong class="d-block mb-1"><i class="ri-feedback-line me-1"></i> Achievement Revision Notes:</strong>
+                <span class="text-dark">{{ $approvalInfo }}</span>
+            </div>
+        @endif
 
         @php
         $months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -414,20 +420,21 @@
                 <div class="d-flex flex-column flex-md-row justify-content-end align-items-center">
                     <div class="w-100 w-md-auto">
                         <div class="d-flex flex-wrap justify-content-center justify-content-md-end gap-2">
-                            {{-- <div class="dropdown">
-                                <button class="btn btn-warning btn-sm fw-medium dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <div class="dropdown">
+                            <input type="hidden" id="approver" value="{{ $employee->managerL1->fullname.' ('.$employee->managerL1->employee_id.')' }}">
+                            <input type="hidden" name="sendback_message" id="sendback_message">
+                            <button class="btn btn-warning btn-sm fw-medium dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                                     {{ __('Send Back') }}
                             </button>
                             <div class="dropdown-menu shadow-sm" style="font-size: 0.8rem;">
                                 <h6 class="dropdown-header text-dark fw-bold">Select person below:</h6>
-                                <a class="dropdown-item py-1" href="#">Metta Saputra (12345678)</a>
+                                <a class="dropdown-item py-1" href="javascript:void(0)" onclick="sendBackAchievement('{{ $id }}','{{ $employee->employee_id }}','{{ $employee->fullname }}')">{{ $employee->fullname .' ('.$employee->employee_id.')' }}</a>
                             </div>
-                        </div> --}}
-                        <a href="{{ route('team-goals') }}"
+                        </div>
+                        <a href="{{ route( $isManager ? 'team-goals' : 'onbehalf') }}"
                             class="btn btn-light text-secondary border px-3 btn-sm fw-medium">{{ __('Cancel') }}</a>
-                        {{-- <button type="submit" class="btn btn-primary btn-sm fw-medium px-4"> --}}
-                        <button type="submit" class="btn btn-primary btn-sm fw-medium px-4">
-                            {{ __('Approve') }}
+                        <button type="button" id="submitButton" onclick="confirmAprrovalAchievement()" class="btn btn-primary btn-sm fw-medium">
+                            <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>{{ __('Approve') }}
                         </button>
                     </div>
                 </div>

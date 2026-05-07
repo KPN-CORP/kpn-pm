@@ -160,6 +160,55 @@ function confirmAprroval() {
 
 window.confirmAprroval = confirmAprroval;
 
+function confirmAprrovalAchievement() {
+    
+    let title1;
+    let title2;
+    let text;
+    let confirmText;
+
+    const submitButton = $("#submitButton");
+    const spinner = submitButton.find(".spinner-border");
+
+    title1 = "Do you want to submit?";
+    title2 = "Achievement submitted successfuly!";
+    text = "You won't be able to revert this!";
+    confirmText = "Submit";
+
+    Swal.fire({
+        title: title1,
+        text: text,
+        showCancelButton: true,
+        confirmButtonColor: "#3e60d5",
+        cancelButtonColor: "#f15776",
+        confirmButtonText: confirmText,
+        reverseButtons: true,
+    }).then((result) => {
+        if (result.isConfirmed) {
+            // Disable submit button
+            submitButton.prop("disabled", true);
+            submitButton.addClass("disabled");
+
+            // Remove d-none class from spinner if it exists
+            if (spinner.length) {
+                spinner.removeClass("d-none");
+            }
+
+            document.getElementById("achievementApprovalForm").submit();
+            Swal.fire({
+                title: title2,
+                icon: "success",
+                showConfirmButton: false,
+                // If confirmed, proceed with form submission
+            });
+        }
+    });
+
+    return false; // Prevent default form submission
+}
+
+window.confirmAprrovalAchievement = confirmAprrovalAchievement;
+
 function confirmAprrovalAdmin() {
     let title1;
     let title2;
@@ -262,6 +311,64 @@ function sendBack(id, nik, name) {
 }
 
 window.sendBack = sendBack;
+
+async function sendBackAchievement(id, nik, name) {
+
+    $("#request_id").val(id);
+    $("#sendto").val(nik);
+    let title2;
+    title2 = "Achievement sendbacked successfuly!";
+
+    const approver = $("#approver").val();
+
+    const result = await Swal.fire({
+        title: 'Confirm Send Back',
+        text: `The achievement will be sent back to ${name}`,
+        icon: 'warning',
+
+        showCancelButton: true,
+
+        confirmButtonText: 'Submit',
+        confirmButtonColor: '#3e60d5',
+
+        cancelButtonColor: '#f15776',
+
+        reverseButtons: true,
+
+        input: 'textarea',
+
+        inputLabel: 'Message',
+
+        inputPlaceholder: 'Type your message here...',
+
+        inputValidator: (value) => {
+            if (!value?.trim()) {
+                return 'Message cannot be empty';
+            }
+        }
+    });
+
+    if (!result.isConfirmed) {
+        return;
+    }
+
+    console.log(result.value.trim());
+    
+
+    $("#sendback_message").val(
+        `${approver} : ${result.value.trim()}`
+    );
+
+    $("#achievementApprovalForm").submit();
+    Swal.fire({
+        title: title2,
+        icon: "success",
+        showConfirmButton: false,
+        // If confirmed, proceed with form submission
+    });
+}
+
+window.sendBackAchievement = sendBackAchievement;
 
 // Function to calculate and display the sum of weightage inputs
 function updateWeightageSummary() {
