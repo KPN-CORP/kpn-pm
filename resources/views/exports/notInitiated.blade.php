@@ -9,6 +9,8 @@
         <th>Weightage</th>
         <th>Type</th>
         <th>Description</th>
+        <th>Review Period</th>
+        <th>Calculation Method</th>
     </tr>
     </thead>
     <tbody>
@@ -16,6 +18,8 @@
         <tr>
             <td>{{ $row->employee_id }}</td>
             <td>{{ $row->employee->fullname }}</td>
+            <td></td>
+            <td></td>
             <td></td>
             <td></td>
             <td></td>

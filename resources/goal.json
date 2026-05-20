@@ -87,7 +87,8 @@
         { "value": 1, "label": "Monthly" },
         { "value": 2, "label": "Bi-Monthly" },
         { "value": 3, "label": "Quarterly" },
-        { "value": 6, "label": "Semester" }
+        { "value": 6, "label": "Semester" },
+        { "value": 12, "label": "Annual" }
         ]
     },
     "Calculation Method": {

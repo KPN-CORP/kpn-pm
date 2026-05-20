@@ -28,6 +28,17 @@
     color: #6c757d;
 }
 
+:root {
+    --kpn-primary: #AB2F2B;
+    --kpn-primary-hover: #8f2623;
+    --kpn-primary-soft: #fdf2f2;
+}
+
+.text-primary { color: var(--kpn-primary) !important; }
+.bg-primary { background-color: var(--kpn-primary) !important; color: white !important; }
+.bg-primary-soft { background-color: var(--kpn-primary-soft) !important; }
+.bg-primary-subtle { background-color: #f8d7d6 !important; }
+
 .month-box {
     border-radius: 6px;
     padding: 6px;
@@ -83,26 +94,8 @@
     margin-top: 4px;
 }
 
-.mini-progress-bar {
-    height: 100%;
-    border-radius: 10px;
-    background: linear-gradient(
-        90deg,
-        #0d6efd 25%,
-        #88c6f9 50%,
-        #0d6efd 75%
-    );
-    background-size: 200% 100%;
-    animation: progressFlow 1.5s linear infinite;
-}
-@keyframes progressFlow {
-    0% {
-        background-position: 200% 0;
-    }
-    100% {
-        background-position: -200% 0;
-    }
-}
+.mini-progress-bar.bg-primary { height: 100%; border-radius: 10px; background: linear-gradient(90deg, var(--kpn-primary) 25%, #d96865 50%, var(--kpn-primary) 75%); background-size: 200% 100%; animation: progressFlow 1.5s linear infinite; }
+@keyframes progressFlow { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 </style>
 @endsection
 
@@ -201,7 +194,7 @@
                             @endphp
 
                             <div class="mini-progress">
-                                <div class="mini-progress-bar bg-success" data-width="{{ $percent }}%"></div>
+                                <div class="mini-progress-bar bg-primary" data-width="{{ $percent }}%"></div>
                             </div>
                         </div>
 
@@ -348,7 +341,7 @@
                             @endphp
 
                             <div class="mini-progress">
-                                <div class="mini-progress-bar bg-success" data-width="{{ $percent }}%"></div>
+                                <div class="mini-progress-bar bg-primary" data-width="{{ $percent }}%"></div>
                             </div>
                         </div>
 

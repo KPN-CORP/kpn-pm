@@ -67,24 +67,71 @@ class NotInitiatedExport implements FromView, WithStyles
     {
         $sheet->getStyle('A1:F1')->getFont()->setBold(true);
 
-        foreach (range('A', 'F') as $col) {
+        foreach (range('A', 'J') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
         // Count total rows from $data and multiply by 10
-        $totalRows = isset($this->data) ? count($this->data) * 10 : 10; // Default to 10 if no data
+        $totalRows = isset($this->data) ? count($this->data) * 10 : 10;
 
-        // Apply dropdown selection (Lower Better, Higher Better, Exact Value) to column D
-        $validation = $sheet->getCell('G2')->getDataValidation(); // Start from row 2
-        $validation->setType(DataValidation::TYPE_LIST);
-        $validation->setErrorStyle(DataValidation::STYLE_INFORMATION);
-        $validation->setAllowBlank(false);
-        $validation->setShowDropDown(true);
-        $validation->setFormula1('"Lower Better,Higher Better,Exact Value"'); // Dropdown options
 
-        // Apply to all rows in column G (Adjust range as needed)
-        for ($row = 2; $row <= $totalRows; $row++) { // Adjust 100 based on data size
-            $sheet->getCell("G$row")->setDataValidation(clone $validation);
+        // ====================
+        // Column G - Performance Type
+        // ====================
+        $validationPerformance = $sheet->getCell('G2')->getDataValidation();
+
+        $validationPerformance->setType(DataValidation::TYPE_LIST);
+        $validationPerformance->setErrorStyle(DataValidation::STYLE_INFORMATION);
+        $validationPerformance->setAllowBlank(false);
+        $validationPerformance->setShowDropDown(true);
+
+        $validationPerformance->setFormula1(
+            '"Lower Better,Higher Better,Exact Value"'
+        );
+
+        for ($row = 2; $row <= $totalRows; $row++) {
+            $sheet->getCell("G$row")
+                ->setDataValidation(clone $validationPerformance);
+        }
+
+
+        // ====================
+        // Column H - Review Period
+        // ====================
+        $validationReview = $sheet->getCell('I2')->getDataValidation();
+
+        $validationReview->setType(DataValidation::TYPE_LIST);
+        $validationReview->setErrorStyle(DataValidation::STYLE_INFORMATION);
+        $validationReview->setAllowBlank(false);
+        $validationReview->setShowDropDown(true);
+
+        $validationReview->setFormula1(
+            '"Monthly,Bi-Monthly,Quarterly,Semester,Annual"'
+        );
+
+        for ($row = 2; $row <= $totalRows; $row++) {
+            $sheet->getCell("I$row")
+                ->setDataValidation(clone $validationReview);
+        }
+
+
+        // ====================
+        // Column I - Calculation Method
+        // ====================
+        $validationCalculation = $sheet->getCell('J2')->getDataValidation();
+
+        $validationCalculation->setType(DataValidation::TYPE_LIST);
+        $validationCalculation->setErrorStyle(DataValidation::STYLE_INFORMATION);
+        $validationCalculation->setAllowBlank(false);
+        $validationCalculation->setShowDropDown(true);
+
+        $validationCalculation->setFormula1(
+            '"Average,Sum/Total,Last Value,Max,Min"'
+        );
+
+        for ($row = 2; $row <= $totalRows; $row++) {
+            $sheet->getCell("J$row")
+                ->setDataValidation(clone $validationCalculation);
         }
 
             // Apply percentage format to column (e.g., column C)
