@@ -258,6 +258,7 @@ document.addEventListener("DOMContentLoaded", function () {
                             <option value="2">Bi-Monthly</option>
                             <option value="3">Quarterly</option>
                             <option value="6">Semester</option>
+                            <option value="12">Annual</option>
                             </select>
                         </div>
                         </div>
@@ -716,6 +717,7 @@ $(document).on('click', '#getLatestGoal', function(){
                                         <option value="2" ${(g.review_period===2)?"selected":""}>Bi-Monthly</option>
                                         <option value="3" ${(g.review_period===3)?"selected":""}>Quarterly</option>
                                         <option value="6" ${(g.review_period===6)?"selected":""}>Semester</option>
+                                        <option value="6" ${(g.review_period===12)?"selected":""}>Annual</option>
                                     </select>
                                 </div>                                  
                             </div>
@@ -890,3 +892,31 @@ function reindexCards() {
         $(this).find('select.select-type').attr("id", "type" + index);
     });
 }
+
+$('#importAchievementButton').on('click', function(e) {
+    e.preventDefault();
+    
+    // Disamakan dengan ID form yang ada di HTML
+    const form = $('#importAchievementForm').get(0);
+    const submitButton = $(this);
+    const spinner = submitButton.find(".spinner-border");
+
+    // Pastikan element form ditemukan sebelum melakukan cek validasi
+    if (form && form.checkValidity()) {
+        // Disable submit button supaya tidak submit berkali-kali (double click)
+        submitButton.prop('disabled', true);
+        submitButton.addClass("disabled");
+
+        // Munculkan animasi loading spinner
+        if (spinner.length) {
+            spinner.removeClass("d-none");
+        }
+
+        // Kirim data form ke controller Laravel
+        form.submit();
+        
+    } else if (form) {
+        // Jika file belum dipilih, munculkan alert validasi bawaan browser
+        form.reportValidity();
+    }
+});

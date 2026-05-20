@@ -48,7 +48,7 @@
             <li class="side-nav-item">
                 <a data-bs-toggle="collapse" href="#sidebarGoals" aria-expanded="false" aria-controls="sidebarGoals" class="side-nav-link">
                     <i class="ri-focus-2-line"></i>
-                    <span>{{ __('Goal') }}</span>
+                    <span>{{ __('Goal & Achievement') }}</span>
                     @if ($notificationGoal)
                         <span class="badge bg-danger float-end">{{ $notificationGoal }}</span>    
                     @else
@@ -281,6 +281,11 @@
                             @can('importgoals')
                             <li>
                                 <a href="{{ route('importg') }}">{{ __('Import Goals') }}</a>
+                            </li>
+                            @endcan
+                            @can('importgoals')
+                            <li>
+                                <a href="{{ route('importAchievement') }}">{{ __('Import Achievement') }}</a>
                             </li>
                             @endcan
                             @if (auth()->user()->hasRole('superadmin'))

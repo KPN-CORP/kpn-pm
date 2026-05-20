@@ -46,6 +46,7 @@ use App\Http\Controllers\EmployeePAController;
 use App\Http\Controllers\FlowController;
 use App\Http\Controllers\FormAppraisalController;
 use App\Http\Controllers\FormGroupAppraisalController;
+use App\Http\Controllers\ImportAchievementController;
 use App\Http\Controllers\KPIAchievementController;
 use App\Http\Controllers\PaReminderController;
 use App\Http\Controllers\Proposed360;
@@ -219,6 +220,8 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     });
     Route::post('/notInitiatedReport', [ExportExcelController::class, 'notInitiated'])->name('team-goals.notInitiated');
     Route::post('/initiatedReport', [ExportExcelController::class, 'initiated'])->name('team-goals.initiated');
+    Route::post('/AchievementReport', [ExportExcelController::class, 'achievement'])->name('team-goals.achievement');
+    Route::post('/MyAchievementReport', [ExportExcelController::class, 'myAchievement'])->name('my-goals.achievement');
     // Route::get('/export/goals', [ReportController::class, 'exportGoal'])->name('export.goal');
     Route::post('/get-report-content', [ReportController::class, 'getReportContent'])->name('reports.content');
 
@@ -369,8 +372,10 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::middleware(['permission:importgoals'])->group(function () {
         Route::get('/import-goals', [ImportGoalsController::class, 'showImportForm'])->name('importg');
         Route::post('/import-goals', [ImportGoalsController::class, 'import'])->name('importgoals');
+        Route::get('/import-achievements', [ImportAchievementController::class, 'showImportForm'])->name('importAchievement');
         Route::get('/download-excel/{file}', [ImportGoalsController::class, 'downloadExcel'])->name('downloadExcel');
     });
+    Route::post('/import-achievements', [ImportAchievementController::class, 'import'])->name('importAchievement.submit');
 
     Route::middleware(['permission:importkpi'])->group(function () {
         Route::get('/import-kpi', [ImportKpiController::class, 'showImportKpiForm'])->name('importkpi');

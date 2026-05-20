@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\AchievementExport;
 use App\Exports\AchievementReportExport;
 use App\Exports\EmployeeDetailExport;
 use App\Exports\EmployeeExport;
@@ -11,6 +12,8 @@ use App\Exports\NotInitiatedExport;
 use Illuminate\Http\Request;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Exports\EmployeepaExport;
+use App\Models\Goal;
+use App\Models\KPIAchievement;
 use App\Services\AppService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
@@ -210,6 +213,172 @@ class ExportExcelController extends Controller
         $data = new InitiatedExport($employee_id, $period);
         return Excel::download($data, 'employee_initiated_goals.xlsx');
 
+    }
+
+    public function achievement(Request $request)
+    {
+        $employeeId = $request->employee_id; // current approver employee id
+        $period = $request->filterYear;
+
+        $goals = Goal::query()
+            ->with('employee')
+            ->where('period', $period)
+            ->where('form_status', 'Approved')
+            ->whereIn('employee_id', $employeeId)
+            ->get();
+
+        $data = collect();
+
+        foreach ($goals as $goal) {
+
+            $formData = json_decode($goal->form_data, true);
+
+            if (!$formData) continue;
+
+            foreach ($formData as $kpi) {
+
+                $kpiId = $kpi['kpi_id'] ?? null;
+
+                if (!$kpiId) continue;
+
+                $achievements = KPIAchievement::query()
+                    ->where('goal_id', $goal->id)
+                    ->where('kpi_id', $kpiId)
+                    ->get()
+                    ->keyBy('month');
+
+                // if ($achievements->isEmpty()) {
+                //     continue;
+                // }
+
+                $data->push((object)[
+
+                    'employee_id' => $goal->employee_id,
+
+                    'employee' => $goal->employee,
+
+                    'kpi' => $kpi['kpi'] ?? null,
+
+                    'description' => $kpi['description'] ?? null,
+
+                    'target' => $kpi['target'] ?? null,
+
+                    'uom' => $kpi['uom'] ?? null,
+
+                    'custom_uom' => $kpi['custom_uom'] ?? null,
+
+                    'weightage' => $kpi['weightage'] ?? null,
+
+                    'type' => $kpi['type'] ?? null,
+
+                    'review_period' => $kpi['review_period'] ?? null,
+
+                    'calculation_method' => $kpi['calculation_method'] ?? null,
+
+                    'jan' => $achievements[1]->value ?? null,
+                    'feb' => $achievements[2]->value ?? null,
+                    'mar' => $achievements[3]->value ?? null,
+                    'apr' => $achievements[4]->value ?? null,
+                    'may' => $achievements[5]->value ?? null,
+                    'jun' => $achievements[6]->value ?? null,
+                    'jul' => $achievements[7]->value ?? null,
+                    'aug' => $achievements[8]->value ?? null,
+                    'sep' => $achievements[9]->value ?? null,
+                    'oct' => $achievements[10]->value ?? null,
+                    'nov' => $achievements[11]->value ?? null,
+                    'dec' => $achievements[12]->value ?? null,
+
+                ]);
+            }
+        }
+
+        return Excel::download(
+            new AchievementExport($data),
+            'team_achievement.xlsx'
+        );
+    }
+
+    public function myAchievement(Request $request)
+    {
+        $employeeId = $request->employee_id; // current approver employee id
+        $period = $request->filterYear;
+
+        $goals = Goal::query()
+            ->with('employee')
+            ->where('employee_id', $employeeId)
+            ->where('period', $period)
+            ->where('form_status', 'Approved')
+            ->get();
+
+        $data = collect();
+
+        foreach ($goals as $goal) {
+
+            $formData = json_decode($goal->form_data, true);
+
+            if (!$formData) continue;
+
+            foreach ($formData as $kpi) {
+
+                $kpiId = $kpi['kpi_id'] ?? null;
+
+                if (!$kpiId) continue;
+
+                $achievements = KPIAchievement::query()
+                    ->where('goal_id', $goal->id)
+                    ->where('kpi_id', $kpiId)
+                    ->get()
+                    ->keyBy('month');
+
+                if ($achievements->isEmpty()) {
+                    continue;
+                }
+
+                $data->push((object)[
+
+                    'employee_id' => $goal->employee_id,
+
+                    'employee' => $goal->employee,
+
+                    'kpi' => $kpi['kpi'] ?? null,
+
+                    'description' => $kpi['description'] ?? null,
+
+                    'target' => $kpi['target'] ?? null,
+
+                    'uom' => $kpi['uom'] ?? null,
+
+                    'custom_uom' => $kpi['custom_uom'] ?? null,
+
+                    'weightage' => $kpi['weightage'] ?? null,
+
+                    'type' => $kpi['type'] ?? null,
+
+                    'review_period' => $kpi['review_period'] ?? null,
+
+                    'calculation_method' => $kpi['calculation_method'] ?? null,
+
+                    'jan' => $achievements[1]->value ?? null,
+                    'feb' => $achievements[2]->value ?? null,
+                    'mar' => $achievements[3]->value ?? null,
+                    'apr' => $achievements[4]->value ?? null,
+                    'may' => $achievements[5]->value ?? null,
+                    'jun' => $achievements[6]->value ?? null,
+                    'jul' => $achievements[7]->value ?? null,
+                    'aug' => $achievements[8]->value ?? null,
+                    'sep' => $achievements[9]->value ?? null,
+                    'oct' => $achievements[10]->value ?? null,
+                    'nov' => $achievements[11]->value ?? null,
+                    'dec' => $achievements[12]->value ?? null,
+
+                ]);
+            }
+        }
+
+        return Excel::download(
+            new AchievementExport($data),
+            'my_achievement.xlsx'
+        );
     }
 
     public function exportreportemp() 

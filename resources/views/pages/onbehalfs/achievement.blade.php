@@ -172,7 +172,7 @@
                                                                 @php $percent = (int) ($kpi['achievement'] ?? 0); @endphp
 
                                                                 <div class="mini-progress mt-1" style="height:5px;">
-                                                                    <div class="mini-progress-bar bg-success" style="width: {{ $percent }}%"></div>
+                                                                    <div class="mini-progress-bar bg-primary" style="width: {{ $percent }}%"></div>
                                                                 </div>
                                                             </div>
 

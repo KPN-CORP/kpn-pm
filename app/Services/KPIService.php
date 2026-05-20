@@ -165,6 +165,8 @@ class KPIService
 
             6 => 2,  // Semester
 
+           12 => 1,  // Annual
+
             default => count($values),
         };
 

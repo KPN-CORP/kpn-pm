@@ -658,6 +658,8 @@ class MyGoalController extends Controller
             // Get existing goal
             $goal = Goal::findOrFail($request->id);
 
+            $oldReviewPeriod = $goal->review_period;
+
             // Check ownership
             if ($goal->employee_id != $request->employee_id) {
                 throw new Exception("You don't have permission to update this goal");
@@ -665,7 +667,31 @@ class MyGoalController extends Controller
 
             // Prepare KPI data
             $kpiData = [];
+            $oldKpis = collect(json_decode($goal->form_data, true))
+                ->keyBy('kpi_id');
+
             foreach ($request->input('kpi', []) as $index => $kpi) {
+
+                $kpiId = $request->kpi_id[$index] ?? Str::uuid();
+
+                $newReviewPeriod = $request->review_period[$index] ?? null;
+
+                $oldReviewPeriod = $oldKpis[$kpiId]['review_period'] ?? null;
+
+                /**
+                 * Delete achievement jika review period berubah
+                 */
+                if (
+                    !empty($request->kpi_id[$index]) &&
+                    $oldReviewPeriod != $newReviewPeriod
+                ) {
+
+                    $this->deleteAchievementForChangedReviewPeriod(
+                        $goal->id,
+                        $kpiId
+                    );
+                }
+
                 $kpiData[$index] = [
                     'kpi' => $kpi,
                     'description' => $request->description[$index] ?? '',
@@ -674,9 +700,9 @@ class MyGoalController extends Controller
                     'weightage' => $request->weightage[$index],
                     'type' => $request->type[$index],
                     'custom_uom' => $request->custom_uom[$index] ?? null,
-                    'review_period' => $request->review_period[$index] ?? null,
+                    'review_period' => $newReviewPeriod,
                     'calculation_method' => $request->calculation_method[$index] ?? null,
-                    'kpi_id' => $request->kpi_id[$index] ?? Str::uuid(),
+                    'kpi_id' => $kpiId,
                 ];
             }
 
@@ -777,6 +803,13 @@ class MyGoalController extends Controller
             'success' => (bool) $latest,
             'data'    => $data,
         ]);
+    }
+
+    private function deleteAchievementForChangedReviewPeriod(string $goalId, string $kpiId)
+    {
+        KPIAchievement::where('goal_id', $goalId)
+        ->where('kpi_id', $kpiId)
+        ->delete();
     }
 
 }

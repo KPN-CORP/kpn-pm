@@ -2,6 +2,16 @@
 
 @section('css')
 <style>
+    :root {
+    --kpn-primary: #AB2F2B;
+    --kpn-primary-hover: #8f2623;
+    --kpn-primary-soft: #fdf2f2;
+}
+
+.text-primary { color: var(--kpn-primary) !important; }
+.bg-primary { background-color: var(--kpn-primary) !important; color: white !important; }
+.bg-primary-soft { background-color: var(--kpn-primary-soft) !important; }
+.bg-primary-subtle { background-color: #f8d7d6 !important; }
 .goal-card {
     overflow: hidden;
     transition:
@@ -84,35 +94,33 @@
     margin-top: 4px;
 }
 
-.mini-progress-bar {
-    height: 100%;
-    border-radius: 10px;
-    background: linear-gradient(
-        90deg,
-        #0d6efd 25%,
-        #88c6f9 50%,
-        #0d6efd 75%
-    );
-    background-size: 200% 100%;
-    animation: progressFlow 1.5s linear infinite;
-}
-@keyframes progressFlow {
-    0% {
-        background-position: 200% 0;
-    }
-    100% {
-        background-position: -200% 0;
-    }
-}
+.mini-progress-bar.bg-primary { height: 100%; border-radius: 10px; background: linear-gradient(90deg, var(--kpn-primary) 25%, #d96865 50%, var(--kpn-primary) 75%); background-size: 200% 100%; animation: progressFlow 1.5s linear infinite; }
+@keyframes progressFlow { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 </style>
 @endsection
 
 @section('content')
     <!-- Begin Page Content -->
-    <div class="container-fluid">
+        <div class="container-fluid">
+            @if (session('success'))
+            <div class="alert alert-success mt-3 shadow-sm border-0 py-2">
+                {!! session('success') !!}
+            </div>
+        @endif
+        @if (session('error'))
+            <div class="alert alert-danger mt-3 shadow-sm border-0 py-2">
+                {{ is_array(session('error'))
+                    ? session('error')['message']
+                    : session('error')
+                }}
+            </div>
+        @endif
+
         <!-- Page Heading -->
         <div class="mandatory-field">
-            <div id="alertField" class="alert alert-danger alert-dismissible {{ Session::has('error') ? '':'fade' }}" role="alert" {{ Session::has('error') ? '':'hidden' }}>
+            <div id="alertField" class="alert alert-danger alert-dismissible {{ Session::has('error') ? '':'fade' }}" role="alert" {{ Session::has('error') &&
+    is_array(Session::get('error')) &&
+    isset(Session::get('error')['message']) ? '':'hidden' }}>
                 <strong>{{ Session::get('error')['message'] ?? null }}</strong>
                 <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
@@ -124,7 +132,7 @@
             <div class="d-flex flex-wrap justify-content-between align-items-end mb-3 gap-2">
                 <div>
                     <label class="form-label mb-1 fw-bold text-muted" style="font-size: 0.85rem;" for="filterYear">{{ __('Year') }}</label>
-                    <select name="filterYear" id="filterYear" onchange="filterGoals(this.value)" class="form-select border-secondary shadow-sm" style="width: 150px; cursor: pointer;">
+                    <select name="filterYear" id="filterYear" onchange="filterGoals(this.value)" class="form-select select-sm border-secondary shadow-sm mb-2" style="width: 150px; cursor: pointer;">
                         <option value="">{{ __('Select all') }}</option>
                         @foreach ($selectYear as $year)
                             <option value="{{ $year->year }}" {{ $year->year == $filterYear ? 'selected' : '' }}>
@@ -134,7 +142,10 @@
                     </select>
                 </div>
                 <div>
-                    <a href="{{ $access ? route('goals.form', encrypt(Auth::user()->employee_id)) : '#' }}" onclick="showLoader()" class="btn {{ $access ? 'btn-primary shadow-sm' : 'btn-secondary-subtle disabled' }} fw-medium">
+                    <button type="button" class="btn btn-sm btn-soft-secondary fw-medium shadow-sm me-1 mb-2" data-bs-toggle="modal" data-bs-target="#importAchievementModal">
+                            <i class="ri-upload-cloud-2-line me-1"></i> Import Achievement
+                    </button>
+                    <a href="{{ $access ? route('goals.form', encrypt(Auth::user()->employee_id)) : '#' }}" onclick="showLoader()" class="btn btn-sm {{ $access ? 'btn-soft-primary shadow-sm' : 'btn-secondary-subtle disabled' }} fw-medium mb-2">
                         <i class="ri-add-line me-1"></i> {{ __('Create Goal') }}
                     </a>
                 </div>
@@ -368,7 +379,7 @@
                                                         @endphp
 
                                                         <div class="mini-progress">
-                                                            <div class="mini-progress-bar bg-success"
+                                                            <div class="mini-progress-bar bg-primary"
                                                                 data-width="{{ $percent }}%"></div>
                                                         </div>
                                                     </div>
@@ -489,18 +500,80 @@
             </div>
         @endforelse
     </div>
-    @endsection
-   @push('scripts')
-@if(Session::has('error'))
+<div class="modal fade" id="importAchievementModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-light border-bottom py-3">
+                <h6 class="modal-title fw-bold text-dark m-0" id="importModalLabel">
+                    <i class="ri-upload-cloud-2-line me-2 text-primary"></i>Import Achievement
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 pb-0">
+                <form action="{{ route('my-goals.achievement') }}" method="POST" class="m-0 mb-2">
+                    @csrf
+
+                    <input
+                            type="hidden"
+                            name="employee_id"
+                            value="{{ Auth::user()->employee_id }}"
+                    >
+
+                    <input
+                        type="hidden"
+                        name="filterYear"
+                        value="{{ $filterYear ?? $period }}"
+                    >
+
+                    <button
+                        type="submit"
+                        class="btn btn-sm btn-outline-success fw-medium"
+                    >
+                        <i class="ri-download-cloud-2-line me-1"></i>
+                        Download Achievement
+                    </button>
+                </form>
+            </div>
+            <!-- FORM SEKARANG MEMILIKI ID YANG SESUAI -->
+            <form id="importAchievementForm" action="{{ route('importAchievement.submit') }}" method="POST" enctype="multipart/form-data">
+                @csrf
+                
+                <div class="modal-body p-4 pt-2">
+                    <div class="form-group mb-0">
+                        <label for="file" class="fw-bold text-dark mb-2" style="font-size: 0.85rem;">Upload File</label>
+                        <input type="file" name="file" id="file" class="form-control form-control-sm shadow-sm" required>
+                    </div>
+                </div>
+                
+                <!-- Menggunakan modal-footer standar Bootstrap agar lebih rapi -->
+                <div class="modal-footer bg-light border-top py-2">
+                    <button type="button" class="btn btn-sm btn-light text-secondary border fw-medium px-4" data-bs-dismiss="modal">Close</button>
+                    <button type="submit" id="importAchievementButton" class="btn btn-sm btn-primary fw-medium px-4">
+                        <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
+                        Import
+                    </button>
+                </div>
+            </form>
+
+        </div>
+    </div>
+</div>
+@endsection
+@push('scripts')
+@if(
+    Session::has('error') &&
+    is_array(Session::get('error')) &&
+    isset(Session::get('error')['message'])
+)
 <script>
-  document.addEventListener('DOMContentLoaded', function () {
+document.addEventListener('DOMContentLoaded', function () {
     Swal.fire({
-      icon: "error",
-      title: "{{ Session::get('error')['title'] }}",
-      text: "{{ Session::get('error')['message'] }}",
-      confirmButtonText: "OK",
+        icon: "error",
+        title: "{{ Session::get('error')['title'] ?? 'Error' }}",
+        text: "{{ Session::get('error')['message'] }}",
+        confirmButtonText: "OK",
     });
-  });
+});
 </script>
 @endif
 
