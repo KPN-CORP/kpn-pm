@@ -1563,9 +1563,13 @@ class AppService
 
             // 1.000.000
             if (
-                count($parts) > 1 &&
-                collect(array_slice($parts, 1))
-                    ->every(fn($x) => strlen($x) === 3)
+                count($parts) > 2
+                ||
+                (
+                    count($parts) === 2
+                    && strlen($parts[0]) > 1
+                    && strlen($parts[1]) === 3
+                )
             ) {
 
                 $value = str_replace('.', '', $value);
