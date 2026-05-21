@@ -163,6 +163,7 @@
       showCancelButton: true,
       confirmButtonText: 'Revoke',
       confirmButtonColor: '#dc3545',
+      reverseButtons: true,
       inputValidator: (v) => {
         if (!v || !v.trim()) return 'Reason wajib diisi';
         return undefined;

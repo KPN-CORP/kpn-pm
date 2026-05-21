@@ -338,11 +338,46 @@ class KPIAchievementController extends Controller
                     }
 
                     // SKIP jika kosong semua
-                    if (($value === null || $value === '') && !$filePath) {
+                    // DELETE jika value dikosongkan dan tidak ada attachment
+                    if (
+                        ($value === null || trim((string)$value) === '')
+                        && !$request->hasFile("attachment.$kpiIndex.$month")
+                        && $existing
+                    ) {
+
+                        if ($isSubmit) {
+                            KPIAchievementSnapshotService::insertOne(
+                                $existing,
+                                $this->user,
+                                Auth::id()
+                            );
+                        }
+
+                        // hapus file lama jika ada
+                        if ($existing->file) {
+                            Storage::disk('public')
+                                ->delete($existing->file);
+                        }
+
+                        $existing->delete();
+
                         continue;
                     }
-                    
-                    $normalizedValue = $this->kpiService->normalizeDecimal($value);   
+
+                    // skip jika benar-benar kosong dan tidak ada existing
+                    if (
+                        ($value === null || trim((string)$value) === '')
+                        && !$filePath
+                    ) {
+                        continue;
+                    }
+
+                    $normalizedValue = (
+                        $value === null ||
+                        trim((string)$value) === ''
+                    )
+                        ? null
+                        : $this->kpiService->normalizeDecimal($value);
 
                     if ($existing) {
                         if ($isSubmit) {
@@ -590,7 +625,7 @@ class KPIAchievementController extends Controller
 
             $goalID = $request->goal_id;
 
-            $newValues = $request->ach;
+            $newValues = $request->ach ?? [];
 
             $sendbackMessage = $request->sendback_message;
 
@@ -598,13 +633,23 @@ class KPIAchievementController extends Controller
 
             $hasInvalidApprover = KPIAchievement::where('goal_id', $goalID)
                 ->where('approval_status', 'Pending')
-                ->where('current_approver_employee_id', '!=', $this->user)
+                ->where(
+                    'current_approver_employee_id',
+                    '!=',
+                    $this->user
+                )
                 ->exists();
 
             // ================= GET DATA =================
 
-            $kpiAchievements = KPIAchievement::where("goal_id", $goalID)
-                ->where("approval_status", "Pending")
+            $kpiAchievements = KPIAchievement::where(
+                    "goal_id",
+                    $goalID
+                )
+                ->where(
+                    "approval_status",
+                    "Pending"
+                )
                 ->whereNull("deleted_at")
                 ->get();
 
@@ -616,29 +661,73 @@ class KPIAchievementController extends Controller
                     Auth::id()
                 );
 
+                // ================= UPDATE / DELETE VALUE =================
+
                 if (
                     isset($newValues[$val->kpi_id]) &&
-                    isset($newValues[$val->kpi_id][$val->month])
+                    array_key_exists(
+                        $val->month,
+                        $newValues[$val->kpi_id]
+                    )
                 ) {
 
-                    $rawValue = $newValues[$val->kpi_id][$val->month];
+                    $rawValue =
+                        $newValues[
+                            $val->kpi_id
+                        ][
+                            $val->month
+                        ];
 
-                    $val->value = $this->kpiService->normalizeDecimal($rawValue);
+                    // DELETE jika dikosongkan
+                    if (
+                        $rawValue === null ||
+                        trim((string)$rawValue) === ''
+                    ) {
+
+                        if ($val->file) {
+                            Storage::disk('public')
+                                ->delete($val->file);
+                        }
+
+                        $val->delete();
+
+                        continue;
+                    }
+
+                    $val->value =
+                        $this->kpiService
+                            ->normalizeDecimal(
+                                $rawValue
+                            );
                 }
 
+                // ================= APPROVAL INFO =================
+
                 if ($request->messages) {
-                    $val->approval_info = $request->messages;
+
+                    $val->approval_info =
+                        $request->messages;
                 }
 
                 if ($sendbackMessage) {
-                    $val->approval_info = $sendbackMessage;
-                    $val->approval_status = "Draft";
+
+                    $val->approval_info =
+                        $sendbackMessage;
+
+                    $val->approval_status =
+                        "Draft";
+
                 } else {
-                    $val->approval_info = null;
-                    $val->approval_status = "Approved";
+
+                    $val->approval_info =
+                        null;
+
+                    $val->approval_status =
+                        "Approved";
                 }
 
-                $val->approval_date = $timeNow;
+                $val->approval_date =
+                    $timeNow;
 
                 $val->save();
             }
@@ -649,19 +738,37 @@ class KPIAchievementController extends Controller
 
                 return redirect()
                     ->route('onbehalf')
-                    ->with('success', 'Achievements approved successfully');
+                    ->with(
+                        'success',
+                        'Achievements approved successfully'
+                    );
             }
 
             return redirect('team-goals')
-                ->with('success', 'Achievements approved successfully');
+                ->with(
+                    'success',
+                    'Achievements approved successfully'
+                );
 
         } catch (\Throwable $e) {
 
             DB::rollBack();
 
+            Log::error(
+                'Approval Achievement Error',
+                [
+                    'message' => $e->getMessage(),
+                    'line' => $e->getLine(),
+                    'file' => $e->getFile(),
+                ]
+            );
+
             return redirect()
                 ->back()
-                ->with('error', $e->getMessage());
+                ->with(
+                    'error',
+                    $e->getMessage()
+                );
         }
     }
 }

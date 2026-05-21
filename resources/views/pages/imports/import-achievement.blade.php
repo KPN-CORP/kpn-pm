@@ -145,8 +145,24 @@
                                 </div>
                             </div> --}}
                             <div class="form-group">
-                                <label for="file">Upload File</label>
-                                <input type="file" name="file" id="file" class="form-control" required>
+                                <div class="form-group mb-3">
+                                    <label for="year" class="fw-bold text-dark mb-2" style="font-size: 0.85rem;">Year Period</label>
+                                    <select name="year" id="year" class="form-control form-control-sm shadow-sm">
+                                        <option value="{{ now()->subYear()->format('Y') }}"
+                                            {{ old('period', now()->format('Y')) == now()->subYear()->format('Y') ? 'selected' : '' }}>
+                                            {{ now()->subYear()->format('Y') }}
+                                        </option>
+                
+                                        <option value="{{ now()->format('Y') }}"
+                                            {{ old('period', now()->format('Y')) == now()->format('Y') ? 'selected' : '' }}>
+                                            {{ now()->format('Y') }}
+                                        </option>
+                                    </select>
+                                </div>
+                                <div class="form-group mb-0">
+                                    <label for="file" class="fw-bold text-dark mb-2" style="font-size: 0.85rem;">Upload File</label>
+                                    <input type="file" name="file" id="file" class="form-control form-control-sm shadow-sm" required>
+                                </div>
                             </div>
                         </div>
                         <div class="modal-footer">
