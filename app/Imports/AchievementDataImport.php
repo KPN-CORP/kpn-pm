@@ -273,6 +273,10 @@ class AchievementDataImport implements ToCollection, WithHeadingRow, WithStartRo
                     $existing->approval_status = $status;
                     $existing->current_approver_employee_id = $approverId;
 
+                    if($status == 'Pending'){
+                        $existing->created_by = Auth::id();
+                    }
+
                     if ($status === 'Approved') {
                         $existing->approval_date = now();
                     } else {
