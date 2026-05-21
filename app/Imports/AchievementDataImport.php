@@ -3,6 +3,7 @@
 namespace App\Imports;
 
 use App\Models\AchievementImportTransaction;
+use App\Models\ApprovalLayer;
 use App\Models\Goal;
 use App\Models\KPIAchievement;
 use App\Services\KPIAchievementSnapshotService;
@@ -29,17 +30,45 @@ class AchievementDataImport implements ToCollection, WithHeadingRow, WithStartRo
     }
 
     protected string $filePath;
+    protected string $type;
     protected string $period;
     protected array $rows = [];
     protected array $transactions = [];
 
     protected KPIService $kpiService;
 
-    public function __construct(string $filePath, string $period)
+    protected array $allowedEmployeeIds = [];
+
+    public function __construct(string $filePath, string $period, ?string $type = null)
     {
         $this->filePath = $filePath;
+        $this->type = $type ?: 'admin';
         $this->period = $period;
         $this->kpiService = app(KPIService::class);
+
+        $currentUser = Auth::user()->employee_id;
+
+        if ($this->type === 'self') {
+
+            $this->allowedEmployeeIds = [
+                $currentUser
+            ];
+
+        } elseif ($this->type === 'team') {
+
+            $this->allowedEmployeeIds =
+                ApprovalLayer::query()
+                ->where(
+                    'approver_id',
+                    $currentUser
+                )
+                ->where(
+                    'layer',
+                    1
+                )
+                ->pluck('employee_id')
+                ->toArray();
+        }
     }
 
     /**
@@ -54,6 +83,27 @@ class AchievementDataImport implements ToCollection, WithHeadingRow, WithStartRo
 
             $employeeId = trim($row['employee_id'] ?? '');
             $kpiName = trim($row['kpi'] ?? '');
+
+            if ($this->type !== 'admin') {
+
+                if (
+                    !in_array(
+                        $employeeId,
+                        $this->allowedEmployeeIds
+                    )
+                ) {
+
+                    $this->transactions[] = [
+                        'status' => 'ERROR',
+                        'employee_id' => $employeeId,
+                        'kpi' => $kpiName,
+                        'message' =>
+                            "Employee ID {$employeeId} not allowed for {$this->type} import"
+                    ];
+
+                    continue;
+                }
+            }
 
             // skip empty row
             if (empty($employeeId) || empty($kpiName)) {
@@ -418,6 +468,26 @@ class AchievementDataImport implements ToCollection, WithHeadingRow, WithStartRo
 
             default => 1,
         };
+    }
+
+    public function validateImportPermission(): void
+    {
+        if ($this->type !== 'self') {
+            return;
+        }
+
+        $successEmployeeIds =
+            collect($this->rows)
+            ->pluck('employee_id')
+            ->unique()
+            ->values();
+
+        if ($successEmployeeIds->isEmpty()) {
+
+            throw new \Exception(
+                'No matching employee data found. Please use your own achievement template.'
+            );
+        }
     }
 
 }

@@ -87,15 +87,32 @@
     opacity: 1 !important;
 }
 .mini-progress {
-    height: 4px;
+    width:100%;
+    height:18px;
     background: #e9ecef;
     border-radius: 10px;
     overflow: hidden;
-    margin-top: 4px;
+    margin-top: 0px;
 }
 
 .mini-progress-bar.bg-primary { height: 100%; border-radius: 10px; background: linear-gradient(90deg, var(--kpn-primary) 25%, #d96865 50%, var(--kpn-primary) 75%); background-size: 200% 100%; animation: progressFlow 1.5s linear infinite; }
 @keyframes progressFlow { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+.mini-progress-text{
+    position:absolute;
+    inset:0;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-size:.65rem;
+    color:#fff;
+    z-index:2;
+
+    text-shadow:
+        0 0 2px rgba(0,0,0,.5);
+}
 </style>
 @endsection
 
@@ -356,7 +373,11 @@
                                                 <div class="row g-3 mb-3">
                                                     <div class="col-3 col-sm-3">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
-                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['target'] }}</span>
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ number_format(
+                                                            $data['target'],
+                                                            0
+                                                        ) ?? '-' }}
+                                                        </span>
                                                     </div>
                                                     <div class="col-3 col-sm-3">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
@@ -368,19 +389,51 @@
                                                     </div>
                                                     @if(isset($data['review_period']))
                                                     <div class="col-3 col-sm-3">
-                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
-
-                                                        <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">
-                                                            {{ $data['achievement'] ?? '0' }}%
+                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">
+                                                            Achievement
+                                                        </small>
+                                                        {{-- Actual Value --}}
+                                                        <span
+                                                            class="fw-bold text-dark d-block mb-2"
+                                                            style="font-size:0.95rem;"
+                                                        >
+                                                            {{ is_numeric($data['actual'] ?? null)
+                                                                ? number_format(
+                                                                    (float)$data['actual'],
+                                                                    str_contains((string)$data['actual'], '.')
+                                                                        ? 2
+                                                                        : 0
+                                                                )
+                                                                : ($data['actual'] ?? '-')
+                                                            }}
                                                         </span>
-
                                                         @php
-                                                            $percent = (int) ($data['achievement'] ?? 0);
-                                                        @endphp
+                                                            $achievement = (float)($data['achievement'] ?? 0);
 
-                                                        <div class="mini-progress">
-                                                            <div class="mini-progress-bar bg-primary"
-                                                                data-width="{{ $percent }}%"></div>
+                                                            $percent = max(
+                                                                min($achievement,100),
+                                                                0
+                                                            );
+
+                                                            $progressClass =
+                                                                $achievement >= 100 ? 'bg-success'
+                                                                : ($achievement >= 80 ? 'bg-primary'
+                                                                : ($achievement >= 50 ? 'bg-warning'
+                                                                : 'bg-danger'));
+                                                        @endphp
+                                                        <div class="mini-progress position-relative">
+                                                            <div
+                                                                class="mini-progress-bar bg-primary"
+                                                                data-width="{{ $percent }}%">
+                                                            </div>
+                                                            <small
+                                                                class="mini-progress-text fw-semibold"
+                                                            >
+                                                                {{ number_format(
+                                                                    $achievement,
+                                                                    0
+                                                                ) }}%
+                                                            </small>
                                                         </div>
                                                     </div>
                                                     @else
@@ -449,10 +502,6 @@
 
                                                 @php
                                                     $value = $data['ach'][$monthNum] ?? null;
-
-                                                    $formatted = is_null($value) || $value === ''
-                                                        ? '-'
-                                                        : rtrim(rtrim($value, '0'), '.');
                                                 @endphp
 
                                                 <div class="col-4 col-sm-3 col-md-2 col-lg-1 ">
@@ -463,7 +512,10 @@
                                                         </span>
 
                                                         <span class="fw-bold text-dark" style="font-size: 1.1rem;">
-                                                            {{ $formatted }}
+                                                            {{ number_format(
+                                                                $value,
+                                                                0
+                                                            ) }}
                                                         </span>
                                                         {{-- VIEW ATTACHMENT --}}
                                                         @if(!empty($data['attachment'][$monthNum]))
@@ -556,6 +608,7 @@
                     <div class="form-group mb-0">
                         <label for="file" class="fw-bold text-dark mb-2" style="font-size: 0.85rem;">Upload File</label>
                         <input type="file" name="file" id="file" class="form-control form-control-sm shadow-sm" required>
+                        <input type="hidden" name="type" id="type" value="self">
                     </div>
                 </div>
                 
