@@ -47,7 +47,7 @@ class ImportAchievementController extends Controller
         DB::enableQueryLog();
         // Jalankan proses impor
         try {
-            $import = new AchievementDataImport($filePath);
+            $import = new AchievementDataImport($filePath, $request->input('year'));
 
             Excel::import($import, $filePath);
 

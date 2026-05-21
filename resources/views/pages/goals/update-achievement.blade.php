@@ -344,6 +344,7 @@ input[type=number] {
                         : "This data will be saved as draft!",
                     icon: 'warning',
                     showCancelButton: true,
+                    reverseButtons: true,
                     confirmButtonColor: '#3085d6',
                     cancelButtonColor: '#d33',
                     confirmButtonText: isSubmit 

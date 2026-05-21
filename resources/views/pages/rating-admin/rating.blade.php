@@ -96,7 +96,8 @@
             showCancelButton: true,
             confirmButtonColor: '#3085d6',
             cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, delete it!'
+            confirmButtonText: 'Yes, delete it!',
+            reverseButtons: true
         }).then((result) => {
             if (result.isConfirmed) {
                 // Jika dikonfirmasi, buat form dan submit ke server

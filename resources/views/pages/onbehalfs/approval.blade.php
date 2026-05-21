@@ -83,7 +83,7 @@
 
     <div class="mandatory-field"></div>
 
-    <form id="goalApprovalForm" action="{{ route('approval.goal') }}" method="post">
+    <form id="goalApprovalForm" action="{{ route('admin.approval.goal') }}" method="post">
         @csrf
         <input type="hidden" name="id" value="{{ $row->request->goal->id }}">
         <input type="hidden" name="employee_id" value="{{ $row->request->employee_id }}">
@@ -467,7 +467,7 @@
                 </div>
                 
                 <div class="w-100 w-md-auto">
-                    <form id="goalSendbackForm" action="{{ route('sendback.goal') }}" method="post">
+                    <form id="goalSendbackForm" action="{{ route('admin.sendback.goal') }}" method="post">
                         @csrf
                         <input type="hidden" name="request_id" id="request_id">
                         <input type="hidden" name="sendto" id="sendto">

@@ -217,85 +217,249 @@ class ExportExcelController extends Controller
 
     public function achievement(Request $request)
     {
-        $employeeId = $request->employee_id; // current approver employee id
-        $period = $request->filterYear;
+        try {
 
-        $goals = Goal::query()
-            ->with('employee')
-            ->where('period', $period)
-            ->where('form_status', 'Approved')
-            ->whereIn('employee_id', $employeeId)
-            ->get();
+            $request->validate(
+                [
+                    'employee_id' => 'required|array|min:1',
+                    'employee_id.*' => 'required|string',
+                    'filterYear' => 'required'
+                ],
+                [
+                    'employee_id.required' =>
+                        'No Employees have approved Goals data.',
 
-        $data = collect();
+                    'employee_id.array' =>
+                        'Data is invalid.',
 
-        foreach ($goals as $goal) {
+                    'employee_id.min' =>
+                        'No employee selected.',
 
-            $formData = json_decode($goal->form_data, true);
+                    'employee_id.*.required' =>
+                        'No Employees have approved Goals data.',
 
-            if (!$formData) continue;
+                    'filterYear.required' =>
+                        'Please select the Period.'
+                ]
+            );
 
-            foreach ($formData as $kpi) {
+            $employeeId = $request->employee_id;
+            $period = $request->filterYear;
 
-                $kpiId = $kpi['kpi_id'] ?? null;
+            $goals = Goal::query()
+                ->with('employee')
+                ->where('period', $period)
+                ->where('form_status', 'Approved')
+                ->whereIn('employee_id', $employeeId)
+                ->get();
 
-                if (!$kpiId) continue;
+            if ($goals->isEmpty()) {
 
-                $achievements = KPIAchievement::query()
-                    ->where('goal_id', $goal->id)
-                    ->where('kpi_id', $kpiId)
-                    ->get()
-                    ->keyBy('month');
-
-                // if ($achievements->isEmpty()) {
-                //     continue;
-                // }
-
-                $data->push((object)[
-
-                    'employee_id' => $goal->employee_id,
-
-                    'employee' => $goal->employee,
-
-                    'kpi' => $kpi['kpi'] ?? null,
-
-                    'description' => $kpi['description'] ?? null,
-
-                    'target' => $kpi['target'] ?? null,
-
-                    'uom' => $kpi['uom'] ?? null,
-
-                    'custom_uom' => $kpi['custom_uom'] ?? null,
-
-                    'weightage' => $kpi['weightage'] ?? null,
-
-                    'type' => $kpi['type'] ?? null,
-
-                    'review_period' => $kpi['review_period'] ?? null,
-
-                    'calculation_method' => $kpi['calculation_method'] ?? null,
-
-                    'jan' => $achievements[1]->value ?? null,
-                    'feb' => $achievements[2]->value ?? null,
-                    'mar' => $achievements[3]->value ?? null,
-                    'apr' => $achievements[4]->value ?? null,
-                    'may' => $achievements[5]->value ?? null,
-                    'jun' => $achievements[6]->value ?? null,
-                    'jul' => $achievements[7]->value ?? null,
-                    'aug' => $achievements[8]->value ?? null,
-                    'sep' => $achievements[9]->value ?? null,
-                    'oct' => $achievements[10]->value ?? null,
-                    'nov' => $achievements[11]->value ?? null,
-                    'dec' => $achievements[12]->value ?? null,
-
-                ]);
+                return back()->with(
+                    'error',
+                    [
+                        'message' =>
+                            'No approved goals found'
+                    ]
+                );
             }
-        }
 
-        return Excel::download(
-            new AchievementExport($data),
-            'team_achievement.xlsx'
-        );
+            $data = collect();
+
+            foreach ($goals as $goal) {
+
+                $formData = json_decode(
+                    $goal->form_data,
+                    true
+                );
+
+                if (
+                    !$formData ||
+                    !is_array($formData)
+                ) {
+
+                    throw new \Exception(
+                        sprintf(
+                            'Invalid goal data for employee %s',
+                            $goal->employee_id
+                        )
+                    );
+                }
+
+                foreach ($formData as $kpi) {
+
+                    $kpiId =
+                        $kpi['kpi_id']
+                        ?? null;
+
+                    if (!$kpiId) {
+                        continue;
+                    }
+
+                    $achievements =
+                        KPIAchievement::query()
+                        ->where(
+                            'goal_id',
+                            $goal->id
+                        )
+                        ->where(
+                            'kpi_id',
+                            $kpiId
+                        )
+                        ->get()
+                        ->keyBy('month');
+
+                    $data->push(
+                        (object)[
+
+                            'employee_id' =>
+                                $goal->employee_id,
+
+                            'employee' =>
+                                $goal->employee,
+
+                            'kpi' =>
+                                $kpi['kpi']
+                                ?? null,
+
+                            'description' =>
+                                $kpi['description']
+                                ?? null,
+
+                            'target' =>
+                                $kpi['target']
+                                ?? null,
+
+                            'uom' =>
+                                $kpi['uom']
+                                ?? null,
+
+                            'custom_uom' =>
+                                $kpi['custom_uom']
+                                ?? null,
+
+                            'weightage' =>
+                                $kpi['weightage']
+                                ?? null,
+
+                            'type' =>
+                                $kpi['type']
+                                ?? null,
+
+                            'review_period' =>
+                                $kpi['review_period']
+                                ?? null,
+
+                            'calculation_method' =>
+                                $kpi['calculation_method']
+                                ?? null,
+
+                            'jan' =>
+                                $achievements[1]
+                                    ->value
+                                ?? null,
+
+                            'feb' =>
+                                $achievements[2]
+                                    ->value
+                                ?? null,
+
+                            'mar' =>
+                                $achievements[3]
+                                    ->value
+                                ?? null,
+
+                            'apr' =>
+                                $achievements[4]
+                                    ->value
+                                ?? null,
+
+                            'may' =>
+                                $achievements[5]
+                                    ->value
+                                ?? null,
+
+                            'jun' =>
+                                $achievements[6]
+                                    ->value
+                                ?? null,
+
+                            'jul' =>
+                                $achievements[7]
+                                    ->value
+                                ?? null,
+
+                            'aug' =>
+                                $achievements[8]
+                                    ->value
+                                ?? null,
+
+                            'sep' =>
+                                $achievements[9]
+                                    ->value
+                                ?? null,
+
+                            'oct' =>
+                                $achievements[10]
+                                    ->value
+                                ?? null,
+
+                            'nov' =>
+                                $achievements[11]
+                                    ->value
+                                ?? null,
+
+                            'dec' =>
+                                $achievements[12]
+                                    ->value
+                                ?? null,
+                        ]
+                    );
+                }
+            }
+
+            if ($data->isEmpty()) {
+
+                return back()->with(
+                    'error',
+                    [
+                        'message' =>
+                            'No achievement data found'
+                    ]
+                );
+            }
+
+            return Excel::download(
+                new AchievementExport(
+                    $data
+                ),
+                'team_achievement.xlsx'
+            );
+
+        } catch (\Throwable $e) {
+
+            Log::error(
+                'Achievement Export Error',
+                [
+                    'message' =>
+                        $e->getMessage(),
+
+                    'line' =>
+                        $e->getLine(),
+
+                    'file' =>
+                        $e->getFile(),
+                ]
+            );
+
+            return back()->with(
+                'error',
+                [
+                    'message' =>
+                        $e->getMessage()
+                ]
+            );
+        }
     }
 
     public function myAchievement(Request $request)

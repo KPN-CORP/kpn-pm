@@ -176,4 +176,83 @@ class KPIService
 
         return $total / $divisor;
     }
+
+    function normalizeExcelDecimal($value): ?float
+    {
+        if ($value === null || trim((string)$value) === '') {
+            return null;
+        }
+
+        $value = trim((string)$value);
+
+        // remove space
+        $value = str_replace(' ', '', $value);
+
+        // negative
+        $negative = str_starts_with($value, '-');
+
+        if ($negative) {
+            $value = ltrim($value, '-');
+        }
+
+        $hasDot = str_contains($value, '.');
+        $hasComma = str_contains($value, ',');
+
+        // 1.000.000 / 1,000,000
+        if ($hasDot && !$hasComma) {
+
+            $parts = explode('.', $value);
+
+            if (
+                count($parts) > 1 &&
+                collect(array_slice($parts, 1))
+                    ->every(fn($p) => strlen($p) === 3)
+            ) {
+                $value = str_replace('.', '', $value);
+
+            } else {
+                $value = str_replace(',', '', $value);
+            }
+
+        } elseif ($hasComma && !$hasDot) {
+
+            $parts = explode(',', $value);
+
+            // 1,000,000
+            if (
+                count($parts) > 1 &&
+                collect(array_slice($parts, 1))
+                    ->every(fn($p) => strlen($p) === 3)
+            ) {
+                $value = str_replace(',', '', $value);
+
+            } else {
+                // decimal EU
+                $value = str_replace(',', '.', $value);
+            }
+
+        } else {
+
+            // 1.000,50
+            if ($hasDot && $hasComma) {
+
+                $lastDot = strrpos($value, '.');
+                $lastComma = strrpos($value, ',');
+
+                if ($lastComma > $lastDot) {
+
+                    $value = str_replace('.', '', $value);
+                    $value = str_replace(',', '.', $value);
+
+                } else {
+
+                    $value = str_replace(',', '', $value);
+                }
+            }
+        }
+
+        $value = (float)$value;
+
+        return $negative ? -$value : $value;
+    }
 }

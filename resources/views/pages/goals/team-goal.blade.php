@@ -223,7 +223,7 @@
                                                 <a href="javascript:void(0)" class="btn btn-light text-secondary border btn-sm rounded-pill px-2" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                             @endif
                                         @elseif ($period == $goalPeriod && $status === 'Approved' && !$appraisalCheck)
-                                            <a class="btn btn-sm btn-outline-warning fw-semibold rounded-pill px-3" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Revise Goal') }}</a>
+                                            {{-- <a class="btn btn-sm btn-outline-warning fw-semibold rounded-pill px-3" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Revise Goal') }}</a> --}}
                                             <a href="javascript:void(0)" class="btn btn-light text-secondary border btn-sm rounded-pill px-2" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
                                         @else
                                             <a href="javascript:void(0)" class="btn btn-light text-secondary border btn-sm rounded-pill px-2" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
@@ -730,6 +730,20 @@
                             <li>{{ __('Note Import Achievement Manager') }}<strong><br> "Report Achievement"</strong></li>
                         </ul>
                     </div>
+                    <div class="form-group mb-3">
+                        <label for="year" class="fw-bold text-dark mb-2" style="font-size: 0.85rem;">Year Period</label>
+                        <select name="year" id="year" class="form-control form-control-sm shadow-sm">
+                            <option value="{{ now()->subYear()->format('Y') }}"
+                                {{ old('period', now()->format('Y')) == now()->subYear()->format('Y') ? 'selected' : '' }}>
+                                {{ now()->subYear()->format('Y') }}
+                            </option>
+    
+                            <option value="{{ now()->format('Y') }}"
+                                {{ old('period', now()->format('Y')) == now()->format('Y') ? 'selected' : '' }}>
+                                {{ now()->format('Y') }}
+                            </option>
+                        </select>
+                    </div>
                     <div class="form-group mb-0">
                         <label for="file" class="fw-bold text-dark mb-2" style="font-size: 0.85rem;">Upload File</label>
                         <input type="file" name="file" id="file" class="form-control form-control-sm shadow-sm" required>
@@ -758,7 +772,7 @@
   document.addEventListener('DOMContentLoaded', function () {
     Swal.fire({
       icon: "error",
-      title: "{{ Session::get('error')['title'] }}",
+      title: "{{ Session::get('error')['title'] ?? 'Error' }}",
       text: "{{ Session::get('error')['message'] }}",
       confirmButtonText: "OK",
     });

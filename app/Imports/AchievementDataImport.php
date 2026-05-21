@@ -29,14 +29,16 @@ class AchievementDataImport implements ToCollection, WithHeadingRow, WithStartRo
     }
 
     protected string $filePath;
+    protected string $period;
     protected array $rows = [];
     protected array $transactions = [];
 
     protected KPIService $kpiService;
 
-    public function __construct(string $filePath)
+    public function __construct(string $filePath, string $period)
     {
         $this->filePath = $filePath;
+        $this->period = $period;
         $this->kpiService = app(KPIService::class);
     }
 
@@ -61,7 +63,7 @@ class AchievementDataImport implements ToCollection, WithHeadingRow, WithStartRo
 
             // Log::debug('Extracted employeeId and kpiName', ['employeeId' => $employeeId, 'kpiName' => $kpiName]);
 
-            $goal = Goal::where('employee_id', $employeeId)->first();
+            $goal = Goal::where('employee_id', $employeeId)->where('period', $this->period)->first();
 
             // Log::debug('Fetched goal', ['employeeId' => $employeeId, 'goal' => $goal]);
 
@@ -174,24 +176,19 @@ class AchievementDataImport implements ToCollection, WithHeadingRow, WithStartRo
 
                 $value = $row[$column] ?? null;
 
-                if ($value === null || $value === '') {
-                    continue;
-                }
-
-                // Log::debug('Processing month column', [
-                //     'column' => $column,
-                //     'month' => $month,
-                //     'value' => $value,
-                //     'review_period' => $reviewPeriod
-                // ]);
-
                 $this->rows[] = [
                     'goal_id' => $goal->id,
                     'employee_id' => $employeeId,
                     'kpi_id' => $kpiId,
                     'kpi' => $kpiName,
                     'month' => $month,
-                    'value' => $this->kpiService->normalizeDecimal($value),
+
+                    'value' => (
+                        $value === null ||
+                        trim((string)$value) === ''
+                    )
+                        ? null
+                        : $this->kpiService->normalizeExcelDecimal($value),
                 ];
             }
         }
@@ -228,6 +225,41 @@ class AchievementDataImport implements ToCollection, WithHeadingRow, WithStartRo
                     ->where('kpi_id', $row['kpi_id'])
                     ->where('month', $row['month'])
                     ->first();
+
+                // delete jika kosong
+                if (
+                    ($row['value'] === null || $row['value'] === '')
+                    && $existing
+                ) {
+
+                Log::debug('Delete jika kosong', ['processed_rows' => $row['value']]);
+                    
+                    KPIAchievementSnapshotService::insertOne(
+                        $existing,
+                        Auth::user()->employee_id,
+                        Auth::id()
+                        );
+                        
+                    $existing->delete();
+
+                    continue;
+                }
+
+                // skip jika bulan belum masuk
+                if ($row['month'] > now()->month) {
+
+                    $this->transactions[] = [
+                        'status' => 'SUCCESS',
+                        'employee_id' => $employeeId,
+                        'kpi' => $row['kpi'] ?? null,
+                        'message' => sprintf(
+                            'Month %s skipped because period not reached',
+                            $row['month']
+                        ),
+                    ];
+
+                    continue;
+                }
 
                 if ($existing) {
 
@@ -383,4 +415,5 @@ class AchievementDataImport implements ToCollection, WithHeadingRow, WithStartRo
             default => 1,
         };
     }
+
 }
