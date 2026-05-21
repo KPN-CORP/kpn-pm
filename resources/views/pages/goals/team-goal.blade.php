@@ -22,7 +22,29 @@
 .kpi-label { font-size: 0.65rem; letter-spacing: 0.3px; text-transform: uppercase; color: #64748b; }
 .read-only-month { background-color: #ffffff; border: 1px solid #e2e8f0; border-radius: 6px; padding: 6px 4px; text-align: center; min-width: 70px; flex-shrink: 0; }
 .read-only-month.has-value { background-color: var(--kpn-primary-soft); border-color: #e5b3b2; }
-.mini-progress { height: 5px; background: #e2e8f0; border-radius: 10px; overflow: hidden; margin-top: 4px; }
+.mini-progress {
+    width:100%;
+    height:18px;
+    background: #e9ecef;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 0px;
+}
+.mini-progress-text{
+    position:absolute;
+    inset:0;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-size:.65rem;
+    color:#fff;
+    z-index:2;
+
+    text-shadow:
+        0 0 2px rgba(0,0,0,.5);
+}
 .mini-progress-bar.bg-primary { height: 100%; border-radius: 10px; background: linear-gradient(90deg, var(--kpn-primary) 25%, #d96865 50%, var(--kpn-primary) 75%); background-size: 200% 100%; animation: progressFlow 1.5s linear infinite; }
 @keyframes progressFlow { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
 .month-tracking-container { display: flex; overflow-x: auto; gap: 8px; padding-bottom: 8px; }
@@ -590,7 +612,10 @@
                             <div class="row g-2 mb-3 bg-light p-2 rounded border border-light mx-0">
                                 <div class="col-6 col-md-2">
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">Target</span>
-                                    <span class="fw-bold text-dark col-value">{{ $row['target'] ?? '-' }}</span>
+                                    <span class="fw-bold text-dark col-value">{{ number_format(
+                                                $row['target'],
+                                                0
+                                            ) ?? '-' }}</span>
                                 </div>
                                 <div class="col-6 col-md-2">
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">UoM</span>
@@ -604,13 +629,62 @@
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">Type</span>
                                     <span class="fw-bold text-dark col-value">{{ $row['type'] ?? '-' }}</span>
                                 </div>
-                                <div class="col-12 col-md-3 border-start ps-3">
-                                    <span class="text-uppercase d-block mb-1 col-label fw-semibold text-primary">Achievement</span>
-                                    <span class="fw-bold text-primary d-block col-value">{{ $row['achievement'] ?? '0' }}%</span>
-                                    @php $percent = (int) ($row['achievement'] ?? 0); @endphp
-                                    <div class="mini-progress mt-1">
-                                        <div class="mini-progress-bar bg-primary" data-width="{{ $percent }}%"></div>
+                                <div class="col-3 col-sm-3">
+
+                                    <small class="fw-bold text-uppercase d-block kpi-label mb-1">
+                                        Achievement
+                                    </small>
+
+                                    {{-- Actual Value --}}
+                                    <div class="mb-2">
+                                        <span class="fw-bold text-dark"
+                                            style="font-size:1rem;">
+                                            {{ is_numeric($row['actual'] ?? null)
+                                                ? number_format(
+                                                    (float)$row['actual'],
+                                                    str_contains((string)$row['actual'], '.')
+                                                        ? 2
+                                                        : 0
+                                                )
+                                                : ($row['actual'] ?? '-')
+                                            }}
+                                        </span>
+
                                     </div>
+
+                                    @php
+                                        $achievement = (float)($row['achievement'] ?? 0);
+
+                                        $percent = max(
+                                            min($achievement,100),
+                                            0
+                                        );
+
+                                        $progressClass =
+                                            $achievement >= 100 ? 'bg-success'
+                                            : ($achievement >= 80 ? 'bg-primary'
+                                            : ($achievement >= 50 ? 'bg-warning'
+                                            : 'bg-danger'));
+                                    @endphp
+
+                                    <div class="mini-progress position-relative">
+
+                                        <div
+                                            class="mini-progress-bar bg-primary {{ $progressClass }}"
+                                            data-width="{{ $percent }}%">
+                                        </div>
+
+                                        <small class="mini-progress-text fw-semibold">
+
+                                            {{ number_format(
+                                                $achievement,
+                                                0
+                                            ) }}%
+
+                                        </small>
+
+                                    </div>
+
                                 </div>
                                 <div class="col-6 col-md-4 mt-2">
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">Review Period</span>
@@ -652,12 +726,14 @@
                                     @foreach($months as $monthNum => $monthLabel)
                                         @php
                                             $value = $row['ach'][$monthNum] ?? null;
-                                            $formatted = is_null($value) || $value === '' ? '-' : rtrim(rtrim($value, '0'), '.');
                                             $file = $row['attachment'][$monthNum] ?? null;
                                         @endphp
                                         <div class="read-only-month {{ $value ? 'has-value' : '' }}">
                                             <span class="text-uppercase fw-bold text-secondary d-block mb-1" style="font-size: 0.6rem;">{{ $monthLabel }}</span>
-                                            <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">{{ $formatted }}</span>
+                                            <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">{{ number_format(
+                                                $value,
+                                                0
+                                            ) }}</span>
                                             @if($file)
                                                 <a href="{{ asset('storage/'.$file) }}" target="_blank" class="d-block mt-2 text-primary fw-bold border border-primary rounded text-decoration-none bg-white" style="font-size: 0.55rem; padding: 2px;">FILE</a>
                                             @endif
@@ -747,6 +823,7 @@
                     <div class="form-group mb-0">
                         <label for="file" class="fw-bold text-dark mb-2" style="font-size: 0.85rem;">Upload File</label>
                         <input type="file" name="file" id="file" class="form-control form-control-sm shadow-sm" required>
+                        <input type="hidden" name="type" id="type" value="team">
                     </div>
                 </div>
                 <div class="modal-footer bg-light border-top py-2">
