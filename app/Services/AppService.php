@@ -1545,4 +1545,78 @@ class AppService
         ];
     }
 
+    function normalizeTarget($value): ?float
+    {
+        if ($value === null || trim((string)$value) === '') {
+            return null;
+        }
+
+        $value = trim((string)$value);
+
+        $hasDot = str_contains($value, '.');
+        $hasComma = str_contains($value, ',');
+
+        // hanya titik
+        if ($hasDot && !$hasComma) {
+
+            $parts = explode('.', $value);
+
+            // 1.000.000
+            if (
+                count($parts) > 1 &&
+                collect(array_slice($parts, 1))
+                    ->every(fn($x) => strlen($x) === 3)
+            ) {
+
+                $value = str_replace('.', '', $value);
+
+            } else {
+                // decimal: 5.000
+                $value = str_replace(',', '', $value);
+            }
+
+        }
+        // hanya koma
+        elseif ($hasComma && !$hasDot) {
+
+            $parts = explode(',', $value);
+
+            // 10,000,000
+            if (
+                count($parts) > 1 &&
+                collect(array_slice($parts, 1))
+                    ->every(fn($x)=>strlen($x)==3)
+            ) {
+
+                $value = str_replace(',', '', $value);
+
+            } else {
+
+                // decimal EU
+                $value = str_replace(',', '.', $value);
+            }
+
+        }
+        // campur
+        elseif ($hasDot && $hasComma) {
+
+            $lastDot = strrpos($value,'.');
+            $lastComma = strrpos($value,',');
+
+            if ($lastComma > $lastDot) {
+
+                // 1.000,50
+                $value = str_replace('.', '', $value);
+                $value = str_replace(',', '.', $value);
+
+            } else {
+
+                // 1,000.50
+                $value = str_replace(',', '', $value);
+            }
+        }
+
+        return (float)$value;
+    }
+
 }
