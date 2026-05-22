@@ -278,7 +278,8 @@ class AchievementDataImport implements ToCollection, WithHeadingRow, WithStartRo
 
                 // delete jika kosong
                 if (
-                    ($row['value'] === null || $row['value'] === '')
+                    ($row['value'] === null
+                    || trim((string)$row['value']) === '')
                     && $existing
                 ) {
 
@@ -291,6 +292,26 @@ class AchievementDataImport implements ToCollection, WithHeadingRow, WithStartRo
                         );
                         
                     $existing->delete();
+
+                    continue;
+                }
+
+                if (
+                    (
+                        $row['value'] === null
+                        || trim((string)$row['value']) === ''
+                    )
+                    && !$existing
+                ) {
+
+                    Log::debug(
+                        'Skip jika kosong',
+                        [
+                            'value' => $row['value'],
+                            'month' => $row['month'],
+                            'kpi' => $row['kpi'],
+                        ]
+                    );
 
                     continue;
                 }
