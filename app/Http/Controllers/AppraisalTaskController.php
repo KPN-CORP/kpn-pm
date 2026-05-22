@@ -16,6 +16,7 @@ use App\Models\EmployeeAppraisal;
 use App\Models\Goal;
 use App\Models\KpiUnits;
 use App\Models\MasterCalibration;
+use App\Models\Schedule;
 use App\Services\AppService;
 use Carbon\Carbon;
 use Exception;
@@ -53,11 +54,15 @@ class AppraisalTaskController extends Controller
         try {
             // Eager loading related models
             $employee = EmployeeAppraisal::with(['schedule'])->first();
-            
+
             $user = $this->user;
             $period = $this->appService->appraisalPeriod();
             $filterYear = $request->input('filterYear');
-            
+
+            if ($filterYear && $filterYear != '') {
+                $period = $filterYear;
+            }
+
             // Get dataTeams and filter contributors in one pass
             $dataTeams = ApprovalLayerAppraisal::with(['approver', 'contributors' => function($query) use ($user, $period) {
                 $query->where('contributor_id', $user)->where('period', $period);
@@ -76,11 +81,11 @@ class AppraisalTaskController extends Controller
                 $query->where('form_status', 'Draft');
             })
             ->get();
-    
+
             // Filter contributors for 'dataTeams' that are empty
             $filteredDataTeams = $dataTeams->filter(fn($item) => $item->contributors->isEmpty() && $item->goal->isNotEmpty());
             $notifDataTeams = $filteredDataTeams->count();
-            
+
             // Get data360 and filter contributors and appraisal in one pass
             $data360 = ApprovalLayerAppraisal::with(['approver', 'contributors' => function($query) use ($period) {
                 $query->where('contributor_id', Auth::user()->employee_id)->where('period', $period);
@@ -97,20 +102,27 @@ class AppraisalTaskController extends Controller
             })
             ->get()
             ->filter(fn($item) => $item->appraisal !== null && $item->contributors->isEmpty());
-    
+
             $notifData360 = $data360->count();
-            
+
             // Pluck contributors data
             $contributors = $data360->pluck('contributors');
-            
+
             $parentLink = __('Appraisal');
             $link = __('Task Box');
-    
-            return view('pages.appraisals-task.app', compact('notifDataTeams', 'notifData360', 'contributors', 'link', 'parentLink'));
-    
+
+            $selectYear = Schedule::withTrashed()
+                ->where('event_type', 'goals')
+                ->where('schedule_periode', '!=', $period)
+                ->selectRaw('DISTINCT schedule_periode as period')
+                ->orderBy('period', 'ASC')
+                ->get();
+
+            return view('pages.appraisals-task.app', compact('notifDataTeams', 'notifData360', 'contributors', 'link', 'parentLink', 'period', 'selectYear'));
+
         } catch (Exception $e) {
             Log::error('Error in index method: ' . $e->getMessage());
-    
+
             // Return empty data to be consumed in the Blade template
             return view('pages.appraisals-task.app', [
                 'data' => [],
@@ -122,13 +134,13 @@ class AppraisalTaskController extends Controller
             ]);
         }
     }
-    
+
 public function getTeamData(Request $request)
     {
         $user = $this->user;
         $period = $this->appService->appraisalPeriod();
         $filterYear = $request->input('filterYear');
-    
+
         $datas = ApprovalLayerAppraisal::with([
             'employee' => function ($query) {
                 $query->whereRaw('json_valid(access_menu)')
@@ -157,17 +169,17 @@ public function getTeamData(Request $request)
         ->where('approver_id', $user)
         ->where('layer_type', 'manager')
         ->get();
-    
+
         $datas->each(function ($item) use ($period) {
             $goalData = optional($item->goal->first())->form_data;
             $appraisalData = optional($item->contributors->first())->form_data;
-    
+
             if (!$appraisalData) return;
-    
+
             $goalDataArr = json_decode($goalData ?? '[]', true);
             $appraisalArr = json_decode($appraisalData ?? '[]', true);
             $employeeData = $item->employee ?? null;
-    
+
             $formData = $this->appService->combineFormData(
                 $appraisalArr,
                 $goalDataArr,
@@ -175,7 +187,7 @@ public function getTeamData(Request $request)
                 $employeeData,
                 $period
             );
-    
+
             // Simpan nilai total score secara fleksibel
             foreach ($formData as $key => $value) {
                 if (Str::startsWith($key, 'total')) {
@@ -183,37 +195,37 @@ public function getTeamData(Request $request)
                         ->replaceFirst('total', '')
                         ->snake()
                         ->__toString();
-    
+
                     $item->{$column} = round((float) $value, 2);
                 }
             }
-    
+
             // Cek calibration
             $item->calibrationCheck = Calibration::where('employee_id', $item->employee_id)
                 ->where('status', 'Approved')
                 ->where('period', $period)
                 ->exists();
         });
-    
+
         $data = $datas->map(function ($team, $index) {
             $employee = $team->employee;
             $goal = $team->goal->first();
             $contributor = $team->contributors->first();
             $approvalReq = $team->approvalRequest->first();
-    
+
             if (!$employee || !$goal) return null;
-    
+
             // ambil semua kolom score yang muncul dari loop di atas
             $scoreKeys = collect($team->getAttributes())
                 ->filter(fn($v, $k) => Str::contains($k, 'score'))
                 ->keys()
                 ->toArray();
-    
+
             $scores = [];
             foreach ($scoreKeys as $key) {
                 $scores[$key] = $team->{$key};
             }
-    
+
             return [
                 'index' => $index + 1,
                 'employee' => [
@@ -232,7 +244,7 @@ public function getTeamData(Request $request)
                 'action' => view('components.action-buttons', ['team' => $team])->render(),
             ];
         })->filter()->values();
-    
+
         return response()->json($data);
     }
 
@@ -241,7 +253,7 @@ public function getTeamData(Request $request)
         $user = $this->user;
         $period = $this->appService->appraisalPeriod();
         $filterYear = $request->input('filterYear');
-    
+
         $datas = ApprovalLayerAppraisal::with([
             'employee' => function ($query) {
                 $query->whereRaw('json_valid(access_menu)')
@@ -268,18 +280,18 @@ public function getTeamData(Request $request)
         ->whereIn('layer_type', ['peers', 'subordinate'])
         ->has('approvalRequest')
         ->get();
-    
+
         $datas->each(function ($item) use ($period) {
             $goalData = optional($item->goal->first())->form_data;
             $appraisalData = optional($item->contributors->first())->form_data;
-    
+
             if (!$appraisalData) return;
-    
+
             $goalDataArr = json_decode($goalData ?? '[]', true);
             $appraisalArr = json_decode($appraisalData ?? '[]', true);
-    
+
             $employeeData = $item->employee ?? null;
-    
+
             $formData = $this->appService->combineFormData(
                 $appraisalArr,
                 $goalDataArr,
@@ -287,7 +299,7 @@ public function getTeamData(Request $request)
                 $employeeData,
                 $period
             );
-    
+
             // Simpan nilai total score secara fleksibel
             foreach ($formData as $key => $value) {
                 if (Str::startsWith($key, 'total')) {
@@ -295,37 +307,37 @@ public function getTeamData(Request $request)
                         ->replaceFirst('total', '')
                         ->snake()
                         ->__toString();
-    
+
                     $item->{$column} = round((float) $value, 2);
                 }
             }
-    
+
             // Cek calibration
             $item->calibrationCheck = Calibration::where('employee_id', $item->employee_id)
                 ->where('status', 'Approved')
                 ->where('period', $period)
                 ->exists();
         });
-    
+
         // Format data untuk DataTables
         $data = $datas->map(function ($team, $index) {
             $employee = $team->employee;
             $goal = $team->goal->first();
             $contributor = $team->contributors->first();
-    
+
             if (!$employee || !$goal) return null;
-    
+
             // Ambil semua kolom score yang ter-generate di atas
             $scoreKeys = collect($team->getAttributes())
                 ->filter(fn($v, $k) => Str::contains($k, 'score'))
                 ->keys()
                 ->toArray();
-    
+
             $scores = [];
             foreach ($scoreKeys as $key) {
                 $scores[$key] = $team->{$key};
             }
-    
+
             return [
                 'index' => $index + 1,
                 'employee' => [
@@ -346,7 +358,7 @@ public function getTeamData(Request $request)
                 'action' => view('components.action-buttons', ['team' => $team])->render(),
             ];
         })->filter()->values();
-    
+
         return response()->json($data);
     }
 
@@ -379,7 +391,7 @@ public function getTeamData(Request $request)
             Session::flash('error', "No Layer assigned, please contact admin to assign layer");
             return redirect()->back();
         }
-        
+
         if ($goal) {
             $goalData = json_decode($goal->form_data, true);
         } else {
@@ -390,11 +402,11 @@ public function getTeamData(Request $request)
         $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $id)->value('approver_id');
 
         // Get form group appraisal
-        $formGroupData = $this->appService->formGroupAppraisal($id, 'Appraisal Form');                
-        
+        $formGroupData = $this->appService->formGroupAppraisal($id, 'Appraisal Form');
+
         $formTypes = $formGroupData['data']['form_names'] ?? [];
         $formDatas = $formGroupData['data']['form_appraisals'] ?? [];
-                
+
         $filteredFormData = array_filter($formDatas, function($form) use ($formTypes) {
             return in_array($form['name'], $formTypes);
         });
@@ -407,7 +419,7 @@ public function getTeamData(Request $request)
         ];
 
         $viewAchievement = $employee->group_company == 'Cement' ? true : false;
-        
+
         $parentLink = __('Appraisal');
         $link = 'Initiate Appraisal';
 
@@ -436,11 +448,11 @@ public function getTeamData(Request $request)
 
         // Read the content of the JSON files
         $formGroupData = $this->appService->formGroupAppraisal($request->id, 'Appraisal Form Task');
-        
+
         $formTypes = $formGroupData['data']['form_names'] ?? [];
         $formDatas = $formGroupData['data']['form_appraisals'] ?? [];
 
-        
+
         $filteredFormData = array_filter($formDatas, function($form) use ($formTypes) {
             return in_array($form['name'], $formTypes);
         });
@@ -449,7 +461,7 @@ public function getTeamData(Request $request)
             'viewCategory' => 'initiate',
             'filteredFormData' => $filteredFormData,
         ];
-                
+
         $parentLink = __('Appraisal');
         $link = 'Initiate Appraisal';
 
@@ -461,31 +473,31 @@ public function getTeamData(Request $request)
     {
         $user = $this->user;
         $period = $this->appService->appraisalPeriod();
-        $id = decrypt($request->id);   
-        
+        $id = decrypt($request->id);
+
         $type = $request->type;
 
         $step = $request->input('step', 1);
-        
+
         $goals = Goal::with(['employeeAppraisal'])->where('employee_id', $id)->where('period', $period)->first();
 
         $achievements = Achievements::where('employee_id', $id)->where('period', $period)->get();
-        
-        
+
+
         $contributorCheck = AppraisalContributor::where('employee_id', $id)->where('period', $period)->first();
         $contributorTransaction = AppraisalContributor::where('employee_id', $id)
         ->where('period', $period)
         ->where('created_by', Auth::id())
-        ->exists(); 
+        ->exists();
 
         $contributorData = AppraisalContributor::where('employee_id', $id)
         ->where('period', $period)
         ->where('created_by', Auth::id())
-        ->first(); 
-        
+        ->first();
+
         $appraisal = Appraisal::with(['employee', 'approvalRequest' => function($query) use ($period) {
             $query->where('category', 'Appraisal')->where('period', $period);
-            
+
         }])->where('employee_id', $id)->where('period', $period)->first();
 
         // if ($contributorData) {
@@ -493,7 +505,7 @@ public function getTeamData(Request $request)
         // } else {
         //     $formData = json_decode($appraisal->form_data, true);
         // }
-        
+
         if ($contributorData && $contributorData->form_data) {
             $formData = json_decode($contributorData->form_data, true);
         } elseif ($appraisal && $appraisal->form_data) {
@@ -510,8 +522,8 @@ public function getTeamData(Request $request)
             : Auth::user()->employee_id;
 
         $appraisalContributor = AppraisalContributor::where('employee_id', $id)->where('contributor_id', $approverId)->where('period', $period)->first();
-        
-        $manager = ApprovalLayerAppraisal::where('employee_id', $id)->where('approver_id', $approverId )->where('layer_type', 'manager')->first();    
+
+        $manager = ApprovalLayerAppraisal::where('employee_id', $id)->where('approver_id', $approverId )->where('layer_type', 'manager')->first();
 
         $approval = ApprovalLayerAppraisal::with('approver')->where('employee_id', $id)->where('approver_id', $approverId )->where('layer_type', '!=', 'calibrator')->first();
 
@@ -527,18 +539,18 @@ public function getTeamData(Request $request)
         }
 
         if ($appraisal) {
-    
+
             $manager = ApprovalLayerAppraisal::where('employee_id', $appraisal->employee_id)->where('approver_id', $approverId )->where('layer_type', 'manager')->first();
-            
+
             $approval = ApprovalLayerAppraisal::where('employee_id', $appraisal->employee_id)->where('approver_id', $approverId )->where('layer_type', '!=', 'calibrator')->first();
 
             $appraisalId = $appraisal->id;
-                
+
             // $achievement = array_filter($formData['formData'], function ($form) {
             //     // return $form['formName'] === 'KPI';
             //     return in_array($form['formName'] ?? '', ['Culture', 'Leadership']);
             // });
-                
+
             // foreach ($achievement[0] as $key => $formItem) {
             //     if (isset($goalData[$key])) {
             //         $combinedData[$key] = array_merge($formItem, $goalData[$key]);
@@ -546,12 +558,12 @@ public function getTeamData(Request $request)
             //         $combinedData[$key] = $formItem;
             //     }
             // }
-            
+
             $achievement = array_values(array_filter(
                 $formData['formData'] ?? [],
                 fn ($form) => in_array($form['formName'] ?? '', ['Culture', 'Leadership'])
             ));
-            
+
             if (empty($achievement)) {
                 $achievement = [];
             } else {
@@ -566,7 +578,7 @@ public function getTeamData(Request $request)
 
 
             // Read the contents of the JSON file
-            
+
             $selfReviewData = [];
             foreach ($formData['formData'] as $item) {
                 if ($item['formName'] === 'KPI') {
@@ -574,7 +586,7 @@ public function getTeamData(Request $request)
                     break;
                 }
             }
-            
+
             // Add the achievements to the goalData
             foreach ($goalData as $index => &$goal) {
                 if (isset($selfReviewData[$index])) {
@@ -582,7 +594,7 @@ public function getTeamData(Request $request)
                 }
             }
 
-            foreach ($formData['formData'] as &$form) {                
+            foreach ($formData['formData'] as &$form) {
                 if ($form['formName'] === 'Culture') {
                     foreach ($form as $key => &$value) {
                         if (is_numeric($key)) {
@@ -624,7 +636,7 @@ public function getTeamData(Request $request)
             $formData = json_decode($appraisalContributor->form_data, true);
 
 
-            foreach ($formData['formData'] as &$form) {                
+            foreach ($formData['formData'] as &$form) {
                 if ($form['formName'] === 'Culture') {
                     foreach ($form as $key => &$value) {
                         if (is_numeric($key)) {
@@ -663,21 +675,21 @@ public function getTeamData(Request $request)
 
         $form_name = $manager ? 'Appraisal Form Review' : 'Appraisal Form 360' ;
 
-        $formGroupData = $this->appService->formGroupAppraisal($id, $form_name);   
+        $formGroupData = $this->appService->formGroupAppraisal($id, $form_name);
 
-        
+
         $formTypes = $formGroupData['data']['form_names'] ?? [];
         $formDatas = $formGroupData['data']['form_appraisals'] ?? [];
-        
+
         $filteredFormData = array_filter($formDatas, function($form) use ($formTypes) {
             return in_array($form['name'], $formTypes);
         });
-        
+
         // Merge the scores
         if ($appraisal || $appraisalContributor) {
             $filteredFormData = $this->appService->mergeScores($formData, $filteredFormData);
         }
-        
+
         $filteredFormDatas = [
             'viewCategory' => 'Review',
             'filteredFormData' => $filteredFormData,
@@ -688,7 +700,7 @@ public function getTeamData(Request $request)
         $employee = EmployeeAppraisal::where('employee_id', $id)->first();
 
         $viewAchievement = $employee->group_company == 'Cement' ? true : false;
-        
+
         $parentLink = __('Appraisal');
         $link = 'Review Appraisal';
 
@@ -851,17 +863,17 @@ public function getTeamData(Request $request)
             $datasQuery = AppraisalContributor::with(['employee', 'goal' => function($query) {
                 $query->where('period', $this->period);
             }])->where('id', $contributorId);
-            
+
             $datas = $datasQuery->get();
-                        
+
             $formattedData = $datas->map(function($item) {
                 $item->formatted_created_at = $this->appService->formatDate($item->created_at);
 
                 $item->formatted_updated_at = $this->appService->formatDate($item->updated_at);
-                
+
                 return $item;
             });
-            
+
             $data = [];
             foreach ($formattedData as $request) {
                 $dataItem = new stdClass();
@@ -888,13 +900,13 @@ public function getTeamData(Request $request)
             // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
 
             $formGroupData = $this->appService->formGroupAppraisal($employeeData->employee_id, 'Appraisal Form');
-            
+
             if (!$formGroupData) {
                 $appraisalForm = ['data' => ['formData' => []]];
             } else {
                 $appraisalForm = $formGroupData;
             }
-            
+
             $cultureData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
             $leadershipData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
             $technicalData = $this->getDataByName($appraisalForm['data']['form_appraisals'], 'Technical') ?? [];
@@ -907,7 +919,7 @@ public function getTeamData(Request $request)
                 $appraisalData['leadershipScore'] = round($formData['totalLeadershipScore'], 2);
                 $appraisalData['technicalScore'] = round($formData['totalTechnicalScore'], 2);
             }
-            
+
             foreach ($formData['formData'] as &$form) {
                 if ($form['formName'] === 'Leadership') {
                     foreach ($leadershipData as $index => $leadershipItem) {
@@ -1016,7 +1028,7 @@ public function getTeamData(Request $request)
 
         try {
             $contributorData = ApprovalLayerAppraisal::select('approver_id', 'layer_type')->where('approver_id', Auth::user()->employee_id)->where('layer_type', 'manager')->where('employee_id', $validatedData['employee_id'])->first();
-            
+
             if (!$contributorData) {
                 throw new Exception('No manager layer found for this employee.');
             }
@@ -1032,7 +1044,7 @@ public function getTeamData(Request $request)
             ];
 
             $goals = Goal::with(['employee'])->where('employee_id', $validatedData['employee_id'])->where('period', $period)->first();
-            
+
             if (!$goals) {
                 throw new Exception("No goals found for this period ($period).");
             }
@@ -1079,11 +1091,11 @@ public function getTeamData(Request $request)
                 $appraisal->period = $period;
                 $appraisal->file = empty($paths) ? null : json_encode($paths);
                 $appraisal->created_by = Auth::user()->id;
-                
+
                 if (!$appraisal->save()) {
                     throw new Exception('Failed to save appraisal data.');
                 }
-                
+
                 $calibrationGroupID = $masterCalibration->id_calibration_group;
 
                 // dd($datas, $goalData, $contributorData->layer_type, $goals->employee, $period);
@@ -1103,18 +1115,18 @@ public function getTeamData(Request $request)
                     'period' => $period,
                     'created_by' => Auth::user()->id
                 ]);
-                
+
                 if (!$contributor) {
                     throw new Exception('Failed to create appraisal contributor.');
                 }
-                
+
                 $snapshot =  new ApprovalSnapshots;
                 $snapshot->id = Str::uuid();
                 $snapshot->form_id = $appraisal->id;
                 $snapshot->form_data = json_encode($datas);
                 $snapshot->employee_id = $validatedData['employee_id'];
                 $snapshot->created_by = Auth::user()->id;
-                
+
                 if (!$snapshot->save()) {
                     throw new Exception('Failed to save approval snapshot.');
                 }
@@ -1140,7 +1152,7 @@ public function getTeamData(Request $request)
                     $calibration->approver_id = $firstCalibrator;
                     $calibration->period = $period;
                     $calibration->created_by = Auth::user()->id;
-    
+
                     if (!$calibration->save()) {
                         throw new Exception('Failed to save calibration.');
                     }
@@ -1286,7 +1298,7 @@ public function getTeamData(Request $request)
                         Storage::disk('public')->delete($diskPath);
                     }
                 }
-    
+
                 // Lanjutkan proses update file, validasi, dll...
                 $timestamp  = Carbon::now()->format('His');
                 $baseDir    = 'files/docs_pa';                       // di disk 'public'
@@ -1356,7 +1368,7 @@ public function getTeamData(Request $request)
                             'updated_by' => $request->userid,
                             'file' => empty($finalPaths) ? null : json_encode($finalPaths),
                         ]);
-    
+
                         ApprovalRequest::where('form_id', $calibration->appraisal_id)
                             ->update([
                                 'current_approval_id' => $approver,
@@ -1364,7 +1376,7 @@ public function getTeamData(Request $request)
                                 'updated_by' => $request->userid,
                                 'messages' => $onbehalfMessages,
                             ]);
-    
+
                         Approval::updateOrCreate(
                             [
                                 'request_id' => ApprovalRequest::where('form_id', $calibration->appraisal_id)->value('id'),
@@ -1377,7 +1389,7 @@ public function getTeamData(Request $request)
                         );
                     }
                 } else {
-    
+
                         $appraisal->update([
                             'updated_by' => $request->userid,
                             'file' => empty($finalPaths) ? null : json_encode($finalPaths),
