@@ -197,7 +197,7 @@ document.addEventListener('DOMContentLoaded', function() {
                             title: "Invalid Configuration",
                             text: `Weightage configuration on ${groupCompany} with period ${period} already exists. Please adjust your configuration.`,
                             icon: "error",
-                            confirmButtonColor: "#f15776"
+                            confirmButtonColor: "#AB2F2B"
                         });
 
                         // Mark fields as invalid
@@ -224,7 +224,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         title: "Error",
                         text: "An error occurred while checking configuration data.",
                         icon: "error",
-                        confirmButtonColor: "#f15776"
+                        confirmButtonColor: "#AB2F2B"
                     });
                     hasErrors = true;
                     reject(); // Reject the promise in case of error
@@ -283,7 +283,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     title: "Error",
                     text: "Please fill out all required fields and ensure weightages total 100.",
                     icon: "error",
-                    confirmButtonColor: "#f15776"
+                    confirmButtonColor: "#AB2F2B"
                 });
             } else {
     
@@ -300,8 +300,8 @@ document.addEventListener('DOMContentLoaded', function() {
                         title: "Save weightage?",
                         text: "This can't be reverted",
                         showCancelButton: true,
-                        confirmButtonColor: "#3e60d5",
-                        cancelButtonColor: "#f15776",
+                        confirmButtonColor: "#AB2F2B",
+                        
                         confirmButtonText: "Ok, save it",
                         reverseButtons: true,
                     }).then((result) => {

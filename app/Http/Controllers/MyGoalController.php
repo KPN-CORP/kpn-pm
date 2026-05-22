@@ -10,6 +10,7 @@ use App\Models\ApprovalSnapshots;
 use App\Models\Employee;
 use App\Models\Goal;
 use App\Models\KPIAchievement;
+use App\Models\KPIAchievementSnapshot;
 use App\Services\AppService;
 use App\Services\KPIAchievementService;
 use App\Services\KPIService;
@@ -678,6 +679,8 @@ class MyGoalController extends Controller
 
                 $newReviewPeriod = $request->review_period[$index] ?? null;
 
+                $kpiId = (string) $kpiId;
+
                 $oldReviewPeriod = $oldKpis[$kpiId]['review_period'] ?? null;
 
                 /**
@@ -708,6 +711,81 @@ class MyGoalController extends Controller
                     'calculation_method' => $request->calculation_method[$index] ?? null,
                     'kpi_id' => $kpiId,
                 ];
+            }
+
+            // cek perubahan KPI
+            $oldFormData = json_decode(
+                $goal->form_data,
+                true
+            ) ?? [];
+
+            $hasGoalChanged = false;
+
+            foreach ($kpiData as $index => $newKpi) {
+
+                $oldKpi =
+                    $oldFormData[$index]
+                    ?? [];
+
+                // ignore kpi_id
+                unset(
+                    $oldKpi['kpi_id'],
+                    $newKpi['kpi_id']
+                );
+
+                if (
+                    json_encode($oldKpi)
+                    !==
+                    json_encode($newKpi)
+                ) {
+
+                    $hasGoalChanged = true;
+
+                    break;
+                }
+            }
+
+            // reset achievement approval
+            if ($hasGoalChanged) {
+
+                KPIAchievement::where(
+                    'goal_id',
+                    $goal->id
+                )
+                ->update([
+
+                    'approval_status'
+                        => 'Pending',
+
+                    'approval_info'
+                        => null,
+
+                    'approval_date'
+                        => null,
+
+                    'updated_at'
+                        => now(),
+                ]);
+
+                KPIAchievementSnapshot::where(
+                    'goal_id',
+                    $goal->id
+                )
+                ->update([
+
+                    'approval_status'
+                        => 'Pending',
+
+                    'approval_info'
+                        => null,
+
+                    'approval_date'
+                        => null,
+
+                    'updated_at'
+                        => now(),
+                ]);
+
             }
 
             // Update goal record

@@ -55,7 +55,7 @@
                           @if (!$selfData)
                             @if ($canAct && $hasCalibration)
                               <button class="btn btn-sm btn-light px-1 rounded" type="button"
-                                onclick="Swal.fire({ icon: 'info', title: 'Calibration Ongoing', text: 'Employee already in Calibration process.', confirmButtonText: 'OK', confirmButtonColor: '#3e60d5' })">
+                                onclick="Swal.fire({ icon: 'info', title: 'Calibration Ongoing', text: 'Employee already in Calibration process.', confirmButtonText: 'OK', confirmButtonColor: '#AB2F2B' })">
                                 Action
                               </button>
                             @else

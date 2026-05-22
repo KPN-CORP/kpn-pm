@@ -303,7 +303,7 @@ document.addEventListener("DOMContentLoaded", function () {
             Swal.fire({
                 title: "Oops, you've reached the maximum number of KPI",
                 icon: "error",
-                confirmButtonColor: "#3e60d5",
+                confirmButtonColor: "#AB2F2B",
                 confirmButtonText: "OK",
             });
         }
@@ -356,7 +356,7 @@ function checkEmptyFields(submitType) {
             if (requiredInputs[i].value.trim() === "") {
                 Swal.fire({
                     title: errorAlertMessages,
-                    confirmButtonColor: "#3e60d5",
+                    confirmButtonColor: "#AB2F2B",
                     icon: "error",
                     didClose: () => {
                         // Show the alert field after the SweetAlert2 modal is closed
@@ -384,7 +384,7 @@ function validate(submitType) {
         Swal.fire({
             title: "Submit failed",
             html: `Your current weightage is ${sum}%, <br>Please adjust to reach the total weightage of 100%`,
-            confirmButtonColor: "#3e60d5",
+            confirmButtonColor: "#AB2F2B",
             icon: "error",
             // If confirmed, proceed with form submission
         });
@@ -410,7 +410,7 @@ function validateWeightage(submitType) {
             // Display alert message
             Swal.fire({
                 title: "The weightage cannot lower than 5%",
-                confirmButtonColor: "#3e60d5",
+                confirmButtonColor: "#AB2F2B",
                 icon: "error",
                 // If confirmed, proceed with form submission
             });
@@ -468,8 +468,8 @@ function confirmSubmission(submitType) {
         title: title1,
         text: text,
         showCancelButton: true,
-        confirmButtonColor: "#3e60d5",
-        cancelButtonColor: "#f15776",
+        confirmButtonColor: "#AB2F2B",
+        
         confirmButtonText: confirmText,
         reverseButtons: true,
     }).then((result) => {
@@ -920,3 +920,84 @@ $('#importAchievementButton').on('click', function(e) {
         form.reportValidity();
     }
 });
+
+$(
+    '#reviseGoalBtn'
+).on(
+    'click',
+    function(e){
+
+        const hasAchievement =
+            $(this).data(
+                'has-achievement'
+            );
+
+        if(hasAchievement){
+
+            showLoader();
+
+            return true;
+        }
+
+        e.preventDefault();
+
+        const url =
+            $(this).attr(
+                'href'
+            );
+
+        Swal.fire({
+
+            icon:'warning',
+
+            title:
+                'Revise Goals?',
+
+            html:`
+                Changes to goals/targets
+                will reset the current
+                achievement progress.
+
+                <br><br>
+
+                Existing achievements
+                including Draft,
+                Pending Approval,
+                and Approved data
+                may be affected.
+
+                <br><br>
+
+                Are you sure you
+                want to continue?
+            `,
+
+            showCancelButton:true,
+
+            confirmButtonText:
+                'Continue',
+
+            cancelButtonText:
+                'Cancel',
+
+            confirmButtonColor:
+                '#AB2F2B',
+            reverseButtons: true,
+
+        }).then(
+            (result)=>{
+
+            if(
+                result.isConfirmed
+            ){
+
+                showLoader();
+
+                window.location =
+                    url;
+            }
+
+        });
+
+    }
+);

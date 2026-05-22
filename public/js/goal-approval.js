@@ -107,7 +107,7 @@ function confirmAprroval() {
         text: text,
         showCancelButton: true,
         confirmButtonColor: "#3e60d5",
-        cancelButtonColor: "#f15776",
+        
         confirmButtonText: confirmText,
         reverseButtons: true,
     }).then((result) => {
@@ -153,7 +153,7 @@ function confirmAprrovalAdmin() {
         text: text,
         showCancelButton: true,
         confirmButtonColor: "#3e60d5",
-        cancelButtonColor: "#f15776",
+        
         confirmButtonText: confirmText,
         reverseButtons: true,
     }).then((result) => {
@@ -197,7 +197,7 @@ function sendBack(id, nik, name) {
         text: text,
         showCancelButton: true,
         confirmButtonColor: "#3e60d5",
-        cancelButtonColor: "#f15776",
+        
         confirmButtonText: confirmText,
         reverseButtons: true,
         input: "textarea",

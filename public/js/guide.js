@@ -12,7 +12,7 @@ $("#submit").on("click", function (event) {
             icon: "warning",
             showCancelButton: true,
             confirmButtonColor: "#3e60d5",
-            cancelButtonColor: "#f15776",
+            
             confirmButtonText: "Yes, Save it!",
             reverseButtons: true,
         }).then((result) => {

@@ -480,8 +480,8 @@
                 text: "Attachment will be deleted.",
                 icon: 'warning',
                 showCancelButton: true,
-                confirmButtonColor: '#3e60d5',
-                cancelButtonColor: "#f15776",
+                confirmButtonColor: '#AB2F2B',
+                
                 reverseButtons: true,
                 confirmButtonText: 'Yes, delete it!'
             }).then(r => r.isConfirmed);

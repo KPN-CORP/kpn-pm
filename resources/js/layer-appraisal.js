@@ -33,8 +33,8 @@ document.addEventListener("DOMContentLoaded", function () {
             text: 'Changing current manager will delete the approved appraisal. This action cannot be undone',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: "#3e60d5",
-            cancelButtonColor: "#f15776",
+            confirmButtonColor: "#AB2F2B",
+            
             reverseButtons: true,
             confirmButtonText: 'Yes, change it!',
             cancelButtonText: 'No, keep the current',
@@ -99,7 +99,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 title: "Error",
                 text: "Manager cannot empty.",
                 icon: "error",
-                confirmButtonColor: "#f15776"
+                confirmButtonColor: "#AB2F2B"
             });
 
             manager.addClass('is-invalid')
@@ -114,7 +114,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 title: "Error",
                 text: "Peers must be unique.",
                 icon: "error",
-                confirmButtonColor: "#f15776"
+                confirmButtonColor: "#AB2F2B"
             });
     
             // Add is-invalid class and show error message to duplicate peer select elements
@@ -138,7 +138,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 title: "Error",
                 text: "Subordinate must be unique.",
                 icon: "error",
-                confirmButtonColor: "#f15776"
+                confirmButtonColor: "#AB2F2B"
             });
     
             // Add is-invalid class and show error message to duplicate subordinate select elements
@@ -159,7 +159,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 title: "Error",
                 text: "Calibrator is required.",
                 icon: "error",
-                confirmButtonColor: "#f15776"
+                confirmButtonColor: "#AB2F2B"
             });
             
             // Add is-invalid class and show error message on the first calibrator
@@ -180,7 +180,7 @@ document.addEventListener("DOMContentLoaded", function () {
                 title: "Error",
                 text: "Calibrators must be unique.",
                 icon: "error",
-                confirmButtonColor: "#f15776"
+                confirmButtonColor: "#AB2F2B"
             });
     
             // Add is-invalid class and show error message to duplicate calibrator select elements
@@ -200,8 +200,8 @@ document.addEventListener("DOMContentLoaded", function () {
             title: title1,
             text: text,
             showCancelButton: true,
-            confirmButtonColor: "#3e60d5",
-            cancelButtonColor: "#f15776",
+            confirmButtonColor: "#AB2F2B",
+            
             confirmButtonText: confirmText,
             reverseButtons: true,
         }).then((result) => {
@@ -333,7 +333,7 @@ $(document).ready(function(){
                 title: "Oops!",
                 text: "You've reached the maximum number of Calibrator",
                 icon: "error",
-                confirmButtonColor: "#3e60d5",
+                confirmButtonColor: "#AB2F2B",
                 confirmButtonText: "OK",
             });
         }

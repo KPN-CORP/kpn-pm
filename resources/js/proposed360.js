@@ -176,8 +176,8 @@ import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
               text: "You won't be able to revert this!",
               icon: "warning",
               showCancelButton: true,
-              confirmButtonColor: "#3e60d5",
-              cancelButtonColor: "#f15776",
+              confirmButtonColor: "#AB2F2B",
+              
               confirmButtonText: "Submit",
               reverseButtons: true,
           }).then((result) => {
@@ -242,8 +242,8 @@ import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
         inputAttributes: { 'aria-label': 'Sendback message', 'maxlength': '500', 'rows': '4' },
         inputValidator: (v) => !v?.trim() ? 'Field is mandatory.' : undefined,
         showCancelButton: true,
-        confirmButtonColor: "#3e60d5",
-        cancelButtonColor: "#f15776",
+        confirmButtonColor: "#AB2F2B",
+        
         confirmButtonText: 'Submit',
         reverseButtons: true,
       });

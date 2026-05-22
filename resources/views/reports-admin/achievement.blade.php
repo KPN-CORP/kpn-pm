@@ -122,7 +122,23 @@
 
                                                             <div class="col-3">
                                                                 <small class="fw-bold text-uppercase">Target</small>
-                                                                <div>{{ data_get($kpi, 'target', '-') }}</div>
+                                                                <div>
+                                                                    @php
+                                                                        $target = data_get($kpi, 'target');
+                                                                    @endphp
+
+                                                                    {{
+                                                                        is_numeric($target ?? null)
+                                                                            ? number_format(
+                                                                                (float)$target,
+
+                                                                                fmod((float)$target, 1) == 0
+                                                                                    ? 0
+                                                                                    : 2
+                                                                            )
+                                                                            : ($target ?? '-')
+                                                                    }}
+                                                                </div>
                                                             </div>
 
                                                             <div class="col-3">
@@ -140,13 +156,45 @@
                                                             </div>
 
                                                             <div class="col-3">
-                                                                <small class="fw-bold text-uppercase">Achievement</small>
-                                                                <div>{{ $kpi['achievement'] ?? 0 }}%</div>
+                                                                <small class="fw-bold text-uppercase d-block kpi-label mb-1">
+                                                                    Achievement
+                                                                </small>
+                                                                {{-- Actual Value --}}
+                                                                <span
+                                                                    class="fw-bold text-dark d-block mb-2"
+                                                                    style="font-size:0.95rem;"
+                                                                >
+                                                                    {{ is_numeric($kpi['actual'] ?? null)
+                                                                        ? number_format(
+                                                                            (float)$kpi['actual'],
+                                                                            str_contains((string)$kpi['actual'], '.')
+                                                                                ? 2
+                                                                                : 0
+                                                                        )
+                                                                        : ($kpi['actual'] ?? '-')
+                                                                    }}
+                                                                </span>
+                                                                @php
+                                                                    $achievement = (float)($kpi['achievement'] ?? 0);
 
-                                                                @php $percent = (int) ($kpi['achievement'] ?? 0); @endphp
-
-                                                                <div class="mini-progress mt-1" style="height:5px;">
-                                                                    <div class="mini-progress-bar bg-primary" style="width: {{ $percent }}%"></div>
+                                                                    $percent = max(
+                                                                        min($achievement,100),
+                                                                        0
+                                                                    );
+                                                                @endphp
+                                                                <div class="mini-progress position-relative">
+                                                                    <div
+                                                                        class="mini-progress-bar bg-primary"
+                                                                        data-width="{{ $percent }}%">
+                                                                    </div>
+                                                                    <small
+                                                                        class="mini-progress-text fw-semibold"
+                                                                    >
+                                                                        {{ number_format(
+                                                                            $achievement,
+                                                                            0
+                                                                        ) }}%
+                                                                    </small>
                                                                 </div>
                                                             </div>
 
@@ -184,10 +232,6 @@
 
                                                             $value = $ach[$monthNum] ?? null;
 
-                                                            $formatted = is_null($value) || $value === ''
-                                                                ? '-'
-                                                                : rtrim(rtrim($value, '0'), '.');
-
                                                             $file = $attachments[$monthNum] ?? null;
                                                         @endphp
 
@@ -199,7 +243,19 @@
                                                                 </small>
 
                                                                 <div class="fw-bold">
-                                                                    {{ $formatted }}
+                                                                    {{
+                                                                        is_numeric($value ?? null)
+                                                                            ? number_format(
+                                                                                (float)$value,
+
+                                                                                (
+                                                                                    fmod((float)$value, 1) == 0
+                                                                                )
+                                                                                    ? 0
+                                                                                    : 2
+                                                                            )
+                                                                            : ($value ?? '-')
+                                                                    }}
                                                                 </div>
 
                                                                 @if($file)

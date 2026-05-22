@@ -494,9 +494,9 @@ class ExportExcelController extends Controller
                     ->get()
                     ->keyBy('month');
 
-                if ($achievements->isEmpty()) {
-                    continue;
-                }
+                // if ($achievements->isEmpty()) {
+                //     continue;
+                // }
 
                 $data->push((object)[
 

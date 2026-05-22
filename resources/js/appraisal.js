@@ -212,8 +212,8 @@ $(function () {
       title: "Submit Form?",
       text: submitMessages,
       showCancelButton: true,
-      confirmButtonColor: "#3e60d5",
-      cancelButtonColor: "#f15776",
+      confirmButtonColor: "#AB2F2B",
+      
       confirmButtonText: "Submit",
       reverseButtons: true,
     })).isConfirmed;

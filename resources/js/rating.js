@@ -93,7 +93,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     title: 'Submit Not Allowed',
                     text: 'Some employees are still incomplete. Please reach out to the pending employees.',
                     icon: 'warning',
-                    confirmButtonColor: "#3e60d5",
+                    confirmButtonColor: "#AB2F2B",
                     confirmButtonText: 'OK'
                 });
                 return; // Stop further execution
@@ -163,7 +163,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     title: 'Ratings are Empty!',
                     text: 'Please select a rating for all employees.',
                     icon: 'error',
-                    confirmButtonColor: "#3e60d5",
+                    confirmButtonColor: "#AB2F2B",
                     confirmButtonText: 'OK'
                 });
             } else if (!tableIsValid) {
@@ -175,7 +175,7 @@ document.addEventListener('DOMContentLoaded', function() {
                         <p>Please adjust your ratings to match the expected distribution. Mismatched cells are highlighted in the table.</p>
                     `,
                     icon: 'warning',
-                    confirmButtonColor: "#3e60d5",
+                    confirmButtonColor: "#AB2F2B",
                     confirmButtonText: 'OK'
                 });
             } else {
@@ -189,8 +189,8 @@ document.addEventListener('DOMContentLoaded', function() {
                     text: "This can't be reverted.",
                     icon: "question",
                     showCancelButton: true,
-                    confirmButtonColor: "#3e60d5",
-                    cancelButtonColor: "#f15776",
+                    confirmButtonColor: "#AB2F2B",
+                    
                     confirmButtonText: "Yes, submit",
                     cancelButtonText: "No, cancel",
                     reverseButtons: true

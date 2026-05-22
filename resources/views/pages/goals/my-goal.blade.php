@@ -111,7 +111,12 @@
     z-index:2;
 
     text-shadow:
-        0 0 2px rgba(0,0,0,.5);
+        -1px -1px 0 #9e2a2b,
+         1px -1px 0 #9e2a2b,
+        -1px  1px 0 #9e2a2b,
+         1px  1px 0 #9e2a2b,
+
+         0 0 3px rgba(0,0,0,.35);
 }
 </style>
 @endsection
@@ -196,10 +201,19 @@
                                     $row->request->goal->form_status != 'Draft' &&
                                     $row->request->created_by == Auth::user()->id
                                 )
-                                    <a class="btn btn-outline-warning btn-sm fw-semibold"
-                                    href="{{ route('goals.edit', $row->request->goal->id) }}"
-                                    onclick="showLoader()">
-                                    {{ __('Revise Goals') }}
+                                   <a id="reviseGoalBtn"
+                                        class="btn btn-outline-warning btn-sm fw-semibold revise-goal-btn"
+
+                                        href="{{ route('goals.edit', $row->request->goal->id) }}"
+
+                                        data-has-achievement="{{
+                                            $row->request->goal->hasAchievement
+                                                ? 1
+                                                : 0
+                                        }}">
+
+                                        {{ __('Revise Goals') }}
+
                                     </a>
                                 @elseif (
                                     $row->request->goal->form_status == 'Draft' ||
@@ -420,12 +434,6 @@
                                                                 min($achievement,100),
                                                                 0
                                                             );
-
-                                                            $progressClass =
-                                                                $achievement >= 100 ? 'bg-success'
-                                                                : ($achievement >= 80 ? 'bg-primary'
-                                                                : ($achievement >= 50 ? 'bg-warning'
-                                                                : 'bg-danger'));
                                                         @endphp
                                                         <div class="mini-progress position-relative">
                                                             <div
@@ -518,10 +526,19 @@
                                                         </span>
 
                                                         <span class="fw-bold text-dark" style="font-size: 1.1rem;">
-                                                            {{ number_format(
-                                                                $value,
-                                                                0
-                                                            ) }}
+                                                            {{
+                                                                is_numeric($value ?? null)
+                                                                    ? number_format(
+                                                                        (float)$value,
+
+                                                                        (
+                                                                            fmod((float)$value, 1) == 0
+                                                                        )
+                                                                            ? 0
+                                                                            : 2
+                                                                    )
+                                                                    : ($value ?? '-')
+                                                            }}
                                                         </span>
                                                         {{-- VIEW ATTACHMENT --}}
                                                         @if(!empty($data['attachment'][$monthNum]))
