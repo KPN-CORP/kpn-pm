@@ -644,23 +644,12 @@ https://github.com/nodeca/pako/blob/main/LICENSE
           <span><i class="ri-bard-fill me-1"></i>Generating...</span>
         </div>
       </div>
-    `):t.find(".section-loader").removeClass("d-none is-fading").css("opacity",1))}function Ane(e,t){const r=j(e).find(".section-loader");if(!r.length)return;const{fade:n=!0,delay:i=380,remove:o=!0}={};if(!n){o?r.remove():r.addClass("d-none");return}r.addClass("is-fading"),setTimeout(()=>{o?r.remove():r.addClass("d-none").removeClass("is-fading")},i)}document.addEventListener("DOMContentLoaded",dx);function kne(){j(".container-card .card").each(function(e){const t=e+1;j(this).find(".card-title").text("Goal "+t),j(this).find('input[id^="target"]').attr("id","target"+t),j(this).find("input[oninput]").attr("oninput",`validateDigits(this, ${t})`);const r=j(this).find("select.select-uom");r.attr("id","uom"+t),r.attr("data-id",t),j(this).find('input[id^="custom_uom"]').attr("id","custom_uom"+t),j(this).find("select.select-type").attr("id","type"+t)})}j("#importAchievementButton").on("click",function(e){e.preventDefault();const t=j("#importAchievementForm").get(0),r=j(this),n=r.find(".spinner-border");t&&t.checkValidity()?(r.prop("disabled",!0),r.addClass("disabled"),n.length&&n.removeClass("d-none"),t.submit()):t&&t.reportValidity()});j("#reviseGoalBtn").on("click",function(e){if(j(this).data("has-achievement"))return showLoader(),!0;e.preventDefault();const r=j(this).attr("href");Swal.fire({icon:"warning",title:"Revise Goals?",html:`
-                Changes to goals/targets
-                will reset the current
-                achievement progress.
+    `):t.find(".section-loader").removeClass("d-none is-fading").css("opacity",1))}function Ane(e,t){const r=j(e).find(".section-loader");if(!r.length)return;const{fade:n=!0,delay:i=380,remove:o=!0}={};if(!n){o?r.remove():r.addClass("d-none");return}r.addClass("is-fading"),setTimeout(()=>{o?r.remove():r.addClass("d-none").removeClass("is-fading")},i)}document.addEventListener("DOMContentLoaded",dx);function kne(){j(".container-card .card").each(function(e){const t=e+1;j(this).find(".card-title").text("Goal "+t),j(this).find('input[id^="target"]').attr("id","target"+t),j(this).find("input[oninput]").attr("oninput",`validateDigits(this, ${t})`);const r=j(this).find("select.select-uom");r.attr("id","uom"+t),r.attr("data-id",t),j(this).find('input[id^="custom_uom"]').attr("id","custom_uom"+t),j(this).find("select.select-type").attr("id","type"+t)})}j("#importAchievementButton").on("click",function(e){e.preventDefault();const t=j("#importAchievementForm").get(0),r=j(this),n=r.find(".spinner-border");t&&t.checkValidity()?(r.prop("disabled",!0),r.addClass("disabled"),n.length&&n.removeClass("d-none"),t.submit()):t&&t.reportValidity()});j("#reviseGoalBtn").on("click",function(e){if(j(this).data("has-achievement"))return showLoader(),!0;e.preventDefault();const r=j(this).attr("href");Swal.fire({icon:"warning",title:"Revise Goal?",html:`
+                Any changes made to your goals will reset your current achievement tracking. Existing Drafts, Pending Approvals, and Approved data will be cleared.
 
                 <br><br>
 
-                Existing achievements
-                including Draft,
-                Pending Approval,
-                and Approved data
-                may be affected.
-
-                <br><br>
-
-                Are you sure you
-                want to continue?
+                Are you sure you want to make these changes?
             `,showCancelButton:!0,confirmButtonText:"Continue",cancelButtonText:"Cancel",confirmButtonColor:"#AB2F2B",reverseButtons:!0}).then(n=>{n.isConfirmed&&(showLoader(),window.location=r)})});j(".select2").each(function(){var e=j(this).hasClass("is-modified");j(this).select2({width:"100%",containerCssClass:e?"bg-primary-subtle fw-medium":""})});document.addEventListener("DOMContentLoaded",function(){[].slice.call(document.querySelectorAll('[data-bs-toggle="dropdown"]')).map(function(t){return new Gn.Dropdown(t)})});function Ine(){j(".mandatory-field").html(`
         <div id="alertField" class="alert alert-danger alert-dismissible fade" role="alert" hidden>
             `+errorMessages+`

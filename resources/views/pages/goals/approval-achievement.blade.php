@@ -264,10 +264,11 @@
                 <div class="col-lg-12">
                     <div class="card border-primary border-opacity-50 bg-white shadow-sm h-100">
                         <div class="card-body p-2">
-                            <div
-                                class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom border-primary border-opacity-25">
-                                <h6 class="fw-bold text-primary mb-0" style="font-size: 0.8rem;"><i
-                                        class="ri-file-edit-line me-1"></i>Current Achievement</h6>
+                            <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom border-primary border-opacity-25">
+                                <div>
+                                    <h6 class="fw-bold text-primary mb-0" style="font-size: 0.8rem;"><i class="ri-file-edit-line me-1"></i>Current Achievement</h6>
+                                    <span class="text-muted d-block mt-1" style="font-size: 0.7rem;"><i class="ri-information-line align-middle me-1"></i>Max upload file: 2MB</span>
+                                </div>
                             </div>
 
                             <div class="row g-2" id="kpi_grid_{{$i}}"
@@ -318,7 +319,10 @@
                     <div class="row g-3 mb-3">
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
-                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['target'] }}</span>
+                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ number_format(
+                                                $data['target'],
+                                                0
+                                            ) ?? '-' }}</span>
                         </div>
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
@@ -333,7 +337,10 @@
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
 
                             <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">
-                                {{ $data['achievement'] ?? '0' }}%
+                                {{ number_format(
+                                    $data['achievement'],
+                                    0
+                                ) }}%
                             </span>
 
                             @php
@@ -442,82 +449,75 @@
 <script>
 
 document.addEventListener('DOMContentLoaded', function () {
-
     document.querySelectorAll('[id^="kpi_grid_"]').forEach(grid => {
         applyReviewPeriod(grid);
     });
 
+    document.querySelectorAll('.input-compact').forEach(input => {
+        if(input.value) {
+            let cleanValue = input.value.replace(/[^0-9]/g, '');
+            if (cleanValue !== '') {
+                input.value = parseInt(cleanValue, 10).toLocaleString('id-ID');
+            }
+        }
+
+        input.addEventListener('input', function() {
+            let value = this.value.replace(/[^0-9]/g, '');
+            if (value !== '') {
+                this.value = parseInt(value, 10).toLocaleString('id-ID');
+            } else {
+                this.value = '';
+            }
+        });
+    });
+
+    const form = document.getElementById('achievementApprovalForm');
+    if(form) {
+        form.addEventListener('submit', function() {
+            document.querySelectorAll('.input-compact').forEach(input => {
+                input.value = input.value.replace(/\./g, '');
+            });
+        });
+    }
 });
 
 function applyReviewPeriod(grid) {
-
     const reviewPeriod = parseInt(grid.dataset.reviewPeriod);
-
-    // current month (1-12)
     const currentMonth = new Date().getMonth() + 1;
 
     grid.querySelectorAll('.month-box').forEach(box => {
-
         const input = box.querySelector('.input-compact');
-
         if (!input) return;
 
         const month = parseInt(input.dataset.month);
-
         let isActive = false;
 
-        // ================= REVIEW PERIOD RULE =================
-
         if (reviewPeriod === 1) {
-
             isActive = true;
-
         } else if (reviewPeriod === 2) {
-
             isActive = (month % 2 === 0);
-
         } else if (reviewPeriod === 3) {
-
             isActive = (month % 3 === 0);
-
         } else if (reviewPeriod === 6) {
-
             isActive = (month % 6 === 0);
-
         } else if (reviewPeriod === 12) {
-
             isActive = (month === 12);
         }
 
-        // ================= CURRENT / PAST ONLY =================
-
         const isPastOrCurrent = month <= currentMonth;
 
-        // ================= APPLY =================
-
         if (isActive && isPastOrCurrent) {
-
-            // ✅ ENABLE
             input.removeAttribute('disabled');
-
             box.classList.remove('readonly-mode');
             box.classList.add('edit-mode-active');
-
         } else {
-
-            // ❌ DISABLE
             input.setAttribute('disabled', true);
-
             box.classList.remove('edit-mode-active');
-            box.classList.add('readonly-mode');
-            box.classList.add('month-box-old');
+            box.classList.add('readonly-mode', 'month-box-old');
         }
-
     });
 }
 
-</script>
-<script>
 document.addEventListener("DOMContentLoaded", function () {
     document.querySelectorAll('.mini-progress-bar').forEach(function (el) {
         setTimeout(() => {
