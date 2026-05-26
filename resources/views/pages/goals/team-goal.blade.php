@@ -454,7 +454,7 @@
                                 </div>
                                 <div class="col-12 col-md-2 mb-md-0 px-1">
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">Achievement Status</span>
-                                    <a href="javascript:void(0)" data-bs-id="{{ $employeeId }}" class="badge {{ $achBadgeClass }} rounded-pill py-1 px-3 text-decoration-none fw-medium" @if($showAchPopover) data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-html="true" data-bs-content="{!! $achPopover !!}" @endif>{{ $achLabel }}</a>
+                                    <a href="javascript:void(0)" data-bs-id="{{ $employeeId }}" class="badge {{ $achBadgeClass }} rounded-pill py-1 px-3 text-decoration-none fw-medium" @if($showAchPopover) data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-html="true" data-bs-content="{!! $achPopover !!}" @endif>{{ __($achLabel) }}</a>
                                 </div>
                                 <div class="col-12 col-md-4 d-flex flex-nowrap gap-2 justify-content-md-end align-items-center mt-2 mt-md-0 px-1 pt-1">
                                     @if($isApproved || $appraisalCheck)

@@ -176,7 +176,10 @@ input[type=number] {
                                                 <div class="row g-3 mb-3">
                                                     <div class="col-3 col-sm-3">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
-                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['target'] }}</span>
+                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ number_format(
+                                                            $data['target'],
+                                                            0
+                                                        ) ?? '-' }}</span>
                                                     </div>
                                                     <div class="col-3 col-sm-3">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
@@ -190,7 +193,10 @@ input[type=number] {
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
 
                                                         <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">
-                                                            {{ $data['achievement'] ?? '0' }}%
+                                                            {{ number_format(
+                                                                $data['achievement'],
+                                                                0
+                                                            ) }}%
                                                         </span>
 
                                                         @php
@@ -225,9 +231,12 @@ input[type=number] {
                 </div>
 
                 <div>
-                    <div class="d-flex justify-content-between align-items-end mb-2">
-                        <h6 class="fw-bold text-dark mb-0 fs-6">{{ __('Monthly Achievement') }}</h6>
-                        <span class="text-danger fw-bold trigger-edit" id="trigger_{{ $index }}" onclick="enableEditMode('kpi_grid_{{ $index }}', 'input_{{ $index }}_jan', 'trigger_{{ $index }}')">
+                   <div class="d-flex justify-content-between align-items-end mb-2">
+                        <div>
+                            <h6 class="fw-bold text-dark mb-1 fs-6">{{ __('Monthly Achievement') }}</h6>
+                            <span class="text-muted d-block" style="font-size: 0.7rem;"><i class="ri-information-line align-middle me-1"></i>Max upload file: 2MB</span>
+                        </div>
+                        <span class="text-danger fw-bold trigger-edit mb-1" id="trigger_{{ $index }}" onclick="enableEditMode('kpi_grid_{{ $index }}', 'input_{{ $index }}_jan', 'trigger_{{ $index }}')">
                             <i class="ri-edit-2-line"></i> Click to Edit
                         </span>
                     </div>
@@ -245,24 +254,20 @@ input[type=number] {
                             <div class="col-xl-1 col-lg-2 col-md-3 col-4">
                                 <div class="month-box readonly-mode p-1 text-center position-relative">
 
-                                    {{-- Month Label --}}
                                     <div class="text-uppercase fw-bold text-secondary mb-1 rounded bg-white border" style="font-size: 0.65rem; padding: 2px 0;">
                                         {{ $monthLabel }}
                                     </div>
 
-                                    {{-- INPUT --}}
-                                    <input type="number" 
-                                        step="any"
+                                    <input type="text" 
+                                        inputmode="numeric"
                                         id="{{ $inputId }}"
                                         name="ach[{{ $index }}][{{ $monthNum }}]" 
                                         class="input-compact" 
                                         placeholder="-"
                                         value="{{ isset($data['ach'][$monthNum]) ? rtrim(rtrim($data['ach'][$monthNum], '0'), '.') : '' }}"
                                         readonly
-                                        data-month="{{ $monthNum }}"
-                                        onkeydown="return !['e', 'E', '+'].includes(event.key);"> 
+                                        data-month="{{ $monthNum }}"> 
 
-                                    {{-- FILE INPUT --}}
                                     <input type="file" 
                                         id="{{ $elementId }}" 
                                         name="attachment[{{ $index }}][{{ $monthNum }}]" 
@@ -270,7 +275,6 @@ input[type=number] {
                                         data-target="label_{{ $elementId }}"
                                         accept=".pdf,.png,.jpg,.jpeg" disabled>
 
-                                    {{-- UPLOAD BUTTON --}}
                                     <label for="{{ $elementId }}" 
                                         id="label_{{ $elementId }}" 
                                         class="btn-attach-mini disabled-attach w-100 d-block mt-1">
@@ -278,7 +282,6 @@ input[type=number] {
                                         <span class="text-attach">FILE</span>
                                     </label>
 
-                                    {{-- VIEW ATTACHMENT --}}
                                     @if(!empty($data['attachment'][$monthNum]))
                                         <a href="{{ asset('storage/'.$data['attachment'][$monthNum]) }}" 
                                             target="_blank"
@@ -320,8 +323,25 @@ input[type=number] {
 
         document.querySelectorAll('[id^="kpi_grid_"]').forEach(grid => {
             const index = grid.id.split('_').pop();
-
             updateEditTriggerState(`kpi_grid_${index}`, `trigger_${index}`);
+        });
+
+        document.querySelectorAll('.input-compact').forEach(input => {
+            if(input.value) {
+                let cleanValue = input.value.replace(/[^0-9]/g, '');
+                if (cleanValue !== '') {
+                    input.value = parseInt(cleanValue, 10).toLocaleString('id-ID');
+                }
+            }
+
+            input.addEventListener('input', function() {
+                let value = this.value.replace(/[^0-9]/g, '');
+                if (value !== '') {
+                    this.value = parseInt(value, 10).toLocaleString('id-ID');
+                } else {
+                    this.value = '';
+                }
+            });
         });
 
         const buttons = document.querySelectorAll('button[data-id]');
@@ -353,16 +373,18 @@ input[type=number] {
                 }).then((result) => {
                     if (result.isConfirmed) {
 
-                        // disable semua tombol (prevent double submit)
                         buttons.forEach(btn => btn.disabled = true);
 
-                        // optional loading
                         Swal.fire({
                             title: 'Processing...',
                             allowOutsideClick: false,
                             didOpen: () => {
                                 Swal.showLoading();
                             }
+                        });
+
+                        document.querySelectorAll('.input-compact').forEach(input => {
+                            input.value = input.value.replace(/\./g, '');
                         });
 
                         form.submit();
@@ -377,7 +399,6 @@ input[type=number] {
         const reviewPeriod = parseInt(grid.dataset.reviewPeriod);
         const currentMonth = new Date().getMonth() + 1;
 
-        // cek apakah ada minimal 1 bulan yang valid
         let allowed = false;
 
         grid.querySelectorAll('.month-box').forEach(box => {
@@ -419,14 +440,12 @@ input[type=number] {
         const allowed = isEditAllowed(grid);
 
         if (!allowed) {
-            // ❌ disable trigger
             trigger.classList.remove('text-danger');
             trigger.classList.add('text-secondary');
             trigger.style.pointerEvents = 'none';
             trigger.style.opacity = '0.6';
             trigger.innerHTML = '<i class="ri-lock-line"></i> Not Available Yet';
         } else {
-            // ✅ aktif
             trigger.classList.remove('text-secondary');
             trigger.classList.add('text-danger');
             trigger.style.pointerEvents = 'auto';
@@ -443,7 +462,6 @@ input[type=number] {
         const grid = document.getElementById(gridId);
         const reviewPeriod = parseInt(grid.dataset.reviewPeriod);
 
-        // 🔥 current month
         const currentMonth = new Date().getMonth() + 1;
 
         grid.querySelectorAll('.month-box').forEach(box => {
@@ -454,7 +472,6 @@ input[type=number] {
 
             let isActive = false;
 
-            // 🔹 RULE review period
             if (reviewPeriod === 1) {
                 isActive = true;
             } else if (reviewPeriod === 2) {
@@ -467,11 +484,9 @@ input[type=number] {
                 isActive = (month === 12);
             }
 
-            // 🔥 RULE tambahan: hanya current & sebelumnya
             const isPastOrCurrent = month <= currentMonth;
 
             if (isActive && isPastOrCurrent) {
-                // ✅ ACTIVE
                 box.classList.remove('readonly-mode');
                 box.classList.add('edit-mode-active');
 
@@ -482,7 +497,6 @@ input[type=number] {
                 label.classList.remove('disabled-attach');
 
             } else {
-                // ❌ NON ACTIVE
                 box.classList.remove('edit-mode-active');
                 box.classList.add('readonly-mode');
 
@@ -493,7 +507,6 @@ input[type=number] {
             }
         });
 
-        // trigger UI
         const trigger = document.getElementById(triggerId);
         trigger.innerHTML = '<i class="ri-check-line"></i> Editable';
         trigger.classList.replace('text-danger', 'text-success');
@@ -516,12 +529,12 @@ input[type=number] {
                 const file = this.files[0];
                 if (!file) return;
 
-                const maxSize = 2 * 1024 * 1024; // 2MB
+                const maxSize = 2 * 1024 * 1024; 
 
                 if (file.size > maxSize) {
                     alert('File maksimal 2MB');
 
-                    this.value = ''; // reset input
+                    this.value = ''; 
                     return;
                 }
 
@@ -557,7 +570,6 @@ input[type=number] {
 
             let isActive = false;
 
-            // 🎯 RULE
             if (reviewPeriod === 1) {
                 isActive = true;
             } else if (reviewPeriod === 2) {
@@ -569,22 +581,18 @@ input[type=number] {
             }
 
             if (isActive) {
-                // ✅ AKTIF
                 box.classList.remove('readonly-mode');
                 box.classList.add('edit-mode-active');
 
                 input.removeAttribute('readonly');
                 fileInput.removeAttribute('disabled');
             } else {
-                // ❌ NON AKTIF
                 box.classList.remove('edit-mode-active');
                 box.classList.add('readonly-mode');
 
                 input.setAttribute('readonly', true);
                 fileInput.setAttribute('disabled', true);
 
-                // ⚠️ JANGAN HAPUS VALUE (biar history tetap tampil)
-                // input.value = '';
             }
         });
     }

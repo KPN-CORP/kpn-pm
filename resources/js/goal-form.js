@@ -951,25 +951,14 @@ $(
             icon:'warning',
 
             title:
-                'Revise Goals?',
+                'Revise Goal?',
 
             html:`
-                Changes to goals/targets
-                will reset the current
-                achievement progress.
+                Any changes made to your goals will reset your current achievement tracking. Existing Drafts, Pending Approvals, and Approved data will be cleared.
 
                 <br><br>
 
-                Existing achievements
-                including Draft,
-                Pending Approval,
-                and Approved data
-                may be affected.
-
-                <br><br>
-
-                Are you sure you
-                want to continue?
+                Are you sure you want to make these changes?
             `,
 
             showCancelButton:true,
