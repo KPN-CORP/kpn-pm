@@ -11,7 +11,7 @@ class EmployeeAppraisal extends Model
 {
     use HasFactory;
     use SoftDeletes;
-    
+
     protected $fillable = [
         // Kolom-kolom lainnya,
         'access_menu','id','employee_id', 'fullname', 'gender', 'email', 'group_company',
@@ -30,7 +30,7 @@ class EmployeeAppraisal extends Model
     {
         return $this->belongsTo(Goal::class, 'employee_id', 'employee_id');
     }
-    
+
     public function approvalRequest()
     {
         return $this->hasMany(ApprovalRequest::class, 'employee_id', 'employee_id');
@@ -84,7 +84,7 @@ class EmployeeAppraisal extends Model
     {
         return $this->hasMany(AppraisalContributor::class, 'employee_id', 'employee_id');
     }
-    
+
     public function calibrations()
     {
         return $this->hasMany(Calibration::class, 'employee_id', 'employee_id');
