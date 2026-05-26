@@ -44,8 +44,8 @@ function logout() {
         text: "Are you sure you want to log out?",
         icon: "warning",
         showCancelButton: true,
-        confirmButtonColor: "#3e60d5",
-        cancelButtonColor: "#f15776",
+        confirmButtonColor: "#AB2F2B",
+        
         confirmButtonText: "Yes, logout",
         cancelButtonText: "Cancel",
         reverseButtons: true,

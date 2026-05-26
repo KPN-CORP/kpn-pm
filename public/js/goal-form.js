@@ -326,7 +326,7 @@ function confirmSubmission(submitType) {
         text: text,
         showCancelButton: true,
         confirmButtonColor: "#3e60d5",
-        cancelButtonColor: "#f15776",
+        
         confirmButtonText: confirmText,
         reverseButtons: true,
     }).then((result) => {

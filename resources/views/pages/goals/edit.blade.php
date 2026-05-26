@@ -188,8 +188,8 @@
                                                     <option value="">- Select -</option>
                                                     @foreach ($reviewPeriodOption as $label => $options)
                                                         @foreach ($options as $option)
-                                                            <option value="{{ $option['value'] }}"
-                                                                {{ $row['review_period'] == $option['value'] ? 'selected' : '' }}>
+                                                           <option value="{{ $option['value'] }}"
+                                                                {{ data_get($row, 'review_period') == $option['value'] ? 'selected' : '' }}>
                                                                 {{ $option['label'] }}
                                                             </option>
                                                         @endforeach
@@ -208,7 +208,7 @@
                                                     @foreach ($calculationMethodOption as $label => $options)
                                                         @foreach ($options as $option)
                                                             <option value="{{ $option['value'] }}"
-                                                                {{ $row['calculation_method'] == $option['value'] ? 'selected' : '' }}>
+                                                                {{ data_get($row, 'calculation_method') == $option['value'] ? 'selected' : '' }}>
                                                                 {{ $option['label'] }}
                                                             </option>
                                                         @endforeach

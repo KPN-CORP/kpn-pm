@@ -43,7 +43,12 @@
     z-index:2;
 
     text-shadow:
-        0 0 2px rgba(0,0,0,.5);
+        -1px -1px 0 #9e2a2b,
+         1px -1px 0 #9e2a2b,
+        -1px  1px 0 #9e2a2b,
+         1px  1px 0 #9e2a2b,
+
+         0 0 3px rgba(0,0,0,.35);
 }
 .mini-progress-bar.bg-primary { height: 100%; border-radius: 10px; background: linear-gradient(90deg, var(--kpn-primary) 25%, #d96865 50%, var(--kpn-primary) 75%); background-size: 200% 100%; animation: progressFlow 1.5s linear infinite; }
 @keyframes progressFlow { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
@@ -228,7 +233,23 @@
                                 </div>
                                 <div class="col-12 col-md-3 d-flex flex-nowrap gap-2 justify-content-md-end align-items-center mt-md-0 px-1 pt-1">
                                     @if ($period == $goalPeriod && $formStatus != 'Draft' && $status != 'Sendback' && !$appraisalCheck && $goals)
-                                        <a class="btn btn-sm btn-outline-warning fw-semibold rounded-pill px-3 {{ (Auth::user()->employee_id == ($firstSubordinate->initiated->employee_id ?? null)) ? '' : 'd-none' }}" href="{{ route('goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Revise Goal') }}</a>
+                                        <a id="reviseGoalBtn{{ $goalId }}"
+                                            class="btn btn-sm btn-outline-warning fw-semibold rounded-pill px-3
+                                            {{ (Auth::user()->employee_id == ($firstSubordinate->initiated->employee_id ?? null)) ? '' : 'd-none' }}"
+
+                                            href="{{ route('goals.edit', $goalId) }}"
+
+                                            data-has-achievement="{{
+                                                optional(
+                                                    $firstSubordinate->goal
+                                                )->hasAchievement
+                                                    ? 1
+                                                    : 0
+                                            }}">
+
+                                            {{ __('Revise Goal') }}
+
+                                        </a>
                                     @endif
 
                                     @if ($period == $goalPeriod && $task->employee->employee_id == Auth::user()->employee_id || !$subordinates->isNotEmpty() || $formStatus == 'Draft')
@@ -730,10 +751,21 @@
                                         @endphp
                                         <div class="read-only-month {{ $value ? 'has-value' : '' }}">
                                             <span class="text-uppercase fw-bold text-secondary d-block mb-1" style="font-size: 0.6rem;">{{ $monthLabel }}</span>
-                                            <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">{{ number_format(
-                                                $value,
-                                                0
-                                            ) }}</span>
+                                            <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">
+                                                {{
+                                                    is_numeric($value ?? null)
+                                                        ? number_format(
+                                                            (float)$value,
+
+                                                            (
+                                                                fmod((float)$value, 1) == 0
+                                                            )
+                                                                ? 0
+                                                                : 2
+                                                        )
+                                                        : ($value ?? '-')
+                                                }}
+                                            </span>
                                             @if($file)
                                                 <a href="{{ asset('storage/'.$file) }}" target="_blank" class="d-block mt-2 text-primary fw-bold border border-primary rounded text-decoration-none bg-white" style="font-size: 0.55rem; padding: 2px;">FILE</a>
                                             @endif
@@ -856,7 +888,101 @@
   });
 </script>
 @endif
+<script>
 
+    document.addEventListener(
+        'click',
+        function(e){
+
+            const button =
+                e.target.closest(
+                    '[id^="reviseGoalBtn"]'
+                );
+
+            if(!button){
+                return;
+            }
+
+            // STOP href default dulu
+            e.preventDefault();
+
+            const hasAchievement =
+                Number(
+                    button.dataset
+                        .hasAchievement
+                );
+
+            // langsung redirect jika tidak ada achievement
+            if(
+                hasAchievement !== 1
+            ){
+
+                showLoader();
+
+                window.location =
+                    button.href;
+
+                return;
+            }
+
+            // popup jika ada achievement
+            Swal.fire({
+
+                icon:'warning',
+
+                title:
+                    'Revise Goal?',
+
+                html:`
+                    Changes to goals /
+                    targets will reset
+                    the current
+                    achievement progress.
+
+                    <br><br>
+
+                    Existing achievements
+                    including Draft,
+                    Pending Approval
+                    and Approved
+                    will be returned
+                    to Pending.
+
+                    <br><br>
+
+                    Continue?
+                `,
+
+                showCancelButton:true,
+
+                confirmButtonText:
+                    'Continue',
+
+                cancelButtonText:
+                    'Cancel',
+
+                confirmButtonColor:
+                    '#AB2F2B',
+                reverseButtons: true,
+
+            }).then(result => {
+
+                if(
+                    result.isConfirmed
+                ){
+
+                    showLoader();
+
+                    window.location =
+                        button.href;
+                }
+
+            });
+
+        }
+    );
+
+</script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
     const tabs = document.querySelectorAll('#mainTab button[data-bs-toggle="tab"]');

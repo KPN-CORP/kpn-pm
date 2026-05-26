@@ -27,8 +27,15 @@ function adminReportType(val) {
         method: "POST",
         data: formData, // Send serialized form data
         success: function (data) {
-            //alert(data);
-            reportContentDiv.html(data); // Update report content
+
+            reportContentDiv.html(data);
+
+            // init progress bar setelah html masuk
+            initMiniProgress(
+                document.getElementById(
+                    'report_content'
+                )
+            );
 
             const reportGoalsTable = $("#adminReportTable").DataTable({
                 dom: "lrtip",
@@ -39,28 +46,65 @@ function adminReportType(val) {
             });
 
             // Retrieve previous search value from stateSave
-            let savedState = reportGoalsTable.state.loaded();  
-            if (savedState && savedState.search.search) {
-                reportGoalsTable.search(savedState.search.search).draw();
-                customsearch.val(savedState.search.search); // Set input value
+            let savedState = reportGoalsTable.state.loaded();
+
+            if (
+                savedState &&
+                savedState.search.search
+            ) {
+                reportGoalsTable
+                    .search(savedState.search.search)
+                    .draw();
+
+                customsearch.val(
+                    savedState.search.search
+                );
             }
 
-            reportGoalsTable.on('draw', function () {
-                initializePopovers();
-            });
-            customsearch.keyup(function () {
-                reportGoalsTable.search($(this).val()).draw();
-            });
+            reportGoalsTable.on(
+                'draw',
+                function () {
 
-            $(".filter-btn").on("click", function () {
-                const filterValue = $(this).data("id");
+                    initializePopovers();
 
-                if (filterValue === "all") {
-                    reportGoalsTable.search("").draw(); // Clear the search for 'All Task'
-                } else {
-                    reportGoalsTable.search(filterValue).draw();
+                    // redraw datatable
+                    initMiniProgress(
+                        document.getElementById(
+                            'report_content'
+                        )
+                    );
                 }
+            );
+
+            customsearch.keyup(function () {
+                reportGoalsTable
+                    .search($(this).val())
+                    .draw();
             });
+
+            $(".filter-btn").on(
+                "click",
+                function () {
+
+                    const filterValue =
+                        $(this).data("id");
+
+                    if (
+                        filterValue === "all"
+                    ) {
+
+                        reportGoalsTable
+                            .search("")
+                            .draw();
+
+                    } else {
+
+                        reportGoalsTable
+                            .search(filterValue)
+                            .draw();
+                    }
+                }
+            );
 
             initializePopovers();
 
@@ -392,8 +436,8 @@ function handleDeleteEmployeePA(element) {
         text: "This Employee will be terminated!",
         icon: 'warning',
         showCancelButton: true,
-        confirmButtonColor: "#3e60d5",
-        cancelButtonColor: "#f15776",
+        confirmButtonColor: "#AB2F2B",
+        
         confirmButtonText: 'Yes, delete it!',
         reverseButtons: true,
     }).then((result) => {

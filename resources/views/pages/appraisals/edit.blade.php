@@ -188,14 +188,14 @@
             if (file.size > maxSize) {
                 Swal.fire({
                     title: "Ukuran file melebihi 10MB!",
-                    confirmButtonColor: "#3e60d5",
+                    confirmButtonColor: "#AB2F2B",
                     icon: "error",
                 });
                 this.value = ""; // Reset input
             } else if (file.type !== "application/pdf") {
                 Swal.fire({
                     title: "Hanya file PDF yang diperbolehkan!",
-                    confirmButtonColor: "#3e60d5",
+                    confirmButtonColor: "#AB2F2B",
                     icon: "error",
                 });
                 this.value = "";

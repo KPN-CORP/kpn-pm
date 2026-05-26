@@ -14,12 +14,34 @@
   .bg-primary-soft { background-color: var(--kpn-primary-soft) !important; }
   .bg-primary-subtle { background-color: #f8d7d6 !important; }
 
-  .mini-progress {
-    height: 4px;
+.mini-progress {
+    width:100%;
+    height:18px;
     background: #e9ecef;
     border-radius: 10px;
     overflow: hidden;
-    margin-top: 4px;
+    margin-top: 0px;
+}
+
+.mini-progress-text{
+    position:absolute;
+    inset:0;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    font-size:.65rem;
+    color:#fff;
+    z-index:2;
+
+    text-shadow:
+        -1px -1px 0 #9e2a2b,
+         1px -1px 0 #9e2a2b,
+        -1px  1px 0 #9e2a2b,
+         1px  1px 0 #9e2a2b,
+
+         0 0 3px rgba(0,0,0,.35);
 }
 
 .mini-progress-bar.bg-primary { height: 100%; border-radius: 10px; background: linear-gradient(90deg, var(--kpn-primary) 25%, #d96865 50%, var(--kpn-primary) 75%); background-size: 200% 100%; animation: progressFlow 1.5s linear infinite; }
@@ -192,4 +214,28 @@
         });
     </script>
 @endif
+<script>
+function initMiniProgress(scope = document){
+
+    scope.querySelectorAll('.mini-progress-bar')
+        .forEach(function(el){
+
+            el.style.width = '0%';
+
+            requestAnimationFrame(() => {
+                el.style.transition = 'width .8s ease';
+
+                setTimeout(() => {
+                    el.style.width = el.dataset.width || '0%';
+                },100);
+            });
+
+        });
+}
+
+document.addEventListener(
+    "DOMContentLoaded",
+    () => initMiniProgress()
+);
+</script>
 @endpush

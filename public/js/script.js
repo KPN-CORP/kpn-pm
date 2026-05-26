@@ -107,7 +107,7 @@ function logout() {
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#3e60d5",
-        cancelButtonColor: "#f15776",
+        
         confirmButtonText: "Yes, logout",
         cancelButtonText: "Cancel",
         reverseButtons: true,
@@ -447,7 +447,7 @@ function deleteRole() {
         icon: "warning",
         showCancelButton: true,
         confirmButtonColor: "#3e60d5",
-        cancelButtonColor: "#f15776",
+        
         confirmButtonText: "Yes, delete it!",
         reverseButtons: true,
     }).then((result) => {

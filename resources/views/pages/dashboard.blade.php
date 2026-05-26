@@ -388,7 +388,7 @@
             chart: { type: 'donut', height: 160, sparkline: { enabled: true } },
             labels: @json($taskLabels),
             series: @json($taskSeries),
-            colors: getColors(taskEl, '#16a7e9,#47ad77,#ffc35a,#f15776'),
+            colors: getColors(taskEl, '#16a7e9,#47ad77,#ffc35a,#AB2F2B'),
             legend: { show: false },
             dataLabels: { enabled: false },
             stroke: { width: 2 },

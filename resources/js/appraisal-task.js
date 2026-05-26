@@ -468,8 +468,8 @@ $(document).ready(function() {
     //                 title: title1,
     //                 text: text,
     //                 showCancelButton: true,
-    //                 confirmButtonColor: "#3e60d5",
-    //                 cancelButtonColor: "#f15776",
+    //                 confirmButtonColor: "#AB2F2B",
+    //                 
     //                 confirmButtonText: confirmText,
     //                 reverseButtons: true,
     //             }).then((result) => {
