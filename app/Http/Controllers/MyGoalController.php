@@ -670,7 +670,8 @@ class MyGoalController extends Controller
 
             // Prepare KPI data
             $kpiData = [];
-            $oldKpis = collect(json_decode($goal->form_data, true))
+            $oldKpis = collect(json_decode($goal->form_data, true) ?? [])
+                ->filter(fn ($item) => !empty($item['kpi_id']))
                 ->keyBy('kpi_id');
 
             foreach ($request->input('kpi', []) as $index => $kpi) {
@@ -681,7 +682,10 @@ class MyGoalController extends Controller
 
                 $kpiId = (string) $kpiId;
 
-                $oldReviewPeriod = $oldKpis[$kpiId]['review_period'] ?? null;
+                $oldReviewPeriod = data_get(
+                    $oldKpis->get($kpiId),
+                    'review_period'
+                );
 
                 /**
                  * Delete achievement jika review period berubah

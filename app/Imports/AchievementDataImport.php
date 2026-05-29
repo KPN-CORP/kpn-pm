@@ -136,9 +136,21 @@ class AchievementDataImport implements ToCollection, WithHeadingRow, WithStartRo
             $reviewPeriod = 1;
 
             foreach ($formData as $indexForm => $item) {
-                $goalKpi = trim($item['kpi'] ?? '');
+                // $goalKpi = trim($item['kpi'] ?? '');
 
-                    if ($goalKpi === $kpiName) {
+                $goalKpi = Str::of($item['kpi'] ?? '')
+                    ->replaceMatches('/\s+/', ' ')
+                    ->trim()
+                    ->lower()
+                    ->value();
+
+                $excelKpi = Str::of($kpiName)
+                    ->replaceMatches('/\s+/', ' ')
+                    ->trim()
+                    ->lower()
+                    ->value();
+
+                    if ($goalKpi === $excelKpi) {
 
                     $kpiIndex = $indexForm;
                     $kpi = $item;
@@ -175,10 +187,10 @@ class AchievementDataImport implements ToCollection, WithHeadingRow, WithStartRo
                 }
             }
 
-            // Log::debug('Matched KPI', ['kpiIndex' => $kpiIndex, 'kpi' => $kpi]);
+            Log::debug('Matched KPI', ['kpiIndex' => $kpiIndex, 'kpi' => $kpi]);
 
             if ($kpiIndex === null || !$kpi) {
-                // Log::warning("KPI not found: {$kpiName} ({$employeeId})");
+                Log::warning("KPI not found: {$kpiName} ({$employeeId})");
                 continue;
             }
 
