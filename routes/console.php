@@ -3,6 +3,7 @@
 use App\Console\Commands\UpdateAppVersion;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Schedule;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
@@ -11,4 +12,22 @@ Artisan::command('inspire', function () {
 Artisan::command('version', function () {
     $this->comment(UpdateAppVersion::class);
 });
-// Artisan::call('app:version');
+
+Schedule::command('reminder:achievement')
+    ->monthlyOn(1, '07:30')
+    ->withoutOverlapping()
+    ->runInBackground();
+
+// Schedule::command('reminder:achievement')
+//     ->everyMinute()
+//     ->withoutOverlapping();
+
+// Schedule::command('reminder:approval-achievement')
+//     ->everyMinute()
+//     ->withoutOverlapping();
+
+Schedule::command('reminder:approval-achievement')
+    ->monthlyOn(1, '07:30')
+    ->withoutOverlapping()
+    ->runInBackground();
+    

@@ -153,7 +153,7 @@ class MyGoalController extends Controller
 
         foreach ($formattedData as $request) {
 
-            $formData = json_decode($request->goal['form_data'], true);
+            $formData = is_array($request->goal->form_data) ? $request->goal->form_data : json_decode($request->goal->form_data, true);
 
             $dataApprover = '';
             if ($request->approval->first()) {
@@ -378,7 +378,7 @@ class MyGoalController extends Controller
             }])->where('form_id', $goal->id)->first();
 
             // Read the contents of the JSON file
-            $formData = json_decode($goal->form_data, true);
+            $formData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
 
             $formCount = count($formData);
 
@@ -405,7 +405,7 @@ class MyGoalController extends Controller
             }
 
 
-            $data = json_decode($goal->form_data, true);
+            $data = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
 
             return view('pages.goals.edit', compact('goal', 'formCount', 'link', 'data', 'uomOption', 'selectedUoM', 'typeOption', 'reviewPeriodOption', 'calculationMethodOption', 'selectedType', 'selectedReviewPeriod', 'selectedCalculationMethod', 'approvalRequest', 'totalWeightages', 'parentLink'));
         }
@@ -670,7 +670,7 @@ class MyGoalController extends Controller
 
             // Prepare KPI data
             $kpiData = [];
-            $oldKpis = collect(json_decode($goal->form_data, true) ?? [])
+            $oldKpis = collect(is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true) ?? [])
                 ->filter(fn ($item) => !empty($item['kpi_id']))
                 ->keyBy('kpi_id');
 

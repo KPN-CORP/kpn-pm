@@ -175,7 +175,7 @@
         </form>
         @forelse ($data as $goalIndex => $row)
             @php
-                $formData = json_decode($row->request->goal['form_data'], true);
+                $formData = $row->request->goal->form_data ?? [];
                 $achievement = $row->request->achievement_status ?? [];
 
                 $achievementStatus = $achievement['approval_status'] ?? null;

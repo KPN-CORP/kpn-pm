@@ -332,7 +332,7 @@ class MyAppraisalController extends Controller
 
         // check goals
         if ($goalChecked) {
-            $goalData = json_decode($goal->form_data, true);
+            $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
         } else {
             Session::flash('error', "Your Goal for $period are not found.");
             return redirect()->route('appraisals');
@@ -569,7 +569,7 @@ class MyAppraisalController extends Controller
         }else{
             $goal = Goal::where('employee_id', $appraisal->employee_id)->where('period', $period)->first();
 
-            $goalData = json_decode($goal->form_data, true);
+            $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
 
             $approvalRequest = ApprovalRequest::where('form_id', $appraisal->id)->first();
 

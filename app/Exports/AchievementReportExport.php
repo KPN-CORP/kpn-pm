@@ -85,7 +85,7 @@ class AchievementReportExport implements FromQuery, WithMapping, WithHeadings, W
     public function map($item): array
     {
         $rows           = [];
-        $formData       = json_decode($item->form_data, true) ?? [];
+        $formData       = $item->form_data ?? [];
         $achievementData = KPIAchievementService::getByGoal($item->id) ?? [];
 
         $isEmptyAchievement = empty($achievementData);

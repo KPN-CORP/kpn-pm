@@ -240,7 +240,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         }
 
         // Prepare the goal and appraisal data
-        $goalData = json_decode($appraisal->goal->form_data ?? '[]', true);
+        $goalData = $appraisal->goal->form_data ?? [];
 
         $appraisalData = json_decode($contributor->form_data ?? '[]', true);
         $appraisalData['contributor_type'] = $contributor->contributor_type;

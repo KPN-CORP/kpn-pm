@@ -122,7 +122,7 @@ class AchievementDataImport implements ToCollection, WithHeadingRow, WithStartRo
                 continue;
             }
 
-            $formData = json_decode($goal->form_data, true);
+            $formData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
 
             // Log::debug('Decoded form data', ['employeeId' => $employeeId, 'formData' => $formData]);
 
