@@ -33,11 +33,11 @@ class Goal extends Model
     }
     public function achievement()
     {
-        return $this->belongsTo(KPIAchievement::class, 'id', 'goal_id');
+        return $this->belongsTo(KPIAchievement::class, 'goal_id', 'id');
     }
     public function achievementList()
     {
-        return $this->hasMany(KPIAchievement::class, 'id', 'goal_id');
+        return $this->hasMany(KPIAchievement::class, 'goal_id', 'id');
     }
 
 }

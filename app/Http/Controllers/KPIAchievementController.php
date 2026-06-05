@@ -44,7 +44,7 @@ class KPIAchievementController extends Controller
         ]);
 
         $goal = Goal::findOrFail($request->goal_id);
-        $formData = json_decode($goal->form_data, true);
+        $formData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
 
         if (!isset($formData[$request->kpi_index])) {
             return response()->json(['message' => 'KPI tidak ditemukan'], 422);
@@ -91,7 +91,7 @@ class KPIAchievementController extends Controller
     public function index($id)
     {
         $goal = Goal::findOrFail($id);
-        $formData = json_decode($goal->form_data, true);
+        $formData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
 
         $period = $this->appService->goalPeriod();
 
@@ -155,7 +155,7 @@ class KPIAchievementController extends Controller
         $selfUpdate = $goal->employee_id == $this->user;
 
         // KPI dari goal
-        $formData = json_decode($goal->form_data, true);
+        $formData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
 
         $achievements = KPIAchievement::where('goal_id', $id)
             ->get()
@@ -264,7 +264,7 @@ class KPIAchievementController extends Controller
             // ================= GET GOAL =================
             $goal = Goal::findOrFail($request->goal_id);
             $employeeId = $goal->employee_id;
-            $formData = json_decode($goal->form_data, true);
+            $formData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
 
             // ================= STATUS =================
             if ($request->submit_type === 'draft') {
@@ -443,7 +443,7 @@ class KPIAchievementController extends Controller
         try {
             $goal = Goal::with('employee.managerL1')->findOrFail($id);
 
-            $formData = json_decode($goal->form_data, true) ?? [];
+            $formData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true) ?? [];
 
             $options = json_decode(File::get(base_path('resources/goal.json')), true);
 

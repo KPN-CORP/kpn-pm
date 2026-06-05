@@ -401,7 +401,7 @@ public function getTeamData(Request $request)
         }
 
         if ($goal) {
-            $goalData = json_decode($goal->form_data, true);
+            $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
         } else {
             Session::flash('error', "Goal for $period are not found.");
             return redirect()->back();
@@ -448,7 +448,7 @@ public function getTeamData(Request $request)
         $goal = Goal::with(['employee'])->where('employee_id', $request->id)->where('period', $period)->first();
 
         if ($goal) {
-            $goalData = json_decode($goal->form_data, true);
+            $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
         } else {
             Session::flash('error', "Goals for not found.");
             return redirect()->back();

@@ -32,4 +32,9 @@ class KPIAchievement extends Model
     {
         return $this->belongsTo(Employee::class, 'current_approver_employee_id', 'employee_id');
     }
+
+    public function goal()
+    {
+        return $this->belongsTo(Goal::class, 'goal_id', 'id');
+    }
 }

@@ -58,7 +58,7 @@ class KPIService
     public static function calculate(string $goalId)
     {
         $goal = Goal::findOrFail($goalId);
-        $formData = json_decode($goal->form_data, true);
+        $formData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
 
         // 🔥 ambil semua achievement sekali
         $achievements = KPIAchievement::where('goal_id', $goalId)

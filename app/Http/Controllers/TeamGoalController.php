@@ -432,7 +432,7 @@ class TeamGoalController extends Controller
                 $q->select('id', 'fullname', 'employee_id', 'designation_name', 'job_level', 'group_company', 'unit');
             }])->where('form_id', $goal->id)->first();
             // Read the contents of the JSON file
-            $formData = json_decode($goal->form_data, true);
+            $formData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
 
             $formCount = count($formData);
 
@@ -458,7 +458,7 @@ class TeamGoalController extends Controller
                 $totalWeightages += (float)$weightage[$index];
             }
 
-            $data = json_decode($goal->form_data, true);
+            $data = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
             
             return view('pages.goals.edit', compact('goal', 'formCount', 'link', 'data', 'uomOption', 'selectedUoM', 'typeOption', 'reviewPeriodOption', 'calculationMethodOption', 'selectedType', 'selectedReviewPeriod', 'selectedCalculationMethod', 'approvalRequest', 'totalWeightages', 'parentLink'));
         }

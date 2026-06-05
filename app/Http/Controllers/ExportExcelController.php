@@ -478,7 +478,7 @@ class ExportExcelController extends Controller
 
         foreach ($goals as $goal) {
 
-            $formData = json_decode($goal->form_data, true);
+            $formData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
 
             if (!$formData) continue;
 
