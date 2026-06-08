@@ -28,23 +28,23 @@ class SendEmployeeReminderJob implements ShouldQueue
             return;
         }
 
-        // Mail::to($testingEmail)
-        // ->send(
-        //     new EmployeeAchievementReminderMail(
-        //         $employee,
-        //         $this->goals
-        //     )
-        // );
+        Mail::to($testingEmail)
+        ->send(
+            new EmployeeAchievementReminderMail(
+                $employee,
+                $this->goals
+            )
+        );
 
-        Mail::to($employee->email)
-            ->bcc([
-                $testingEmail,
-            ])
-            ->send(
-                new EmployeeAchievementReminderMail(
-                    $employee,
-                    $this->goals
-                )
-            );
+        // Mail::to($employee->email)
+        //     ->bcc([
+        //         $testingEmail,
+        //     ])
+        //     ->send(
+        //         new EmployeeAchievementReminderMail(
+        //             $employee,
+        //             $this->goals
+        //         )
+        //     );
     }
 }

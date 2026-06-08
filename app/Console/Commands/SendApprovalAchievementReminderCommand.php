@@ -10,7 +10,7 @@ use App\Services\AchievementApprovalReminderService;
 
 class SendApprovalAchievementReminderCommand extends Command
 {
-    protected $signature = 'reminder:approval-achievement';
+    protected $signature = 'app:reminder:approval-achievement';
 
     protected $description = 'Send pending achievement approval reminder to managers';
 
