@@ -39,8 +39,11 @@ class SendManagerApprovalAchievementReminderJob implements ShouldQueue
 
         $testingEmail = 'alfian.azis@kpn-corp.com';
 
-        Mail::to($testingEmail)->send(
-        // Mail::to($email)->send(
+        Mail::to($testingEmail)
+            ->bcc([
+                $testingEmail,
+            ])
+            ->send(
             new ManagerApprovalAchievementReminderMail(
                 $manager,
                 $this->achievements
