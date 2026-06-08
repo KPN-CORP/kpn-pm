@@ -23,7 +23,7 @@ class ManagerAchievementReminderMail extends Mailable
             new ManagerAchievementReminderExport(
                 $this->goals
             ),
-            "temp/{$fileName}"
+            "temp/{$fileName}", 'public'
         );
 
         return $this
