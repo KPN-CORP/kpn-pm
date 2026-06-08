@@ -38,7 +38,7 @@ class ManagerApprovalAchievementReminderMail extends Mailable
             ])
             ->attach(
                 storage_path(
-                    "app/temp/{$fileName}"
+                    "app/public/temp/{$fileName}"
                 )
             );
     }

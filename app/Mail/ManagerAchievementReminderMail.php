@@ -33,7 +33,7 @@ class ManagerAchievementReminderMail extends Mailable
                 'manager' => $this->manager,
             ])
             ->attach(
-                storage_path("app/temp/{$fileName}")
+                storage_path("app/public/temp/{$fileName}")
             );
     }
 }
