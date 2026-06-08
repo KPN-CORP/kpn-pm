@@ -12,22 +12,3 @@ Artisan::command('inspire', function () {
 Artisan::command('version', function () {
     $this->comment(UpdateAppVersion::class);
 });
-
-Schedule::command('reminder:achievement')
-    ->monthlyOn(1, '07:30')
-    ->withoutOverlapping()
-    ->runInBackground();
-
-// Schedule::command('reminder:achievement')
-//     ->everyMinute()
-//     ->withoutOverlapping();
-
-// Schedule::command('reminder:approval-achievement')
-//     ->everyMinute()
-//     ->withoutOverlapping();
-
-Schedule::command('reminder:approval-achievement')
-    ->monthlyOn(1, '07:30')
-    ->withoutOverlapping()
-    ->runInBackground();
-    

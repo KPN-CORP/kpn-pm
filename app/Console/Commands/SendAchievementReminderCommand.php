@@ -11,7 +11,7 @@ use App\Jobs\SendManagerReminderJob;
 
 class SendAchievementReminderCommand extends Command
 {
-    protected $signature = 'reminder:achievement';
+    protected $signature = 'app:reminder:achievement';
 
     protected $description =
         'Send achievement reminder emails';
