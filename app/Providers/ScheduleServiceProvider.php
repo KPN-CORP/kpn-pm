@@ -28,9 +28,14 @@ class ScheduleServiceProvider extends ServiceProvider
         $schedule->command("app:inactive-employees")->dailyAt("00:20");
         $schedule->command("app:update-designations")->dailyAt("01:00");
         // $schedule->command('app:daily-update-schedulepa')->dailyAt('00:05');
-        $schedule->command("app:daily-update-schedulepa")->everyMinute();
-        $schedule->command("app:reminder:achievement")->monthlyOn(1, '07:30')->withoutOverlapping()->runInBackground();
-        $schedule->command("app:reminder:approval-achievement")->monthlyOn(1, '07:30')->withoutOverlapping()->runInBackground();
+        // $schedule->command("app:daily-update-schedulepa")->everyMinute();
+
+        // $schedule->command("app:reminder:achievement")->monthlyOn(1, '07:30')->withoutOverlapping()->runInBackground();
+        // $schedule->command("app:reminder:achievement")->everyMinute();
+        $schedule->command("app:reminder:achievement")->dailyAt("08:05")->withoutOverlapping()->runInBackground();
+        // $schedule->command("app:reminder:approval-achievement")->monthlyOn(1, '07:30')->withoutOverlapping()->runInBackground();
+        // $schedule->command("app:reminder:approval-achievement")->everyMinute();
+        $schedule->command("app:reminder:approval-achievement")->dailyAt("08:05")->withoutOverlapping()->runInBackground();
         // $schedule
         //     ->command("update:bt-to-db")
         //     ->dailyAt("00:15")
