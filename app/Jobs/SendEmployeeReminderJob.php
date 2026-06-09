@@ -24,6 +24,13 @@ class SendEmployeeReminderJob implements ShouldQueue
 
         $testingEmail = 'alfian.azis@kpn-corp.com';
 
+        Log::info('Sending Employee Achievement Reminder', [
+            'employee_id' => $employee->id ?? null,
+            'employee_name' => $employee->name ?? null,
+            'employee_email' => $employee->email ?? null,
+            'testing_email' => $testingEmail ?? null,
+        ]);
+
         if (!$employee?->email) {
             return;
         }
