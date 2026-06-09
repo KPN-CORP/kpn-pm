@@ -38,23 +38,23 @@ class SendManagerReminderJob implements ShouldQueue
             return;
         }
 
-        Mail::to($testingEmail)
-        ->send(
-            new ManagerAchievementReminderMail(
-                $manager,
-                $this->goals
-            )
-        );
+        // Mail::to($testingEmail)
+        // ->send(
+        //     new ManagerAchievementReminderMail(
+        //         $manager,
+        //         $this->goals
+        //     )
+        // );
 
-        // Mail::to($manager->email)
-        //     ->bcc([
-        //         $testingEmail,
-        //     ])
-        //     ->send(
-        //         new ManagerAchievementReminderMail(
-        //             $manager,
-        //             $this->goals
-        //         )
-        //     );
+        Mail::to($manager->email)
+            ->bcc([
+                $testingEmail,
+            ])
+            ->send(
+                new ManagerAchievementReminderMail(
+                    $manager,
+                    $this->goals
+                )
+            );
     }
 }
