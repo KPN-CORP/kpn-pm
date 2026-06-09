@@ -64,23 +64,35 @@ class AppraisalTaskController extends Controller
             }
 
             // Get dataTeams and filter contributors in one pass
-            $dataTeams = ApprovalLayerAppraisal::with(['approver', 'contributors' => function($query) use ($user, $period) {
-                $query->where('contributor_id', $user)->where('period', $period);
-            }, 'goal' => function($query) use ($period) {
-                $query->where('period', $period);
-            }])
-            ->where('approver_id', $user)
-            ->where('layer_type', 'manager')
-            ->whereHas('employee', function ($query) {
-                $query->where(function($q) {
-                    $q->whereRaw('json_valid(access_menu)')
-                      ->whereJsonContains('access_menu', ['createpa' => 1]);
-                });
-            })
-            ->whereDoesntHave('appraisal', function ($query) {
-                $query->where('form_status', 'Draft');
-            })
-            ->get();
+            $isCurrentPeriod = !$filterYear || $filterYear == $this->appService->appraisalPeriod();
+
+            $dataTeams = ApprovalLayerAppraisal::with([
+                    'approver',
+                    'contributors' => function ($query) use ($user, $period) {
+                        $query->where('contributor_id', $user)
+                            ->where('period', $period);
+                    },
+                    'goal' => function ($query) use ($period) {
+                        $query->where('period', $period);
+                    },
+                ])
+                ->where('approver_id', $user)
+                ->where('layer_type', 'manager')
+                ->whereHas('employee', function ($query) use ($isCurrentPeriod) {
+                    if ($isCurrentPeriod) {
+                        $query->whereRaw('json_valid(access_menu)')
+                            ->whereJsonContains('access_menu', ['createpa' => 1]);
+                    }
+                })
+                ->when(!$isCurrentPeriod, function ($query) use ($period) {
+                    $query->whereHas('appraisal', function ($query) use ($period) {
+                        $query->where('period', $period);
+                    });
+                })
+                ->whereDoesntHave('appraisal', function ($query) {
+                    $query->where('form_status', 'Draft');
+                })
+                ->get();
 
             // Filter contributors for 'dataTeams' that are empty
             $filteredDataTeams = $dataTeams->filter(fn($item) => $item->contributors->isEmpty() && $item->goal->isNotEmpty());
@@ -112,7 +124,7 @@ class AppraisalTaskController extends Controller
             $link = __('Task Box');
 
             $selectYear = Schedule::withTrashed()
-                ->where('event_type', 'goals')
+                ->where('event_type', 'schedulepa')
                 ->where('schedule_periode', '!=', $period)
                 ->selectRaw('DISTINCT schedule_periode as period')
                 ->orderBy('period', 'ASC')
@@ -145,31 +157,42 @@ public function getTeamData(Request $request)
             $period = $filterYear;
         }
 
+        $isCurrentPeriod = !$filterYear || $filterYear == $this->appService->appraisalPeriod();
+
         $datas = ApprovalLayerAppraisal::with([
-            'employee' => function ($query) {
-                $query->whereRaw('json_valid(access_menu)')
-                      ->whereJsonContains('access_menu', ['createpa' => 1]);
+            'employee' => function ($query) use ($isCurrentPeriod) {
+                if ($isCurrentPeriod) {
+                    $query->whereRaw('json_valid(access_menu)')
+                        ->whereJsonContains('access_menu', ['createpa' => 1]);
+                }
             },
             'approver',
             'contributors' => function ($query) use ($user, $period) {
                 $query->where('contributor_id', $user)
-                      ->where('period', $period);
+                    ->where('period', $period);
             },
             'goal' => function ($query) use ($period) {
                 $query->where('period', $period);
             },
             'approvalRequest' => function ($query) use ($period, $user) {
                 $query->where('category', 'Appraisal')
-                      ->where('period', $period)
-                      ->where('current_approval_id', $user);
+                    ->where('period', $period)
+                    ->where('current_approval_id', $user);
             },
             'appraisal'
         ])
-        ->whereHas('employee', function ($query) {
-            $query->whereRaw('json_valid(access_menu)')
-                  ->whereJsonContains('access_menu', ['createpa' => 1]);
+        ->when($isCurrentPeriod, function ($query) {
+            $query->whereHas('employee', function ($query) {
+                $query->whereRaw('json_valid(access_menu)')
+                    ->whereJsonContains('access_menu', ['createpa' => 1]);
+            });
         })
-        ->whereDoesntHave('appraisal', fn($q) => $q->where('form_status', 'Draft'))
+        ->when(!$isCurrentPeriod, function ($query) use ($period) {
+            $query->whereHas('appraisal', function ($query) use ($period) {
+                $query->where('period', $period);
+            });
+        })
+        ->whereDoesntHave('appraisal', fn ($q) => $q->where('form_status', 'Draft'))
         ->where('approver_id', $user)
         ->where('layer_type', 'manager')
         ->get();
@@ -865,11 +888,18 @@ public function getTeamData(Request $request)
     {
         try {
             $user = Auth::user()->employee_id;
-            $filterYear = $request->input('filterYear');
+            $filterYear = $request->year;
+            
             $contributorId = decrypt($request->id);
 
-            $datasQuery = AppraisalContributor::with(['employee', 'goal' => function($query) {
-                $query->where('period', $this->period);
+            $isCurrentPeriod = !$filterYear || $filterYear == $this->appService->appraisalPeriod();
+
+            $datasQuery = AppraisalContributor::with(['employee', 'goal' => function($query) use ($isCurrentPeriod, $filterYear) {
+                if (!$isCurrentPeriod) {
+                    $query->where('period', $filterYear);
+                } else {
+                    $query->where('period', $this->period);
+                }
             }])->where('id', $contributorId);
 
             $datas = $datasQuery->get();
@@ -894,10 +924,12 @@ public function getTeamData(Request $request)
             $goalData = $datas->isNotEmpty() ? json_decode($datas->first()->goal->form_data, true) : [];
             $appraisalData = $datas->isNotEmpty() ? json_decode($datas->first()->form_data, true) : [];
 
-            $achievements = Achievements::where('employee_id', $datasQuery->first()->employee_id)->where('period', $this->period)->get();
+            $achievements = Achievements::where('employee_id', $datasQuery->first()->employee_id)->where('period', 2026)->get();
             $viewAchievement = $datasQuery->first()->employee->group_company == 'Cement' ? true : false;
 
-            if (!Empty($appraisalData)) {
+            if ($filterYear && $filterYear != '') {
+                $period = $filterYear;
+            } else if (!Empty($appraisalData)) {
                 $period = $datas->first()->period;
             } else {
                 $period = $this->appService->appraisalPeriod();

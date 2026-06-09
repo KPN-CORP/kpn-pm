@@ -1,9 +1,20 @@
+@php
+    $filterYear = request('filterYear');
+@endphp
 @forelse ($team->contributors as $contributor)
     @if (!$team->calibrationCheck)
         <a href="{{ route('appraisals-360.review', encrypt($team->employee->employee_id)) }}" title="{{ __('Revise') }}" type="button" class="btn btn-outline-info btn-sm m-1 me-0"><i class="ri-edit-line"></i></a>
     @endif
     @if ($contributor->status != 'Draft')
-        <a href="{{ route('appraisals-task.detail', encrypt($contributor->id)) }}" title="{{ __('Details') }}" type="button" class="btn btn-outline-secondary btn-sm m-1"><i class="ri-file-text-line"></i></a>
+        <a href="{{ route('appraisals-task.detail', [
+            'id' => encrypt($contributor->id),
+            'year' => $filterYear
+        ]) }}"
+        title="{{ __('Details') }}"
+        type="button"
+        class="btn btn-outline-secondary btn-sm m-1">
+            <i class="ri-file-text-line"></i>
+        </a>
     @endif
 @empty
     @if ($team->layer_type === 'manager' && empty(json_decode($team->approvalRequest, true)))

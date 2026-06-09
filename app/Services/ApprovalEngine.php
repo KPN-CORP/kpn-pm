@@ -462,7 +462,7 @@ class ApprovalEngine
             if ($role === 'proposer') return (string) $proposerEmpId;
 
             // System role → KEMBALIKAN NAMA ROLE (string)
-            dd($roles);
+            // dd($roles);
             $sysRoleName = $this->canonicalRoleName($role);
             if ($sysRoleName) return $sysRoleName;
         }
