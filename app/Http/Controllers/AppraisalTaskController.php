@@ -95,8 +95,15 @@ class AppraisalTaskController extends Controller
                 ->get();
 
             // Filter contributors for 'dataTeams' that are empty
-            $filteredDataTeams = $dataTeams->filter(fn($item) => $item->contributors->isEmpty() && $item->goal->isNotEmpty());
-            $notifDataTeams = $filteredDataTeams->count();
+            $notifDataTeams = 0;
+
+            if ($isCurrentPeriod) {
+                $filteredDataTeams = $dataTeams->filter(
+                    fn ($item) => $item->contributors->isEmpty() && $item->goal->isNotEmpty()
+                );
+
+                $notifDataTeams = $filteredDataTeams->count();
+            }
 
             // Get data360 and filter contributors and appraisal in one pass
             $data360 = ApprovalLayerAppraisal::with(['approver', 'contributors' => function($query) use ($period) {
@@ -187,7 +194,7 @@ public function getTeamData(Request $request)
                     ->whereJsonContains('access_menu', ['createpa' => 1]);
             });
         })
-        ->when(!$isCurrentPeriod, function ($query) use ($period) {
+        ->when(!$isCurrentPeriod, function ($query) use ($period, $user) {
             $query->whereHas('appraisal', function ($query) use ($period) {
                 $query->where('period', $period);
             });
@@ -234,7 +241,7 @@ public function getTeamData(Request $request)
                 ->exists();
         });
 
-        $data = $datas->map(function ($team, $index) {
+        $data = $datas->map(function ($team, $index) use ($isCurrentPeriod) {
             $employee = $team->employee;
             $goal = $team->goal->first();
             $contributor = $team->contributors->first();
@@ -268,7 +275,7 @@ public function getTeamData(Request $request)
                 'approval_date' => $contributor
                     ? $this->appService->formatDate($contributor->created_at)
                     : ($approvalReq ? $this->appService->formatDate($approvalReq->created_at) : '-'),
-                'action' => view('components.action-buttons', ['team' => $team])->render(),
+                'action' => view('components.action-buttons', ['team' => $team, 'isCurrentPeriod' => $isCurrentPeriod])->render(),
             ];
         })->filter()->values();
 

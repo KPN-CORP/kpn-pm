@@ -176,10 +176,9 @@ input[type=number] {
                                                 <div class="row g-3 mb-3">
                                                     <div class="col-3 col-sm-3">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
-                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ number_format(
-                                                            $data['target'],
-                                                            0
-                                                        ) ?? '-' }}</span>
+                                                       <span class="fw-bold text-dark" style="font-size: 0.9rem;">
+                                                                {{ is_numeric($data['target']) ? number_format((float)$data['target'], 0) : '-' }}
+                                                            </span>
                                                     </div>
                                                     <div class="col-3 col-sm-3">
                                                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
