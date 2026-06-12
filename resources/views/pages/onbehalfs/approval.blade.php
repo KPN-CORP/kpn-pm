@@ -92,13 +92,13 @@
         <h5 class="fw-bold text-dark">{{ __('Target') }} {{ $row->request->period }}</h5>
 
         @php
-            $formData = $row->request->goal->form_data ?? [];
-            $oldFormData = $beforeSnapshot ?? [];
-            $maxCount = max(is_array($oldFormData) ? count($oldFormData) : 0, is_array($formData) ? count($formData) : 0);
-
-            $oldCount = is_array($oldFormData) ? count($oldFormData) : 0;
-            $newCount = is_array($formData) ? count($formData) : 0;
-
+            $rawFormData = $row->request->goal->form_data ?? null;
+            $rawOldFormData = $beforeSnapshot ?? null;
+            $formData = is_string($rawFormData) ? json_decode($rawFormData, true) : ($rawFormData ?? []);
+            $oldFormData = is_string($rawOldFormData) ? json_decode($rawOldFormData, true) : ($rawOldFormData ?? []);
+            $oldCount = count($oldFormData);
+            $newCount = count($formData);
+            $maxCount = max($oldCount, $newCount);
             $isCountDifferent = $oldCount !== $newCount;
         @endphp
 
@@ -116,9 +116,6 @@
                                         <span class="badge bg-secondary">BEFORE</span>
                                         <h6 class="card-title fw-bold text-secondary mb-0" style="font-size: 0.85rem;">Goal {{ $i + 1 }}</h6>
                                     </div>
-                                    @if(!isset($formData[$i]))
-                                        {{-- <span class="badge bg-danger">DELETED</span> --}}
-                                    @endif
                                 </div>
                                 
                                 <div class="mb-2">
@@ -181,12 +178,6 @@
                                 </div>
                             </div>
                         </div>
-                    {{-- @else
-                        <div class="card shadow-none border border-dashed border-secondary h-100 d-flex align-items-center justify-content-center" style="background-color: #f8f9fa; min-height: 150px;">
-                            <div class="text-muted small fw-medium text-center">
-                                <i class="ri-add-circle-line fs-4 d-block mb-1"></i>New goal added in current version
-                            </div>
-                        </div> --}}
                     @endif
                 </div>
 
@@ -234,7 +225,7 @@
                                         <div class="input-group input-group-sm flex-nowrap">
                                             <input type="number" min="5" max="100" step="0.1" class="form-control text-center {{ ((string)($oldData['weightage'] ?? '') !== (string)$data['weightage']) ? 'bg-primary-subtle fw-medium' : '' }}" name="weightage[]" value="{{ $data['weightage'] }}">
                                             <span class="input-group-text bg-primary text-white border-primary">%</span>
-                                        </div>                                          
+                                        </div>                                        
                                     </div>
                                     <div class="col-md-4 col-6">
                                         <label class="kpi-label text-primary">Review Period</label>
@@ -289,9 +280,6 @@
                                             <div class="d-flex align-items-center gap-2">
                                                 <h6 class="card-title fw-bold text-secondary mb-0" style="font-size: 0.85rem;">Goal {{ $i + 1 }}</h6>
                                             </div>
-                                            @if(!isset($formData[$i]))
-                                                {{-- <span class="badge bg-danger">DELETED</span> --}}
-                                            @endif
                                         </div>
                                         
                                         <div class="mb-2">
@@ -359,6 +347,7 @@
                 </div>
             </div>
         </div>
+        </div>
     @endif
         <div class="col-{{ $oldCount > 0 ? '6' : '12' }}">
         <div class="p-2 mb-3 rounded shadow-sm bg-primary-subtle" style="border: 1px solid #eef0f2;">
@@ -409,7 +398,7 @@
                                                 <div class="input-group input-group-sm flex-nowrap">
                                                     <input type="number" min="5" max="100" step="0.1" class="form-control text-center" name="weightage[]" value="{{ $data['weightage'] }}">
                                                     <span class="input-group-text bg-primary text-white border-primary">%</span>
-                                                </div>                                          
+                                                </div>                                        
                                             </div>
                                             <div class="col-md-4 col-6">
                                                 <label class="kpi-label text-primary">Review Period</label>

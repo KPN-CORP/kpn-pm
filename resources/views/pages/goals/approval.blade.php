@@ -105,12 +105,17 @@ select.is-modified + .select2-container .select2-selection__rendered {
         <h5 class="fw-bold text-dark">{{ __('Target') }} {{ $row->request->period }}</h5>
 
         @php
-            $formData = $row->request->goal->form_data ?? [];
-            $oldFormData = $beforeSnapshot ?? [];
-            $maxCount = max(is_array($oldFormData) ? count($oldFormData) : 0, is_array($formData) ? count($formData) : 0);
+            // FIX: Parsing JSON string menjadi Array agar bisa dibaca key-nya
+            $rawFormData = $row->request->goal->form_data ?? [];
+            $formData = is_string($rawFormData) ? json_decode($rawFormData, true) : (is_array($rawFormData) ? $rawFormData : []);
+            
+            $rawOldFormData = $beforeSnapshot ?? [];
+            $oldFormData = is_string($rawOldFormData) ? json_decode($rawOldFormData, true) : (is_array($rawOldFormData) ? $rawOldFormData : []);
 
-            $oldCount = is_array($oldFormData) ? count($oldFormData) : 0;
-            $newCount = is_array($formData) ? count($formData) : 0;
+            $oldCount = count($oldFormData);
+            $newCount = count($formData);
+            
+            $maxCount = max($oldCount, $newCount);
 
             $diff = $newCount - $oldCount;
 
@@ -284,7 +289,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                                 <optgroup label="{{ $label }}">
                                                     @foreach ($options as $option)
                                                         <option value="{{ $option }}"
-                                                            {{ ($data['uom'] == $option || ($data['uom'] == 'Other' && $data['custom_uom'] == $option)) ? 'selected' : '' }}>
+                                                            {{ ($data['uom'] == $option || ($data['uom'] == 'Other' && ($data['custom_uom'] ?? '') == $option)) ? 'selected' : '' }}>
                                                             {{ $option }}
                                                         </option>
                                                     @endforeach
@@ -307,7 +312,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                                 <optgroup label="{{ $label }}">
                                                     @foreach ($options as $option)
                                                         <option value="{{ $option }}"
-                                                            {{ $data['type'] == $option ? 'selected' : '' }}>
+                                                            {{ ($data['type'] ?? '') == $option ? 'selected' : '' }}>
                                                             {{ $option }}
                                                         </option>
                                                     @endforeach
@@ -319,18 +324,18 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                     <div class="col-md-4 col-6">
                                         <label class="kpi-label text-primary">{{ __('Weightage') }}</label>
                                         <div class="input-group input-group-sm flex-nowrap">
-                                            <input type="number" min="5" max="100" step="0.1" class="form-control text-center {{ ((string)($oldData['weightage'] ?? '') !== (string)$data['weightage']) ? 'bg-primary-subtle fw-medium' : '' }}" name="weightage[]" value="{{ $data['weightage'] }}">
+                                            <input type="number" min="5" max="100" step="0.1" class="form-control text-center {{ ((string)($oldData['weightage'] ?? '') !== (string)$data['weightage']) ? 'bg-primary-subtle fw-medium' : '' }}" name="weightage[]" value="{{ $data['weightage'] ?? '' }}">
                                             <span class="input-group-text bg-primary text-white border-primary">%</span>
-                                        </div>                                          
+                                        </div>                                        
                                     </div>
                                     <div class="col-md-4 col-6">
                                         <label class="kpi-label text-primary">Review Period</label>
-                                        <select class="form-select form-select-sm select2 select-type  {{ ((string)($oldData['review_period'] ?? '') !== (string)$data['review_period']) ? 'is-modified' : '' }}" name="review_period[]" id="review_period{{ $i }}" required>
+                                        <select class="form-select form-select-sm select2 select-type  {{ ((string)($oldData['review_period'] ?? '') !== (string)($data['review_period'] ?? '')) ? 'is-modified' : '' }}" name="review_period[]" id="review_period{{ $i }}" required>
                                             <option value="">- Select -</option>
                                             @foreach ($reviewPeriodOption as $label => $options)
                                                 @foreach ($options as $option)
                                                     <option value="{{ $option['value'] }}"
-                                                        {{ $data['review_period'] == $option['value'] ? 'selected' : '' }}>
+                                                        {{ ($data['review_period'] ?? '') == $option['value'] ? 'selected' : '' }}>
                                                         {{ $option['label'] }}
                                                     </option>
                                                 @endforeach
@@ -339,12 +344,12 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                     </div>
                                     <div class="col-md-4 col-6">
                                         <label class="kpi-label text-primary">Calc Method</label>
-                                        <select class="form-select form-select-sm select2 select-type {{ ((string)($oldData['calculation_method'] ?? '') !== (string)$data['calculation_method']) ? 'is-modified' : '' }}" name="calculation_method[]" id="calculation_method{{ $i }}" required>
+                                        <select class="form-select form-select-sm select2 select-type {{ ((string)($oldData['calculation_method'] ?? '') !== (string)($data['calculation_method'] ?? '')) ? 'is-modified' : '' }}" name="calculation_method[]" id="calculation_method{{ $i }}" required>
                                             <option value="">- Select -</option>
                                             @foreach ($calculationMethodOption as $label => $options)
                                                 @foreach ($options as $option)
                                                     <option value="{{ $option['value'] }}"
-                                                        {{ $data['calculation_method'] == $option['value'] ? 'selected' : '' }}>
+                                                        {{ ($data['calculation_method'] ?? '') == $option['value'] ? 'selected' : '' }}>
                                                         {{ $option['label'] }}
                                                     </option>
                                                 @endforeach
@@ -446,8 +451,8 @@ select.is-modified + .select2-container .select2-selection__rendered {
                 </div>
             </div>
         </div>
-    </div>
-    @endif
+        </div>
+        @endif
         <div class="col-{{ $oldCount > 0 ? '6' : '12' }}">
         <div class="p-2 mb-3 rounded shadow-sm bg-primary-subtle" style="border: 1px solid #eef0f2;">
             <span class="badge bg-primary mb-2 {{ $oldCount > 0 ? '' : 'd-none' }}">AFTER</span>
@@ -482,7 +487,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                         <div class="row g-2">
                                             <div class="col-md-4 col-6">
                                                 <label class="kpi-label text-primary">Target</label>
-                                                <input type="text" name="target[]" id="target{{ $i }}" oninput="validateDigits(this, {{ $i }})" value="{{ $data['target'] }}" class="form-control form-control-sm">
+                                                <input type="text" name="target[]" id="target{{ $i }}" oninput="validateDigits(this, {{ $i }})" value="{{ $data['target'] ?? '' }}" class="form-control form-control-sm">
                                             </div>
                                             <div class="col-md-4 col-6">
                                                 <label class="kpi-label text-primary">{{ __('Uom') }}</label>
@@ -500,7 +505,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                                         <optgroup label="{{ $label }}">
                                                             @foreach ($options as $option)
                                                                 <option value="{{ $option }}"
-                                                                    {{ ($data['uom'] == $option || ($data['uom'] == 'Other' && $data['custom_uom'] == $option)) ? 'selected' : '' }}>
+                                                                    {{ (($data['uom'] ?? '') == $option || (($data['uom'] ?? '') == 'Other' && ($data['custom_uom'] ?? '') == $option)) ? 'selected' : '' }}>
                                                                     {{ $option }}
                                                                 </option>
                                                             @endforeach
@@ -523,7 +528,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                                         <optgroup label="{{ $label }}">
                                                             @foreach ($options as $option)
                                                                 <option value="{{ $option }}"
-                                                                    {{ $data['type'] == $option ? 'selected' : '' }}>
+                                                                    {{ ($data['type'] ?? '') == $option ? 'selected' : '' }}>
                                                                     {{ $option }}
                                                                 </option>
                                                             @endforeach
@@ -535,9 +540,9 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                             <div class="col-md-4 col-6">
                                                 <label class="kpi-label text-primary">{{ __('Weightage') }}</label>
                                                 <div class="input-group input-group-sm flex-nowrap">
-                                                    <input type="number" min="5" max="100" step="0.1" class="form-control text-center" name="weightage[]" value="{{ $data['weightage'] }}">
+                                                    <input type="number" min="5" max="100" step="0.1" class="form-control text-center" name="weightage[]" value="{{ $data['weightage'] ?? '' }}">
                                                     <span class="input-group-text bg-primary text-white border-primary">%</span>
-                                                </div>                                          
+                                                </div>                                        
                                             </div>
                                             <div class="col-md-4 col-6">
                                                 <label class="kpi-label text-primary">Review Period</label>
@@ -546,7 +551,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                                     @foreach ($reviewPeriodOption as $label => $options)
                                                         @foreach ($options as $option)
                                                             <option value="{{ $option['value'] }}"
-                                                                {{ $data['review_period'] == $option['value'] ? 'selected' : '' }}>
+                                                                {{ ($data['review_period'] ?? '') == $option['value'] ? 'selected' : '' }}>
                                                                 {{ $option['label'] }}
                                                             </option>
                                                         @endforeach
@@ -560,7 +565,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                                     @foreach ($calculationMethodOption as $label => $options)
                                                         @foreach ($options as $option)
                                                             <option value="{{ $option['value'] }}"
-                                                                {{ $data['calculation_method'] == $option['value'] ? 'selected' : '' }}>
+                                                                {{ ($data['calculation_method'] ?? '') == $option['value'] ? 'selected' : '' }}>
                                                                 {{ $option['label'] }}
                                                             </option>
                                                         @endforeach
@@ -600,7 +605,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                         <input type="hidden" name="request_id" id="request_id">
                         <input type="hidden" name="sendto" id="sendto">
                         <input type="hidden" name="sendback" id="sendback" value="Sendback">
-                        <textarea @style('display: none') name="sendback_message" id="sendback_message"></textarea>
+                        <textarea style="display: none" name="sendback_message" id="sendback_message"></textarea>
                         <input type="hidden" name="form_id" value="{{ $row->request->form_id }}">
                         <input type="hidden" name="approver" id="approver" value="{{ $row->request->manager->fullname.' ('.$row->request->manager->employee_id.')' }}">
                         <input type="hidden" name="employee_id" value="{{ $row->request->employee_id }}">
@@ -608,7 +613,7 @@ select.is-modified + .select2-container .select2-selection__rendered {
                         @if ($row->request->sendback_messages)
                         <div class="mb-3 text-start">
                             <label class="kpi-label text-danger">Sendback Messages</label>
-                            <textarea class="form-control form-control-sm border-danger bg-danger-subtle" @disabled(true)>{{ $row->request->sendback_messages }}</textarea>
+                            <textarea class="form-control form-control-sm border-danger bg-danger-subtle" disabled>{{ $row->request->sendback_messages }}</textarea>
                         </div>
                         @endif
                         

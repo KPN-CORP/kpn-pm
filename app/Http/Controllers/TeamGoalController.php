@@ -681,7 +681,7 @@ class TeamGoalController extends Controller
             $import->saveTransaction();
             
             $invalidEmployees = $import->getInvalidEmployees();
-            dd($invalidEmployees);
+            // dd($invalidEmployees);
             
             $message = 'Data imported successfully.';
 

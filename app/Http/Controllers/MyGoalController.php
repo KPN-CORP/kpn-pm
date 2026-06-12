@@ -72,6 +72,7 @@ class MyGoalController extends Controller
                 $query->with('approverName'); // Load nested relationship
             }
         ])
+        ->has('goal') // <--- TAMBAHKAN BARIS INI
         ->whereHas('approvalLayer', function ($query) use ($user) {
             $query->where('employee_id', $user)->orWhere('approver_id', $user);
         })

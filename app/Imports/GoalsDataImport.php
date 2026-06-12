@@ -129,7 +129,9 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
                     'period' => $row['period'],  // Menyimpan langsung period
                 ];
             }
-
+            $reviewPeriod = $this->mapReviewPeriod(
+                $row['review_period']
+            );
             // Tambahkan data KPI ke form_data
             $this->employeesData[$employeeId]['form_data'][] = [
                 'kpi' => $row['kpi'],
@@ -138,6 +140,8 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
                 'weightage' => $row['weightage'] * 100,
                 'description' => $row['description'],
                 'type' => $row['type'],
+                'review_period' => $reviewPeriod,
+                'calculation_method' => $row['calculation_method'],
                 'custom_uom' => $custom_uom,
             ];
         } catch (\Exception $e) {
@@ -146,7 +150,28 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
             $this->detailError[] = $row['employee_id'];
         }
     }
+    
+     protected function mapReviewPeriod($period): int
+    {
+        return match (strtolower($period)) {
+            '1', 'monthly' => 1,
 
+            '2',
+            'bi-monthly',
+            'bimonthly',
+            'bi monthly' => 2,
+
+            '3', 'quarterly' => 3,
+
+            '6', 'semester' => 6,
+
+            '12',
+            'annual' => 12,
+
+            default => 1,
+        };
+    }
+    
     public function saveToDatabase()
     {
         ksort($this->employeesData, SORT_NUMERIC);

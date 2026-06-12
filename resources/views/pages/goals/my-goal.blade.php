@@ -139,14 +139,6 @@
         @endif
 
         <!-- Page Heading -->
-        {{-- <div class="mandatory-field">
-            <div id="alertField" class="alert alert-danger alert-dismissible {{ Session::has('error') ? '':'fade' }}" role="alert" {{ Session::has('error') &&
-    is_array(Session::get('error')) &&
-    isset(Session::get('error')['message']) ? '':'hidden' }}>
-                <strong>{{ Session::get('error')['message'] ?? null }}</strong>
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-            </div>
-        </div> --}}
         <form id="formYearGoal" action="{{ route('goals') }}" method="GET">
             @php
                 $filterYear = request('filterYear');
@@ -164,7 +156,8 @@
                     </select>
                 </div>
                 <div>
-                    <button type="button" class="btn btn-sm btn-soft-secondary fw-medium shadow-sm me-1 mb-2" data-bs-toggle="modal" data-bs-target="#importAchievementModal">
+                    <!-- Hapus data-bs-toggle dan data-bs-target, ganti dengan ID btnOpenImportModal -->
+                    <button type="button" id="btnOpenImportModal" class="btn btn-sm btn-soft-secondary fw-medium shadow-sm me-1 mb-2">
                             <i class="ri-upload-cloud-2-line me-1"></i> Import Achievement
                     </button>
                     <a href="{{ $access ? route('goals.form', encrypt(Auth::user()->employee_id)) : '#' }}" onclick="showLoader()" class="btn btn-sm {{ $access ? 'btn-soft-primary shadow-sm' : 'btn-secondary-subtle disabled' }} fw-medium mb-2">
@@ -186,54 +179,47 @@
                 : '-';
                 $achievementCreatedBy = $achievement['created_by'] ?? null;
             @endphp
-            <div class="card shadow-sm mb-4 py-0 goal-card border-0" data-year="{{ $row->request->period }}">
+            <!-- Attribut data-status disimpan di sini -->
+            <div class="card shadow-sm mb-4 py-0 goal-card border-0" data-year="{{ $row->request->period }}" data-status="{{ $row->request->status }}">
             <div class="card-header bg-white py-2 d-flex flex-wrap align-items-center justify-content-between gap-2 border-bottom">
-                <h5 class="m-0 font-weight-bold text-primary">{{ __('Goal') }} {{ $row->request->period }}</h5>
-                @if ($period == $row->request->goal->period && !$row->request->appraisalCheck && $access)
-                    @if (Auth::user()->employee_id == $row->request->initiated->employee_id)
-                        <div class="d-flex flex-wrap gap-2">
-                            @if (!$achievement || $achievementStatus === 'Approved' || $achievementCreatedBy ?? $achievementCreatedBy === Auth::id())
-                                <a class="btn btn-outline-{{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? 'warning' : ($row->request->goal->form_status === 'Approved' ? 'success fw-semibold' : 'secondary') }} btn-sm" href="{{ route('goals.update-achievement', $row->request->goal->id) }}">
-                                    {{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? __('Revise Achievement') : __('Update Achievement') }}
-                                </a>
-                            @endif
-                                @if (
-                                    $row->request->goal->form_status != 'Draft' &&
-                                    $row->request->created_by == Auth::user()->id
-                                )
-                                   <a id="reviseGoalBtn"
-                                        class="btn btn-outline-warning btn-sm fw-semibold revise-goal-btn"
+    <h5 class="m-0 font-weight-bold text-primary">{{ __('Goal') }} {{ $row->request->period }}</h5>
+    
+    @if ($period == $row->request->goal->period && !$row->request->appraisalCheck && $access)
+        <div class="d-flex flex-wrap gap-2">
+            
+            @if (!$achievement || $achievementStatus === 'Approved' || $achievementCreatedBy ?? $achievementCreatedBy === Auth::id())
+                <a class="btn btn-outline-{{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? 'warning' : ($row->request->goal->form_status === 'Approved' ? 'success fw-semibold' : 'secondary') }} btn-sm" href="{{ route('goals.update-achievement', $row->request->goal->id) }}">
+                    {{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? __('Revise Achievement') : __('Update Achievement') }}
+                </a>
+            @endif
 
-                                        href="{{ route('goals.edit', $row->request->goal->id) }}"
-
-                                        data-has-achievement="{{
-                                            $row->request->goal->hasAchievement
-                                                ? 1
-                                                : 0
-                                        }}">
-
-                                        {{ __('Revise Goals') }}
-
-                                    </a>
-                                @elseif (
-                                    $row->request->goal->form_status == 'Draft' ||
-                                    ($row->request->status == 'Pending' && count($row->request->approval) == 0) ||
-                                    $row->request->sendback_to == $row->request->employee_id
-                                )
-                                    </a>
-                                    <a class="btn btn-outline-warning btn-sm fw-semibold"
-                                    href="{{ route('goals.edit', $row->request->goal->id) }}"
-                                    onclick="showLoader()">
-                                    {{ $row->request->status === 'Sendback' ? __('Revise Goals') : __('Edit') }}
-                                    </a>
-                                @endif
-                            </div>
-                            @else
-                                <!-- Hide the button if the current user is not the initiated employee -->
-                                <span class="d-none"></span>
-                            @endif
-                        @endif
-                    </div>
+            @if (Auth::user()->employee_id == $row->request->initiated->employee_id)
+                @if (
+                    $row->request->goal->form_status != 'Draft' &&
+                    $row->request->created_by == Auth::user()->id
+                )
+                    <a id="reviseGoalBtn"
+                        class="btn btn-outline-warning btn-sm fw-semibold revise-goal-btn"
+                        href="{{ route('goals.edit', $row->request->goal->id) }}"
+                        data-has-achievement="{{ $row->request->goal->hasAchievement ? 1 : 0 }}">
+                        {{ __('Revise Goals') }}
+                    </a>
+                @elseif (
+                    $row->request->goal->form_status == 'Draft' ||
+                    ($row->request->status == 'Pending' && count($row->request->approval) == 0) ||
+                    $row->request->sendback_to == $row->request->employee_id
+                )
+                    <a class="btn btn-outline-warning btn-sm fw-semibold"
+                        href="{{ route('goals.edit', $row->request->goal->id) }}"
+                        onclick="showLoader()">
+                        {{ $row->request->status === 'Sendback' ? __('Revise Goals') : __('Edit') }}
+                    </a>
+                @endif
+            @endif
+            
+        </div>
+    @endif
+</div>
                     <div class="card-body p-3">
                         <div id="alertDraft" class="alert alert-danger alert-dismissible {{ $row->request->goal->form_status == 'Draft' ? '':'fade d-none' }}" role="alert">
                             <div class="d-flex align-items-center gap-2 text-primary">
@@ -605,11 +591,10 @@
                         class="btn btn-sm btn-outline-success fw-medium"
                     >
                         <i class="ri-download-cloud-2-line me-1"></i>
-                        Download Achievement
+                        Download Template Achievement
                     </button>
                 </form>
             </div>
-            <!-- FORM SEKARANG MEMILIKI ID YANG SESUAI -->
             <form id="importAchievementForm" action="{{ route('importAchievement.submit') }}" method="POST" enctype="multipart/form-data">
                 @csrf
                 
@@ -635,7 +620,6 @@
                     </div>
                 </div>
                 
-                <!-- Menggunakan modal-footer standar Bootstrap agar lebih rapi -->
                 <div class="modal-footer bg-light border-top py-2">
                     <button type="button" class="btn btn-sm btn-light text-secondary border fw-medium px-4" data-bs-dismiss="modal">Close</button>
                     <button type="submit" id="importAchievementButton" class="btn btn-sm btn-primary fw-medium px-4">
@@ -666,6 +650,83 @@ document.addEventListener('DOMContentLoaded', function () {
 });
 </script>
 @endif
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const btnOpenImport = document.getElementById('btnOpenImportModal');
+    if (btnOpenImport) {
+        btnOpenImport.addEventListener('click', function () {
+            const filterYearSelect = document.getElementById('filterYear');
+            let yearToCheck = filterYearSelect.value;
+            
+            if (!yearToCheck) {
+                yearToCheck = "{{ now()->format('Y') }}";
+            }
+
+            const card = document.querySelector('.goal-card[data-year="' + yearToCheck + '"]');
+            let status = 'Approved';
+            
+            if (card && card.dataset.status) {
+                status = card.dataset.status;
+            }
+
+            if (status !== 'Approved') {
+                Swal.fire({
+                    icon: "error",
+                    title: "Action Denied",
+                    text: "Your Goals for 2026 are not fully Approved.",
+                    confirmButtonText: "OK",
+                });
+            } else {
+                var importModalEl = document.getElementById('importAchievementModal');
+                var importModal = new bootstrap.Modal(importModalEl);
+                importModal.show();
+            }
+        });
+    }
+
+    // 2. Script ini untuk berjaga-jaga: kalau modal BERHASIL BUKA (misal tahun sekarang Approved),
+    // tapi user iseng mengubah dropdown tahun di DALAM modal ke tahun lain yang belum Approved.
+    const importForm = document.getElementById('importAchievementForm');
+    if (importForm) {
+        importForm.addEventListener('submit', function (e) {
+            const selectedYear = document.getElementById('year').value;
+            const card = document.querySelector('.goal-card[data-year="' + selectedYear + '"]');
+
+            let status = 'Approved'; 
+            if (card && card.dataset.status) {
+                status = card.dataset.status;
+            }
+
+            if (status !== 'Approved') {
+                e.preventDefault(); 
+
+                const importModalEl = document.getElementById('importAchievementModal');
+                if (importModalEl) {
+                    const modalInstance = bootstrap.Modal.getInstance(importModalEl);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+                }
+
+                Swal.fire({
+                    icon: "error",
+                    title: "Action Denied",
+                    text: "Goals belum fully approved. Anda tidak dapat melakukan Import Achievement.",
+                    confirmButtonText: "OK",
+                });
+
+                const btn = document.getElementById('importAchievementButton');
+                if (btn) {
+                    btn.disabled = false;
+                    const spinner = btn.querySelector('.spinner-border');
+                    if (spinner) spinner.classList.add('d-none');
+                }
+            }
+        });
+    }
+});
+</script>
 
 <script>
   function hideCard(card) {
