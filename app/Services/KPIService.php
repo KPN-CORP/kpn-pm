@@ -131,24 +131,22 @@ class KPIService
         return $approvalLayer->approver_id;
     }
 
-    function normalizeDecimal(float $value): ?float
+    public function normalizeDecimal(float|string|null $value): ?float
     {
         if ($value === null || $value === '') {
             return null;
         }
 
-        // hapus spasi
-        $value = trim($value);
-
-        // ganti koma jadi titik
-        $value = str_replace(',', '.', $value);
-
-        // validasi numeric
-        if (!is_numeric($value)) {
-            return null; // atau throw error kalau mau strict
+        if (is_string($value)) {
+            $value = trim($value);
+            $value = str_replace(',', '.', $value);
         }
 
-        return round((float)$value, 2);
+        if (!is_numeric($value)) {
+            return null;
+        }
+
+        return round((float) $value, 2);
     }
 
     private static function calculateAverage(array $values, int $reviewPeriod): float
