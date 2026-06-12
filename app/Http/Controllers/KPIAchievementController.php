@@ -326,7 +326,7 @@ class KPIAchievementController extends Controller
                             if ($existing->file) {
                                 Storage::disk('public')->delete($existing->file);
                             }
-                            $existing->delete();
+                            // $existing->delete();
                         }
 
                         $file = $request->file("attachment.$kpiIndex.$month");
@@ -424,16 +424,21 @@ class KPIAchievementController extends Controller
                 : redirect('goals')->with('success', 'Achievements submitted successfully');
 
         } catch (\Throwable $e) {
-
             DB::rollBack();
-
-            // log error
+            
+            // TAMPILKAN ERROR KE LAYAR UNTUK DEBUGGING
+            dd([
+                'Error Message' => $e->getMessage(),
+                'File' => $e->getFile(),
+                'Line' => $e->getLine()
+            ]);
+        
             Log::error('Bulk KPI Achievement Error', [
                 'message' => $e->getMessage(),
                 'line' => $e->getLine(),
                 'file' => $e->getFile(),
             ]);
-
+        
             return back()->with('error', 'Achievements submitted failed!');
         }
     }

@@ -168,65 +168,65 @@ input[type=number] {
                 <input type="hidden" name="calculation_method[]" value="{{ $data['calculation_method'] }}">
                 <div class="row g-3">
                     <div class="col-md-5 col-lg-5 mb-md-0">
-                                                <small class="fw-bold text-uppercase d-block kpi-label mb-1">KPI {{ $index + 1 }}</small>
-                                                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">{{ $data['kpi'] }}</h6>
-                                                <p class="text-secondary mb-0" style="font-size: 0.85rem; line-height: 1.5;">{{ $data['description'] ?? '-' }}</p>
-                                            </div>
-                                            <div class="col-md-7 col-lg-7">
-                                                <div class="row g-3 mb-3">
-                                                    <div class="col-3 col-sm-3">
-                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
-                                                       <span class="fw-bold text-dark" style="font-size: 0.9rem;">
-                                                                {{ is_numeric($data['target']) ? number_format((float)$data['target'], 0) : '-' }}
-                                                            </span>
-                                                    </div>
-                                                    <div class="col-3 col-sm-3">
-                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
-                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ is_null($data['custom_uom']) ? $data['uom'] : $data['custom_uom'] }}</span>
-                                                    </div>
-                                                    <div class="col-3 col-sm-3">
-                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Weightage</small>
-                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['weightage'] }}</span>
-                                                    </div>
-                                                    <div class="col-3 col-sm-3">
-                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
+                                                                <small class="fw-bold text-uppercase d-block kpi-label mb-1">KPI {{ $index + 1 }}</small>
+                                                                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">{{ $data['kpi'] }}</h6>
+                                                                <p class="text-secondary mb-0" style="font-size: 0.85rem; line-height: 1.5;">{{ $data['description'] ?? '-' }}</p>
+                                                            </div>
+                                                            <div class="col-md-7 col-lg-7">
+                                                                <div class="row g-3 mb-3">
+                                                                    <div class="col-3 col-sm-3">
+                                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
+                                                                       <span class="fw-bold text-dark" style="font-size: 0.9rem;">
+                                                                                {{ is_numeric($data['target']) ? number_format((float)$data['target'], 0) : '-' }}
+                                                                            </span>
+                                                                    </div>
+                                                                    <div class="col-3 col-sm-3">
+                                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
+                                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ is_null($data['custom_uom']) ? $data['uom'] : $data['custom_uom'] }}</span>
+                                                                    </div>
+                                                                    <div class="col-3 col-sm-3">
+                                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Weightage</small>
+                                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['weightage'] }}</span>
+                                                                    </div>
+                                                                    <div class="col-3 col-sm-3">
+                                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
 
-                                                        <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">
-                                                            {{ number_format(
-                                                                $data['achievement'],
-                                                                0
-                                                            ) }}%
-                                                        </span>
+                                                                        <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">
+                                                                            {{ number_format(
+                                                                                $data['achievement'],
+                                                                                0
+                                                                            ) }}%
+                                                                        </span>
 
-                                                        @php
-                                                            $percent = (int) ($data['achievement'] ?? 0);
-                                                        @endphp
+                                                                        @php
+                                                                            $percent = (int) ($data['achievement'] ?? 0);
+                                                                        @endphp
 
-                                                        <div class="mini-progress">
-                                                            <div class="mini-progress-bar bg-primary"
-                                                                data-width="{{ $percent }}%"></div>
-                                                        </div>
-                                                    </div>
-                                                </div>
+                                                                        <div class="mini-progress">
+                                                                            <div class="mini-progress-bar bg-primary"
+                                                                                data-width="{{ $percent }}%"></div>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
                         <div class="row g-3 mb-3">
-                                                    <div class="col-3 col-sm-3">
-                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Type</small>
-                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['type'] }}</span>
-                                                    </div>
-                                                    <div class="col-3 col-sm-3">
-                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Review Period</small>
-                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['review_period_label'] }}</span>
-                                                    </div>
-                                                    <div class="col-3 col-sm-3">
-                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Calc Method</small>
-                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['calculation_method_label'] }}</span>
-                                                    </div>
-                                                    <div class="col-3">
-                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1"></small>
-                                                        <span class="fw-bold text-dark"></span>
-                                                    </div>
-                                                </div>
-                                            </div>
+                                                                    <div class="col-3 col-sm-3">
+                                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Type</small>
+                                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['type'] }}</span>
+                                                                    </div>
+                                                                    <div class="col-3 col-sm-3">
+                                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Review Period</small>
+                                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['review_period_label'] }}</span>
+                                                                    </div>
+                                                                    <div class="col-3 col-sm-3">
+                                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Calc Method</small>
+                                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['calculation_method_label'] }}</span>
+                                                                    </div>
+                                                                    <div class="col-3">
+                                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1"></small>
+                                                                        <span class="fw-bold text-dark"></span>
+                                                                    </div>
+                                                                </div>
+                                                            </div>
                 </div>
 
                 <div>
@@ -258,7 +258,7 @@ input[type=number] {
                                     </div>
 
                                     <input type="text" 
-                                        inputmode="numeric"
+                                        inputmode="decimal"
                                         id="{{ $inputId }}"
                                         name="ach[{{ $index }}][{{ $monthNum }}]" 
                                         class="input-compact" 
@@ -277,7 +277,7 @@ input[type=number] {
                                     <label for="{{ $elementId }}" 
                                         id="label_{{ $elementId }}" 
                                         class="btn-attach-mini disabled-attach w-100 d-block mt-1">
-                                        <i class="ri-attachment-2 icon-attach"></i> 
+                                        <i class="ri-attachments-2 icon-attach"></i> 
                                         <span class="text-attach">FILE</span>
                                     </label>
 
@@ -318,6 +318,34 @@ input[type=number] {
 
 @push('scripts')
 <script>
+    function formatNumberID(value) {
+        // Buang semua titik (karena titik murni untuk format ribuan visual)
+        // Buang juga karakter selain angka dan koma desimal
+        let clean = value.replace(/\./g, '').replace(/[^0-9,]/g, '');
+        
+        if (!clean) return '';
+
+        // Pecah berdasarkan koma (index 0 = bilangan bulat, index 1 = desimal)
+        let parts = clean.split(',');
+        let integerPart = parts[0];
+
+        // Format bagian bulatnya saja dengan toLocaleString
+        if (integerPart !== '') {
+            integerPart = parseInt(integerPart, 10).toLocaleString('id-ID');
+        } else if (parts.length > 1) {
+            // Kalau user iseng ngetik koma duluan (misal: ,5)
+            integerPart = '0'; 
+        }
+
+        // Kalau ada komanya, gabungkan kembali
+        if (parts.length > 1) {
+            let decimalPart = parts.slice(1).join('');
+            return integerPart + ',' + decimalPart;
+        }
+
+        return integerPart;
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
 
         document.querySelectorAll('[id^="kpi_grid_"]').forEach(grid => {
@@ -327,19 +355,19 @@ input[type=number] {
 
         document.querySelectorAll('.input-compact').forEach(input => {
             if(input.value) {
-                let cleanValue = input.value.replace(/[^0-9]/g, '');
-                if (cleanValue !== '') {
-                    input.value = parseInt(cleanValue, 10).toLocaleString('id-ID');
-                }
+                let standardVal = input.value.replace('.', ',');
+                input.value = formatNumberID(standardVal);
             }
 
             input.addEventListener('input', function() {
-                let value = this.value.replace(/[^0-9]/g, '');
-                if (value !== '') {
-                    this.value = parseInt(value, 10).toLocaleString('id-ID');
-                } else {
-                    this.value = '';
-                }
+                let cursorPosition = this.selectionStart;
+                let originalLength = this.value.length;
+                
+                this.value = formatNumberID(this.value);
+                
+                let newLength = this.value.length;
+                cursorPosition = cursorPosition + (newLength - originalLength);
+                this.setSelectionRange(cursorPosition, cursorPosition);
             });
         });
 
@@ -382,8 +410,12 @@ input[type=number] {
                             }
                         });
 
+                        // Konversi format ID kembali ke format baku float sebelum submit
+                        // contoh: "1.000.000,5" -> "1000000.5"
                         document.querySelectorAll('.input-compact').forEach(input => {
-                            input.value = input.value.replace(/\./g, '');
+                            let cleanVal = input.value.replace(/\./g, '');
+                            cleanVal = cleanVal.replace(',', '.');
+                            input.value = cleanVal;
                         });
 
                         form.submit();
@@ -503,6 +535,7 @@ input[type=number] {
                 fileInput.setAttribute('disabled', true);
 
                 label.style.display = 'none';
+                label.classWith = 'disabled-attach';
             }
         });
 
@@ -552,7 +585,7 @@ input[type=number] {
                     label.classList.remove('has-file');
                     label.classList.add('disabled-attach');
 
-                    icon.className = 'ri-attachment-2 icon-attach';
+                    icon.className = 'ri-attachments-2 icon-attach';
                     text.innerText = 'FILE';
                 }
             });
@@ -595,7 +628,6 @@ input[type=number] {
             }
         });
     }
-
 </script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
