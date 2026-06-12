@@ -699,11 +699,27 @@ class KPIAchievementController extends Controller
                         continue;
                     }
 
-                    $val->value =
-                        $this->kpiService
-                            ->normalizeDecimal(
-                                $rawValue
-                            );
+                    Log::debug('Normalize Decimal Raw Value', [
+                        'rawValue' => $rawValue,
+                        'type' => gettype($rawValue),
+                        'is_numeric' => is_numeric($rawValue),
+                        'achievement_id' => $val->id ?? null,
+                    ]);
+
+                    $normalizedValue = trim((string) $rawValue);
+
+                    if (str_contains($normalizedValue, ',')) {
+                        $normalizedValue = str_replace('.', '', $normalizedValue);
+                        $normalizedValue = str_replace(',', '.', $normalizedValue);
+                    } else {
+
+                        if (preg_match('/^\d{1,3}(\.\d{3})+$/', $normalizedValue)) {
+                            $normalizedValue = str_replace('.', '', $normalizedValue);
+                        }
+                    }
+
+                    $val->value = $this->kpiService->normalizeDecimal((float) $normalizedValue);
+
                 }
 
                 // ================= APPROVAL INFO =================

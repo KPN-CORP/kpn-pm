@@ -171,7 +171,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
-                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['target'] }}</span>
+                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ (float) $data['target'] }}</span>
                         </div>
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
@@ -239,8 +239,8 @@
                                     <div class="month-box month-box-old">
                                         <span class="month-label">{{ $month['label'] }}</span>
 
-                                        <input type="text" value="{{ $month['value'] ?? '-' }}"
-                                            class="month-input month-input-old" readonly>
+                                        <input type="text" value="{{ isset($month['value']) && is_numeric($month['value']) ? (float)$month['value'] : '-' }}"
+                                            class="month-input month-input-old input-compact" readonly>
 
                                         @if(!empty($old['file']))
                                         <a href="{{ asset('storage/'.$month['file']) }}" target="_blank"
@@ -279,7 +279,7 @@
                                         <span class="month-label text-primary">{{ $month['label'] }}</span>
 
                                         <input type="text" name="ach[{{$data['kpi_id']}}][{{$monthIdx}}]"
-                                            value="{{ $month['value'] ?? '' }}" class="month-input input-compact" placeholder="-" data-month="{{ $monthIdx }}">
+                                            value="{{ isset($month['value']) && is_numeric($month['value']) ? (float)$month['value'] : '' }}" class="month-input input-compact" placeholder="-" data-month="{{ $monthIdx }}">
 
                                         @if(!empty($month['file']))
                                         <a href="{{ asset('storage/'.$month['file']) }}" target="_blank"
@@ -319,10 +319,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
-                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ number_format(
-                                                $data['target'],
-                                                0
-                                            ) ?? '-' }}</span>
+                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ (float) $data['target'] }}</span>
                         </div>
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
@@ -337,10 +334,7 @@
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
 
                             <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">
-                                {{ number_format(
-                                    $data['achievement'],
-                                    0
-                                ) }}%
+                                {{ (float) $data['achievement'] }}%
                             </span>
 
                             @php
@@ -388,7 +382,7 @@
                                         <span class="month-label text-primary">{{ $month['label'] }}</span>
 
                                         <input type="text" name="ach[{{$data['kpi_id']}}][{{$monthIdx}}]"
-                                            value="{{ $month['value'] ?? '' }}" class="month-input input-compact" data-month="{{ $monthIdx }}" placeholder="-">
+                                            value="{{ isset($month['value']) && is_numeric($month['value']) ? (float)$month['value'] : '' }}" class="month-input input-compact" data-month="{{ $monthIdx }}" placeholder="-">
 
                                         @if(!empty($month['file']))
                                         <a href="{{ asset('storage/'.$month['file']) }}" target="_blank"
@@ -447,6 +441,26 @@
 
 @push('scripts')
 <script>
+function formatNumberID(value) {
+    let clean = String(value).replace(/\./g, '').replace(/[^0-9,]/g, '');
+    if (!clean) return '';
+
+    let parts = clean.split(',');
+    let integerPart = parts[0];
+
+    if (integerPart !== '') {
+        integerPart = parseInt(integerPart, 10).toLocaleString('id-ID');
+    } else if (parts.length > 1) {
+        integerPart = '0'; 
+    }
+
+    if (parts.length > 1) {
+        let decimalPart = parts.slice(1).join('');
+        return integerPart + ',' + decimalPart;
+    }
+
+    return integerPart;
+}
 
 document.addEventListener('DOMContentLoaded', function () {
     document.querySelectorAll('[id^="kpi_grid_"]').forEach(grid => {
@@ -455,19 +469,19 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.querySelectorAll('.input-compact').forEach(input => {
         if(input.value) {
-            let cleanValue = input.value.replace(/[^0-9]/g, '');
-            if (cleanValue !== '') {
-                input.value = parseInt(cleanValue, 10).toLocaleString('id-ID');
-            }
+            let standardVal = String(input.value).replace('.', ',');
+            input.value = formatNumberID(standardVal);
         }
 
         input.addEventListener('input', function() {
-            let value = this.value.replace(/[^0-9]/g, '');
-            if (value !== '') {
-                this.value = parseInt(value, 10).toLocaleString('id-ID');
-            } else {
-                this.value = '';
-            }
+            let cursorPosition = this.selectionStart;
+            let originalLength = this.value.length;
+            
+            this.value = formatNumberID(this.value);
+            
+            let newLength = this.value.length;
+            cursorPosition = cursorPosition + (newLength - originalLength);
+            this.setSelectionRange(cursorPosition, cursorPosition);
         });
     });
 
@@ -475,7 +489,9 @@ document.addEventListener('DOMContentLoaded', function () {
     if(form) {
         form.addEventListener('submit', function() {
             document.querySelectorAll('.input-compact').forEach(input => {
-                input.value = input.value.replace(/\./g, '');
+                let cleanVal = input.value.replace(/\./g, '');
+                cleanVal = cleanVal.replace(',', '.');
+                input.value = cleanVal;
             });
         });
     }

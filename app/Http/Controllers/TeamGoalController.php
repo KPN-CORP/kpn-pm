@@ -694,8 +694,9 @@ class TeamGoalController extends Controller
             Log::info(Auth::id() ." Goal import : Data imported successfully.");
             
         } catch (ValidationException $e) {
-            // Catch the validation exception and redirect back with a custom error message
-            return redirect()->back()->with('error', $e->errors()['error'][0]);
+            // Ambil pesan error validasi pertama yang muncul, tanpa mempedulikan nama key/kolomnya
+            $firstErrorMessage = collect($e->errors())->flatten()->first();
+            return redirect()->back()->with('error', $firstErrorMessage);
         } catch (\Exception $e) {
             $errorMessage = "Import failed: " . $e->getMessage(); // Define a variable
             Log::error(Auth::id() . " " . $errorMessage);
