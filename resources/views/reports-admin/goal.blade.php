@@ -68,7 +68,7 @@
                                         <!-- Content Row -->
                                         <div class="container-card">
                                         @php
-                                            $formData = $row->goal->form_data ?? [];
+                                            $formData = json_decode($row->goal->form_data, true) ?? [];
                                         @endphp
                                         @if ($formData)
                                         @foreach ($formData as $index => $data)

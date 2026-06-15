@@ -40,7 +40,7 @@ class KPIAchievementController extends Controller
             'kpi_index' => 'required|integer|min:0',
             'month'     => 'required|integer|min:1|max:12',
             'value'     => 'required|numeric|min:0',
-            'attachment' => 'nullable|file|mimes:pdf,png,jpg,jpeg|max:2048'
+            'attachment' => 'nullable|file|mimes:pdf,png,jpg,jpeg,xlsx,csv,pptx,xls|max:2048'
         ]);
 
         $goal = Goal::findOrFail($request->goal_id);
@@ -253,10 +253,10 @@ class KPIAchievementController extends Controller
                 'goal_id' => 'required|string',
                 'ach' => 'nullable|array',
                 'attachment' => 'array',
-                'attachment.*.*' => 'nullable|file|mimes:pdf,png,jpg,jpeg|max:2048'
+                'attachment.*.*' => 'nullable|file|mimes:pdf,png,jpg,jpeg,xlsx,csv,pptx,xls|max:2048'
             ], [
                 'attachment.*.*.max' => 'Ukuran file maksimal 2MB',
-                'attachment.*.*.mimes' => 'File harus PDF/JPG/PNG'
+                'attachment.*.*.mimes' => 'File harus PDF/JPG/PNG/XLSX/XLS/CSV/PPTX'
             ]);
 
             $timeNow = now();
@@ -427,11 +427,11 @@ class KPIAchievementController extends Controller
             DB::rollBack();
             
             // TAMPILKAN ERROR KE LAYAR UNTUK DEBUGGING
-            dd([
-                'Error Message' => $e->getMessage(),
-                'File' => $e->getFile(),
-                'Line' => $e->getLine()
-            ]);
+            // dd([
+            //     'Error Message' => $e->getMessage(),
+            //     'File' => $e->getFile(),
+            //     'Line' => $e->getLine()
+            // ]);
         
             Log::error('Bulk KPI Achievement Error', [
                 'message' => $e->getMessage(),
