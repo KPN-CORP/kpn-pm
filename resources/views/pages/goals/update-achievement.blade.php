@@ -272,7 +272,7 @@ input[type=number] {
                                         name="attachment[{{ $index }}][{{ $monthNum }}]" 
                                         class="d-none file-input-trigger" 
                                         data-target="label_{{ $elementId }}"
-                                        accept=".pdf,.png,.jpg,.jpeg" disabled>
+                                        accept=".pdf,.png,.jpg,.jpeg,.xlsx,.xls,.docx,.pptx,.csv" disabled>
 
                                     <label for="{{ $elementId }}" 
                                         id="label_{{ $elementId }}" 
