@@ -196,26 +196,29 @@
 
                                                 </div>
 
-                                                <!-- 🔥 ACHIEVEMENT TRACKING -->
+                                                <!-- ðŸ”¥ ACHIEVEMENT TRACKING -->
                                                 <div class="mt-4">
                                                     <h6 class="fw-bold text-uppercase mb-2">Achievement Tracking</h6>
 
                                                     <div class="row g-2">
 
                                                         @foreach($months as $monthNum => $monthLabel)
-
-                                                        @php
-                                                            $ach = $kpi['ach'] ?? [];
-                                                            $attachments = $kpi['attachment'] ?? [];
-
-                                                            $value = $ach[$monthNum] ?? null;
-
-                                                            $formatted = is_null($value) || $value === ''
-                                                                ? '-'
-                                                                : rtrim(rtrim($value, '0'), '.');
-
-                                                            $file = $attachments[$monthNum] ?? null;
-                                                        @endphp
+                                                            
+                                                            @php
+                                                                $ach = $kpi['ach'] ?? [];
+                                                                $attachments = $kpi['attachment'] ?? [];
+                                                                $value = $ach[$monthNum] ?? null;
+                                                                if (is_null($value) || $value === '') {
+                                                                    $formatted = '-';
+                                                                } else {
+                                                                    $num = (float) $value;
+                                                                    // Cek apakah ada desimal berarti
+                                                                    $formatted = ($num == floor($num))
+                                                                        ? number_format($num, 0, '.', ',')       // bulat: 500,000,000,000
+                                                                        : number_format($num, 2, '.', ',');       // desimal: 500,000,000,000.50
+                                                                }
+                                                                $file = $attachments[$monthNum] ?? null;
+                                                            @endphp
 
                                                         <div class="col-4 col-sm-3 col-md-2 col-lg-1">
                                                             <div class="border rounded p-2 text-center {{ $value ? 'bg-primary-subtle border-primary' : '' }}">

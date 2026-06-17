@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Exports\GoalExport;
+use App\Exports\AchievementExport;
 use App\Http\Controllers\Controller;
 use App\Models\Approval;
 use App\Models\ApprovalLayer;
@@ -434,12 +435,12 @@ class ReportController extends Controller
 
                     $achievement->approvalLayer = $layerData->layer ?? null;
 
-                    // 🔥 RE-ASSIGN BALIK
+                    // ðŸ”¥ RE-ASSIGN BALIK
                     $item->achievement = $achievement;
 
                 } else {
 
-                    // 🔥 JANGAN SET KE RELATION LANGSUNG
+                    // ðŸ”¥ JANGAN SET KE RELATION LANGSUNG
                     $item->setRelation('achievement', (object)[
                         'name' => '-',
                         'approvalLayer' => null,
@@ -463,48 +464,170 @@ class ReportController extends Controller
         return view($route, compact('data', 'link', 'filters'));
     }
 
-
-    public function generateReportExcel(Request $request)
-    {
-        // Logika untuk generate report
+    // public function generateReportExcel(Request $request)
+    // {
+    //     // Logika untuk generate report
         
-        $reportType = $request->export_report_type;
-        $groupCompany = $request->export_group_company;
-        $company = $request->export_company;
-        $location = $request->export_location;
-        $period = $request->export_period;
-        $permissionLocations = $this->permissionLocations;
-        $permissionCompanies = $this->permissionCompanies;
-        $permissionGroupCompanies = $this->permissionGroupCompanies;
-        $admin = 1;
+    //     $reportType = $request->export_report_type;
+    //     $groupCompany = $request->export_group_company;
+    //     $company = $request->export_company;
+    //     $location = $request->export_location;
+    //     $period = $request->export_period;
+    //     $permissionLocations = $this->permissionLocations;
+    //     $permissionCompanies = $this->permissionCompanies;
+    //     $permissionGroupCompanies = $this->permissionGroupCompanies;
+    //     $admin = 1;
 
-        $directory = 'report/excel'; // Direktori tempat file akan disimpan
-        $date = now()->format('dmY');
-        $reportName = 'Nama Report';
-        $fileName = $reportType.'_'.$date.'.xlsx'; // Nama file yang akan disimpan
+    //     $directory = 'report/excel'; // Direktori tempat file akan disimpan
+    //     $date = now()->format('dmY');
+    //     $reportName = 'Nama Report';
+    //     $fileName = $reportType.'_'.$date.'.xlsx'; // Nama file yang akan disimpan
 
-        if($reportType==='Goal'){
-            $export = new GoalExport($period, $groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
-            $fileContent = Excel::download($export, $fileName)->getFile();
-        }
-        return false;
+    //     if($reportType==='Goal'){
+    //         $export = new GoalExport($period, $groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
+    //         $fileContent = Excel::download($export, $fileName)->getFile();
+    //     }
+    //     return false;
 
-        // Mengecek dan membuat direktori jika belum ada
-        if (!Storage::disk('public')->exists($directory)) {
-            Storage::disk('public')->makeDirectory($directory, 0755, true); // Buat direktori dengan izin 0755 (opsional)
-        }
+    //     // Mengecek dan membuat direktori jika belum ada
+    //     if (!Storage::disk('public')->exists($directory)) {
+    //         Storage::disk('public')->makeDirectory($directory, 0755, true); // Buat direktori dengan izin 0755 (opsional)
+    //     }
 
-        // Menyimpan file ke dalam direktori yang sudah ada
-        Storage::disk('public')->put($directory . '/' . $fileName, $fileContent);
+    //     // Menyimpan file ke dalam direktori yang sudah ada
+    //     Storage::disk('public')->put($directory . '/' . $fileName, $fileContent);
 
-        // Simpan informasi report ke dalam database
-        $filePath = $directory . '/' . $fileName;
-        $report = new Report();
-        $report->name = $reportName;
-        $report->file_path = $filePath;
-        $report->save();
+    //     // Simpan informasi report ke dalam database
+    //     $filePath = $directory . '/' . $fileName;
+    //     $report = new Report();
+    //     $report->name = $reportName;
+    //     $report->file_path = $filePath;
+    //     $report->save();
 
-        return redirect()->back()->with('success', 'Report berhasil di-generate dan disimpan.');
+    //     return redirect()->back()->with('success', 'Report berhasil di-generate dan disimpan.');
+    // }
+    
+    public function generateReportExcel(Request $request)
+{
+    $reportType = $request->export_report_type;
+    $groupCompany = $request->export_group_company ? explode(',', $request->export_group_company) : [];
+    $company = $request->export_company ? explode(',', $request->export_company) : [];
+    $location = $request->export_location ? explode(',', $request->export_location) : [];
+    $period = $request->export_period;
+    $permissionLocations = $this->permissionLocations;
+    $permissionCompanies = $this->permissionCompanies;
+    $permissionGroupCompanies = $this->permissionGroupCompanies;
+    $admin = 1;
+
+    $directory = 'exports';
+    $date = now()->format('Ymd_His');
+    $reportName = $reportType . ' Report';
+    $fileName = strtolower($reportType) . '_' . $date . '.xlsx';
+
+    if ($reportType === 'Goal') {
+        $export = new \App\Exports\GoalExport($period, $groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
+        $fileContent = \Maatwebsite\Excel\Facades\Excel::download($export, $fileName)->getFile();
+    } elseif ($reportType === 'Achievement') {
+        $query = \App\Models\Goal::with([
+            'employee',
+            'achievement.approver'
+        ])->whereHas('achievement.approver');
+
+        $query->whereHas('employee', function ($q) use ($groupCompany, $location, $company) {
+            if (!empty($groupCompany)) {
+                $q->whereIn('group_company', is_array($groupCompany) ? $groupCompany : [$groupCompany]);
+            }
+            if (!empty($location)) {
+                $q->whereIn('work_area_code', is_array($location) ? $location : [$location]);
+            }
+            if (!empty($company)) {
+                $q->whereIn('contribution_level_code', is_array($company) ? $company : [$company]);
+            }
+        });
+
+        $query->where('period', $period ?? date('Y'));
+        $data = $query->get();
+
+        $approvalLayers = \App\Models\ApprovalLayer::whereIn('employee_id', $data->pluck('employee_id')->filter()->unique())
+            ->where('layer', 1)
+            ->get()
+            ->keyBy(function ($item) {
+                return $item->employee_id . '-' . $item->approver_id;
+            });
+
+        $data->map(function($item) use ($approvalLayers) {
+            $formData = json_decode($item->form_data, true) ?? [];
+            $achievementData = \App\Services\KPIAchievementService::getByGoal($item->id) ?? [];
+            $isEmptyAchievement = empty($achievementData);
+
+            foreach ($formData as &$kpi) {
+                $kpiId = $kpi['kpi_id'] ?? null;
+                $kpi['ach'] = $kpiId && isset($achievementData[$kpiId]['ach']) ? $achievementData[$kpiId]['ach'] : array_fill(1, 12, null);
+                $kpi['attachment'] = $kpiId && isset($achievementData[$kpiId]['attachment']) ? $achievementData[$kpiId]['attachment'] : array_fill(1, 12, null);
+                $kpi['approval_status'] = $kpiId && isset($achievementData[$kpiId]['approval_status']) ? $achievementData[$kpiId]['approval_status'] : array_fill(1, 12, null);
+
+                $values = collect($kpi['ach'])->filter(fn($v) => $v !== null && $v !== '')->values()->toArray();
+                $actual = $this->kpiService->aggregate($kpi['calculation_method'] ?? 'last', $values, $kpi['review_period'] ?? null);
+                $achievementValue = $isEmptyAchievement ? 0 : $this->kpiService->achievement($actual, (float)($kpi['target'] ?? 0), $kpi['type'] ?? 'Higher Better');
+
+                $options = [];
+                if (\Illuminate\Support\Facades\File::exists($this->path)) {
+                    $options = json_decode(\Illuminate\Support\Facades\File::get($this->path), true) ?? [];
+                }
+
+                $reviewPeriodMap = collect($options['Review Period'] ?? [])->flatten(1)->pluck('label', 'value')->toArray();
+                $calculationMethodMap = collect($options['Calculation Method'] ?? [])->flatten(1)->pluck('label', 'value')->toArray();
+
+                $kpi['actual'] = round($actual, 2);
+                $kpi['achievement'] = round($achievementValue, 2);
+                $kpi['review_period_label'] = $reviewPeriodMap[$kpi['review_period'] ?? ''] ?? '-';
+                $kpi['calculation_method_label'] = $calculationMethodMap[$kpi['calculation_method'] ?? ''] ?? '-';
+            }
+
+            $item->formData = $formData;
+            $achievement = $item->achievement;
+
+            if ($achievement) {
+                $achievement->formatted_created_at = \Carbon\Carbon::parse($achievement->created_at)->format('d M Y g:ia');
+                $achievement->formatted_updated_at = \Carbon\Carbon::parse($achievement->updated_at)->format('d M Y g:ia');
+                $approver = optional($achievement->approver);
+                $achievement->name = $approver->fullname ? $approver->fullname . ' (' . $approver->employee_id . ')' : '-';
+                $key = $item->employee_id . '-' . $achievement->current_approver_employee_id;
+                $layerData = $approvalLayers->get($key);
+                $achievement->approvalLayer = $layerData->layer ?? null;
+                $item->achievement = $achievement;
+            } else {
+                $item->setRelation('achievement', (object)[
+                    'name' => '-',
+                    'approvalLayer' => null,
+                    'formatted_created_at' => '-',
+                    'formatted_updated_at' => '-',
+                    'approval_status' => '-',
+                ]);
+            }
+
+            return $item;
+        });
+
+        $export = new \App\Exports\AchievementExport($data);
+        $fileContent = \Maatwebsite\Excel\Facades\Excel::download($export, $fileName)->getFile();
+    } else {
+        return redirect()->back()->with('error', 'Report type tidak valid.');
     }
+
+    if (!\Illuminate\Support\Facades\Storage::disk('public')->exists($directory)) {
+        \Illuminate\Support\Facades\Storage::disk('public')->makeDirectory($directory, 0755, true);
+    }
+
+    \Illuminate\Support\Facades\Storage::disk('public')->put($directory . '/' . $fileName, file_get_contents($fileContent));
+
+    $filePath = $directory . '/' . $fileName;
+    $report = new \App\Models\Report();
+    $report->name = $reportName;
+    $report->file_path = $filePath;
+    $report->save();
+
+    return redirect()->back()->with('success', 'Report berhasil di-generate dan disimpan.');
+}
 
 }

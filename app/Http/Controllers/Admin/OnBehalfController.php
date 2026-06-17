@@ -541,12 +541,12 @@ class OnBehalfController extends Controller
 
                     $achievement->approvalLayer = $layerData->layer ?? null;
 
-                    // 🔥 RE-ASSIGN BALIK
+                    // ðŸ”¥ RE-ASSIGN BALIK
                     $item->achievement = $achievement;
 
                 } else {
 
-                    // 🔥 JANGAN SET KE RELATION LANGSUNG
+                    // ðŸ”¥ JANGAN SET KE RELATION LANGSUNG
                     $item->setRelation('achievement', (object)[
                         'name' => '-',
                         'approvalLayer' => null,
@@ -585,36 +585,175 @@ class OnBehalfController extends Controller
         }
     }
 
-    function create($id) {
+    // function create($id) {
 
-        // Mengambil data pengajuan berdasarkan employee_id atau manager_id
-        $datas = ApprovalRequest::with(['employee', 'goal', 'manager', 'approval' => function ($query) {
-            $query->with('approverName'); // Load nested relationship
+    //     // Mengambil data pengajuan berdasarkan employee_id atau manager_id
+    //     $datas = ApprovalRequest::with(['employee', 'goal', 'manager', 'approval' => function ($query) {
+    //         $query->with('approverName'); // Load nested relationship
+    //     }])->where('form_id', $id)->get();
+
+    //     $data = [];
+        
+    //     foreach ($datas as $request) {
+    //         // Memeriksa status form dan pembuatnya
+    //         if ($request->goal->form_status != 'Draft' || $request->created_by == Auth::user()->id) {
+    //             // Mengambil nilai fullname dari relasi approverName
+    //             if ($request->approval->first()) {
+    //                 $approverName = $request->approval->first();
+    //                 $dataApprover = $approverName->approverName->fullname;
+    //             }else{
+    //                 $dataApprover = '';
+    //             }
+        
+    //             // Buat objek untuk menyimpan data request dan approver fullname
+    //             $dataItem = new stdClass();
+
+    //             $dataItem->request = $request;
+    //             $dataItem->approver_name = $dataApprover;
+              
+
+    //             // Tambahkan objek $dataItem ke dalam array $data
+    //             $data[] = $dataItem;
+                
+    //         }
+    //     }
+        
+    //     $formData = [];
+    //     if($datas->isNotEmpty()){
+    //         $formData = json_decode($datas->first()->goal->form_data, true);
+    //     }
+
+    //     $path = base_path('resources/goal.json');
+
+    //     // Check if the JSON file exists
+    //     if (!File::exists($path)) {
+    //         // Handle the situation where the JSON file doesn't exist
+    //         abort(500, 'JSON file does not exist.');
+    //     }
+
+    //     // Read the contents of the JSON file
+    //     $options = json_decode(File::get($path), true);
+
+    //     $uomOption = $options['UoM'];
+    //     $typeOption = $options['Type'];
+    //     $reviewPeriodOption = $options['Review Period'] ?? [];
+    //     $calculationMethodOption = $options['Calculation Method'] ?? [];
+
+    //     // Mapping value â†’ label
+    //     $reviewPeriodMap = [];
+    //     foreach ($reviewPeriodOption as $group) {
+    //         foreach ($group as $opt) {
+    //             $reviewPeriodMap[$opt['value']] = $opt['label'];
+    //         }
+    //     }
+
+    //     $calculationMethodMap = [];
+    //     foreach ($calculationMethodOption as $group) {
+    //         foreach ($group as $opt) {
+    //             $calculationMethodMap[$opt['value']] = $opt['label'];
+    //         }
+    //     }
+
+    //     // Field label
+    //     $fieldLabelMap = [
+    //         'review_period' => __('Review Period'),
+    //         'calculation_method' => __('Calculation Method'),
+    //         'kpi' => 'KPI',
+    //         'target' => 'Target',
+    //         'uom' => 'UoM',
+    //         'weightage' => 'Weightage',
+    //         'type' => 'Type',
+    //     ];
+
+    //     // Snapshot
+    //     $snapshots = ApprovalSnapshots::where('form_id', $id)
+    //         ->orderBy('created_at', 'desc')
+    //         ->get()
+    //         ->map(fn($item) => [
+    //             'created_at' => $item->created_at,
+    //             'data' => json_decode($item->form_data, true),
+    //         ])
+    //         ->values();
+
+    //     // Group history per KPI
+    //     $goalHistories = [];
+
+    //     for ($i = 0; $i < count($snapshots); $i++) {
+    //         $current = $snapshots[$i];
+    //         $previous = $snapshots[$i + 1] ?? null;
+
+    //         if (!$previous) continue;
+
+    //         foreach ($current['data'] as $kpiIndex => $curr) {
+    //             $prev = $previous['data'][$kpiIndex] ?? null;
+    //             if (!$prev) continue;
+
+    //             $changes = [];
+
+    //             foreach ($curr as $field => $value) {
+
+    //                 $oldVal = $prev[$field] ?? null;
+    //                 $newVal = $value;
+
+    //                 // Mapping value â†’ label
+    //                 if ($field === 'review_period') {
+    //                     $oldVal = $reviewPeriodMap[$oldVal] ?? $oldVal;
+    //                     $newVal = $reviewPeriodMap[$newVal] ?? $newVal;
+    //                 }
+
+    //                 if ($field === 'calculation_method') {
+    //                     $oldVal = $calculationMethodMap[$oldVal] ?? $oldVal;
+    //                     $newVal = $calculationMethodMap[$newVal] ?? $newVal;
+    //                 }
+
+    //                 if ($oldVal != $newVal) {
+    //                     $label = $fieldLabelMap[$field] ?? ucwords(str_replace('_', ' ', $field));
+
+    //                     $changes[$label] = [
+    //                         'old' => $oldVal,
+    //                         'new' => $newVal
+    //                     ];
+    //                 }
+    //             }
+
+    //             if (!empty($changes)) {
+    //                 $goalHistories[$kpiIndex][] = [
+    //                     'date' => \Carbon\Carbon::parse($current['created_at'])->format('d M Y H:i'),
+    //                     'changes' => $changes
+    //                 ];
+    //             }
+    //         }
+    //     }
+    //     $parentLink = 'On Behalf';
+    //     $link = 'Approval';
+
+    //     return view('pages.onbehalfs.approval', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'goalHistories', 'reviewPeriodOption', 'calculationMethodOption'));
+
+    // }
+    
+    public function create($id) {
+
+        // Mengambil data pengajuan
+        $datas = \App\Models\ApprovalRequest::with(['employee', 'goal', 'manager', 'approval' => function ($query) {
+            $query->with('approverName');
         }])->where('form_id', $id)->get();
 
         $data = [];
         
         foreach ($datas as $request) {
-            // Memeriksa status form dan pembuatnya
-            if ($request->goal->form_status != 'Draft' || $request->created_by == Auth::user()->id) {
-                // Mengambil nilai fullname dari relasi approverName
+            if ($request->goal->form_status != 'Draft' || $request->created_by == \Illuminate\Support\Facades\Auth::user()->id) {
                 if ($request->approval->first()) {
                     $approverName = $request->approval->first();
                     $dataApprover = $approverName->approverName->fullname;
-                }else{
+                } else {
                     $dataApprover = '';
                 }
         
-                // Buat objek untuk menyimpan data request dan approver fullname
-                $dataItem = new stdClass();
-
+                $dataItem = new \stdClass();
                 $dataItem->request = $request;
                 $dataItem->approver_name = $dataApprover;
               
-
-                // Tambahkan objek $dataItem ke dalam array $data
                 $data[] = $dataItem;
-                
             }
         }
         
@@ -624,22 +763,17 @@ class OnBehalfController extends Controller
         }
 
         $path = base_path('resources/goal.json');
-
-        // Check if the JSON file exists
-        if (!File::exists($path)) {
-            // Handle the situation where the JSON file doesn't exist
+        if (!\Illuminate\Support\Facades\File::exists($path)) {
             abort(500, 'JSON file does not exist.');
         }
 
-        // Read the contents of the JSON file
-        $options = json_decode(File::get($path), true);
+        $options = json_decode(\Illuminate\Support\Facades\File::get($path), true);
 
-        $uomOption = $options['UoM'];
-        $typeOption = $options['Type'];
+        $uomOption = $options['UoM'] ?? [];
+        $typeOption = $options['Type'] ?? [];
         $reviewPeriodOption = $options['Review Period'] ?? [];
         $calculationMethodOption = $options['Calculation Method'] ?? [];
 
-        // Mapping value → label
         $reviewPeriodMap = [];
         foreach ($reviewPeriodOption as $group) {
             foreach ($group as $opt) {
@@ -654,81 +788,56 @@ class OnBehalfController extends Controller
             }
         }
 
-        // Field label
         $fieldLabelMap = [
-            'review_period' => __('Review Period'),
-            'calculation_method' => __('Calculation Method'),
+            'review_period' => 'Review Period',
+            'calculation_method' => 'Calculation Method',
+            'calc_method' => 'Calculation Method',
             'kpi' => 'KPI',
+            'description' => 'Description',
             'target' => 'Target',
             'uom' => 'UoM',
             'weightage' => 'Weightage',
             'type' => 'Type',
         ];
 
-        // Snapshot
-        $snapshots = ApprovalSnapshots::where('form_id', $id)
+        // --- KUNCI PERBAIKAN SNAPSHOT ADMIN ON BEHALF ---
+        // Ambil ID Manager yang sedang diwakilkan
+        $manager_id = $datas->isNotEmpty() ? $datas->first()->current_approval_id : null;
+
+        $snapshots = \App\Models\ApprovalSnapshots::where('form_id', $id)
+            ->where('employee_id', $manager_id) // Filter berdasarkan ID Manager
             ->orderBy('created_at', 'desc')
             ->get()
-            ->map(fn($item) => [
-                'created_at' => $item->created_at,
-                'data' => json_decode($item->form_data, true),
-            ])
-            ->values();
+            ->map(function ($item) {
+                return [
+                    'id' => $item->id,
+                    'created_at' => $item->created_at,
+                    'data' => json_decode($item->form_data, true) ?? [],
+                ];
+            })
+            ->values()
+            ->toArray();
 
-        // Group history per KPI
-        $goalHistories = [];
+        // Jika ini pengajuan baru, $beforeSnapshot akan kosong dan View akan men-trigger status "NEW"
+        $beforeSnapshot = $snapshots[0]['data'] ?? [];
+        // ------------------------------------------------
 
-        for ($i = 0; $i < count($snapshots); $i++) {
-            $current = $snapshots[$i];
-            $previous = $snapshots[$i + 1] ?? null;
-
-            if (!$previous) continue;
-
-            foreach ($current['data'] as $kpiIndex => $curr) {
-                $prev = $previous['data'][$kpiIndex] ?? null;
-                if (!$prev) continue;
-
-                $changes = [];
-
-                foreach ($curr as $field => $value) {
-
-                    $oldVal = $prev[$field] ?? null;
-                    $newVal = $value;
-
-                    // Mapping value → label
-                    if ($field === 'review_period') {
-                        $oldVal = $reviewPeriodMap[$oldVal] ?? $oldVal;
-                        $newVal = $reviewPeriodMap[$newVal] ?? $newVal;
-                    }
-
-                    if ($field === 'calculation_method') {
-                        $oldVal = $calculationMethodMap[$oldVal] ?? $oldVal;
-                        $newVal = $calculationMethodMap[$newVal] ?? $newVal;
-                    }
-
-                    if ($oldVal != $newVal) {
-                        $label = $fieldLabelMap[$field] ?? ucwords(str_replace('_', ' ', $field));
-
-                        $changes[$label] = [
-                            'old' => $oldVal,
-                            'new' => $newVal
-                        ];
-                    }
-                }
-
-                if (!empty($changes)) {
-                    $goalHistories[$kpiIndex][] = [
-                        'date' => \Carbon\Carbon::parse($current['created_at'])->format('d M Y H:i'),
-                        'changes' => $changes
-                    ];
-                }
-            }
-        }
         $parentLink = 'On Behalf';
         $link = 'Approval';
 
-        return view('pages.onbehalfs.approval', compact('data', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'goalHistories', 'reviewPeriodOption', 'calculationMethodOption'));
-
+        return view('pages.onbehalfs.approval', compact(
+            'data', 
+            'link', 
+            'parentLink', 
+            'formData', 
+            'uomOption', 
+            'typeOption', 
+            'reviewPeriodOption', 
+            'calculationMethodOption', 
+            'reviewPeriodMap',
+            'calculationMethodMap',
+            'beforeSnapshot'
+        ));
     }
     
     public function store(Request $request): RedirectResponse
