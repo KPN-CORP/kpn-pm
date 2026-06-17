@@ -197,7 +197,12 @@
       </div>
     </div>
     <!-- Content -->
-    
+    <div id="loading-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); z-index:9999; justify-content:center; align-items:center; color:white; flex-direction:column;">
+    <div style="width: 50%; background: #ddd; border-radius: 10px;">
+        <div id="progress-bar" style="width: 0%; height: 20px; background: #4CAF50; border-radius: 10px; transition: width 0.3s;"></div>
+    </div>
+    <p>Sedang menyiapkan laporan, mohon tunggu...</p>
+</div>
 @endsection
 @push('scripts')
 @if(session('triggerFunction'))

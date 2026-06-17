@@ -282,12 +282,25 @@ input[type=number] {
                                     </label>
 
                                     @if(!empty($data['attachment'][$monthNum]))
-                                        <a href="{{ asset('storage/'.$data['attachment'][$monthNum]) }}" 
-                                            target="_blank"
-                                            class="btn-attach-mini w-100 d-block mt-1 border border-info text-info"
-                                            title="View Attachment">
-                                            <i class="ri-file-line"></i> VIEW
-                                        </a>
+                                        <div class="position-relative mt-1" id="wrapper_{{ $index }}_{{ $monthNum }}">
+                                            <!-- Tombol View Attachment -->
+                                            <a href="{{ asset('storage/'.$data['attachment'][$monthNum]) }}" 
+                                               target="_blank"
+                                               class="btn-attach-mini w-100 d-block border border-info text-info"
+                                               style="text-decoration: none;"
+                                               title="View Attachment">
+                                               <i class="ri-file-line"></i> VIEW
+                                            </a>
+                                            
+                                            <!-- Tombol Hapus (X) -->
+                                            <button type="button" 
+                                                    class="btn btn-sm btn-danger p-0 position-absolute" 
+                                                    style="top: -8px; right: -5px; width: 18px; height: 18px; border-radius: 50%; font-size: 12px; line-height: 1; display: flex; align-items: center; justify-content: center; z-index: 5;"
+                                                    onclick="removeAttachment(this, '{{ $index }}', '{{ $monthNum }}')"
+                                                    title="Remove Attachment">
+                                                <i class="ri-delete-bin-fill"></i>
+                                            </button>
+                                        </div>
                                     @endif
 
                                 </div>
@@ -318,6 +331,21 @@ input[type=number] {
 
 @push('scripts')
 <script>
+function removeAttachment(btnElement, index, monthNum) {
+        // Konfirmasi sebelum menghapus
+        if (confirm('Are you sure you want to remove this attachment?')) {
+            // 1. Tambahkan input hidden ke dalam form agar server tahu file harus dihapus
+            const form = document.getElementById('achievementForm');
+            const hiddenInput = document.createElement('input');
+            hiddenInput.type = 'hidden';
+            hiddenInput.name = `remove_attachment[${index}][${monthNum}]`;
+            hiddenInput.value = '1';
+            form.appendChild(hiddenInput);
+
+            // 2. Hapus elemen tampilan file dari UI
+            btnElement.parentElement.remove();
+        }
+    }
     function formatNumberID(value) {
         // Buang semua titik (karena titik murni untuk format ribuan visual)
         // Buang juga karakter selain angka dan koma desimal

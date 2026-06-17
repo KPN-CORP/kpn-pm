@@ -75,188 +75,163 @@ class AchievementDataImport implements ToCollection, WithHeadingRow, WithStartRo
      * Read excel rows
      */
     public function collection(Collection $collection)
-    {
-        // Log::debug('Starting collection processing', ['row_count' => $collection->count()]);
+{
+    foreach ($collection as $index => $row) {
+        $employeeId = trim($row['employee_id'] ?? '');
+        $kpiName    = trim($row['kpi'] ?? '');
 
-        foreach ($collection as $index => $row) {
-            // Log::debug('Processing row', ['index' => $index, 'row' => $row]);
-
-            $employeeId = trim($row['employee_id'] ?? '');
-            $kpiName = trim($row['kpi'] ?? '');
-
-            if ($this->type !== 'admin') {
-
-                if (
-                    !in_array(
-                        $employeeId,
-                        $this->allowedEmployeeIds
-                    )
-                ) {
-
-                    $this->transactions[] = [
-                        'status' => 'ERROR',
-                        'employee_id' => $employeeId,
-                        'kpi' => $kpiName,
-                        'message' =>
-                            "Employee ID {$employeeId} not allowed for {$this->type} import"
-                    ];
-
-                    continue;
-                }
-            }
-
-            // skip empty row
-            if (empty($employeeId) || empty($kpiName)) {
-                // Log::debug('Skipping empty row', ['index' => $index]);
-                continue;
-            }
-
-            // Log::debug('Extracted employeeId and kpiName', ['employeeId' => $employeeId, 'kpiName' => $kpiName]);
-
-            $goal = Goal::where('employee_id', $employeeId)->where('period', $this->period)->first();
-
-            // Log::debug('Fetched goal', ['employeeId' => $employeeId, 'goal' => $goal]);
-
-            if (!$goal) {
-                // Log::warning("Goal not found for employee: {$employeeId}");
-                continue;
-            }
-
-            $formData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
-
-            // Log::debug('Decoded form data', ['employeeId' => $employeeId, 'formData' => $formData]);
-
-            if (!$formData) {
-                // Log::warning("Form data empty for employee: {$employeeId}");
-                continue;
-            }
-
-            $kpiIndex = null;
-            $kpi = null;
-            $reviewPeriod = 1;
-
-            foreach ($formData as $indexForm => $item) {
-                // $goalKpi = trim($item['kpi'] ?? '');
-
-                $goalKpi = Str::of($item['kpi'] ?? '')
-                    ->replaceMatches('/\s+/', ' ')
-                    ->trim()
-                    ->lower()
-                    ->value();
-
-                $excelKpi = Str::of($kpiName)
-                    ->replaceMatches('/\s+/', ' ')
-                    ->trim()
-                    ->lower()
-                    ->value();
-
-                    if ($goalKpi === $excelKpi) {
-
-                    $kpiIndex = $indexForm;
-                    $kpi = $item;
-
-                    if (
-                        !array_key_exists('review_period', $kpi)
-                        || $kpi['review_period'] === null
-                        || $kpi['review_period'] === ''
-                    ) {
-
-                        $message = sprintf(
-                            'Review Period not found. Employee ID: %s',
-                            $employeeId,
-                            $kpiName
-                        );
-
-                        $this->transactions[] = [
-                            'status' => 'ERROR',
-                            'employee_id' => $employeeId,
-                            'kpi' => $kpiName,
-                            'message' => $message,
-                        ];
-
-                        Log::error($message);
-
-                        throw new \Exception($message);
-                    }
-
-                    $reviewPeriod = $this->mapReviewPeriod(
-                        $kpi['review_period']
-                    );
-
-                    break;
-                }
-            }
-
-            Log::debug('Matched KPI', ['kpiIndex' => $kpiIndex, 'kpi' => $kpi]);
-
-            if ($kpiIndex === null || !$kpi) {
-                Log::warning("KPI not found: {$kpiName} ({$employeeId})");
-                continue;
-            }
-
-            $kpiId = $kpi['kpi_id'] ?? null;
-
-            if (!$kpiId) {
-                $kpiId = (string) Str::uuid();
-                $formData[$kpiIndex]['kpi_id'] = $kpiId;
-
-                $goal->form_data = json_encode($formData);
-                $goal->save();
-
-                // Log::debug('Generated new KPI ID and updated goal', ['kpiId' => $kpiId, 'goal' => $goal]);
-            }
-
-            // Achievement column start from index 11 (Jan)
-            $monthColumns = [
-                'jan' => 1,
-                'feb' => 2,
-                'mar' => 3,
-                'apr' => 4,
-                'may' => 5,
-                'jun' => 6,
-                'jul' => 7,
-                'aug' => 8,
-                'sep' => 9,
-                'oct' => 10,
-                'nov' => 11,
-                'dec' => 12,
-            ];
-
-            foreach ($monthColumns as $column => $month) {
-                // skip month yang tidak sesuai review period
-                if ($month % $reviewPeriod !== 0) {
-
-                    // Log::debug('Skip month by review period', [
-                    //     'employee_id' => $employeeId,
-                    //     'kpi' => $kpiName,
-                    //     'review_period' => $kpi['review_period'] ?? null,
-                    //     'month' => $month,
-                    // ]);
-
-                    continue;
-                }
-
-                $value = $row[$column] ?? null;
-
-                $this->rows[] = [
-                    'goal_id' => $goal->id,
+        if ($this->type !== 'admin') {
+            if (!in_array($employeeId, $this->allowedEmployeeIds)) {
+                $this->transactions[] = [
+                    'status'      => 'ERROR',
                     'employee_id' => $employeeId,
-                    'kpi_id' => $kpiId,
-                    'kpi' => $kpiName,
-                    'month' => $month,
-
-                    'value' => (
-                        $value === null ||
-                        trim((string)$value) === ''
-                    )
-                        ? null
-                        : $this->kpiService->normalizeExcelDecimal($value),
+                    'kpi'         => $kpiName,
+                    'message'     => "Employee ID {$employeeId} not allowed for {$this->type} import",
                 ];
+                continue;
             }
         }
 
-        // Log::debug('Finished processing collection', ['processed_rows' => count($this->rows)]);
+        if (empty($employeeId) || empty($kpiName)) {
+            continue;
+        }
+
+        $goal = Goal::where('employee_id', $employeeId)
+            ->where('period', $this->period)
+            ->first();
+
+        if (!$goal) {
+            continue;
+        }
+
+        $formData = is_array($goal->form_data)
+            ? $goal->form_data
+            : json_decode($goal->form_data, true);
+
+        if (!$formData) {
+            continue;
+        }
+
+        // Ambil nilai dari Excel untuk matching
+        $excelKpi        = Str::of($kpiName)->replaceMatches('/\s+/', ' ')->trim()->lower()->value();
+        $excelPeriod     = $this->mapReviewPeriod(trim(strtolower($row['review_period'] ?? '')));
+        $excelCalcMethod = $this->normalizeCalcMethod(trim(strtolower($row['calculation_method'] ?? '')));
+        $excelWeightage  = trim((string)($row['weightage'] ?? ''));
+        $excelType       = trim(strtolower($row['type'] ?? ''));
+
+        $kpiIndex    = null;
+        $kpi         = null;
+        $reviewPeriod = 1;
+
+        foreach ($formData as $indexForm => $item) {
+            $goalKpi        = Str::of($item['kpi'] ?? '')->replaceMatches('/\s+/', ' ')->trim()->lower()->value();
+            $goalPeriod     = $this->mapReviewPeriod(trim(strtolower($item['review_period'] ?? '')));
+            $goalCalcMethod = $this->normalizeCalcMethod(trim(strtolower($item['calculation_method'] ?? '')));
+            $goalWeightage  = trim((string)($item['weightage'] ?? ''));
+            $goalType       = trim(strtolower($item['type'] ?? ''));
+
+            $isMatch =
+                $goalKpi        === $excelKpi &&
+                $goalPeriod     === $excelPeriod &&
+                $goalCalcMethod === $excelCalcMethod &&
+                $goalWeightage  === $excelWeightage &&
+                $goalType       === $excelType;
+
+            if (!$isMatch) {
+                continue;
+            }
+
+            // Validasi review_period
+            if (
+                !array_key_exists('review_period', $item)
+                || $item['review_period'] === null
+                || $item['review_period'] === ''
+            ) {
+                $message = sprintf(
+                    'Review Period not found. Employee ID: %s, KPI: %s',
+                    $employeeId,
+                    $kpiName
+                );
+                $this->transactions[] = [
+                    'status'      => 'ERROR',
+                    'employee_id' => $employeeId,
+                    'kpi'         => $kpiName,
+                    'message'     => $message,
+                ];
+                Log::error($message);
+                throw new \Exception($message);
+            }
+
+            $kpiIndex    = $indexForm;
+            $kpi         = $item;
+            $reviewPeriod = $this->mapReviewPeriod($kpi['review_period']);
+            break; // aman break karena kombinasi 5 field sudah unik
+        }
+
+        Log::debug('Matched KPI', ['kpiIndex' => $kpiIndex, 'kpi' => $kpi]);
+
+        if ($kpiIndex === null || !$kpi) {
+            Log::warning("KPI not found: {$kpiName} ({$employeeId})", [
+                'excel_period'      => $excelPeriod,
+                'excel_calc_method' => $excelCalcMethod,
+                'excel_weightage'   => $excelWeightage,
+                'excel_type'        => $excelType,
+            ]);
+            $this->transactions[] = [
+                'status'      => 'ERROR',
+                'employee_id' => $employeeId,
+                'kpi'         => $kpiName,
+                'message'     => "KPI '{$kpiName}' tidak ditemukan. Pastikan Weightage, Type, Review Period, dan Calculation Method sesuai dengan data goal.",
+            ];
+            continue;
+        }
+
+        $kpiId = $kpi['kpi_id'] ?? null;
+        if (!$kpiId) {
+            $kpiId = (string) Str::uuid();
+            $formData[$kpiIndex]['kpi_id'] = $kpiId;
+            $goal->form_data = json_encode($formData);
+            $goal->save();
+        }
+
+        $monthColumns = [
+            'jan' => 1,  'feb' => 2,  'mar' => 3,
+            'apr' => 4,  'may' => 5,  'jun' => 6,
+            'jul' => 7,  'aug' => 8,  'sep' => 9,
+            'oct' => 10, 'nov' => 11, 'dec' => 12,
+        ];
+
+        foreach ($monthColumns as $column => $month) {
+            if ($month % $reviewPeriod !== 0) {
+                continue;
+            }
+
+            $value = $row[$column] ?? null;
+            $this->rows[] = [
+                'goal_id'     => $goal->id,
+                'employee_id' => $employeeId,
+                'kpi_id'      => $kpiId,
+                'kpi'         => $kpiName,
+                'month'       => $month,
+                'value'       => ($value === null || trim((string)$value) === '')
+                    ? null
+                    : $this->kpiService->normalizeExcelDecimal($value),
+            ];
+        }
     }
+}
+
+protected function normalizeCalcMethod(string $method): string
+{
+    return match (strtolower(trim($method))) {
+        'sum', 'sum/total', 'total'  => 'sum',
+        'average', 'avg'             => 'average',
+        'min', 'minimum'             => 'min',
+        'max', 'maximum'             => 'max',
+        'last', 'last value'         => 'last',
+        default                      => strtolower(trim($method)),
+    };
+}
 
     /**
      * Save imported data into database

@@ -335,75 +335,70 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 
 function exportExcel() {
-
+    const reportType = $("#reportType").val(); // Pastikan ID sesuai dengan select di blade
     const exportBtn = $("#exportBtn");
 
-    exportBtn.prop('disabled', true).text('Processing...');
-
-    
-    const reportType = $("#report_type").val();
-    const groupCompany = $("#group_company").val() || [];
-    const company = $("#company").val() || [];
-    const location = $("#location").val() || [];
-    const period = $("#filterYear").val();
-    const csrfToken = document
-    .querySelector('meta[name="csrf-token"]')
-    .getAttribute('content');
-
-    // 🔥 HANDLE ACHIEVEMENT (QUEUE)
+    // ðŸ”¥ KHUSUS ACHIEVEMENT: Pakai AJAX + SweetAlert Progress
     if (reportType === 'Achievement') {
-
-        // console.log('🚀 Trigger Achievement Export');
+        
+        // Tampilkan SweetAlert Loading
+        Swal.fire({
+            title: 'Menyiapkan Achievement...',
+            html: 'Mohon tunggu, file sedang diproses...<br><br>' +
+                  '<div class="progress" style="height: 20px;">' +
+                  '<div id="swal-progress" class="progress-bar progress-bar-striped progress-bar-animated bg-danger" style="width: 0%"></div>' +
+                  '</div>',
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+                // Animasi progress bar manual
+                let progress = 0;
+                let timer = setInterval(() => {
+                    progress += 10;
+                    $('#swal-progress').css('width', progress + '%');
+                    if (progress >= 90) clearInterval(timer);
+                }, 300);
+            }
+        });
 
         $.ajax({
-            url: "/admin-export",
+            url: "/admin-export", // Pastikan route ini mengarah ke controller yang benar
             type: "POST",
-            headers: {
-                'X-CSRF-TOKEN': csrfToken
-            },
+            headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') },
             data: {
-                export_report_type: reportType,
-                export_group_company: groupCompany.join(','),
-                export_company: company.join(','),
-                export_location: location.join(','),
-                export_period: period,
+                export_report_type: 'Achievement',
+                export_group_company: ($("#group_company").val() || []).join(','),
+                export_company: ($("#company").val() || []).join(','),
+                export_location: ($("#location").val() || []).join(','),
+                export_period: $("#filterYear").val(),
             },
             success: function(res) {
-
-                // console.log('✅ Queue success:', res);
-
-                alert('Export on process...');
-
-                // 🔥 polling download
-                checkFile(res.file);
+                $('#swal-progress').css('width', '100%');
+                Swal.close();
+                // Langsung download
+                window.location.href = '/storage/' + res.file;
             },
-            error: function(err) {
-
-                console.error('❌ Export error:', err);
-
-                alert('Export gagal');
-            },
-            complete: function() {
-                exportBtn.prop('disabled', false)
-                    .html('<i class="ri-arrow-circle-down-line"></i> Download');
+            error: function() {
+                Swal.fire('Gagal!', 'Export error', 'error');
             }
         });
 
     } else {
+        // ðŸ”¥ FITUR LAIN: Pakai submit form standar (biar nggak rusak/error 404)
+        if(!reportType) {
+            alert('Silakan pilih report terlebih dahulu!');
+            return;
+        }
 
-        console.log('📥 Trigger Normal Export');
-
-        // 🔥 FORM SUBMIT (NON-QUEUE)
+        console.log('ðŸ“¥ Trigger Normal Export untuk:', reportType);
+        
         $("#export_report_type").val(reportType);
-        $("#export_group_company").val(groupCompany.join(','));
-        $("#export_company").val(company.join(','));
-        $("#export_location").val(location.join(','));
-        $("#export_period").val(period);
+        $("#export_group_company").val(($("#group_company").val() || []).join(','));
+        $("#export_company").val(($("#company").val() || []).join(','));
+        $("#export_location").val(($("#location").val() || []).join(','));
+        $("#export_period").val($("#filterYear").val());
 
         $("#exportForm").submit();
-
-        exportBtn.prop('disabled', false)
-            .html('<i class="ri-arrow-circle-down-line"></i> Download');
     }
 }
 

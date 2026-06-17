@@ -17,7 +17,7 @@ use App\Models\KPIAchievement;
 use App\Services\AppService;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-
+use Illuminate\Support\Facades\Storage;
 class ExportExcelController extends Controller
 {
     protected $permissionGroupCompanies;
@@ -40,7 +40,6 @@ class ExportExcelController extends Controller
         $this->permissionGroupCompanies = $restrictionData['group_company'] ?? [];
         $this->permissionCompanies = $restrictionData['contribution_level_code'] ?? [];
         $this->permissionLocations = $restrictionData['work_area_code'] ?? [];
-
     }
 
     public function export(Request $request) 
@@ -57,16 +56,15 @@ class ExportExcelController extends Controller
 
         $admin = 0;
 
-        if($reportType==='Goal'){
+        if($reportType === 'Goal'){
             $goal = new GoalExport($period, $groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
             return Excel::download($goal, 'goals.xlsx');
         }
-        if($reportType==='Employee'){
+        if($reportType === 'Employee'){
             $employee = new EmployeeExport($groupCompany, $location, $company, $permissionLocations, $permissionCompanies, $permissionGroupCompanies);
             return Excel::download($employee, 'employee.xlsx');
         }
         return;
-
     }
 
     public function exportAdmin(Request $request) 
@@ -74,25 +72,12 @@ class ExportExcelController extends Controller
         $reportType = $request->export_report_type;
         $period = $request->export_period;
 
-        $groupCompany = $request->export_group_company
-            ? explode(',', $request->export_group_company)
-            : [];
+        $groupCompany = $request->export_group_company ? explode(',', $request->export_group_company) : [];
+        $company = $request->export_company ? explode(',', $request->export_company) : [];
+        $location = $request->export_location ? explode(',', $request->export_location) : [];
 
-        $company = $request->export_company
-            ? explode(',', $request->export_company)
-            : [];
-
-        $location = $request->export_location
-            ? explode(',', $request->export_location)
-            : [];
-
-        if (!$reportType) {
-            abort(400, 'Report type is required');
-        }
-
-        if (!$period) {
-            abort(400, 'Period is required');
-        }
+        if (!$reportType) abort(400, 'Report type is required');
+        if (!$period) abort(400, 'Period is required');
 
         $permissionGroupCompanies = $this->permissionGroupCompanies;
         $permissionCompanies = $this->permissionCompanies;
@@ -101,98 +86,74 @@ class ExportExcelController extends Controller
         $admin = 1;
 
         return match ($reportType) {
-
-            'Goal' => Excel::download(
-                new GoalExport(
-                    $period,
-                    $groupCompany,
-                    $location,
-                    $company,
-                    $admin,
-                    $permissionLocations,
-                    $permissionCompanies,
-                    $permissionGroupCompanies
-                ),
-                'goals.xlsx'
-            ),
-
-            'Employee' => Excel::download(
-                new EmployeeExport(
-                    $groupCompany,
-                    $location,
-                    $company,
-                    $permissionLocations,
-                    $permissionCompanies,
-                    $permissionGroupCompanies
-                ),
-                'employee.xlsx'
-            ),
-
-            'EmployeePA' => Excel::download(
-                new EmployeepaExport(
-                    $groupCompany,
-                    $location,
-                    $company,
-                    $permissionLocations,
-                    $permissionCompanies,
-                    $permissionGroupCompanies
-                ),
-                'employeePA.xlsx'
-            ),
+            'Goal' => Excel::download(new GoalExport($period, $groupCompany, $location, $company, $admin, $permissionLocations, $permissionCompanies, $permissionGroupCompanies), 'goals.xlsx'),
             
-            'Achievement' => $this->queueAchievementExport(
-                $groupCompany,
-                $location,
-                $company,
-                $period,
-                $permissionLocations,
-                $permissionCompanies,
-                $permissionGroupCompanies
+            'Employee' => Excel::download(new EmployeeExport($groupCompany, $location, $company, $permissionLocations, $permissionCompanies, $permissionGroupCompanies), 'employee.xlsx'),
+            
+            'EmployeePA' => Excel::download(new EmployeepaExport($groupCompany, $location, $company, $permissionLocations, $permissionCompanies, $permissionGroupCompanies), 'employeePA.xlsx'),
+            
+            'Achievement' => $this->processAchievementSync(
+                $groupCompany, $location, $company, $period,
+                $permissionLocations, $permissionCompanies, $permissionGroupCompanies
             ),
 
             default => abort(400, 'Invalid report type'),
         };
     }
 
-    private function queueAchievementExport(
-        $groupCompany,
-        $location,
-        $company,
+    /**
+     * Membuat file Excel secara sinkronus (langsung) dan membalas JSON
+     * agar JS di front-end bisa segera melakukan download.
+     */
+    private function processAchievementSync(
+        $groupCompany, 
+        $location, 
+        $company, 
         $period,
-        $permissionLocations,
-        $permissionCompanies,
+        $permissionLocations, 
+        $permissionCompanies, 
         $permissionGroupCompanies
     ) {
+        // Nama file dengan timestamp agar tidak bentrok
         $fileName = 'exports/achievement_' . now()->format('Ymd_His') . '.xlsx';
 
-        Log::info('🚀 Queue Export Triggered', [
-        'file' => $fileName,
-        'groupCompany' => $groupCompany,
-        'location' => $location,
-        'company' => $company,
-    ]);
+        try {
+            // 1. Eksekusi penyimpanan file ke disk 'public'
+            // Pastikan AchievementReportExport sudah TIDAK menggunakan ShouldQueue
+            Excel::store(
+                new AchievementReportExport(
+                    $groupCompany, 
+                    $location, 
+                    $company, 
+                    $period,
+                    $permissionLocations, 
+                    $permissionCompanies, 
+                    $permissionGroupCompanies
+                ),
+                $fileName,
+                'public'
+            );
 
-        Excel::queue(
-            new AchievementReportExport(
-                $groupCompany,
-                $location,
-                $company,
-                $period,
-                $permissionLocations,
-                $permissionCompanies,
-                $permissionGroupCompanies
-            ),
-            $fileName,
-            'public'
-        );
+            // 2. Debugging: Log path absolut untuk memastikan filenya benar-benar ada di server
+            $fullPath = storage_path('app/public/' . $fileName);
+            Log::info('File berhasil dibuat di: ' . $fullPath);
+            Log::info('Verifikasi fisik file: ' . (file_exists($fullPath) ? 'ADA' : 'TIDAK DITEMUKAN'));
 
-            Log::info('📥 Queue Job Dispatched');
+            // 3. Balas dengan JSON yang diharapkan oleh front-end JS
+            return response()->json([
+                'status' => 'queued', // Tetap 'queued' agar JS tetap memproses langkah berikutnya
+                'file' => $fileName
+            ]);
 
-
-        return response()->json([
-            'status' => 'queued',
-            'file' => $fileName
-        ]);
+        } catch (\Throwable $e) {
+            // Log jika terjadi kegagalan pembuatan file
+            Log::error('Gagal membuat file Excel: ' . $e->getMessage());
+            
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Gagal membuat file: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     public function notInitiated(Request $request) 
@@ -202,7 +163,6 @@ class ExportExcelController extends Controller
 
         $data = new NotInitiatedExport($employee_id, $period);
         return Excel::download($data, 'import_team_goals.xlsx');
-
     }
 
     public function initiated(Request $request) 
@@ -212,13 +172,11 @@ class ExportExcelController extends Controller
 
         $data = new InitiatedExport($employee_id, $period);
         return Excel::download($data, 'employee_initiated_goals.xlsx');
-
     }
 
     public function achievement(Request $request)
     {
         try {
-
             $request->validate(
                 [
                     'employee_id' => 'required|array|min:1',
@@ -226,20 +184,11 @@ class ExportExcelController extends Controller
                     'filterYear' => 'required'
                 ],
                 [
-                    'employee_id.required' =>
-                        'No Employees have approved Goals data.',
-
-                    'employee_id.array' =>
-                        'Data is invalid.',
-
-                    'employee_id.min' =>
-                        'No employee selected.',
-
-                    'employee_id.*.required' =>
-                        'No Employees have approved Goals data.',
-
-                    'filterYear.required' =>
-                        'Please select the Period.'
+                    'employee_id.required' => 'No Employees have approved Goals data.',
+                    'employee_id.array' => 'Data is invalid.',
+                    'employee_id.min' => 'No employee selected.',
+                    'employee_id.*.required' => 'No Employees have approved Goals data.',
+                    'filterYear.required' => 'Please select the Period.'
                 ]
             );
 
@@ -254,217 +203,76 @@ class ExportExcelController extends Controller
                 ->get();
 
             if ($goals->isEmpty()) {
-
-                return back()->with(
-                    'error',
-                    [
-                        'message' =>
-                            'No approved goals found'
-                    ]
-                );
+                return back()->with('error', ['message' => 'No approved goals found']);
             }
 
             $data = collect();
 
             foreach ($goals as $goal) {
+                $formData = json_decode($goal->form_data, true);
 
-                $formData = json_decode(
-                    $goal->form_data,
-                    true
-                );
-
-                if (
-                    !$formData ||
-                    !is_array($formData)
-                ) {
-
-                    throw new \Exception(
-                        sprintf(
-                            'Invalid goal data for employee %s',
-                            $goal->employee_id
-                        )
-                    );
+                if (!$formData || !is_array($formData)) {
+                    throw new \Exception(sprintf('Invalid goal data for employee %s', $goal->employee_id));
                 }
 
                 foreach ($formData as $kpi) {
+                    $kpiId = $kpi['kpi_id'] ?? null;
+                    if (!$kpiId) continue;
 
-                    $kpiId =
-                        $kpi['kpi_id']
-                        ?? null;
-
-                    if (!$kpiId) {
-                        continue;
-                    }
-
-                    $achievements =
-                        KPIAchievement::query()
-                        ->where(
-                            'goal_id',
-                            $goal->id
-                        )
-                        ->where(
-                            'kpi_id',
-                            $kpiId
-                        )
+                    $achievements = KPIAchievement::query()
+                        ->where('goal_id', $goal->id)
+                        ->where('kpi_id', $kpiId)
                         ->get()
                         ->keyBy('month');
 
-                    $data->push(
-                        (object)[
-
-                            'employee_id' =>
-                                $goal->employee_id,
-
-                            'employee' =>
-                                $goal->employee,
-
-                            'kpi' =>
-                                $kpi['kpi']
-                                ?? null,
-
-                            'description' =>
-                                $kpi['description']
-                                ?? null,
-
-                            'target' =>
-                                $kpi['target']
-                                ?? null,
-
-                            'uom' =>
-                                $kpi['uom']
-                                ?? null,
-
-                            'custom_uom' =>
-                                $kpi['custom_uom']
-                                ?? null,
-
-                            'weightage' =>
-                                $kpi['weightage']
-                                ?? null,
-
-                            'type' =>
-                                $kpi['type']
-                                ?? null,
-
-                            'review_period' =>
-                                $kpi['review_period']
-                                ?? null,
-
-                            'calculation_method' =>
-                                $kpi['calculation_method']
-                                ?? null,
-
-                            'jan' =>
-                                $achievements[1]
-                                    ->value
-                                ?? null,
-
-                            'feb' =>
-                                $achievements[2]
-                                    ->value
-                                ?? null,
-
-                            'mar' =>
-                                $achievements[3]
-                                    ->value
-                                ?? null,
-
-                            'apr' =>
-                                $achievements[4]
-                                    ->value
-                                ?? null,
-
-                            'may' =>
-                                $achievements[5]
-                                    ->value
-                                ?? null,
-
-                            'jun' =>
-                                $achievements[6]
-                                    ->value
-                                ?? null,
-
-                            'jul' =>
-                                $achievements[7]
-                                    ->value
-                                ?? null,
-
-                            'aug' =>
-                                $achievements[8]
-                                    ->value
-                                ?? null,
-
-                            'sep' =>
-                                $achievements[9]
-                                    ->value
-                                ?? null,
-
-                            'oct' =>
-                                $achievements[10]
-                                    ->value
-                                ?? null,
-
-                            'nov' =>
-                                $achievements[11]
-                                    ->value
-                                ?? null,
-
-                            'dec' =>
-                                $achievements[12]
-                                    ->value
-                                ?? null,
-                        ]
-                    );
+                    $data->push((object)[
+                        'employee_id' => $goal->employee_id,
+                        'employee' => $goal->employee,
+                        'kpi' => $kpi['kpi'] ?? null,
+                        'description' => $kpi['description'] ?? null,
+                        'target' => $kpi['target'] ?? null,
+                        'uom' => $kpi['uom'] ?? null,
+                        'custom_uom' => $kpi['custom_uom'] ?? null,
+                        'weightage' => $kpi['weightage'] ?? null,
+                        'type' => $kpi['type'] ?? null,
+                        'review_period' => $kpi['review_period'] ?? null,
+                        'calculation_method' => $kpi['calculation_method'] ?? null,
+                        'jan' => $achievements[1]->value ?? null,
+                        'feb' => $achievements[2]->value ?? null,
+                        'mar' => $achievements[3]->value ?? null,
+                        'apr' => $achievements[4]->value ?? null,
+                        'may' => $achievements[5]->value ?? null,
+                        'jun' => $achievements[6]->value ?? null,
+                        'jul' => $achievements[7]->value ?? null,
+                        'aug' => $achievements[8]->value ?? null,
+                        'sep' => $achievements[9]->value ?? null,
+                        'oct' => $achievements[10]->value ?? null,
+                        'nov' => $achievements[11]->value ?? null,
+                        'dec' => $achievements[12]->value ?? null,
+                    ]);
                 }
             }
 
             if ($data->isEmpty()) {
-
-                return back()->with(
-                    'error',
-                    [
-                        'message' =>
-                            'No achievement data found'
-                    ]
-                );
+                return back()->with('error', ['message' => 'No achievement data found']);
             }
 
-            return Excel::download(
-                new AchievementExport(
-                    $data
-                ),
-                'team_achievement.xlsx'
-            );
+            return Excel::download(new AchievementExport($data), 'team_achievement.xlsx');
 
         } catch (\Throwable $e) {
+            Log::error('Achievement Export Error', [
+                'message' => $e->getMessage(),
+                'line' => $e->getLine(),
+                'file' => $e->getFile(),
+            ]);
 
-            Log::error(
-                'Achievement Export Error',
-                [
-                    'message' =>
-                        $e->getMessage(),
-
-                    'line' =>
-                        $e->getLine(),
-
-                    'file' =>
-                        $e->getFile(),
-                ]
-            );
-
-            return back()->with(
-                'error',
-                [
-                    'message' =>
-                        $e->getMessage()
-                ]
-            );
+            return back()->with('error', ['message' => $e->getMessage()]);
         }
     }
 
     public function myAchievement(Request $request)
     {
-        $employeeId = $request->employee_id; // current approver employee id
+        $employeeId = $request->employee_id;
         $period = $request->filterYear;
 
         $goals = Goal::query()
@@ -477,15 +285,12 @@ class ExportExcelController extends Controller
         $data = collect();
 
         foreach ($goals as $goal) {
-
             $formData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
 
             if (!$formData) continue;
 
             foreach ($formData as $kpi) {
-
                 $kpiId = $kpi['kpi_id'] ?? null;
-
                 if (!$kpiId) continue;
 
                 $achievements = KPIAchievement::query()
@@ -494,34 +299,18 @@ class ExportExcelController extends Controller
                     ->get()
                     ->keyBy('month');
 
-                // if ($achievements->isEmpty()) {
-                //     continue;
-                // }
-
                 $data->push((object)[
-
                     'employee_id' => $goal->employee_id,
-
                     'employee' => $goal->employee,
-
                     'kpi' => $kpi['kpi'] ?? null,
-
                     'description' => $kpi['description'] ?? null,
-
                     'target' => $kpi['target'] ?? null,
-
                     'uom' => $kpi['uom'] ?? null,
-
                     'custom_uom' => $kpi['custom_uom'] ?? null,
-
                     'weightage' => $kpi['weightage'] ?? null,
-
                     'type' => $kpi['type'] ?? null,
-
                     'review_period' => $kpi['review_period'] ?? null,
-
                     'calculation_method' => $kpi['calculation_method'] ?? null,
-
                     'jan' => $achievements[1]->value ?? null,
                     'feb' => $achievements[2]->value ?? null,
                     'mar' => $achievements[3]->value ?? null,
@@ -534,15 +323,11 @@ class ExportExcelController extends Controller
                     'oct' => $achievements[10]->value ?? null,
                     'nov' => $achievements[11]->value ?? null,
                     'dec' => $achievements[12]->value ?? null,
-
                 ]);
             }
         }
 
-        return Excel::download(
-            new AchievementExport($data),
-            'my_achievement.xlsx'
-        );
+        return Excel::download(new AchievementExport($data), 'my_achievement.xlsx');
     }
 
     public function exportreportemp() 
