@@ -194,6 +194,7 @@ class ExportExcelController extends Controller
 
             $employeeId = $request->employee_id;
             $period = $request->filterYear;
+            
 
             $goals = Goal::query()
                 ->with('employee')
@@ -215,40 +216,52 @@ class ExportExcelController extends Controller
                     throw new \Exception(sprintf('Invalid goal data for employee %s', $goal->employee_id));
                 }
 
+                // 1. Extract all KPI IDs, safely filtering out nulls for the query array
+                $kpiIds = collect($formData)->pluck('kpi_id')->filter()->toArray();
+                
+                // 2. Fetch ALL achievements for this goal in exactly ONE database query
+                $allAchievements = KPIAchievement::query()
+                    ->where('goal_id', $goal->id)
+                    ->where(function ($query) use ($kpiIds) {
+                        $query->whereIn('kpi_id', $kpiIds)
+                              ->orWhereNull('kpi_id');
+                    })
+                    ->get()
+                    ->groupBy(['kpi_id', 'month']); 
+                
+                // 3. Process the form data loop
                 foreach ($formData as $kpi) {
                     $kpiId = $kpi['kpi_id'] ?? null;
-                    if (!$kpiId) continue;
-
-                    $achievements = KPIAchievement::query()
-                        ->where('goal_id', $goal->id)
-                        ->where('kpi_id', $kpiId)
-                        ->get()
-                        ->keyBy('month');
-
+                
+                    // Grab the pre-fetched achievements for this specific kpi_id (or null).
+                    $achievements = $allAchievements->get($kpiId, collect());
+                
                     $data->push((object)[
-                        'employee_id' => $goal->employee_id,
-                        'employee' => $goal->employee,
-                        'kpi' => $kpi['kpi'] ?? null,
-                        'description' => $kpi['description'] ?? null,
-                        'target' => $kpi['target'] ?? null,
-                        'uom' => $kpi['uom'] ?? null,
-                        'custom_uom' => $kpi['custom_uom'] ?? null,
-                        'weightage' => $kpi['weightage'] ?? null,
-                        'type' => $kpi['type'] ?? null,
-                        'review_period' => $kpi['review_period'] ?? null,
+                        'employee_id'        => $goal->employee_id,
+                        'employee'           => $goal->employee,
+                        'kpi'                => $kpi['kpi'] ?? null,
+                        'description'        => $kpi['description'] ?? null,
+                        'target'             => $kpi['target'] ?? null,
+                        'uom'                => $kpi['uom'] ?? null,
+                        'custom_uom'         => $kpi['custom_uom'] ?? null,
+                        'weightage'          => $kpi['weightage'] ?? null,
+                        'type'               => $kpi['type'] ?? null,
+                        'review_period'      => $kpi['review_period'] ?? null,
                         'calculation_method' => $kpi['calculation_method'] ?? null,
-                        'jan' => $achievements[1]->value ?? null,
-                        'feb' => $achievements[2]->value ?? null,
-                        'mar' => $achievements[3]->value ?? null,
-                        'apr' => $achievements[4]->value ?? null,
-                        'may' => $achievements[5]->value ?? null,
-                        'jun' => $achievements[6]->value ?? null,
-                        'jul' => $achievements[7]->value ?? null,
-                        'aug' => $achievements[8]->value ?? null,
-                        'sep' => $achievements[9]->value ?? null,
-                        'oct' => $achievements[10]->value ?? null,
-                        'nov' => $achievements[11]->value ?? null,
-                        'dec' => $achievements[12]->value ?? null,
+                        
+                        // Added ->first() here to pull the single model out of the month's group
+                        'jan'                => $achievements->get(1)?->first()?->value ?? null,
+                        'feb'                => $achievements->get(2)?->first()?->value ?? null,
+                        'mar'                => $achievements->get(3)?->first()?->value ?? null,
+                        'apr'                => $achievements->get(4)?->first()?->value ?? null,
+                        'may'                => $achievements->get(5)?->first()?->value ?? null,
+                        'jun'                => $achievements->get(6)?->first()?->value ?? null,
+                        'jul'                => $achievements->get(7)?->first()?->value ?? null,
+                        'aug'                => $achievements->get(8)?->first()?->value ?? null,
+                        'sep'                => $achievements->get(9)?->first()?->value ?? null,
+                        'oct'                => $achievements->get(10)?->first()?->value ?? null,
+                        'nov'                => $achievements->get(11)?->first()?->value ?? null,
+                        'dec'                => $achievements->get(12)?->first()?->value ?? null,
                     ]);
                 }
             }
