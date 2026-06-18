@@ -14,6 +14,7 @@ use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 class AchievementReportExport implements FromQuery, WithMapping, WithHeadings, WithChunkReading, WithEvents
 {
@@ -122,6 +123,14 @@ class AchievementReportExport implements FromQuery, WithMapping, WithHeadings, W
                     'borders' => ['allBorders' => ['borderStyle' => 'thin']],
                 ]);
 
+                $sheet->getStyle("L3:Y{$lastRow}")
+                    ->getNumberFormat()
+                    ->setFormatCode(NumberFormat::FORMAT_NUMBER_00);
+
+                $sheet->getStyle("F3:F{$lastRow}")
+                    ->getNumberFormat()
+                    ->setFormatCode(NumberFormat::FORMAT_NUMBER_00);
+
                 // Merge headers
                 foreach (range('A', 'K') as $col) { $sheet->mergeCells($col.'1:'.$col.'2'); }
                 $sheet->mergeCells('L1:W1');
@@ -132,8 +141,6 @@ class AchievementReportExport implements FromQuery, WithMapping, WithHeadings, W
                     'font' => ['bold' => true],
                     'alignment' => ['horizontal' => 'center', 'vertical' => 'center'],
                 ]);
-
-                Log::info('ðŸŽ¨ Styling Started', ['total_rows' => $lastRow - 2]);
 
                 // âœ… LOGIKA BARU: Loop langsung ke baris Excel, tidak butuh Cache!
                 for ($row = 3; $row <= $lastRow; $row++) {
@@ -160,7 +167,6 @@ class AchievementReportExport implements FromQuery, WithMapping, WithHeadings, W
                     }
                 }
 
-                Log::info('ðŸŽ¨ Styling Finished');
             }
         ];
     }

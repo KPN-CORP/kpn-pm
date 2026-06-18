@@ -9,6 +9,7 @@ use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 
 class AchievementExport implements FromView, WithStyles
 {
@@ -77,6 +78,14 @@ class AchievementExport implements FromView, WithStyles
             ->setFillType(Fill::FILL_SOLID)
             ->getStartColor()
             ->setRGB('FFFFCC');
+
+        $sheet->getStyle("L3:W{$highestRow}")
+            ->getNumberFormat()
+            ->setFormatCode(NumberFormat::FORMAT_NUMBER_00);
+
+        $sheet->getStyle("F3:F{$highestRow}")
+            ->getNumberFormat()
+            ->setFormatCode(NumberFormat::FORMAT_NUMBER_00);
 
         $monthColumns = [
             'L' => 1,
