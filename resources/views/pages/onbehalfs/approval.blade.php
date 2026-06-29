@@ -621,11 +621,17 @@ select.is-modified + .select2-container .select2-selection__rendered {
                                 </button>
                                 <div class="dropdown-menu shadow-sm" style="font-size: 0.85rem;">
                                     <h6 class="dropdown-header text-dark fw-bold">Select person below:</h6>
-                                    @if ($row->request->created_by == $row->request->employee->id)
-                                        <a class="dropdown-item py-2" href="javascript:void(0)" onclick="sendBack('{{ $row->request->id }}','{{ $row->request->employee->employee_id }}','{{ $row->request->employee->fullname }}')">{{ $row->request->employee->fullname .' ('.$row->request->employee->employee_id.')' }}</a>
-                                    @endif
+                                    
+                                    <a class="dropdown-item py-2" href="javascript:void(0)" onclick="sendBack('{{ $row->request->id }}','{{ $row->request->employee->employee_id }}','{{ $row->request->employee->fullname }}')">
+                                        {{ $row->request->employee->fullname .' ('.$row->request->employee->employee_id.') - Employee' }}
+                                    </a>
+                                
                                     @foreach ($row->request->approval as $item)
-                                        <a class="dropdown-item py-2" href="javascript:void(0)" onclick="sendBack('{{ $item->request_id }}','{{ $item->approver_id }}','{{ $item->approverName->fullname }}')">{{ $item->approverName->fullname.' ('.$item->approver_id.')' }}</a>
+                                        @if ($loop->first)
+                                            <a class="dropdown-item py-2" href="javascript:void(0)" onclick="sendBack('{{ $item->request_id }}','{{ $item->approver_id }}','{{ $item->approverName->fullname }}')">
+                                                {{ $item->approverName->fullname.' ('.$item->approver_id.') - L1 Approver' }}
+                                            </a>
+                                        @endif
                                     @endforeach
                                 </div> 
                             </div>

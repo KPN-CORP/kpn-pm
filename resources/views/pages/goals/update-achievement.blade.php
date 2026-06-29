@@ -168,65 +168,58 @@ input[type=number] {
                 <input type="hidden" name="calculation_method[]" value="{{ $data['calculation_method'] }}">
                 <div class="row g-3">
                     <div class="col-md-5 col-lg-5 mb-md-0">
-                                                                <small class="fw-bold text-uppercase d-block kpi-label mb-1">KPI {{ $index + 1 }}</small>
-                                                                <h6 class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">{{ $data['kpi'] }}</h6>
-                                                                <p class="text-secondary mb-0" style="font-size: 0.85rem; line-height: 1.5;">{{ $data['description'] ?? '-' }}</p>
-                                                            </div>
-                                                            <div class="col-md-7 col-lg-7">
-                                                                <div class="row g-3 mb-3">
-                                                                    <div class="col-3 col-sm-3">
-                                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
-                                                                       <span class="fw-bold text-dark" style="font-size: 0.9rem;">
-                                                                                {{ is_numeric($data['target']) ? number_format((float)$data['target'], 0) : '-' }}
-                                                                            </span>
-                                                                    </div>
-                                                                    <div class="col-3 col-sm-3">
-                                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
-                                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ is_null($data['custom_uom']) ? $data['uom'] : $data['custom_uom'] }}</span>
-                                                                    </div>
-                                                                    <div class="col-3 col-sm-3">
-                                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Weightage</small>
-                                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['weightage'] }}</span>
-                                                                    </div>
-                                                                    <div class="col-3 col-sm-3">
-                                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
-
-                                                                        <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">
-                                                                            {{ number_format(
-                                                                                $data['achievement'],
-                                                                                0
-                                                                            ) }}%
-                                                                        </span>
-
-                                                                        @php
-                                                                            $percent = (int) ($data['achievement'] ?? 0);
-                                                                        @endphp
-
-                                                                        <div class="mini-progress">
-                                                                            <div class="mini-progress-bar bg-primary"
-                                                                                data-width="{{ $percent }}%"></div>
-                                                                        </div>
-                                                                    </div>
-                                                                </div>
+                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">KPI {{ $index + 1 }}</small>
+                        <h6 class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">{{ $data['kpi'] }}</h6>
+                        <p class="text-secondary mb-0" style="font-size: 0.85rem; line-height: 1.5;">{{ $data['description'] ?? '-' }}</p>
+                    </div>
+                    <div class="col-md-7 col-lg-7">
                         <div class="row g-3 mb-3">
-                                                                    <div class="col-3 col-sm-3">
-                                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Type</small>
-                                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['type'] }}</span>
-                                                                    </div>
-                                                                    <div class="col-3 col-sm-3">
-                                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Review Period</small>
-                                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['review_period_label'] }}</span>
-                                                                    </div>
-                                                                    <div class="col-3 col-sm-3">
-                                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1">Calc Method</small>
-                                                                        <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['calculation_method_label'] }}</span>
-                                                                    </div>
-                                                                    <div class="col-3">
-                                                                        <small class="fw-bold text-uppercase d-block kpi-label mb-1"></small>
-                                                                        <span class="fw-bold text-dark"></span>
-                                                                    </div>
-                                                                </div>
-                                                            </div>
+                            <div class="col-3 col-sm-3">
+                                <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
+                               <span class="fw-bold text-dark" style="font-size: 0.9rem;">
+                                    {{ is_numeric($data['target']) ? number_format((float)$data['target'], 0) : '-' }}
+                                </span>
+                            </div>
+                            <div class="col-3 col-sm-3">
+                                <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
+                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ is_null($data['custom_uom']) ? $data['uom'] : $data['custom_uom'] }}</span>
+                            </div>
+                            <div class="col-3 col-sm-3">
+                                <small class="fw-bold text-uppercase d-block kpi-label mb-1">Weightage</small>
+                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['weightage'] }}</span>
+                            </div>
+                            <div class="col-3 col-sm-3">
+                                <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
+                                <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">
+                                    {{ number_format((float)($data['achievement'] ?? 0), 0) }}%
+                                </span>
+                                @php
+                                    $percent = (int) ($data['achievement'] ?? 0);
+                                @endphp
+                                <div class="mini-progress">
+                                    <div class="mini-progress-bar bg-primary" data-width="{{ $percent }}%"></div>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="row g-3 mb-3">
+                            <div class="col-3 col-sm-3">
+                                <small class="fw-bold text-uppercase d-block kpi-label mb-1">Type</small>
+                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['type'] }}</span>
+                            </div>
+                            <div class="col-3 col-sm-3">
+                                <small class="fw-bold text-uppercase d-block kpi-label mb-1">Review Period</small>
+                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['review_period_label'] }}</span>
+                            </div>
+                            <div class="col-3 col-sm-3">
+                                <small class="fw-bold text-uppercase d-block kpi-label mb-1">Calc Method</small>
+                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['calculation_method_label'] }}</span>
+                            </div>
+                            <div class="col-3">
+                                <small class="fw-bold text-uppercase d-block kpi-label mb-1"></small>
+                                <span class="fw-bold text-dark"></span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <div>
@@ -283,7 +276,6 @@ input[type=number] {
 
                                     @if(!empty($data['attachment'][$monthNum]))
                                         <div class="position-relative mt-1" id="wrapper_{{ $index }}_{{ $monthNum }}">
-                                            <!-- Tombol View Attachment -->
                                             <a href="{{ asset('storage/'.$data['attachment'][$monthNum]) }}" 
                                                target="_blank"
                                                class="btn-attach-mini w-100 d-block border border-info text-info"
@@ -292,7 +284,6 @@ input[type=number] {
                                                <i class="ri-file-line"></i> VIEW
                                             </a>
                                             
-                                            <!-- Tombol Hapus (X) -->
                                             <button type="button" 
                                                     class="btn btn-sm btn-danger p-0 position-absolute" 
                                                     style="top: -8px; right: -5px; width: 18px; height: 18px; border-radius: 50%; font-size: 12px; line-height: 1; display: flex; align-items: center; justify-content: center; z-index: 5;"
@@ -302,13 +293,11 @@ input[type=number] {
                                             </button>
                                         </div>
                                     @endif
-
                                 </div>
                             </div>
                         @endforeach
                     </div>
                 </div>
-
             </div>
         </div>
         @endforeach
@@ -332,338 +321,351 @@ input[type=number] {
 @push('scripts')
 <script>
 function removeAttachment(btnElement, index, monthNum) {
-        // Konfirmasi sebelum menghapus
-        if (confirm('Are you sure you want to remove this attachment?')) {
-            // 1. Tambahkan input hidden ke dalam form agar server tahu file harus dihapus
-            const form = document.getElementById('achievementForm');
-            const hiddenInput = document.createElement('input');
-            hiddenInput.type = 'hidden';
-            hiddenInput.name = `remove_attachment[${index}][${monthNum}]`;
-            hiddenInput.value = '1';
-            form.appendChild(hiddenInput);
-
-            // 2. Hapus elemen tampilan file dari UI
-            btnElement.parentElement.remove();
-        }
-    }
-    function formatNumberID(value) {
-        // Buang semua titik (karena titik murni untuk format ribuan visual)
-        // Buang juga karakter selain angka dan koma desimal
-        let clean = value.replace(/\./g, '').replace(/[^0-9,]/g, '');
-        
-        if (!clean) return '';
-
-        // Pecah berdasarkan koma (index 0 = bilangan bulat, index 1 = desimal)
-        let parts = clean.split(',');
-        let integerPart = parts[0];
-
-        // Format bagian bulatnya saja dengan toLocaleString
-        if (integerPart !== '') {
-            integerPart = parseInt(integerPart, 10).toLocaleString('id-ID');
-        } else if (parts.length > 1) {
-            // Kalau user iseng ngetik koma duluan (misal: ,5)
-            integerPart = '0'; 
-        }
-
-        // Kalau ada komanya, gabungkan kembali
-        if (parts.length > 1) {
-            let decimalPart = parts.slice(1).join('');
-            return integerPart + ',' + decimalPart;
-        }
-
-        return integerPart;
-    }
-
-    document.addEventListener('DOMContentLoaded', function () {
-
-        document.querySelectorAll('[id^="kpi_grid_"]').forEach(grid => {
-            const index = grid.id.split('_').pop();
-            updateEditTriggerState(`kpi_grid_${index}`, `trigger_${index}`);
-        });
-
-        document.querySelectorAll('.input-compact').forEach(input => {
-            if(input.value) {
-                let standardVal = input.value.replace('.', ',');
-                input.value = formatNumberID(standardVal);
-            }
-
-            input.addEventListener('input', function() {
-                let cursorPosition = this.selectionStart;
-                let originalLength = this.value.length;
-                
-                this.value = formatNumberID(this.value);
-                
-                let newLength = this.value.length;
-                cursorPosition = cursorPosition + (newLength - originalLength);
-                this.setSelectionRange(cursorPosition, cursorPosition);
-            });
-        });
-
-        const buttons = document.querySelectorAll('button[data-id]');
-        const submitInput = document.getElementById('submitType');
+    if (confirm('Are you sure you want to remove this attachment?')) {
         const form = document.getElementById('achievementForm');
+        const hiddenInput = document.createElement('input');
+        hiddenInput.type = 'hidden';
+        hiddenInput.name = `remove_attachment[${index}][${monthNum}]`;
+        hiddenInput.value = '1';
+        form.appendChild(hiddenInput);
 
-        buttons.forEach(button => {
-            button.addEventListener('click', function (e) {
-                e.preventDefault();
+        btnElement.parentElement.remove();
+    }
+}
 
-                const type = this.getAttribute('data-id');
-                submitInput.value = type;
+function formatNumberID(value) {
+    let clean = value.replace(/,/g, '').replace(/[^0-9.]/g, '');
+    
+    if (!clean) return '';
 
-                const isSubmit = type === 'submit';
+    let parts = clean.split('.');
+    let integerPart = parts[0];
 
-                Swal.fire({
-                    title: 'Are you sure?',
-                    text: isSubmit 
-                        ? "This data will be submitted!" 
-                        : "This data will be saved as draft!",
-                    icon: 'warning',
-                    showCancelButton: true,
-                    reverseButtons: true,
-                    confirmButtonColor: '#3085d6',
-                    cancelButtonColor: '#d33',
-                    confirmButtonText: isSubmit 
-                        ? 'Yes, submit it!' 
-                        : 'Yes, save it!'
-                }).then((result) => {
-                    if (result.isConfirmed) {
-
-                        buttons.forEach(btn => btn.disabled = true);
-
-                        Swal.fire({
-                            title: 'Processing...',
-                            allowOutsideClick: false,
-                            didOpen: () => {
-                                Swal.showLoading();
-                            }
-                        });
-
-                        // Konversi format ID kembali ke format baku float sebelum submit
-                        // contoh: "1.000.000,5" -> "1000000.5"
-                        document.querySelectorAll('.input-compact').forEach(input => {
-                            let cleanVal = input.value.replace(/\./g, '');
-                            cleanVal = cleanVal.replace(',', '.');
-                            input.value = cleanVal;
-                        });
-
-                        form.submit();
-                    }
-                });
-            });
-        });
-
-    });
-
-    function isEditAllowed(grid) {
-        const reviewPeriod = parseInt(grid.dataset.reviewPeriod);
-        const currentMonth = new Date().getMonth() + 1;
-
-        let allowed = false;
-
-        grid.querySelectorAll('.month-box').forEach(box => {
-            const input = box.querySelector('.input-compact');
-            if (!input) return;
-
-            const month = parseInt(input.dataset.month);
-
-            let isActive = false;
-
-            if (reviewPeriod === 1) {
-                isActive = true;
-            } else if (reviewPeriod === 2) {
-                isActive = (month % 2 === 0);
-            } else if (reviewPeriod === 3) {
-                isActive = (month % 3 === 0);
-            } else if (reviewPeriod === 6) {
-                isActive = (month % 6 === 0);
-            } else if (reviewPeriod === 12) {
-                isActive = (month === 12);
-            }
-
-            const isPastOrCurrent = month <= currentMonth;
-
-            if (isActive && isPastOrCurrent) {
-                allowed = true;
-            }
-        });
-
-        return allowed;
+    if (integerPart !== '') {
+        integerPart = parseInt(integerPart, 10).toLocaleString('en-US');
+    } else if (parts.length > 1) {
+        integerPart = '0'; 
     }
 
-    function updateEditTriggerState(gridId, triggerId) {
-        const grid = document.getElementById(gridId);
-        const trigger = document.getElementById(triggerId);
+    if (parts.length > 1) {
+        let decimalPart = parts.slice(1).join('');
+        return integerPart + '.' + decimalPart;
+    }
 
-        if (!grid || !trigger) return;
+    return integerPart;
+}
 
-        const allowed = isEditAllowed(grid);
+document.addEventListener('DOMContentLoaded', function () {
 
-        if (!allowed) {
-            trigger.classList.remove('text-danger');
-            trigger.classList.add('text-secondary');
-            trigger.style.pointerEvents = 'none';
-            trigger.style.opacity = '0.6';
-            trigger.innerHTML = '<i class="ri-lock-line"></i> Not Available Yet';
-        } else {
-            trigger.classList.remove('text-secondary');
-            trigger.classList.add('text-danger');
-            trigger.style.pointerEvents = 'auto';
-            trigger.style.opacity = '1';
-            trigger.innerHTML = '<i class="ri-edit-2-line"></i> Click to Edit';
+    document.querySelectorAll('[id^="kpi_grid_"]').forEach(grid => {
+        const index = grid.id.split('_').pop();
+        updateEditTriggerState(`kpi_grid_${index}`, `trigger_${index}`);
+    });
 
-            trigger.onclick = function () {
-                enableEditMode(gridId, null, triggerId);
-            };
+    document.querySelectorAll('.input-compact').forEach(input => {
+        if(input.value) {
+            input.value = formatNumberID(input.value);
         }
-    }
 
-    function enableEditMode(gridId, inputId, triggerId) {
-        const grid = document.getElementById(gridId);
-        const reviewPeriod = parseInt(grid.dataset.reviewPeriod);
-
-        const currentMonth = new Date().getMonth() + 1;
-
-        grid.querySelectorAll('.month-box').forEach(box => {
-            const input = box.querySelector('.input-compact');
-            const fileInput = box.querySelector('.file-input-trigger');
-            const label = box.querySelector('.btn-attach-mini');
-            const month = parseInt(input.dataset.month);
-
-            let isActive = false;
-
-            if (reviewPeriod === 1) {
-                isActive = true;
-            } else if (reviewPeriod === 2) {
-                isActive = (month % 2 === 0);
-            } else if (reviewPeriod === 3) {
-                isActive = (month % 3 === 0);
-            } else if (reviewPeriod === 6) {
-                isActive = (month % 6 === 0);
-            } else if (reviewPeriod === 12) {
-                isActive = (month === 12);
-            }
-
-            const isPastOrCurrent = month <= currentMonth;
-
-            if (isActive && isPastOrCurrent) {
-                box.classList.remove('readonly-mode');
-                box.classList.add('edit-mode-active');
-
-                input.removeAttribute('readonly');
-                fileInput.removeAttribute('disabled');
-
-                label.style.display = 'block';
-                label.classList.remove('disabled-attach');
-
-            } else {
-                box.classList.remove('edit-mode-active');
-                box.classList.add('readonly-mode');
-
-                input.setAttribute('readonly', true);
-                fileInput.setAttribute('disabled', true);
-
-                label.style.display = 'none';
-                label.classWith = 'disabled-attach';
-            }
+        input.addEventListener('input', function() {
+            let cursorPosition = this.selectionStart;
+            let originalLength = this.value.length;
+            
+            this.value = formatNumberID(this.value);
+            
+            let newLength = this.value.length;
+            cursorPosition = cursorPosition + (newLength - originalLength);
+            this.setSelectionRange(cursorPosition, cursorPosition);
         });
-
-        const trigger = document.getElementById(triggerId);
-        trigger.innerHTML = '<i class="ri-check-line"></i> Editable';
-        trigger.classList.replace('text-danger', 'text-success');
-        trigger.onclick = null;
-    }
-
-    window.addEventListener('load', function() {
-        if (typeof hideLoader === 'function') { hideLoader(); }
-        let loaders = document.querySelectorAll('.preloader, #preloader, .loader, #loader, #status, .loading');
-        loaders.forEach(function(el) { el.style.display = 'none'; });
     });
 
-    document.addEventListener('DOMContentLoaded', function() {
-        document.querySelectorAll('.file-input-trigger').forEach(input => {
-            input.addEventListener('change', function () {
+    const buttons = document.querySelectorAll('button[data-id]');
+    const submitInput = document.getElementById('submitType');
+    const form = document.getElementById('achievementForm');
 
-                const label = document.getElementById(this.dataset.target);
-                if (!label) return;
+    buttons.forEach(button => {
+        button.addEventListener('click', function (e) {
+            e.preventDefault();
 
-                const file = this.files[0];
-                if (!file) return;
+            const type = this.getAttribute('data-id');
+            submitInput.value = type;
 
-                const maxSize = 2 * 1024 * 1024; 
+            const isSubmit = type === 'submit';
 
-                if (file.size > maxSize) {
-                    alert('File maksimal 2MB');
+            Swal.fire({
+                title: 'Are you sure?',
+                text: isSubmit 
+                    ? "This data will be submitted!" 
+                    : "This data will be saved as draft!",
+                icon: 'warning',
+                showCancelButton: true,
+                reverseButtons: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: isSubmit 
+                    ? 'Yes, submit it!' 
+                    : 'Yes, save it!'
+            }).then((result) => {
+                if (result.isConfirmed) {
 
-                    this.value = ''; 
-                    return;
-                }
+                    buttons.forEach(btn => btn.disabled = true);
 
-                const icon = label.querySelector('.icon-attach');
-                const text = label.querySelector('.text-attach');
+                    Swal.fire({
+                        title: 'Processing...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
 
-                if (this.files && this.files.length > 0) {
-                    label.classList.remove('disabled-attach');
-                    label.classList.add('has-file');
+                    document.querySelectorAll('.input-compact').forEach(input => {
+                        let cleanVal = input.value.replace(/,/g, '');
+                        input.value = cleanVal;
+                    });
 
-                    icon.className = 'ri-check-line icon-attach';
-                    text.innerText = 'OK';
-
-                    label.setAttribute('title', this.files[0].name);
-                } else {
-                    label.classList.remove('has-file');
-                    label.classList.add('disabled-attach');
-
-                    icon.className = 'ri-attachments-2 icon-attach';
-                    text.innerText = 'FILE';
+                    form.submit();
                 }
             });
         });
     });
 
-    function applyReviewPeriod(grid) {
-        const reviewPeriod = parseInt(grid.dataset.reviewPeriod);
+});
 
-        grid.querySelectorAll('.month-box').forEach(box => {
-            const input = box.querySelector('.input-compact');
-            const fileInput = box.querySelector('.file-input-trigger');
-            const month = parseInt(input.dataset.month);
+function isEditAllowed(grid) {
+    const reviewPeriod = parseInt(grid.dataset.reviewPeriod);
+    const currentMonth = new Date().getMonth() + 1;
 
-            let isActive = false;
+    let allowed = false;
 
-            if (reviewPeriod === 1) {
-                isActive = true;
-            } else if (reviewPeriod === 2) {
-                isActive = (month % 2 === 0);
-            } else if (reviewPeriod === 3) {
-                isActive = (month % 3 === 0);
-            } else if (reviewPeriod === 6) {
-                isActive = (month % 6 === 0);
+    grid.querySelectorAll('.month-box').forEach(box => {
+        const input = box.querySelector('.input-compact');
+        if (!input) return;
+
+        const month = parseInt(input.dataset.month);
+
+        let isActive = false;
+
+        if (reviewPeriod === 1) {
+            isActive = true;
+        } else if (reviewPeriod === 2) {
+            isActive = (month % 2 === 0);
+        } else if (reviewPeriod === 3) {
+            isActive = (month % 3 === 0);
+        } else if (reviewPeriod === 6) {
+            isActive = (month % 6 === 0);
+        } else if (reviewPeriod === 12) {
+            isActive = (month === 12);
+        }
+
+        const isPastOrCurrent = month <= currentMonth;
+
+        if (isActive && isPastOrCurrent) {
+            allowed = true;
+        }
+    });
+
+    return allowed;
+}
+
+function updateEditTriggerState(gridId, triggerId) {
+    const grid = document.getElementById(gridId);
+    const trigger = document.getElementById(triggerId);
+
+    if (!grid || !trigger) return;
+
+    const allowed = isEditAllowed(grid);
+
+    if (!allowed) {
+        trigger.classList.remove('text-danger');
+        trigger.classList.add('text-secondary');
+        trigger.style.pointerEvents = 'none';
+        trigger.style.opacity = '0.6';
+        trigger.innerHTML = '<i class="ri-lock-line"></i> Not Available Yet';
+    } else {
+        trigger.classList.remove('text-secondary');
+        trigger.classList.add('text-danger');
+        trigger.style.pointerEvents = 'auto';
+        trigger.style.opacity = '1';
+        trigger.innerHTML = '<i class="ri-edit-2-line"></i> Click to Edit';
+
+        trigger.onclick = function () {
+            enableEditMode(gridId, null, triggerId);
+        };
+    }
+}
+
+function enableEditMode(gridId, inputId, triggerId) {
+    const grid = document.getElementById(gridId);
+    const reviewPeriod = parseInt(grid.dataset.reviewPeriod);
+
+    const currentMonth = new Date().getMonth() + 1;
+
+    grid.querySelectorAll('.month-box').forEach(box => {
+        const input = box.querySelector('.input-compact');
+        const fileInput = box.querySelector('.file-input-trigger');
+        const label = box.querySelector('.btn-attach-mini');
+        const month = parseInt(input.dataset.month);
+
+        let isActive = false;
+
+        if (reviewPeriod === 1) {
+            isActive = true;
+        } else if (reviewPeriod === 2) {
+            isActive = (month % 2 === 0);
+        } else if (reviewPeriod === 3) {
+            isActive = (month % 3 === 0);
+        } else if (reviewPeriod === 6) {
+            isActive = (month % 6 === 0);
+        } else if (reviewPeriod === 12) {
+            isActive = (month === 12);
+        }
+
+        const isPastOrCurrent = month <= currentMonth;
+
+        if (isActive && isPastOrCurrent) {
+            box.classList.remove('readonly-mode');
+            box.classList.add('edit-mode-active');
+
+            input.removeAttribute('readonly');
+            fileInput.removeAttribute('disabled');
+
+            label.style.display = 'block';
+            label.classList.remove('disabled-attach');
+
+        } else {
+            box.classList.remove('edit-mode-active');
+            box.classList.add('readonly-mode');
+
+            input.setAttribute('readonly', true);
+            fileInput.setAttribute('disabled', true);
+
+            label.style.display = 'none';
+            label.classWith = 'disabled-attach';
+        }
+    });
+
+    const trigger = document.getElementById(triggerId);
+    trigger.innerHTML = '<i class="ri-check-line"></i> Editable';
+    trigger.classList.replace('text-danger', 'text-success');
+    trigger.onclick = null;
+}
+
+window.addEventListener('load', function() {
+    if (typeof hideLoader === 'function') { hideLoader(); }
+    let loaders = document.querySelectorAll('.preloader, #preloader, .loader, #loader, #status, .loading');
+    loaders.forEach(function(el) { el.style.display = 'none'; });
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.file-input-trigger').forEach(input => {
+        input.addEventListener('change', function () {
+
+            const label = document.getElementById(this.dataset.target);
+            if (!label) return;
+
+            const file = this.files[0];
+            if (!file) return;
+
+            const maxSize = 2 * 1024 * 1024; 
+
+            if (file.size > maxSize) {
+                alert('File maksimal 2MB');
+                this.value = ''; 
+                return;
             }
 
-            if (isActive) {
-                box.classList.remove('readonly-mode');
-                box.classList.add('edit-mode-active');
+            const icon = label.querySelector('.icon-attach');
+            const text = label.querySelector('.text-attach');
 
-                input.removeAttribute('readonly');
-                fileInput.removeAttribute('disabled');
+            if (this.files && this.files.length > 0) {
+                label.classList.remove('disabled-attach');
+                label.classList.add('has-file');
+
+                icon.className = 'ri-check-line icon-attach';
+                text.innerText = 'OK';
+
+                label.setAttribute('title', this.files[0].name);
             } else {
-                box.classList.remove('edit-mode-active');
-                box.classList.add('readonly-mode');
+                label.classList.remove('has-file');
+                label.classList.add('disabled-attach');
 
-                input.setAttribute('readonly', true);
-                fileInput.setAttribute('disabled', true);
-
+                icon.className = 'ri-attachments-2 icon-attach';
+                text.innerText = 'FILE';
             }
         });
-    }
+    });
+});
+
+function applyReviewPeriod(grid) {
+    const reviewPeriod = parseInt(grid.dataset.reviewPeriod);
+
+    grid.querySelectorAll('.month-box').forEach(box => {
+        const input = box.querySelector('.input-compact');
+        const fileInput = box.querySelector('.file-input-trigger');
+        const month = parseInt(input.dataset.month);
+
+        let isActive = false;
+
+        if (reviewPeriod === 1) {
+            isActive = true;
+        } else if (reviewPeriod === 2) {
+            isActive = (month % 2 === 0);
+        } else if (reviewPeriod === 3) {
+            isActive = (month % 3 === 0);
+        } else if (reviewPeriod === 6) {
+            isActive = (month % 6 === 0);
+        }
+
+        if (isActive) {
+            box.classList.remove('readonly-mode');
+            box.classList.add('edit-mode-active');
+
+            input.removeAttribute('readonly');
+            fileInput.removeAttribute('disabled');
+        } else {
+            box.classList.remove('edit-mode-active');
+            box.classList.add('readonly-mode');
+
+            input.setAttribute('readonly', true);
+            fileInput.setAttribute('disabled', true);
+        }
+    });
+}
 </script>
 <script>
-document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll('.mini-progress-bar').forEach(function (el) {
-        setTimeout(() => {
-            el.style.width = el.dataset.width;
-        }, 100);
+function formatNumberID(value) {
+    let clean = String(value).replace(/,/g, '').replace(/[^0-9.]/g, '');
+    if (clean === '' || clean === '.') return '';
+    let parts = clean.split('.');
+    parts[0] = parseInt(parts[0], 10).toLocaleString('en-US');
+    return parts.length > 1 ? parts[0] + '.' + parts.slice(1).join('') : parts[0];
+}
+
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.input-compact').forEach(input => {
+        let initialValue = input.value.replace(/,/g, '');
+        if(initialValue) {
+            input.value = formatNumberID(initialValue);
+        }
+
+        input.addEventListener('input', function() {
+            let cursorPosition = this.selectionStart;
+            let originalLength = this.value.length;
+            this.value = formatNumberID(this.value);
+            let newLength = this.value.length;
+            cursorPosition = cursorPosition + (newLength - originalLength);
+            this.setSelectionRange(cursorPosition, cursorPosition);
+        });
     });
+
+    const form = document.getElementById('achievementForm');
+    if(form) {
+        form.addEventListener('submit', function() {
+            document.querySelectorAll('.input-compact').forEach(input => {
+                input.value = input.value.replace(/,/g, '');
+            });
+        });
+    }
 });
 </script>
 @endpush

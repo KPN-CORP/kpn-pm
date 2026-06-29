@@ -889,7 +889,11 @@
 </script>
 @endif
 <script>
-
+    window.onpageshow = function(event) {
+        if (event.persisted) {
+            hideLoader();
+        }
+    };
     document.addEventListener(
         'click',
         function(e){

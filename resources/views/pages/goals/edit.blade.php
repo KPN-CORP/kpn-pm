@@ -200,24 +200,24 @@
                                       {{ $errors->first("review_period") }}
                                   </div>
                                   <div class="col-6 col-md-2">
-                                        <div class="mb-3">
-                                            <label class="form-label text-primary" for="calculation_method">{{ __('Calculation Method') }}</label>
-                                            <div class="input-group">
-                                                <select class="form-select select-type" name="calculation_method[]" id="calculation_method{{ $index }}" required>
-                                                    <option value="">- Select -</option>
-                                                    @foreach ($calculationMethodOption as $label => $options)
-                                                        @foreach ($options as $option)
-                                                            <option value="{{ $option['value'] }}"
-                                                                {{ data_get($row, 'calculation_method') == $option['value'] ? 'selected' : '' }}>
-                                                                {{ $option['label'] }}
-                                                            </option>
-                                                        @endforeach
-                                                    @endforeach
-                                                </select>
-                                            </div>                                  
-                                        </div>
-                                        {{ $errors->first("calculation_method") }}
-                                  </div>
+    <div class="mb-3">
+        <label class="form-label text-primary" for="calculation_method">{{ __('Calculation Method') }}</label>
+        <div class="input-group">
+            <select class="form-select select-type" name="calculation_method[]" id="calculation_method{{ $index }}" required>
+                <option value="">- Select -</option>
+                @foreach ($calculationMethodOption as $label => $options)
+                    @foreach ($options as $option)
+                        <option value="{{ $option['value'] }}"
+                            {{ strtolower(trim(data_get($row, 'calculation_method'))) === strtolower(trim($option['value'])) ? 'selected' : '' }}>
+                            {{ $option['label'] }}
+                        </option>
+                    @endforeach
+                @endforeach
+            </select>
+        </div>                                  
+    </div>
+    {{ $errors->first("calculation_method") }}
+</div>
                                 </div>
                             </div>
                         </div>

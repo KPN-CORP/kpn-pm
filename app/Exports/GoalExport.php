@@ -38,6 +38,7 @@ class GoalExport implements FromView, WithStyles
         $this->permissionGroupCompanies = $permissionGroupCompanies;
   
     }
+    
 
     public function view(): View
     {
@@ -95,37 +96,87 @@ class GoalExport implements FromView, WithStyles
         $this->goals = $query->with(['employee', 'manager', 'goal', 'initiated', 'approvalLayer'])->get();
 
         return view('exports.goal', [
-            'goals' => $this->goals
-        ]);
+        'goals' => $this->goals,
+        'periodMap' => [
+            1 => 'Monthly', 
+            2 => 'Bi-Monthly', 
+            3 => 'Quarterly', 
+            6 => 'Semester', 
+            12 => 'Annual'
+        ]
+    ]);
     }
 
+    // public function styles($sheet)
+    // {
+    //     $sheet->getStyle('A1:K1')->getFont()->setBold(true);
+
+    //     // Count total rows from $data and multiply by 10
+    //     $totalRows = isset($this->goals) ? count($this->goals) * 10 : 10; // Default to 10 if no data
+
+    //     // Apply dropdown selection (Lower Better, Higher Better, Exact Value) to column D
+    //     $validation = $sheet->getCell('H2')->getDataValidation(); // Start from row 2
+    //     $validation->setType(DataValidation::TYPE_LIST);
+    //     $validation->setErrorStyle(DataValidation::STYLE_INFORMATION);
+    //     $validation->setAllowBlank(false);
+    //     $validation->setShowDropDown(true);
+    //     $validation->setFormula1('"Lower Better,Higher Better,Exact Value"'); // Dropdown options
+
+    //     // Apply to all rows in column G (Adjust range as needed)
+    //     for ($row = 2; $row <= $totalRows; $row++) { // Adjust 100 based on data size
+    //         $sheet->getCell("H$row")->setDataValidation(clone $validation);
+    //     }
+
+    //     $sheet->getStyle('I:I')->getNumberFormat()->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_PERCENTAGE);
+
+    //     return [
+    //         1 => [
+    //             'font' => ['bold' => true],
+    //             'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => 'FFFF00']]
+    //         ],
+    //     ];
+    // }
+    
     public function styles($sheet)
-    {
-        $sheet->getStyle('A1:K1')->getFont()->setBold(true);
+{
+    $sheet->getStyle('A1:T1')->getFont()->setBold(true);
+    $totalRows = isset($this->goals) ? (count($this->goals) * 10) + 1 : 20;
+    
+    // Dropdown Review Period (Kolom I)
+    $validationPeriod = $sheet->getCell('I2')->getDataValidation();
+    $validationPeriod->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
+    $validationPeriod->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_INFORMATION);
+    $validationPeriod->setAllowBlank(false);
+    $validationPeriod->setShowDropDown(true);
+    // PASTIKAN INI SAMA PERSIS DENGAN ARRAY DI VIEW
+    $validationPeriod->setFormula1('"Monthly,Bi-Monthly,Quarterly,Semester,Annual"');
+    
+    // Validasi Calculation Method (Kolom J)
+    $valMethod = $sheet->getCell('J2')->getDataValidation();
+    $valMethod->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
+    $valMethod->setFormula1('"Average,Sum,Last,Max,Min"');
+    $valMethod->setShowDropDown(true);
 
-        // Count total rows from $data and multiply by 10
-        $totalRows = isset($this->goals) ? count($this->goals) * 10 : 10; // Default to 10 if no data
+    // Validasi Type (Kolom L)
+    $valType = $sheet->getCell('L2')->getDataValidation();
+    $valType->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
+    $valType->setFormula1('"Lower Better,Higher Better,Exact Value"');
+    $valType->setShowDropDown(true);
 
-        // Apply dropdown selection (Lower Better, Higher Better, Exact Value) to column D
-        $validation = $sheet->getCell('H2')->getDataValidation(); // Start from row 2
-        $validation->setType(DataValidation::TYPE_LIST);
-        $validation->setErrorStyle(DataValidation::STYLE_INFORMATION);
-        $validation->setAllowBlank(false);
-        $validation->setShowDropDown(true);
-        $validation->setFormula1('"Lower Better,Higher Better,Exact Value"'); // Dropdown options
-
-        // Apply to all rows in column G (Adjust range as needed)
-        for ($row = 2; $row <= $totalRows; $row++) { // Adjust 100 based on data size
-            $sheet->getCell("H$row")->setDataValidation(clone $validation);
-        }
-
-        $sheet->getStyle('I:I')->getNumberFormat()->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_PERCENTAGE);
-
-        return [
-            1 => [
-                'font' => ['bold' => true],
-                'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => 'FFFF00']]
-            ],
-        ];
+    for ($row = 2; $row <= $totalRows; $row++) {
+        $sheet->getCell("J$row")->setDataValidation(clone $valMethod);
+        $sheet->getCell("L$row")->setDataValidation(clone $valType);
+        $sheet->getCell("I$row")->setDataValidation(clone $validationPeriod);
     }
+
+    // Format Persentase (Kolom K - Weightage)
+    $sheet->getStyle("K2:K$totalRows")->getNumberFormat()->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_PERCENTAGE);
+
+    return [
+        1 => [
+            'font' => ['bold' => true],
+            'fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => 'FFFF00']]
+        ],
+    ];
+}
 }
