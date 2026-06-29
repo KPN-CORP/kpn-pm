@@ -171,7 +171,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
-                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ (float) $data['target'] }}</span>
+                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ number_format((float) $data['target'], 0) }}</span>
                         </div>
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
@@ -186,7 +186,7 @@
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
 
                             <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">
-                                {{ $data['achievement'] ?? '0' }}%
+                                {{ number_format((float)($data['achievement'] ?? 0), 0) }}%
                             </span>
 
                             @php
@@ -260,8 +260,10 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <div class="col-lg-12">
+            <div class="row align-items-stretch">
+                <div class="col-12">
                     <div class="card border-primary border-opacity-50 bg-white shadow-sm h-100">
                         <div class="card-body p-2">
                             <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom border-primary border-opacity-25">
@@ -319,7 +321,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
-                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ (float) $data['target'] }}</span>
+                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ number_format((float) $data['target'], 0) }}</span>
                         </div>
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
@@ -334,7 +336,7 @@
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
 
                             <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">
-                                {{ (float) $data['achievement'] }}%
+                                {{ number_format((float)($data['achievement'] ?? 0), 0) }}%
                             </span>
 
                             @php
@@ -442,21 +444,21 @@
 @push('scripts')
 <script>
 function formatNumberID(value) {
-    let clean = String(value).replace(/\./g, '').replace(/[^0-9,]/g, '');
+    let clean = String(value).replace(/,/g, '').replace(/[^0-9.]/g, '');
     if (!clean) return '';
 
-    let parts = clean.split(',');
+    let parts = clean.split('.');
     let integerPart = parts[0];
 
     if (integerPart !== '') {
-        integerPart = parseInt(integerPart, 10).toLocaleString('id-ID');
+        integerPart = parseInt(integerPart, 10).toLocaleString('en-US');
     } else if (parts.length > 1) {
         integerPart = '0'; 
     }
 
     if (parts.length > 1) {
         let decimalPart = parts.slice(1).join('');
-        return integerPart + ',' + decimalPart;
+        return integerPart + '.' + decimalPart;
     }
 
     return integerPart;
@@ -469,8 +471,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
     document.querySelectorAll('.input-compact').forEach(input => {
         if(input.value) {
-            let standardVal = String(input.value).replace('.', ',');
-            input.value = formatNumberID(standardVal);
+            input.value = formatNumberID(input.value);
         }
 
         input.addEventListener('input', function() {
@@ -489,8 +490,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if(form) {
         form.addEventListener('submit', function() {
             document.querySelectorAll('.input-compact').forEach(input => {
-                let cleanVal = input.value.replace(/\./g, '');
-                cleanVal = cleanVal.replace(',', '.');
+                let cleanVal = input.value.replace(/,/g, '');
                 input.value = cleanVal;
             });
         });

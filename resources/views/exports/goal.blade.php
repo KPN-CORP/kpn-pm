@@ -9,6 +9,8 @@
         <th>KPI</th>
         <th>Target</th>
         <th>Uom</th>
+        <th>Review Period</th>
+        <th>Calculation Method</th>
         <th>Weightage</th>
         <th>Type</th>
         <th>Description</th>
@@ -19,15 +21,14 @@
         <th>Initiated By</th>
         <th>Initiated By ID</th>
         <th>Period</th>
-    </tr>
+        </tr>
     </thead>
     <tbody>
     @foreach ($goals as $row)
-        @php
-            $formData = json_decode($row->goal->form_data, true);
-        @endphp
+        @php $formData = json_decode($row->goal->form_data, true); @endphp
         @if ($formData)
             @foreach ($formData as $item)
+            
                 <tr>
                     <td>{{ $row->employee_id }}</td>
                     <td>{{ $row->employee->fullname }}</td>
@@ -37,7 +38,11 @@
                     <td>{{ $item['kpi'] }}</td>
                     <td>{{ $item['target'] }}</td>
                     <td>{{ $item['uom']==='Other' ? $item['custom_uom'] : $item['uom'] }}</td>
+                    <td>{{ $periodMap[$item['review_period']] ?? '-' }}</td>
+                    <td>{{ $item['calculation_method'] ?? '-' }}</td>
+                    
                     <td>{{ $item['weightage'] / 100 }}</td>
+                    
                     <td>{{ $item['type'] }}</td>
                     <td>{{ $item['description'] ?? "-" }}</td>
                     <td>{{ $row->goal->form_status }}</td>

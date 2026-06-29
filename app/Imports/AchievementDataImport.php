@@ -41,7 +41,7 @@ class AchievementDataImport implements ToCollection, WithHeadingRow, WithStartRo
 
     public function __construct(string $filePath, string $period, ?string $type = null)
     {
-        $this->filePath = $filePath;
+        $this->filePath = str_replace('public/', '', $filePath);
         $this->type = $type ?: 'admin';
         $this->period = $period;
         $this->kpiService = app(KPIService::class);
