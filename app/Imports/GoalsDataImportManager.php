@@ -392,30 +392,72 @@ class GoalsDataImportManager implements ToModel, WithValidation, WithHeadingRow
                     Log::error("No EmployeeAppraisal record found for Employee ID: " . $employeeId);
                 }
 
-                // Insert into approval_requests and get the ID
-                $requestId = DB::table('approval_requests')->insertGetId([
-                    'form_id' => $formId,  // Gunakan UUID yang sama
-                    'category' => 'Goals',
-                    'current_approval_id' => $data['current_approval_id'],
-                    'employee_id' => $employeeId,
-                    'status' => $data['status_request'],
-                    'messages' => 'import by Manager',
-                    'period' => $data['period'],
-                    'created_by' => Auth::id(),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+                // Check approval request by form_id
+                $approvalRequest = DB::table('approval_requests')
+                    ->where('form_id', $formId)
+                    ->first();
 
-                // Use the request ID in the approvals table
-                DB::table('approvals')->insert([
-                    'request_id' => $requestId,  // Use the stored ID
-                    'approver_id' => $this->userId,
-                    'status' => 'Approved',
-                    'created_by' => Auth::id(),
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+                if ($approvalRequest) {
 
+                    // Update existing approval request
+                    DB::table('approval_requests')
+                        ->where('id', $approvalRequest->id)
+                        ->update([
+                            'current_approval_id' => $data['current_approval_id'],
+                            'employee_id'         => $employeeId,
+                            'status'              => $data['status_request'],
+                            'messages'            => 'import by Manager',
+                            'period'              => $data['period'],
+                            'updated_at'          => now(),
+                        ]);
+
+                    $requestId = $approvalRequest->id;
+
+                } else {
+
+                    // Insert new approval request
+                    $requestId = DB::table('approval_requests')->insertGetId([
+                        'form_id'             => $formId,
+                        'category'            => 'Goals',
+                        'current_approval_id' => $data['current_approval_id'],
+                        'employee_id'         => $employeeId,
+                        'status'              => $data['status_request'],
+                        'messages'            => 'import by Manager',
+                        'period'              => $data['period'],
+                        'created_by'          => Auth::id(),
+                        'created_at'          => now(),
+                        'updated_at'          => now(),
+                    ]);
+                }
+
+                // Check approval
+                $approval = DB::table('approvals')
+                    ->where('request_id', $requestId)
+                    ->where('approver_id', $this->userId)
+                    ->first();
+
+                if ($approval) {
+
+                    // Update existing approval
+                    DB::table('approvals')
+                        ->where('id', $approval->id)
+                        ->update([
+                            'status'     => 'Approved',
+                            'updated_at' => now(),
+                        ]);
+
+                } else {
+
+                    // Insert new approval
+                    DB::table('approvals')->insert([
+                        'request_id' => $requestId,
+                        'approver_id' => $this->userId,
+                        'status' => 'Approved',
+                        'created_by' => Auth::id(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
                 $this->successCount++;
                 Log::info("Data inserted for Employee ID: " . $employeeId);
 
