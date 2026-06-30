@@ -410,6 +410,13 @@
 
         @endforeach
 
+        <div class="card shadow-sm border-0 mt-2 mb-4">
+            <div class="card-body px-3 bg-light rounded border">
+                <label class="kpi-label text-dark">Approval Messages</label>
+                <textarea name="messages" id="messages" class="form-control form-control-sm" placeholder="Enter messages.." rows="3"></textarea>
+            </div>
+        </div>
+
 
         <div class="card shadow-sm border-0 mb-4">
             <div class="card-body p-3 bg-white rounded">

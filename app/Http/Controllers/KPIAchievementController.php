@@ -724,28 +724,12 @@ class KPIAchievementController extends Controller
 
                 // ================= APPROVAL INFO =================
 
-                if ($request->messages) {
+               $val->approval_info = $sendbackMessage
+                    ?: $request->messages;
 
-                    $val->approval_info =
-                        $request->messages;
-                }
-
-                if ($sendbackMessage) {
-
-                    $val->approval_info =
-                        $sendbackMessage;
-
-                    $val->approval_status =
-                        "Draft";
-
-                } else {
-
-                    $val->approval_info =
-                        null;
-
-                    $val->approval_status =
-                        "Approved";
-                }
+                $val->approval_status = $sendbackMessage
+                    ? 'Draft'
+                    : 'Approved';
 
                 $val->approval_date =
                     $timeNow;

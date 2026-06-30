@@ -105,7 +105,7 @@ class AchievementReportExport implements FromQuery, WithMapping, WithHeadings, W
     public function headings(): array
     {
         return [
-            ['No', 'Employee ID', 'Employee Name', 'KPI', 'KPI Descriptions', 'Annual Target', 'UoM', 'Weight (%)', 'Type', 'Tracking Period', 'Achievement Calculation Method', 'Achievement', '', '', '', '', '', '', '', '', '', '', '', 'Total Achievement', 'Achievement (%)'],
+            ['No', 'Employee ID', 'Employee Name', 'KPI', 'KPI Descriptions', 'Annual Target', 'UoM', 'Weight (%)', 'Type', 'Review Period', 'Calculation Method', 'Achievement', '', '', '', '', '', '', '', '', '', '', '', 'Total Achievement', 'Achievement (%)'],
             ['', '', '', '', '', '', '', '', '', '', '', 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec', '', '']
         ];
     }
