@@ -83,10 +83,10 @@
     @endif
     @if (session('error'))
         <div class="alert alert-danger mt-3 shadow-sm border-0 py-2">
-            {{ is_array(session('error'))
+            {!! is_array(session('error'))
                 ? session('error')['message']
                 : session('error')
-            }}
+            !!}
         </div>
     @endif
 
