@@ -243,28 +243,28 @@ class GoalsDataImportManager implements ToModel, WithValidation, WithHeadingRow
                     ->where('period', $data['period'])
                     ->exists();
 
-                $existsInGoals = Goal::where('employee_id', $employeeId)
-                    ->where('period', $data['period'])
-                    ->exists();
+                // $existsInGoals = Goal::where('employee_id', $employeeId)
+                //     ->where('period', $data['period'])
+                //     ->exists();
 
-                if ($existsInGoals) {
-                    $message = "Employee ID: $employeeId already has goals data.";
-                    Log::info($message);
+                // if ($existsInGoals) {
+                //     $message = "Employee ID: $employeeId already has goals data.";
+                //     Log::info($message);
                     
-                    $this->detailError[] = [
-                        'employee_id' => $employeeId,
-                        'message' => $message,
-                    ];
+                //     $this->detailError[] = [
+                //         'employee_id' => $employeeId,
+                //         'message' => $message,
+                //     ];
 
-                    $this->invalidEmployees[] = [
-                        'employee_id' => $employeeId,
-                        'message' => $message, // Get the first error message
-                    ];
+                //     $this->invalidEmployees[] = [
+                //         'employee_id' => $employeeId,
+                //         'message' => $message, // Get the first error message
+                //     ];
 
-                    $this->errorCount++;
-                    DB::rollBack();
-                    continue;
-                }
+                //     $this->errorCount++;
+                //     DB::rollBack();
+                //     continue;
+                // }
     
                 if ($existsInAppraisals) {
                     $message = "Employee ID: $employeeId already has appraisal data.";
@@ -347,16 +347,40 @@ class GoalsDataImportManager implements ToModel, WithValidation, WithHeadingRow
 
                 Log::info("Starting imports transaction for Employee ID: " . $employeeId);
 
-                DB::table('goals')->insert([
-                    'id' => $formId,
-                    'employee_id' => $employeeId,
-                    'category' => $data['category'],
-                    'form_data' => json_encode($data['form_data']),
-                    'form_status' => $data['form_status'],
-                    'period' => $data['period'],
-                    'created_at' => now(),
-                    'updated_at' => now(),
-                ]);
+                $goal = Goal::where('employee_id', $employeeId)
+                    ->where('period', $data['period'])
+                    ->first();
+
+                if ($goal) {
+
+                    // Update existing goal
+                    $formId = $goal->id;
+
+                    $goal->update([
+                        'category'    => $data['category'],
+                        'form_data'   => json_encode($data['form_data']),
+                        'form_status' => $data['form_status'],
+                        'updated_at'  => now(),
+                    ]);
+
+                    Log::info("Goals updated for Employee ID: {$employeeId}");
+
+                } else {
+
+                    // Create new goal
+                    $formId = Str::uuid()->toString();
+
+                    Goal::create([
+                        'id'          => $formId,
+                        'employee_id' => $employeeId,
+                        'category'    => $data['category'],
+                        'form_data'   => json_encode($data['form_data']),
+                        'form_status' => $data['form_status'],
+                        'period'      => $data['period'],
+                    ]);
+
+                    Log::info("Goals created for Employee ID: {$employeeId}");
+                }
 
                 Log::info("New goals added for Employee ID: " . $employeeId);
 
