@@ -43,7 +43,7 @@
                         <td>{{ $item['uom']==='Other' ? $item['custom_uom'] : $item['uom'] }}</td>
                         <td>{{ $item['weightage'] / 100 }}</td>
                         <td>{{ $item['type'] }}</td>
-                        <td>{{ $item['review_period'] ?? '' }}</td>
+                        <td>{{ $periodMap[$item['review_period']] ?? '' }}</td>
                         <td>{{ $item['calculation_method'] ?? '' }}</td>
                         <td>{{ $row->goal->form_status }}</td>
                         <td>{{ $row->status=='Pending'? ($row->sendback_to ? 'Waiting For Revision' : ($row->goal->form_status=='Draft'? 'Not Started' : 'Waiting For Approval')) : $row->status }}</td>

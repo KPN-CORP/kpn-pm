@@ -47,7 +47,13 @@ class InitiatedExport implements FromView, WithStyles
             
         }
 
-        return view('exports.initiated', ['data' => $this->data]);
+        return view('exports.initiated', ['data' => $this->data, 'periodMap' => [
+            1 => 'Monthly', 
+            2 => 'Bi-Monthly', 
+            3 => 'Quarterly', 
+            6 => 'Semester', 
+            12 => 'Annual'
+        ]]);
 
     }
 
