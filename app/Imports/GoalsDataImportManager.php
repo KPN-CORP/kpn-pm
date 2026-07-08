@@ -56,7 +56,7 @@ class GoalsDataImportManager implements ToModel, WithValidation, WithHeadingRow
 
                 if (!collect($expectedHeaders)->diff($headers)->isEmpty()) {  
                     throw ValidationException::withMessages([  
-                        'error' => 'Invalid excel format. The header must contain Employee_ID, KPI, Target, UOM, Weightage, Type, Description.',  
+                        'error' => 'Invalid excel format. The header must contain Employee_ID, KPI, Target, UOM, Weightage, Type, Description, Review_Period, Calculation_Method.',  
                     ]);  
                 }  
 
