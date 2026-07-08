@@ -65,9 +65,9 @@ class NotInitiatedExport implements FromView, WithStyles
 
     public function styles($sheet)
     {
-        $sheet->getStyle('A1:F1')->getFont()->setBold(true);
+        $sheet->getStyle('A1:M1')->getFont()->setBold(true);
 
-        foreach (range('A', 'J') as $col) {
+        foreach (range('A', 'M') as $col) {
             $sheet->getColumnDimension($col)->setAutoSize(true);
         }
 
@@ -78,7 +78,7 @@ class NotInitiatedExport implements FromView, WithStyles
         // ====================
         // Column G - Performance Type
         // ====================
-        $validationPerformance = $sheet->getCell('G2')->getDataValidation();
+        $validationPerformance = $sheet->getCell('K2')->getDataValidation();
 
         $validationPerformance->setType(DataValidation::TYPE_LIST);
         $validationPerformance->setErrorStyle(DataValidation::STYLE_INFORMATION);
@@ -90,7 +90,7 @@ class NotInitiatedExport implements FromView, WithStyles
         );
 
         for ($row = 2; $row <= $totalRows; $row++) {
-            $sheet->getCell("G$row")
+            $sheet->getCell("K$row")
                 ->setDataValidation(clone $validationPerformance);
         }
 
@@ -98,7 +98,7 @@ class NotInitiatedExport implements FromView, WithStyles
         // ====================
         // Column H - Review Period
         // ====================
-        $validationReview = $sheet->getCell('I2')->getDataValidation();
+        $validationReview = $sheet->getCell('L2')->getDataValidation();
 
         $validationReview->setType(DataValidation::TYPE_LIST);
         $validationReview->setErrorStyle(DataValidation::STYLE_INFORMATION);
@@ -110,7 +110,7 @@ class NotInitiatedExport implements FromView, WithStyles
         );
 
         for ($row = 2; $row <= $totalRows; $row++) {
-            $sheet->getCell("I$row")
+            $sheet->getCell("L$row")
                 ->setDataValidation(clone $validationReview);
         }
 
@@ -118,7 +118,7 @@ class NotInitiatedExport implements FromView, WithStyles
         // ====================
         // Column I - Calculation Method
         // ====================
-        $validationCalculation = $sheet->getCell('J2')->getDataValidation();
+        $validationCalculation = $sheet->getCell('M2')->getDataValidation();
 
         $validationCalculation->setType(DataValidation::TYPE_LIST);
         $validationCalculation->setErrorStyle(DataValidation::STYLE_INFORMATION);
@@ -130,12 +130,12 @@ class NotInitiatedExport implements FromView, WithStyles
         );
 
         for ($row = 2; $row <= $totalRows; $row++) {
-            $sheet->getCell("J$row")
+            $sheet->getCell("M$row")
                 ->setDataValidation(clone $validationCalculation);
         }
 
             // Apply percentage format to column (e.g., column C)
-        $sheet->getStyle('F:F')->getNumberFormat()->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_PERCENTAGE);
+        $sheet->getStyle('J:J')->getNumberFormat()->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_PERCENTAGE);
 
             return [
                 1 => [

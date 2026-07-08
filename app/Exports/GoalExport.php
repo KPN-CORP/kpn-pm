@@ -142,8 +142,8 @@ class GoalExport implements FromView, WithStyles
     $sheet->getStyle('A1:T1')->getFont()->setBold(true);
     $totalRows = isset($this->goals) ? (count($this->goals) * 10) + 1 : 20;
     
-    // Dropdown Review Period (Kolom I)
-    $validationPeriod = $sheet->getCell('I2')->getDataValidation();
+    // Dropdown Review Period (Kolom L)
+    $validationPeriod = $sheet->getCell('L2')->getDataValidation();
     $validationPeriod->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
     $validationPeriod->setErrorStyle(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::STYLE_INFORMATION);
     $validationPeriod->setAllowBlank(false);
@@ -151,26 +151,26 @@ class GoalExport implements FromView, WithStyles
     // PASTIKAN INI SAMA PERSIS DENGAN ARRAY DI VIEW
     $validationPeriod->setFormula1('"Monthly,Bi-Monthly,Quarterly,Semester,Annual"');
     
-    // Validasi Calculation Method (Kolom J)
-    $valMethod = $sheet->getCell('J2')->getDataValidation();
+    // Validasi Calculation Method (Kolom M)
+    $valMethod = $sheet->getCell('M2')->getDataValidation();
     $valMethod->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
     $valMethod->setFormula1('"Average,Sum,Last,Max,Min"');
     $valMethod->setShowDropDown(true);
 
-    // Validasi Type (Kolom L)
-    $valType = $sheet->getCell('L2')->getDataValidation();
+    // Validasi Type (Kolom K)
+    $valType = $sheet->getCell('K2')->getDataValidation();
     $valType->setType(\PhpOffice\PhpSpreadsheet\Cell\DataValidation::TYPE_LIST);
     $valType->setFormula1('"Lower Better,Higher Better,Exact Value"');
     $valType->setShowDropDown(true);
 
     for ($row = 2; $row <= $totalRows; $row++) {
-        $sheet->getCell("J$row")->setDataValidation(clone $valMethod);
-        $sheet->getCell("L$row")->setDataValidation(clone $valType);
-        $sheet->getCell("I$row")->setDataValidation(clone $validationPeriod);
+        $sheet->getCell("M$row")->setDataValidation(clone $valMethod);
+        $sheet->getCell("K$row")->setDataValidation(clone $valType);
+        $sheet->getCell("L$row")->setDataValidation(clone $validationPeriod);
     }
 
-    // Format Persentase (Kolom K - Weightage)
-    $sheet->getStyle("K2:K$totalRows")->getNumberFormat()->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_PERCENTAGE);
+    // Format Persentase (Kolom J - Weightage)
+    $sheet->getStyle("J2:J$totalRows")->getNumberFormat()->setFormatCode(\PhpOffice\PhpSpreadsheet\Style\NumberFormat::FORMAT_PERCENTAGE);
 
     return [
         1 => [
