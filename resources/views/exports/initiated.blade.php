@@ -3,8 +3,11 @@
     <tr>
         <th>Employee ID</th>
         <th>Employee Name</th>
+        <th>Designation</th>
+        <th>Business Unit</th>
         <th>Category</th>
         <th>KPI</th>
+        <th>Description</th>
         <th>Target</th>
         <th>Uom</th>
         <th>Weightage</th>
@@ -15,7 +18,6 @@
         <th>Current Approver ID</th>
         <th>Initiated By</th>
         <th>Initiated By ID</th>
-        <th>Description</th>
     </tr>
     </thead>
     <tbody>
@@ -30,8 +32,11 @@
                     <tr>
                         <td>{{ $row->employee_id }}</td>
                         <td>{{ $row->employee->fullname }}</td>
+                        <td>{{ $row->employee->designation_name }}</td>
+                        <td>{{ $row->employee->group_company }}</td>
                         <td>{{ $row->goal->category }}</td>
                         <td>{{ $item['kpi'] }}</td>
+                        <td>{{ $item['description'] }}</td>
                         <td>{{ $item['target'] }}</td>
                         <td>{{ $item['uom']==='Other' ? $item['custom_uom'] : $item['uom'] }}</td>
                         <td>{{ $item['weightage'] }}</td>
@@ -42,7 +47,6 @@
                         <td>{{ $row->manager->employee_id }}</td>
                         <td>{{ $row->initiated->name }}</td>
                         <td>{{ $row->initiated->employee_id }}</td>
-                        <td>{{ $item['description'] }}</td>
                     </tr>
                 @endforeach
             @endif
