@@ -41,7 +41,7 @@
                         <td>{{ $item['description'] }}</td>
                         <td>{{ $item['target'] }}</td>
                         <td>{{ $item['uom']==='Other' ? $item['custom_uom'] : $item['uom'] }}</td>
-                        <td>{{ $item['weightage'] }}</td>
+                        <td>{{ $item['weightage'] / 100 }}</td>
                         <td>{{ $item['type'] }}</td>
                         <td>{{ $item['review_period'] ?? '' }}</td>
                         <td>{{ $item['calculation_method'] ?? '' }}</td>
