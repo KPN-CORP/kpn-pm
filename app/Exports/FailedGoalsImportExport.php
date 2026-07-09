@@ -2,15 +2,22 @@
 
 namespace App\Exports;
 
-use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\FromArray;
+use Maatwebsite\Excel\Concerns\WithHeadings;
 
-class FailedGoalsImportExport implements FromCollection
+class FailedGoalsImportExport implements FromArray, WithHeadings
 {
-    /**
-    * @return \Illuminate\Support\Collection
-    */
-    public function collection()
+    public function __construct(
+        protected array $rows
+    ) {}
+
+    public function array(): array
     {
-        //
+        return $this->rows;
+    }
+
+    public function headings(): array
+    {
+        return array_keys($this->rows[0] ?? []);
     }
 }
