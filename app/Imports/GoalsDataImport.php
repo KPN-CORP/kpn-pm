@@ -346,10 +346,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
 
                 $this->errorCount++;
                 $this->detailError[] = [
-                    'employee_id' => $employeeId,
-                    'employee_name' => $data['employee_name'],
-                    'category' => $data['category'],
-                    'period' => $data['period'],
+                    ...$data,
                     'error' => $e->getMessage(),
                 ];
             }
