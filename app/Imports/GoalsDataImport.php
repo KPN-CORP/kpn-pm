@@ -16,8 +16,9 @@ use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 
-class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow
+class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsEmptyRows
 {
     public $successCount = 0; // Hitungan data berhasil
     public $errorCount = 0;   // Hitungan data gagal
