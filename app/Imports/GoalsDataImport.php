@@ -148,7 +148,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
         } catch (\Exception $e) {
             Log::error("Error processing row: " . $e->getMessage());
             $this->errorCount++;
-            $this->detailError[] = $row['employee_id'];
+            $this->detailError[] = $row['employee_id'] . $e->getMessage();
         }
     }
     

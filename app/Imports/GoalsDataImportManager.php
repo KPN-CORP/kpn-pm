@@ -180,7 +180,7 @@ class GoalsDataImportManager implements ToModel, WithValidation, WithHeadingRow,
         } catch (\Exception $e) {
             Log::error("Error processing row: " . $e->getMessage());
             $this->errorCount++;
-            $this->detailError[] = $row['employee_id'];
+            $this->detailError[] = $row['employee_id'] . $e->getMessage();
             $this->invalidEmployees[] = [
                 'employee_id' => $row['employee_id'],
                 'message' => $e->getMessage(), // Get the first error message
