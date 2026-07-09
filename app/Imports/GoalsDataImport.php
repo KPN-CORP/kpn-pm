@@ -1,6 +1,7 @@
 <?php
 namespace App\Imports;
 
+use App\Exports\FailedGoalsImportExport;
 use App\Models\Appraisal;
 use App\Models\ApprovalLayer;
 use App\Models\Employee;
@@ -17,6 +18,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
+use Maatwebsite\Excel\Facades\Excel;
 
 class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsEmptyRows
 {
@@ -25,6 +27,8 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
     public $filePath;
     public $employeesData = []; // Untuk menyimpan semua data berdasarkan employee_id
     public $detailError = [];
+
+    public ?string $errorFile = null;
 
     public function __construct($filePath)
     {
@@ -66,16 +70,16 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
                 // Check if 'employee_id' has errors
                 if ($errors->has('employee_id')) {
                     $this->detailError[] = [
-                        'employee_id' => $row['employee_id'],
-                        'message' => "Employee ID must contain 11 digits.", // Get the first error message
+                        ...$row,
+                    'error' => "Employee ID must contain 11 digits.", // Get the first error message
                     ];
                 }
 
                 // Check if 'weightage' has errors
                 if ($errors->has('weightage')) {
                     $this->detailError[] = [
-                        'employee_id' => $row['employee_id'],
-                        'message' => "Weightage must be in percent minimum 5% and maximum 100%.", // Separate messages
+                        ...$row,
+                        'error' => "Weightage must be in percent minimum 5% and maximum 100%.", // Separate messages
                     ];
                 }
             }
@@ -112,8 +116,8 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
                 Log::info($message);
 
                 $this->detailError[] = [
-                    'employee_id' => $employeeId,
-                    'message' => $message,
+                    ...$row,
+                    'error' => $message,
                 ];
 
                 $this->errorCount++;
@@ -148,7 +152,10 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
         } catch (\Exception $e) {
             Log::error("Error processing row: " . $e->getMessage());
             $this->errorCount++;
-            $this->detailError[] = $row['employee_id'] . $e->getMessage();
+            $this->detailError[] = [
+                ...$row,
+                'error' => $e->getMessage(),
+            ];
         }
     }
     
@@ -200,8 +207,8 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
                     Log::info($message);
 
                     $this->detailError[] = [
-                        'employee_id' => $employeeId,
-                        'message' => $message,
+                        ...$data,
+                        'error' => $message,
                     ];
 
                     $this->errorCount++;
@@ -218,8 +225,8 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
                     Log::info($message);
 
                     $this->detailError[] = [
-                        'employee_id' => $employeeId,
-                        'message' => $message,
+                        ...$data,
+                        'error' => $message,
                     ];
 
                     $this->errorCount++;
@@ -247,8 +254,8 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
                     Log::info($message);
 
                     $this->detailError[] = [
-                        'employee_id' => $employeeId,
-                        'message' => $message,
+                        ...$data,
+                        'error' => $message,
                     ];
 
                     $this->errorCount++;
@@ -340,7 +347,10 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
                 $this->errorCount++;
                 $this->detailError[] = [
                     'employee_id' => $employeeId,
-                    'message' => "Error during import: " . $e->getMessage(),
+                    'employee_name' => $data['employee_name'],
+                    'category' => $data['category'],
+                    'period' => $data['period'],
+                    'error' => $e->getMessage(),
                 ];
             }
         }
@@ -363,15 +373,36 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
 
     public function saveTransaction()
     {
-        $filePathWithoutPublic = str_replace('public/', '', $this->filePath);
+        // $filePathWithoutPublic = str_replace('public/', '', $this->filePath);
+        $this->generateErrorFile();
+
         DB::table('goals_import_transactions')->insert([
             'success' => $this->successCount,
             'error' => $this->errorCount,
             'detail_error' => $this->detailError ? json_encode($this->detailError) : null,
-            'file_uploads' => $filePathWithoutPublic,
+            'file_uploads' => $this->errorFile,
             'submit_by' => Auth::id(),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
+    }
+
+    public function generateErrorFile(): ?string
+    {
+        if (empty($this->detailError)) {
+            return null;
+        }
+
+        $fileName = 'goal_import_error_' . now()->format('YmdHis') . '.xlsx';
+
+        Excel::store(
+            new FailedGoalsImportExport($this->detailError),
+            "uploads/{$fileName}",
+            'public'
+        );
+
+        $this->errorFile = "uploads/{$fileName}";
+
+        return $this->errorFile;
     }
 }
