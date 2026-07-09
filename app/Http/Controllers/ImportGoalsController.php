@@ -65,9 +65,21 @@ class ImportGoalsController extends Controller
 
             // Simpan transaksi
             $import->saveTransaction();
-            Log::info("Data imported successfully.");
+
+            if ($import->errorCount > 0) {
+                    return back()->with(
+                        'warning',
+                        "{$import->successCount} data imported successfully. {$import->errorCount} data failed."
+                    );
+
+                }
+
+                return back()->with(
+                    'success',
+                    "{$import->successCount} data imported successfully."
+                );
         } catch (\Exception $e) {
-            Log::error("Import failed 2: " . $e->getMessage());
+            Log::error("Import failed: " . $e->getMessage());
             return back()->with('error', "Import failed 2: " . $e->getMessage());
         }
         $queries = DB::getQueryLog();
