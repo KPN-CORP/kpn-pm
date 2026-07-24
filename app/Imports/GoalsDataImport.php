@@ -1,34 +1,34 @@
 <?php
+
 namespace App\Imports;
 
-use App\Exports\FailedGoalsImportExport;
 use App\Models\Appraisal;
 use App\Models\ApprovalLayer;
 use App\Models\Employee;
-use App\Models\EmployeeAppraisal;
 use Exception;
-use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
-use Maatwebsite\Excel\Concerns\ToModel;
-use Maatwebsite\Excel\Concerns\WithValidation;
-use Maatwebsite\Excel\Concerns\WithHeadingRow;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Str;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
-use Maatwebsite\Excel\Facades\Excel;
+use Maatwebsite\Excel\Concerns\ToModel;
+use Maatwebsite\Excel\Concerns\WithHeadingRow;
+use Maatwebsite\Excel\Concerns\WithValidation;
 
-class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsEmptyRows
+class GoalsDataImport implements SkipsEmptyRows, ToModel, WithHeadingRow, WithValidation
 {
     public $successCount = 0; // Hitungan data berhasil
-    public $errorCount = 0;   // Hitungan data gagal
-    public $filePath;
-    public $employeesData = []; // Untuk menyimpan semua data berdasarkan employee_id
-    public $detailError = [];
 
-    public ?string $errorFile = null;
+    public $errorCount = 0;   // Hitungan data gagal
+
+    public $filePath;
+
+    public $employeesData = []; // Untuk menyimpan semua data berdasarkan employee_id
+
+    public $detailError = [];
 
     public function __construct($filePath)
     {
@@ -40,17 +40,17 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
      */
     public function model(array $row)
     {
-        Log::info("Processing row: ", $row);
+        Log::info('Processing row: ', $row);
 
         try {
 
             static $headersChecked = false;
 
-            if (!$headersChecked) {
+            if (! $headersChecked) {
                 $headers = collect($row)->keys();
                 $expectedHeaders = ['employee_id', 'employee_name', 'category', 'kpi', 'target', 'uom', 'weightage', 'type', 'description', 'current_approver_id', 'period'];
 
-                if (!collect($expectedHeaders)->diff($headers)->isEmpty()) {
+                if (! collect($expectedHeaders)->diff($headers)->isEmpty()) {
                     throw ValidationException::withMessages([
                         'error' => 'Invalid excel format. The header must contain Employee_ID, Employee_Name, KPI, Target, UOM, Weightage, Type, Description, Current Approver ID, Period.',
                     ]);
@@ -61,7 +61,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
 
             $validate = Validator::make($row, [
                 'employee_id' => 'digits:11', // Ensure employee_id is exactly 11 digits
-                'weightage' => 'required|numeric|min:0.05|max:1.00'
+                'weightage' => 'required|numeric|min:0.05|max:1.00',
             ]);
 
             if ($validate->fails()) {
@@ -71,7 +71,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
                 if ($errors->has('employee_id')) {
                     $this->detailError[] = [
                         ...$row,
-                    'error' => "Employee ID must contain 11 digits.", // Get the first error message
+                        'error' => 'Employee ID must contain 11 digits.', // Get the first error message
                     ];
                 }
 
@@ -79,7 +79,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
                 if ($errors->has('weightage')) {
                     $this->detailError[] = [
                         ...$row,
-                        'error' => "Weightage must be in percent minimum 5% and maximum 100%.", // Separate messages
+                        'error' => 'Weightage must be in percent minimum 5% and maximum 100%.', // Separate messages
                     ];
                 }
             }
@@ -87,7 +87,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
             $path = base_path('resources/goal.json');
 
             // Check if the JSON file exists
-            if (!File::exists($path)) {
+            if (! File::exists($path)) {
                 abort(500, 'JSON file does not exist.');
             }
 
@@ -102,7 +102,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
                 $uom = $row['uom'];
                 $custom_uom = null;
             } else {
-                $uom = "Other";
+                $uom = 'Other';
                 $custom_uom = $row['uom'];
             }
 
@@ -111,8 +111,8 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
             $employeeExist = Employee::where('employee_id', $employeeId)
                 ->exists();
 
-            if (!$employeeExist) {
-                $message = "Employee : " . $row['employee_name'] . " with ID " . $employeeId . " not exist.";
+            if (! $employeeExist) {
+                $message = 'Employee : '.$row['employee_name'].' with ID '.$employeeId.' not exist.';
                 Log::info($message);
 
                 $this->detailError[] = [
@@ -121,11 +121,12 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
                 ];
 
                 $this->errorCount++;
+
                 return;
             }
 
             // Simpan data KPI ke array berdasarkan employee_id
-            if (!isset($this->employeesData[$employeeId])) {
+            if (! isset($this->employeesData[$employeeId])) {
                 $this->employeesData[$employeeId] = [
                     'employee_name' => $row['employee_name'],
                     'category' => $row['category'],
@@ -149,8 +150,8 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
                 'calculation_method' => $row['calculation_method'],
                 'custom_uom' => $custom_uom,
             ];
-        } catch (\Exception $e) {
-            Log::error("Error processing row: " . $e->getMessage());
+        } catch (Exception $e) {
+            Log::error('Error processing row: '.$e->getMessage());
             $this->errorCount++;
             $this->detailError[] = [
                 ...$row,
@@ -158,8 +159,8 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
             ];
         }
     }
-    
-     protected function mapReviewPeriod($period): int
+
+    protected function mapReviewPeriod($period): int
     {
         return match (strtolower($period)) {
             '1', 'monthly' => 1,
@@ -179,7 +180,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
             default => 1,
         };
     }
-    
+
     public function saveToDatabase()
     {
         ksort($this->employeesData, SORT_NUMERIC);
@@ -189,30 +190,32 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
             DB::beginTransaction();
 
             try {
-                
+
                 $approvalRequests = DB::table('approval_requests')
-                ->where('employee_id', $employeeId)
-                ->where('category', $data['category'])
-                ->where('period', $data['period'])
-                ->whereNull('deleted_at')
-                ->first(); // Get the list of IDs
+                    ->where('employee_id', $employeeId)
+                    ->where('category', $data['category'])
+                    ->where('period', $data['period'])
+                    ->whereNull('deleted_at')
+                    ->first(); // Get the list of IDs
 
                 $current_approval_id = $data['current_approval_id'] != '-' ? $data['current_approval_id'] : $approvalRequests->current_approval_id;
 
                 $existLayer = ApprovalLayer::where('approver_id', $current_approval_id)
                     ->where('employee_id', $employeeId)->max('layer');
 
-                if (!$existLayer) {
-                    $message = "Cannot find Layer ID : " . $current_approval_id . " on Employee ID: $employeeId.";
+                if (! $existLayer) {
+                    $message = 'Cannot find Layer ID : '.$current_approval_id." on Employee ID: $employeeId.";
                     Log::info($message);
 
                     $this->detailError[] = [
                         ...$data,
+                        'employee_id' => $employeeId,
                         'error' => $message,
                     ];
 
                     $this->errorCount++;
                     DB::rollBack();
+
                     continue;
                 }
 
@@ -226,11 +229,13 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
 
                     $this->detailError[] = [
                         ...$data,
+                        'employee_id' => $employeeId,
                         'error' => $message,
                     ];
 
                     $this->errorCount++;
                     DB::rollBack();
+
                     continue;
                 }
 
@@ -239,7 +244,7 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
                 // Decode form_data if it's a JSON string
                 $formData = is_string($data['form_data']) ? json_decode($data['form_data'], true) : $data['form_data'];
 
-                if (!is_array($formData)) {
+                if (! is_array($formData)) {
                     continue; // Skip if form_data is not valid
                 }
 
@@ -255,31 +260,33 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
 
                     $this->detailError[] = [
                         ...$data,
+                        'employee_id' => $employeeId,
                         'error' => $message,
                     ];
 
                     $this->errorCount++;
                     DB::rollBack();
+
                     continue;
                 }
 
                 $formId = Str::uuid();
 
-                Log::info("Preparing to insert data for Employee ID: " . $employeeId, [
+                Log::info('Preparing to insert data for Employee ID: '.$employeeId, [
                     'form_data' => $data['form_data'],
                 ]);
 
-                Log::info("Starting transaction for Employee ID: " . $employeeId);
+                Log::info('Starting transaction for Employee ID: '.$employeeId);
 
-                Log::info("Deleting old data for Employee ID: " . $employeeId);
+                Log::info('Deleting old data for Employee ID: '.$employeeId);
                 DB::table('goals')
                     ->where('employee_id', $employeeId)
                     ->where('category', $data['category'])
                     ->where('period', $data['period'])
                     ->update(['deleted_at' => now()]);
-                Log::info("Old data deleted for Employee ID: " . $employeeId);
+                Log::info('Old data deleted for Employee ID: '.$employeeId);
 
-                Log::info("Data for Employee ID: " . $employeeId, $data);
+                Log::info('Data for Employee ID: '.$employeeId, $data);
                 DB::table('goals')->insert([
                     'id' => $formId,
                     'employee_id' => $employeeId,
@@ -290,10 +297,10 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
                     'created_at' => now(),
                     'updated_at' => now(),
                 ]);
-                Log::info("Old goals updated for Employee ID: " . $employeeId);
+                Log::info('Old goals updated for Employee ID: '.$employeeId);
 
                 // Soft delete approvals linked to these requests
-                if (!empty($approvalRequests->id)) {
+                if (! empty($approvalRequests->id)) {
                     DB::table('approvals')
                         ->where('request_id', $approvalRequests->id)
                         ->update(['deleted_at' => now()]);
@@ -306,9 +313,9 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
                 $empId = Employee::where('employee_id', $employeeId)->pluck('id')->first();
 
                 if ($empId) {
-                    Log::info("Employee ID found for Employee ID: " . $employeeId . ". EmpId: " . $empId);
+                    Log::info('Employee ID found for Employee ID: '.$employeeId.'. EmpId: '.$empId);
                 } else {
-                    Log::error("No Employee record found for Employee ID: " . $employeeId);
+                    Log::error('No Employee record found for Employee ID: '.$employeeId);
                 }
 
                 $requestId = DB::table('approval_requests')->insertGetId([
@@ -337,16 +344,17 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
                 DB::commit();
 
                 $this->successCount++;
-                Log::info("Data inserted for Employee ID: " . $employeeId);
+                Log::info('Data inserted for Employee ID: '.$employeeId);
 
-            } catch (\Exception $e) {
+            } catch (Exception $e) {
                 DB::rollBack();
 
-                Log::error("Error inserting data for Employee ID: " . $employeeId . ". Error: " . $e->getMessage());
+                Log::error('Error inserting data for Employee ID: '.$employeeId.'. Error: '.$e->getMessage());
 
                 $this->errorCount++;
                 $this->detailError[] = [
                     ...$data,
+                    'employee_id' => $employeeId,
                     'error' => $e->getMessage(),
                 ];
             }
@@ -355,7 +363,8 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
 
     public function rules(): array
     {
-        Log::info("Validating Excel data 2...");
+        Log::info('Validating Excel data 2...');
+
         return [
             'employee_id' => 'required|string',
             'employee_name' => 'required|string',
@@ -370,36 +379,36 @@ class GoalsDataImport implements ToModel, WithValidation, WithHeadingRow, SkipsE
 
     public function saveTransaction()
     {
-        // $filePathWithoutPublic = str_replace('public/', '', $this->filePath);
-        $this->generateErrorFile();
+        $filePathWithoutPublic = str_replace('public/', '', $this->filePath);
+
+        $this->logFailedRows();
 
         DB::table('goals_import_transactions')->insert([
             'success' => $this->successCount,
             'error' => $this->errorCount,
             'detail_error' => $this->detailError ? json_encode($this->detailError) : null,
-            'file_uploads' => $this->errorFile,
+            'file_uploads' => $filePathWithoutPublic,
             'submit_by' => Auth::id(),
             'created_at' => now(),
             'updated_at' => now(),
         ]);
     }
 
-    public function generateErrorFile(): ?string
+    /**
+     * Baris yang gagal dicatat ke log, tidak disimpan sebagai file.
+     */
+    protected function logFailedRows(): void
     {
         if (empty($this->detailError)) {
-            return null;
+            return;
         }
 
-        $fileName = 'goal_import_error_' . now()->format('YmdHis') . '.xlsx';
-
-        Excel::store(
-            new FailedGoalsImportExport($this->detailError),
-            "uploads/{$fileName}",
-            'public'
-        );
-
-        $this->errorFile = "uploads/{$fileName}";
-
-        return $this->errorFile;
+        Log::warning('Goals import finished with errors.', [
+            'file' => $this->filePath,
+            'submit_by' => Auth::id(),
+            'success' => $this->successCount,
+            'error' => $this->errorCount,
+            'rows' => $this->detailError,
+        ]);
     }
 }

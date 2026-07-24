@@ -67,8 +67,12 @@
                                         @endif
                                     </td>
                                     <td>
-                                        <!-- Display the uploaded file (assuming there's a column 'file_uploads' for file path) -->
-                                        <a href="{{ asset('storage/' . $import->file_uploads) }}" class="btn btn-primary btn-sm" target="_blank">Download</a>
+                                        <!-- File yang di-upload user -->
+                                        @if (!empty($import->file_uploads))
+                                            <a href="{{ asset('storage/' . $import->file_uploads) }}" class="btn btn-primary btn-sm" target="_blank">Download</a>
+                                        @else
+                                            <span class="text-muted">-</span>
+                                        @endif
                                     </td>
                                 </tr>
                                 <!--Modal Info-->
@@ -90,8 +94,8 @@
                                                         @foreach ($detailErrors as $error)
                                                             @if (is_array($error)) {{-- Format Baru --}}
                                                                 <li>
-                                                                    <strong>Employee ID:</strong> {{ $error['employee_id'] ?? 'N/A' }} - 
-                                                                    <strong>Message:</strong> {{ $error['message'] ?? 'No details provided.' }}
+                                                                    <strong>Employee ID:</strong> {{ $error['employee_id'] ?? 'N/A' }} -
+                                                                    <strong>Message:</strong> {{ $error['error'] ?? ($error['message'] ?? 'No details provided.') }}
                                                                 </li>
                                                             @else {{-- Format Lama --}}
                                                                 <li>
