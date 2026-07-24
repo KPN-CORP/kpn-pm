@@ -60,7 +60,13 @@
                                     <td class="text-center" style="width:5%">{{ $index + 1 }}</td>
                                     <td>{{ \Carbon\Carbon::parse($import->created_at)->format('d-m-Y H:i') }}</td>
                                     <td>
-                                        Success : {{$import->success}}, Error : {{$import->error}} 
+                                        Success : {{$import->success}}
+                                        <!-- Icon Information: success dihitung per employee, bukan per baris excel -->
+                                        <a href="javascript:void(0)" data-bs-toggle="tooltip" data-bs-placement="top"
+                                            title="{{ $import->success }} employee(s) successfully imported their KPI.">
+                                            <i class="ri-information-line text-success"></i>
+                                        </a>,
+                                        Error : {{$import->error}}
                                         @if ($import->error > 0)
                                             <!-- Icon Information if errors are present -->
                                             <a href="javascript:void(0)" data-bs-toggle="modal" data-bs-target="#modalInfo{{$index}}"><i class="ri-information-line text-danger"></i></a>
