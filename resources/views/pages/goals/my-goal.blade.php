@@ -187,11 +187,14 @@
     @if ($period == $row->request->goal->period && !$row->request->appraisalCheck && $access)
         <div class="d-flex flex-wrap gap-2">
             
-            @if (!$achievement || $achievementStatus === 'Approved' || $achievementCreatedBy ?? $achievementCreatedBy === Auth::id())
+            <!-- @if (!$achievement || $achievementStatus === 'Approved' || $achievementCreatedBy ?? $achievementCreatedBy === Auth::id())
                 <a class="btn btn-outline-{{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? 'warning' : ($row->request->goal->form_status === 'Approved' ? 'success fw-semibold' : 'secondary') }} btn-sm" href="{{ route('goals.update-achievement', $row->request->goal->id) }}">
                     {{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? __('Revise Achievement') : __('Update Achievement') }}
                 </a>
-            @endif
+            @endif -->
+            <a class="btn btn-outline-{{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? 'warning' : ($row->request->goal->form_status === 'Approved' ? 'success fw-semibold' : 'secondary') }} btn-sm" href="{{ route('goals.update-achievement', $row->request->goal->id) }}">
+                    {{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? __('Revise Achievement') : __('Update Achievement') }}
+            </a>
 
             @if (Auth::user()->employee_id == $row->request->initiated->employee_id)
                 @if (
