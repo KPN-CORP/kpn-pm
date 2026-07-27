@@ -184,44 +184,35 @@
             <div class="card-header bg-white py-2 d-flex flex-wrap align-items-center justify-content-between gap-2 border-bottom">
     <h5 class="m-0 font-weight-bold text-primary">{{ __('Goal') }} {{ $row->request->period }}</h5>
     
-    <!-- @if ($period == $row->request->goal->period && !$row->request->appraisalCheck && $access) -->
-        <div class="d-flex flex-wrap gap-2">
-            
-            <!-- @if (!$achievement || $achievementStatus === 'Approved' || $achievementCreatedBy ?? $achievementCreatedBy === Auth::id())
-                <a class="btn btn-outline-{{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? 'warning' : ($row->request->goal->form_status === 'Approved' ? 'success fw-semibold' : 'secondary') }} btn-sm" href="{{ route('goals.update-achievement', $row->request->goal->id) }}">
-                    {{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? __('Revise Achievement') : __('Update Achievement') }}
-                </a>
-            @endif -->
-            <a class="btn btn-outline-{{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? 'warning' : ($row->request->goal->form_status === 'Approved' ? 'success fw-semibold' : 'secondary') }} btn-sm" href="{{ route('goals.update-achievement', $row->request->goal->id) }}">
-                    {{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? __('Revise Achievement') : __('Update Achievement') }}
-            </a>
+    <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-outline-{{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? 'warning' : ($row->request->goal->form_status === 'Approved' ? 'success fw-semibold' : 'secondary') }} btn-sm" href="{{ route('goals.update-achievement', $row->request->goal->id) }}">
+            {{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? __('Revise Achievement') : __('Update Achievement') }}
+        </a>
 
-            @if (Auth::user()->employee_id == $row->request->initiated->employee_id)
-                @if (
-                    $row->request->goal->form_status != 'Draft' &&
-                    $row->request->created_by == Auth::user()->id
-                )
-                    <a id="reviseGoalBtn"
-                        class="btn btn-outline-warning btn-sm fw-semibold revise-goal-btn"
-                        href="{{ route('goals.edit', $row->request->goal->id) }}"
-                        data-has-achievement="{{ $row->request->goal->hasAchievement ? 1 : 0 }}">
-                        {{ __('Revise Goals') }}
-                    </a>
-                @elseif (
-                    $row->request->goal->form_status == 'Draft' ||
-                    ($row->request->status == 'Pending' && count($row->request->approval) == 0) ||
-                    $row->request->sendback_to == $row->request->employee_id
-                )
-                    <a class="btn btn-outline-warning btn-sm fw-semibold"
-                        href="{{ route('goals.edit', $row->request->goal->id) }}"
-                        onclick="showLoader()">
-                        {{ $row->request->status === 'Sendback' ? __('Revise Goals') : __('Edit') }}
-                    </a>
-                @endif
+        @if (Auth::user()->employee_id == $row->request->initiated->employee_id)
+            @if (
+                $row->request->goal->form_status != 'Draft' &&
+                $row->request->created_by == Auth::user()->id
+            )
+                <a id="reviseGoalBtn"
+                    class="btn btn-outline-warning btn-sm fw-semibold revise-goal-btn"
+                    href="{{ route('goals.edit', $row->request->goal->id) }}"
+                    data-has-achievement="{{ $row->request->goal->hasAchievement ? 1 : 0 }}">
+                    {{ __('Revise Goals') }}
+                </a>
+            @elseif (
+                $row->request->goal->form_status == 'Draft' ||
+                ($row->request->status == 'Pending' && count($row->request->approval) == 0) ||
+                $row->request->sendback_to == $row->request->employee_id
+            )
+                <a class="btn btn-outline-warning btn-sm fw-semibold"
+                    href="{{ route('goals.edit', $row->request->goal->id) }}"
+                    onclick="showLoader()">
+                    {{ $row->request->status === 'Sendback' ? __('Revise Goals') : __('Edit') }}
+                </a>
             @endif
-            
-        </div>
-    <!-- @endif -->
+        @endif
+    </div>
 </div>
                     <div class="card-body p-3">
                         <div id="alertDraft" class="alert alert-danger alert-dismissible {{ $row->request->goal->form_status == 'Draft' ? '':'fade d-none' }}" role="alert">
