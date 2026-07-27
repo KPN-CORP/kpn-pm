@@ -184,7 +184,7 @@
             <div class="card-header bg-white py-2 d-flex flex-wrap align-items-center justify-content-between gap-2 border-bottom">
     <h5 class="m-0 font-weight-bold text-primary">{{ __('Goal') }} {{ $row->request->period }}</h5>
     
-    @if ($period == $row->request->goal->period && !$row->request->appraisalCheck && $access)
+    <!-- @if ($period == $row->request->goal->period && !$row->request->appraisalCheck && $access) -->
         <div class="d-flex flex-wrap gap-2">
             
             <!-- @if (!$achievement || $achievementStatus === 'Approved' || $achievementCreatedBy ?? $achievementCreatedBy === Auth::id())
@@ -221,7 +221,7 @@
             @endif
             
         </div>
-    @endif
+    <!-- @endif -->
 </div>
                     <div class="card-body p-3">
                         <div id="alertDraft" class="alert alert-danger alert-dismissible {{ $row->request->goal->form_status == 'Draft' ? '':'fade d-none' }}" role="alert">
