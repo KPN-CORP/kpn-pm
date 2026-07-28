@@ -164,12 +164,12 @@ input[type=number] {
             <div class="card-body p-3 p-md-4">
                 <input type="hidden" name="kpi_id[]" value="{{ $data['kpi_id'] ?? '' }}">
                 <input type="hidden" name="goal_id" value="{{ $id }}">
-                <input type="hidden" name="review_period[]" value="{{ $data['review_period'] }}">
-                <input type="hidden" name="calculation_method[]" value="{{ $data['calculation_method'] }}">
+                <input type="hidden" name="review_period[]" value="{{ $data['review_period'] ?? '' }}">
+                <input type="hidden" name="calculation_method[]" value="{{ $data['calculation_method'] ?? '' }}">
                 <div class="row g-3">
                     <div class="col-md-5 col-lg-5 mb-md-0">
                         <small class="fw-bold text-uppercase d-block kpi-label mb-1">KPI {{ $index + 1 }}</small>
-                        <h6 class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">{{ $data['kpi'] }}</h6>
+                        <h6 class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">{{ $data['kpi'] ?? '-' }}</h6>
                         <p class="text-secondary mb-0" style="font-size: 0.85rem; line-height: 1.5;">{{ $data['description'] ?? '-' }}</p>
                     </div>
                     <div class="col-md-7 col-lg-7">
@@ -177,16 +177,16 @@ input[type=number] {
                             <div class="col-3 col-sm-3">
                                 <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">
-                                    {{ is_numeric($data['target']) ? number_format((float)$data['target'], 0) : '-' }}
+                                    {{ is_numeric($data['target'] ?? null) ? number_format((float)$data['target'], 0) : '-' }}
                                 </span>
                             </div>
                             <div class="col-3 col-sm-3">
                                 <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
-                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ is_null($data['custom_uom']) ? $data['uom'] : $data['custom_uom'] }}</span>
+                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ ($data['custom_uom'] ?? null) === null ? ($data['uom'] ?? '-') : $data['custom_uom'] }}</span>
                             </div>
                             <div class="col-3 col-sm-3">
                                 <small class="fw-bold text-uppercase d-block kpi-label mb-1">Weightage</small>
-                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['weightage'] }}</span>
+                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['weightage'] ?? '-' }}</span>
                             </div>
                             <div class="col-3 col-sm-3">
                                 <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
@@ -204,7 +204,7 @@ input[type=number] {
                         <div class="row g-3 mb-3">
                             <div class="col-3 col-sm-3">
                                 <small class="fw-bold text-uppercase d-block kpi-label mb-1">Type</small>
-                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['type'] }}</span>
+                                <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['type'] ?? '-' }}</span>
                             </div>
                             <div class="col-3 col-sm-3">
                                 <small class="fw-bold text-uppercase d-block kpi-label mb-1">Review Period</small>
