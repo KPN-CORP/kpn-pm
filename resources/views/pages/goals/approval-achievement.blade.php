@@ -163,7 +163,7 @@
             <div class="row g-3">
                 <div class="col-md-5 col-lg-5 mb-md-0">
                     <small class="fw-bold text-uppercase d-block kpi-label mb-1">KPI {{ $i + 1 }}</small>
-                    <h6 class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">{{ $data['kpi'] }}</h6>
+                    <h6 class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">{{ $data['kpi'] ?? '-' }}</h6>
                     <p class="text-secondary mb-0" style="font-size: 0.85rem; line-height: 1.5;">
                         {{ $data['description'] ?? '-' }}</p>
                 </div>
@@ -171,16 +171,16 @@
                     <div class="row g-3 mb-3">
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
-                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ number_format((float) $data['target'], 0) }}</span>
+                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ number_format((float) ($data['target'] ?? 0), 0) }}</span>
                         </div>
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
                             <span class="fw-bold text-dark"
-                                style="font-size: 0.9rem;">{{ is_null($data['custom_uom']) ? $data['uom'] : $data['custom_uom'] }}</span>
+                                style="font-size: 0.9rem;">{{ ($data['custom_uom'] ?? null) === null ? ($data['uom'] ?? '-') : $data['custom_uom'] }}</span>
                         </div>
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Weightage</small>
-                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['weightage'] }}</span>
+                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['weightage'] ?? '-' }}</span>
                         </div>
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
@@ -202,7 +202,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Type</small>
-                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['type'] }}</span>
+                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['type'] ?? '-' }}</span>
                         </div>
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Review Period</small>
@@ -274,13 +274,13 @@
                             </div>
 
                             <div class="row g-2" id="kpi_grid_{{$i}}"
-    data-review-period="{{$data['review_period']}}">
+    data-review-period="{{ $data['review_period'] ?? 1 }}">
                                 @foreach($data['months'] as $monthIdx => $month)
                                 <div class="col-xl-1 col-lg-2 col-md-3 col-4">
                                     <div class="month-box border-primary border-opacity-25">
                                         <span class="month-label text-primary">{{ $month['label'] }}</span>
 
-                                        <input type="text" name="ach[{{$data['kpi_id']}}][{{$monthIdx}}]"
+                                        <input type="text" name="ach[{{ $data['kpi_id'] ?? '' }}][{{$monthIdx}}]"
                                             value="{{ isset($month['value']) && is_numeric($month['value']) ? (float)$month['value'] : '' }}" class="month-input input-compact" placeholder="-" data-month="{{ $monthIdx }}">
 
                                         @if(!empty($month['file']))
@@ -313,7 +313,7 @@
                             FIRST SUBMISSION
                         </span>
                     <small class="fw-bold text-uppercase d-block kpi-label mb-1">KPI {{ $i + 1 }}</small>
-                    <h6 class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">{{ $data['kpi'] }}</h6>
+                    <h6 class="fw-bold text-dark mb-1" style="font-size: 0.9rem;">{{ $data['kpi'] ?? '-' }}</h6>
                     <p class="text-secondary mb-0" style="font-size: 0.85rem; line-height: 1.5;">
                         {{ $data['description'] ?? '-' }}</p>
                 </div>
@@ -321,16 +321,16 @@
                     <div class="row g-3 mb-3">
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Target</small>
-                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ number_format((float) $data['target'], 0) }}</span>
+                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ number_format((float) ($data['target'] ?? 0), 0) }}</span>
                         </div>
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">UoM</small>
                             <span class="fw-bold text-dark"
-                                style="font-size: 0.9rem;">{{ is_null($data['custom_uom']) ? $data['uom'] : $data['custom_uom'] }}</span>
+                                style="font-size: 0.9rem;">{{ ($data['custom_uom'] ?? null) === null ? ($data['uom'] ?? '-') : $data['custom_uom'] }}</span>
                         </div>
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Weightage</small>
-                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['weightage'] }}</span>
+                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['weightage'] ?? '-' }}</span>
                         </div>
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Achievement</small>
@@ -352,7 +352,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Type</small>
-                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['type'] }}</span>
+                            <span class="fw-bold text-dark" style="font-size: 0.9rem;">{{ $data['type'] ?? '-' }}</span>
                         </div>
                         <div class="col-3 col-sm-3">
                             <small class="fw-bold text-uppercase d-block kpi-label mb-1">Review Period</small>
@@ -377,13 +377,13 @@
                     <div class="card border-primary border-opacity-50 bg-white shadow-sm h-100">
                         <div class="card-body p-2">
                             <div class="row g-2" id="kpi_grid_{{$i}}"
-    data-review-period="{{$data['review_period']}}">
+    data-review-period="{{ $data['review_period'] ?? 1 }}">
                                 @foreach($data['months'] as $monthIdx => $month)
                                 <div class="col-xl-1 col-lg-2 col-md-3 col-4">
                                     <div class="month-box border-primary border-opacity-25">
                                         <span class="month-label text-primary">{{ $month['label'] }}</span>
 
-                                        <input type="text" name="ach[{{$data['kpi_id']}}][{{$monthIdx}}]"
+                                        <input type="text" name="ach[{{ $data['kpi_id'] ?? '' }}][{{$monthIdx}}]"
                                             value="{{ isset($month['value']) && is_numeric($month['value']) ? (float)$month['value'] : '' }}" class="month-input input-compact" data-month="{{ $monthIdx }}" placeholder="-">
 
                                         @if(!empty($month['file']))
