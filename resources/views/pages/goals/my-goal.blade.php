@@ -219,6 +219,7 @@
             
         </div>
     @endif
+</div>
                     <div class="card-body p-3">
                         <div id="alertDraft" class="alert alert-danger alert-dismissible {{ $row->request->goal->form_status == 'Draft' ? '':'fade d-none' }}" role="alert">
                             <div class="d-flex align-items-center gap-2 text-primary">
