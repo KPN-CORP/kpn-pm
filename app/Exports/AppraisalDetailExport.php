@@ -28,6 +28,18 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
     protected $user;
     protected $period;
 
+    // Caches to avoid re-running the (expensive) expansion and header build.
+    protected ?Collection $expandedCache = null;
+    protected ?array $headingsCache = null;
+
+    // Memoized lookups that are identical for many contributors/rows.
+    protected array $formGroupCache = [];   // keyed by employee_id
+    protected array $weightageCache = [];   // keyed by "group_company|period"
+    protected ?bool $isSuperadmin = null;
+
+    // Preloaded Appraisal models (with goal + employee) keyed by Appraisal id.
+    protected $appraisalById = null;
+
     public function __construct(AppService $appService, array $data, array $headers, $user, $period)
     {
         $this->data = collect($data); // Convert array data to a collection
@@ -35,10 +47,16 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         $this->appService = $appService;
         $this->user = $user;
         $this->period = $period;
+        $this->isSuperadmin = $user ? $user->hasRole('superadmin') : false;
     }
 
     public function collection(): Collection
     {
+        // Expansion is expensive (per-contributor DB work + calculations) and is
+        // triggered from both headings() and the sheet writer. Build it once.
+        if ($this->expandedCache !== null) {
+            return $this->expandedCache;
+        }
 
         $this->dynamicHeaders = []; // Reset dynamic headers for each export
 
@@ -54,11 +72,15 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         $employeeAppraisalById = Appraisal::with([
             'employee' => function ($query) {
                 $query->select('employee_id', 'fullname', 'gender', 'email', 'job_level', 'group_company', 'designation_name', 'company_name', 'contribution_level_code'); // Adjust fields as needed
-            }
+            },
+            'goal', // preloaded so per-contributor/summary lookups don't re-query
         ])
         ->where('period', $this->period)
         ->get()
         ->groupBy('id');
+
+        // Keyed map (Appraisal id => model) reused by contributor/summary methods.
+        $this->appraisalById = $employeeAppraisalById;
 
         $expandedData = collect();
 
@@ -85,6 +107,8 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
             }
         });
+
+        $this->expandedCache = $expandedData;
 
         return $expandedData;
     }
@@ -224,9 +248,57 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         }
     }
 
+    /**
+     * The "Appraisal Form" template resolves identically for a given employee,
+     * yet is requested for self, every 360 contributor and the summary row.
+     * Memoize it per employee to collapse those repeated 2-query lookups.
+     */
+    private function resolveFormGroup($employeeId): array
+    {
+        if (!array_key_exists($employeeId, $this->formGroupCache)) {
+            $content = $this->appService->formGroupAppraisal($employeeId, 'Appraisal Form');
+            $this->formGroupCache[$employeeId] = $content ?: ['data' => ['formData' => []]];
+        }
+
+        return $this->formGroupCache[$employeeId];
+    }
+
+    /**
+     * Weightage is the same for everyone in a group_company/period, so cache
+     * the decoded content instead of running the LIKE query per contributor.
+     */
+    private function resolveWeightageContent($groupCompany, $period)
+    {
+        $key = $groupCompany . '|' . $period;
+
+        if (!array_key_exists($key, $this->weightageCache)) {
+            $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $groupCompany . '%')
+                ->where('period', $period)
+                ->first();
+            $this->weightageCache[$key] = $weightageData ? json_decode($weightageData->form_data, true) : null;
+        }
+
+        return $this->weightageCache[$key];
+    }
+
+    /**
+     * Look up a preloaded Appraisal (with goal + employee eager loaded) by id,
+     * falling back to a direct query if it was not part of the batch's period set.
+     */
+    private function resolveAppraisal($appraisalId)
+    {
+        $appraisal = optional($this->appraisalById?->get($appraisalId))->first();
+
+        if (!$appraisal) {
+            $appraisal = Appraisal::with(['goal'])->where('id', $appraisalId)->first();
+        }
+
+        return $appraisal;
+    }
+
     private function getFormDataForContributor(AppraisalContributor $contributor): array
     {
-        $appraisal = Appraisal::with(['goal'])->where('id', $contributor->appraisal_id)->first();
+        $appraisal = $this->resolveAppraisal($contributor->appraisal_id);
 
         // If the underlying appraisal is still a Draft, skip heavy calculations
         if ($appraisal && (($appraisal->form_status ?? null) === 'Draft' || ($contributor->status ?? null) === 'Draft')) {
@@ -248,14 +320,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
         $employeeData = $contributor->employee;
 
-        $formGroupContent = $this->appService->formGroupAppraisal($contributor->employee_id, 'Appraisal Form');
-        $appraisalForm = $formGroupContent ?: ['data' => ['formData' => []]];
-
-        if (!$formGroupContent) {
-            $appraisalForm = ['data' => ['formData' => []]];
-        } else {
-            $appraisalForm = $formGroupContent;
-        }
+        $appraisalForm = $this->resolveFormGroup($contributor->employee_id);
 
         // culture & leadership BI items
         $cultureData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
@@ -263,11 +328,9 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
         $jobLevel = $employeeData->job_level;
 
-        $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $contributor->period)->first();
+        $weightageContent = $this->resolveWeightageContent($employeeData->group_company, $contributor->period);
 
-        $weightageContent = json_decode($weightageData->form_data, true);
-
-        if ($this->user->hasRole('superadmin')) {
+        if ($this->isSuperadmin) {
             // for non percentage by 360 data BI items
             $result = $this->appService->appraisalSummaryWithout360Calculation($weightageContent, $appraisalData, $employeeData->employee_id, $jobLevel);
         } else {
@@ -351,24 +414,16 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
         // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
 
-        $formGroupContent = $this->appService->formGroupAppraisal($datas->first()->employee_id, 'Appraisal Form');
-
-        if (!$formGroupContent) {
-            $appraisalForm = ['data' => ['formData' => []]];
-        } else {
-            $appraisalForm = $formGroupContent;
-        }
+        $appraisalForm = $this->resolveFormGroup($datas->first()->employee_id);
 
         $cultureData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
         $leadershipData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
 
         $jobLevel = $employeeData->job_level;
 
-        $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $contributor->period)->first();
+        $weightageContent = $this->resolveWeightageContent($employeeData->group_company, $contributor->period);
 
-        $weightageContent = json_decode($weightageData->form_data, true);
-
-        if ($this->user->hasRole('superadmin')) {
+        if ($this->isSuperadmin) {
             // for non percentage by 360 data BI items
             $result = $this->appService->appraisalSummaryWithout360Calculation($weightageContent, $appraisalData, $employeeData->employee_id, $jobLevel);
         } else {
@@ -415,7 +470,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         $datas = $datasQuery->get();
 
         // If the appraisal itself is Draft, skip and return empty structure
-        $appraisalModel = Appraisal::where('id', $contributor->appraisal_id)->first();
+        $appraisalModel = $this->resolveAppraisal($contributor->appraisal_id);
         if ($appraisalModel && (($appraisalModel->form_status ?? null) === 'Draft')) {
             return [
                 'formData' => [],
@@ -443,13 +498,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         $appraisalDataCollection = [];
         $goalDataCollection = [];
 
-        $formGroupContent = $this->appService->formGroupAppraisal($datas->first()->employee_id, 'Appraisal Form');
-
-        if (!$formGroupContent) {
-            $appraisalForm = ['data' => ['formData' => []]];
-        } else {
-            $appraisalForm = $formGroupContent;
-        }
+        $appraisalForm = $this->resolveFormGroup($datas->first()->employee_id);
 
         $cultureData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Culture') ?? [];
         $leadershipData = $this->appService->getDataByName($appraisalForm['data']['form_appraisals'], 'Leadership') ?? [];
@@ -521,9 +570,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
         $jobLevel = $employeeData->job_level;
 
-        $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $request->period)->first();
-
-        $weightageContent = json_decode($weightageData->form_data, true);
+        $weightageContent = $this->resolveWeightageContent($employeeData->group_company, $request->period);
 
         $result = $this->appService->appraisalSummary($weightageContent, $formData, $employeeData->employee_id, $jobLevel);
 
@@ -574,19 +621,16 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         return $row;
     }
 
-    protected $headersCached = false;
-
     public function headings(): array
     {
-        if (!$this->headersCached) {
-            $this->collection();
-            $this->headersCached = true;
+        // Built once and reused; map() calls this per row, so recomputing the
+        // sort/merge here every time was pure overhead.
+        if ($this->headingsCache !== null) {
+            return $this->headingsCache;
         }
 
-        if (empty($this->dynamicHeaders)) {
-            // Populate collection to ensure dynamic headers are captured
-            $this->collection();
-        }
+        // Ensure the expansion has run so dynamic headers are populated (cached).
+        $this->collection();
 
         $extendedHeaders = $this->headers;
 
@@ -637,6 +681,8 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         }
 
         // Log::info("Headings returned:", $extendedHeaders);
+        $this->headingsCache = $extendedHeaders;
+
         return $extendedHeaders;
     }
 

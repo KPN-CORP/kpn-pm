@@ -30,25 +30,19 @@
             </div>
         @endif
         <input id="permission-reportpadetail" data-report-pa-detail="{{ Auth::user()->can('reportpadetail') ? 'true' : 'false' }}" type="hidden">
-        <div class="row">
-            <div class="col-auto">
-                <div class="mb-3 p-1 bg-info-subtle rounded shadow">
-                    <span class="mx-2">M = Manager</span>|
-                    <span class="mx-2">C = Calibrator</span>|
-                    <span class="mx-2">P = Peers</span>|
-                    <span class="mx-2">S = Subordinate</span>|
-                    <span class="mx-2"><i class="ri-check-line bg-success-subtle text-success rounded fs-18"></i> = Done</span>|
-                    <span class="mx-2"><i class="ri-error-warning-line bg-warning-subtle text-warning rounded fs-20"></i> = Pending</span>
-                </div>
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-3">
+            <div class="p-1 bg-info-subtle rounded shadow">
+                <span class="mx-2">M = Manager</span>|
+                <span class="mx-2">C = Calibrator</span>|
+                <span class="mx-2">P = Peers</span>|
+                <span class="mx-2">S = Subordinate</span>|
+                <span class="mx-2"><i class="ri-check-line bg-success-subtle text-success rounded fs-18"></i> = Done</span>|
+                <span class="mx-2"><i class="ri-error-warning-line bg-warning-subtle text-warning rounded fs-20"></i> = Pending</span>
             </div>
+            <button class="input-group-text bg-white border-dark-subtle" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight" id="filter" aria-controls="offcanvasRight"><i class="ri-filter-line me-1"></i>Filters</button>
         </div>
         <!-- Content Row -->
         <div class="row">
-            <div class="col">
-                <div class="d-md">
-                  <button class="input-group-text bg-white border-dark-subtle float-end mb-2" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight" id="filter" aria-controls="offcanvasRight"><i class="ri-filter-line me-1"></i>Filters</button>
-                </div>
-            </div>
           <div class="col-md-12">
             <div class="card shadow mb-4">
               <div class="card-body">
