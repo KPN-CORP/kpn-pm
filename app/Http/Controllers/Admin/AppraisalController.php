@@ -21,6 +21,7 @@ use App\Services\AppService;
 use Exception;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
@@ -376,7 +377,8 @@ private function getGroupCompanies()
             ->filter(fn($file) => str_starts_with(basename($file), $filePrefix) && str_ends_with($file, '.xlsx'))
             ->map(fn($file) => [
                 'name' => basename($file),
-                'last_modified' => date('Y-m-d H:i:s', Storage::disk('public')->lastModified($file)),
+                // ISO 8601 in UTC so the browser can render it in the viewer's local timezone.
+                'last_modified' => gmdate('c', Storage::disk('public')->lastModified($file)),
             ])->toArray(); // Convert collection to array
     
         // Return the first file or null if no files found
@@ -926,6 +928,12 @@ private function getGroupCompanies()
 
         $isZip = count($data) > $batchSize;
 
+        // Seed progress so the UI shows 0% immediately instead of "idle".
+        Cache::put('export_appraisal_progress_' . $userID, [
+            'status'  => 'processing',
+            'percent' => 0,
+        ], now()->addHour());
+
         $job = ExportAppraisalDetails::dispatch($this->appService, $data, $headers, $userID, $batchSize, Auth::user(), $period);
 
         // Log::info('Dispatched job:', ['job' => $job]);
@@ -982,7 +990,24 @@ private function getGroupCompanies()
         } else {
             return response()->json(['exists' => false, 'message' => 'Jobs not found.']);
         }
-        
+
+    }
+
+    /**
+     * Report generation progress for the current user, polled by the UI to
+     * render a live progress bar.
+     */
+    public function exportProgress(Request $request)
+    {
+        $userID = Auth::user()->id;
+
+        $progress = Cache::get('export_appraisal_progress_' . $userID);
+
+        if (!$progress) {
+            return response()->json(['status' => 'idle', 'percent' => 0]);
+        }
+
+        return response()->json($progress);
     }
 
     /**

@@ -8,6 +8,7 @@ use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Cache;
 use Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -45,6 +46,8 @@ class ExportAppraisalDetails implements ShouldQueue
     {
         try {
             ini_set('memory_limit', '1G');
+
+            $this->setProgress('processing', 0);
         // Job logic here
             $directory = 'exports';
             $temporary = 'temp';
@@ -52,28 +55,36 @@ class ExportAppraisalDetails implements ShouldQueue
             $tempFilePrefix = $this->userId . '_batch';
 
             $period = $this->period ?? $this->appService->appraisalPeriod();
-    
+
+            // Ensure the output directory exists (raw writer below does not create it).
+            $exportsDir = storage_path('app/public/exports');
+            if (!file_exists($exportsDir)) {
+                mkdir($exportsDir, 0777, true);
+            }
+
             // List all files in the directory
             $files = Storage::disk('public')->files($directory);
             $temporaryFiles = Storage::disk('public')->files($temporary);
-    
-    
+
+
             // If data count is less than or equal to batch size, create single file
             if (count($this->data) <= $this->batchSize) {
                 $fileName = 'exports/appraisal_details_' . $this->userId . '.xlsx';
-                
+
                 Log::info($this->userId . ' Creating single Excel file: ' . $fileName);
-    
+
                 $export = new AppraisalDetailExport($this->appService, $this->data, $this->headers, $this->user, $period);
-    
+
                 // Log details of the export object
                 Log::info('AppraisalDetailExport instance created', [
                     'userId' => $this->userId,
                     'dataCount' => count($this->data)
                 ]);
-    
+
                 Excel::store($export, $fileName, 'public');
-    
+
+                $this->setProgress('completed', 100);
+
                 return;
             }
     
@@ -89,16 +100,21 @@ class ExportAppraisalDetails implements ShouldQueue
                 mkdir($tempDir, 0777, true);
             }
     
+            $totalBatches = count($batches);
+
             // Create individual Excel files
             foreach ($batches as $index => $batchData) {
                 $batchNumber = $index + 1;
                 $tempFileName = "temp/{$this->userId}_batch_{$batchNumber}.xlsx";
                 $tempFiles[] = $tempFileName;
-    
+
                 Log::info($this->userId . ' Processing batch ' . $batchNumber);
-    
+
                 $export = new AppraisalDetailExport($this->appService, $batchData, $this->headers, $this->user, $period);
                 Excel::store($export, $tempFileName, 'public');
+
+                // Batch generation is the bulk of the work: map it to 0-70%.
+                $this->setProgress('processing', (int) round(($batchNumber / $totalBatches) * 70));
             }
     
             $folderPath = storage_path('app/public/temp'); // Sesuaikan dengan lokasi file Excel Anda
@@ -113,7 +129,12 @@ class ExportAppraisalDetails implements ShouldQueue
             $rowStart = 1;
             $headerAdded = false;
 
-            foreach ($files as $file) {
+            $totalMergeFiles = max(count($files), 1);
+
+            foreach ($files as $mergeIndex => $file) {
+                // Merging temp files into the final workbook: map to 70-95%.
+                $this->setProgress('processing', 70 + (int) round((($mergeIndex + 1) / $totalMergeFiles) * 25));
+
                 // Open the Excel file
                 $excel = Excel::toArray([], $file);
             
@@ -159,11 +180,44 @@ class ExportAppraisalDetails implements ShouldQueue
                 throw new \Exception('Failed to save XLSX file');
             }
 
+            $this->setProgress('completed', 100);
+
         } catch (\Exception $e) {
             Log::error("ExportAppraisalDetails failed: " . $e->getMessage());
             throw $e; // Rethrow to mark the job as failed
         }
-            
+
+    }
+
+    /**
+     * Cache key the frontend polls to render the progress bar.
+     */
+    protected function progressKey(): string
+    {
+        return 'export_appraisal_progress_' . $this->userId;
+    }
+
+    protected function setProgress(string $status, int $percent): void
+    {
+        Cache::put($this->progressKey(), [
+            'status'  => $status,
+            'percent' => max(0, min(100, $percent)),
+        ], now()->addHour());
+    }
+
+    /**
+     * Runs after the final retry fails; mark the progress as failed so the UI
+     * can stop the spinner and tell the user to try again.
+     */
+    public function failed(\Throwable $e): void
+    {
+        Cache::put($this->progressKey(), [
+            'status'  => 'failed',
+            'percent' => 0,
+            'message' => 'Report generation failed. Please try again.',
+        ], now()->addHour());
+
+        Log::error('ExportAppraisalDetails permanently failed: ' . $e->getMessage());
     }
 
     public function tags()

@@ -27,6 +27,22 @@ $(document).ready(function () {
         return `${weekday}, ${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
     }
 
+    // Render a UTC/ISO timestamp from the server in the viewer's local timezone.
+    function formatLocalDateTime(value) {
+        if (!value) return "";
+        const d = new Date(value);
+        if (isNaN(d.getTime())) return value; // fall back to the raw string
+
+        const day = String(d.getDate()).padStart(2, "0");
+        const month = String(d.getMonth() + 1).padStart(2, "0");
+        const year = d.getFullYear();
+        const hours = d.getHours() % 12 || 12;
+        const minutes = String(d.getMinutes()).padStart(2, "0");
+        const ampm = d.getHours() >= 12 ? "PM" : "AM";
+
+        return `${day}/${month}/${year} ${hours}:${minutes} ${ampm}`;
+    }
+
     $("#adminAppraisalTable").DataTable({
         stateSave: true,
         dom: "Bfrtip",
@@ -151,9 +167,7 @@ $(document).ready(function () {
                                         data.message ===
                                         "Export is being processed in the background."
                                     ) {
-                                        alert(
-                                            `The reports are being processed. Please wait a moment. Estimated time remaining: ${totalMinutes} minutes.`
-                                        );
+                                        showExportProgress();
                                         intervalCheckFile(true);
                                         checkJobs(userId);
                                         resetUI();
@@ -296,7 +310,7 @@ $(document).ready(function () {
             downloadDetailButton.innerHTML = `
                 <i class="ri-download-cloud-2-line fs-16 me-1 download-detail-icon"></i>
                 <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>
-                Reports last generated on ${reportFileDates}
+                Reports last generated on ${formatLocalDateTime(reportFileDates)}
             `;
         } else if (jobs && jobs.length > 0) {
             downloadDetailButton.innerHTML = `
@@ -361,6 +375,92 @@ function checkFileAvailability(status) {
             console.log("No report processing.");
         }
     }
+}
+
+// Live progress modal for report generation
+let exportProgressInterval = null;
+
+function showExportProgress() {
+    Swal.fire({
+        title: "Generating Report Details",
+        html: `
+            <div class="text-start mb-2" style="font-size: 0.9rem;">
+                The reports are being processed. Please keep this page open.
+            </div>
+            <div class="progress" style="height: 22px;">
+                <div id="exportProgressBar"
+                     class="progress-bar progress-bar-striped progress-bar-animated bg-success"
+                     role="progressbar" style="width: 0%;"
+                     aria-valuenow="0" aria-valuemin="0" aria-valuemax="100">0%</div>
+            </div>
+        `,
+        allowOutsideClick: false,
+        allowEscapeKey: false,
+        showConfirmButton: false,
+        didOpen: () => {
+            pollExportProgress();
+        },
+        willClose: () => {
+            if (exportProgressInterval) {
+                clearInterval(exportProgressInterval);
+                exportProgressInterval = null;
+            }
+        },
+    });
+}
+
+function updateExportProgressBar(percent) {
+    const bar = document.getElementById("exportProgressBar");
+    if (!bar) return;
+    const value = Math.max(0, Math.min(100, Math.round(percent || 0)));
+    bar.style.width = value + "%";
+    bar.setAttribute("aria-valuenow", value);
+    bar.textContent = value + "%";
+}
+
+function pollExportProgress() {
+    if (exportProgressInterval) {
+        clearInterval(exportProgressInterval);
+    }
+
+    const check = () => {
+        fetch("/export-appraisal-progress", {
+            headers: { Accept: "application/json" },
+        })
+            .then((response) => response.json())
+            .then((data) => {
+                updateExportProgressBar(data.percent);
+
+                if (data.status === "completed") {
+                    clearInterval(exportProgressInterval);
+                    exportProgressInterval = null;
+                    updateExportProgressBar(100);
+                    Swal.fire({
+                        icon: "success",
+                        title: "Report Ready",
+                        text: "Your report has been generated.",
+                        timer: 1500,
+                        showConfirmButton: false,
+                    }).then(() => location.reload());
+                } else if (data.status === "failed") {
+                    clearInterval(exportProgressInterval);
+                    exportProgressInterval = null;
+                    Swal.fire({
+                        icon: "error",
+                        title: "Generation Failed",
+                        text:
+                            data.message ||
+                            "Report generation failed. Please try again.",
+                    });
+                }
+            })
+            .catch((error) =>
+                console.error("Error checking export progress:", error)
+            );
+    };
+
+    check(); // immediate first check
+    exportProgressInterval = setInterval(check, 2000); // then every 2s
 }
 
 function checkJobs(id) {

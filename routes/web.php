@@ -405,6 +405,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
 
         Route::get('/admin-appraisal/get-detail-data/{id}', [AdminAppraisalController::class, 'getDetailData'])->name('get.detail.data');
         Route::post('/export-appraisal-detail', [AdminAppraisalController::class, 'exportAppraisalDetail']);
+        Route::get('/export-appraisal-progress', [AdminAppraisalController::class, 'exportProgress']);
 
     });
 
