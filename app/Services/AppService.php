@@ -27,13 +27,70 @@ use stdClass;
 
 class AppService
 {
+    /**
+     * In-request / per-job read caches. AppService is not a singleton and Octane
+     * is not used, so these live only for the current request or export job
+     * (a fresh instance is deserialized per queued job) — safe from staleness.
+     * They collapse the per-contributor lookups that otherwise fire tens of
+     * thousands of times during a large report export.
+     */
+    protected array $weightageDataCache = [];      // "group_company|period" => MasterWeightage|null
+    protected array $formGroupCache = [];          // "employee_id|form_name" => array
+    protected array $formGroupTemplateCache = [];  // "form_name" => decoded template array
+    protected array $layerCountsCache = [];        // employee_id => layer counts array
+
+    /**
+     * Cached MasterWeightage row for a group_company/period. The LIKE query is a
+     * full scan and the same row is requested for every contributor.
+     */
+    protected function resolveWeightageData($groupCompany, $period)
+    {
+        $key = $groupCompany . '|' . $period;
+
+        if (!array_key_exists($key, $this->weightageDataCache)) {
+            $this->weightageDataCache[$key] = MasterWeightage::where('group_company', 'LIKE', '%' . $groupCompany . '%')
+                ->where('period', $period)
+                ->first();
+        }
+
+        return $this->weightageDataCache[$key];
+    }
+
+    /**
+     * Cached approval-layer counts for an employee (same for all their contributor rows).
+     */
+    protected function resolveLayerCounts($employeeID): array
+    {
+        if (!array_key_exists($employeeID, $this->layerCountsCache)) {
+            $checkLayer = ApprovalLayerAppraisal::where('employee_id', $employeeID)
+                ->where('layer_type', '!=', 'calibrator')
+                ->selectRaw('layer_type, COUNT(*) as count')
+                ->groupBy('layer_type')
+                ->get();
+
+            $this->layerCountsCache[$employeeID] = $checkLayer->pluck('count', 'layer_type')->toArray();
+        }
+
+        return $this->layerCountsCache[$employeeID];
+    }
+
     public function formGroupAppraisal($employee_id, $form_name)
     {
-        $employee = EmployeeAppraisal::select('employee_id', 'group_company', 'job_level', 'company_name', 'work_area_code')->where('employee_id', $employee_id)->first();
-        
-        $datas = FormGroupAppraisal::with(['formAppraisals', 'rating'])->where('name', $form_name)->get();
+        $cacheKey = $employee_id . '|' . $form_name;
 
-        $data = json_decode($datas, true);
+        if (array_key_exists($cacheKey, $this->formGroupCache)) {
+            return $this->formGroupCache[$cacheKey];
+        }
+
+        $employee = EmployeeAppraisal::select('employee_id', 'group_company', 'job_level', 'company_name', 'work_area_code')->where('employee_id', $employee_id)->first();
+
+        // The template is identical for every employee — load/decode it once per form.
+        if (!array_key_exists($form_name, $this->formGroupTemplateCache)) {
+            $datas = FormGroupAppraisal::with(['formAppraisals', 'rating'])->where('name', $form_name)->get();
+            $this->formGroupTemplateCache[$form_name] = json_decode($datas, true);
+        }
+
+        $data = $this->formGroupTemplateCache[$form_name];
 
         $criteria = [
             "job_level" => $employee->job_level,
@@ -42,11 +99,15 @@ class AppService
         ];
 
         $filteredData = $this->filterByRestrict($data, $criteria);
-        
-        return [
+
+        $result = [
             'status' => 'success',
             'data' => array_values($filteredData)[0] ?? []
         ];
+
+        $this->formGroupCache[$cacheKey] = $result;
+
+        return $result;
     }
 
     private function filterByRestrict($data, $criteria) {
@@ -158,8 +219,8 @@ class AppService
     }
 
     public function combineFormData($appraisalData, $goalData, $typeWeightage360, $employeeData, $period) {
-        
-        $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $period)->first();
+
+        $weightageData = $this->resolveWeightageData($employeeData->group_company, $period);
 
         if (!$weightageData) {
             throw new Exception('Weightage data not found for the specified group company and period.');
@@ -206,11 +267,9 @@ class AppService
                 } elseif ($form['formName'] === "Culture") {
                     // Calculate average score for Culture form
                     $cultureAverageScore = $this->averageScore($form);
-                    Log::info('Form setelah normalisasi | Culture:', $form);
                     } elseif ($form['formName'] === "Leadership") {
                         // Calculate average score for Culture form
                         $leadershipAverageScore = $this->averageScore($form);
-                        Log::info('Form setelah normalisasi | Leadership:', $form);
                 } elseif ($form['formName'] === "Technical") {
                     // Calculate average score for Culture form
                     $technicalAverageScore = $this->averageScore($form);
@@ -316,9 +375,7 @@ class AppService
 
         $jobLevel = $employeeData->job_level;
 
-        $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')
-                ->where('period', $period)
-                ->first();
+        $weightageData = $this->resolveWeightageData($employeeData->group_company, $period);
 
         if (!$weightageData) {
             throw new Exception('Weightage data not found for the specified group company and period.');
@@ -1110,13 +1167,7 @@ class AppService
 
         $calculatedFormData = [];
 
-        $checkLayer = ApprovalLayerAppraisal::where('employee_id', $employeeID)
-        ->where('layer_type', '!=', 'calibrator')
-        ->selectRaw('layer_type, COUNT(*) as count')
-        ->groupBy('layer_type')
-        ->get();
-
-        $layerCounts = $checkLayer->pluck('count', 'layer_type')->toArray();
+        $layerCounts = $this->resolveLayerCounts($employeeID);
 
         $managerCount = $layerCounts['manager'] ?? 0;
         $peersCount = $layerCounts['peers'] ?? 0;
@@ -1331,13 +1382,7 @@ class AppService
 
         $calculatedFormData = [];
 
-        $checkLayer = ApprovalLayerAppraisal::where('employee_id', $employeeID)
-        ->where('layer_type', '!=', 'calibrator')
-        ->selectRaw('layer_type, COUNT(*) as count')
-        ->groupBy('layer_type')
-        ->get();
-
-        $layerCounts = $checkLayer->pluck('count', 'layer_type')->toArray();
+        $layerCounts = $this->resolveLayerCounts($employeeID);
 
         $managerCount = $layerCounts['manager'] ?? 0;
         $peersCount = $layerCounts['peers'] ?? 0;
