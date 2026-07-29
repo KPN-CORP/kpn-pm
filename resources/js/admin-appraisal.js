@@ -378,9 +378,17 @@ function checkFileAvailability(status) {
 }
 
 // Live progress modal for report generation
-let exportProgressInterval = null;
+let exportProgressInterval = null; // backend polling (2s)
+let exportAnimFrame = null;        // smooth fill animation
+let exportDisplayedPercent = 0;    // what the bar currently shows
+let exportTargetPercent = 0;       // where the bar is heading
+let exportDone = false;            // true once backend reports completed
 
 function showExportProgress() {
+    exportDisplayedPercent = 0;
+    exportTargetPercent = 0;
+    exportDone = false;
+
     Swal.fire({
         title: "Generating Report Details",
         html: `
@@ -398,24 +406,64 @@ function showExportProgress() {
         allowEscapeKey: false,
         showConfirmButton: false,
         didOpen: () => {
+            startExportAnim();
             pollExportProgress();
         },
         willClose: () => {
-            if (exportProgressInterval) {
-                clearInterval(exportProgressInterval);
-                exportProgressInterval = null;
-            }
+            stopExportProgress();
         },
     });
 }
 
-function updateExportProgressBar(percent) {
+function renderExportBar(percent) {
     const bar = document.getElementById("exportProgressBar");
     if (!bar) return;
-    const value = Math.max(0, Math.min(100, Math.round(percent || 0)));
-    bar.style.width = value + "%";
-    bar.setAttribute("aria-valuenow", value);
-    bar.textContent = value + "%";
+    const clamped = Math.max(0, Math.min(100, percent));
+    const shown = Math.round(clamped);
+    bar.style.width = clamped + "%";
+    bar.setAttribute("aria-valuenow", shown);
+    bar.textContent = shown + "%";
+}
+
+// Continuously eases the bar toward its target and, while waiting for the next
+// backend update, trickles the target upward (decelerating, capped) so it keeps
+// visibly moving instead of jumping straight from 0 to 100.
+function startExportAnim() {
+    stopExportAnim();
+
+    const tick = () => {
+        if (!exportDone && exportTargetPercent < 90) {
+            // gentle decelerating creep toward a soft 90% ceiling
+            exportTargetPercent += (90 - exportTargetPercent) * 0.012;
+        }
+
+        // ease the displayed value toward the target
+        exportDisplayedPercent += (exportTargetPercent - exportDisplayedPercent) * 0.12;
+
+        if (exportDone && exportDisplayedPercent > 99.4) {
+            exportDisplayedPercent = 100;
+        }
+
+        renderExportBar(exportDisplayedPercent);
+        exportAnimFrame = requestAnimationFrame(tick);
+    };
+
+    exportAnimFrame = requestAnimationFrame(tick);
+}
+
+function stopExportAnim() {
+    if (exportAnimFrame) {
+        cancelAnimationFrame(exportAnimFrame);
+        exportAnimFrame = null;
+    }
+}
+
+function stopExportProgress() {
+    if (exportProgressInterval) {
+        clearInterval(exportProgressInterval);
+        exportProgressInterval = null;
+    }
+    stopExportAnim();
 }
 
 function pollExportProgress() {
@@ -429,22 +477,29 @@ function pollExportProgress() {
         })
             .then((response) => response.json())
             .then((data) => {
-                updateExportProgressBar(data.percent);
+                const real = Math.round(data.percent || 0);
 
                 if (data.status === "completed") {
-                    clearInterval(exportProgressInterval);
-                    exportProgressInterval = null;
-                    updateExportProgressBar(100);
-                    Swal.fire({
-                        icon: "success",
-                        title: "Report Ready",
-                        text: "Your report has been generated.",
-                        timer: 1500,
-                        showConfirmButton: false,
-                    }).then(() => location.reload());
+                    exportDone = true;
+                    exportTargetPercent = 100;
+                    if (exportProgressInterval) {
+                        clearInterval(exportProgressInterval);
+                        exportProgressInterval = null;
+                    }
+                    // let the bar finish filling before the success dialog
+                    setTimeout(() => {
+                        stopExportAnim();
+                        renderExportBar(100);
+                        Swal.fire({
+                            icon: "success",
+                            title: "Report Ready",
+                            text: "Your report has been generated.",
+                            timer: 1500,
+                            showConfirmButton: false,
+                        }).then(() => location.reload());
+                    }, 800);
                 } else if (data.status === "failed") {
-                    clearInterval(exportProgressInterval);
-                    exportProgressInterval = null;
+                    stopExportProgress();
                     Swal.fire({
                         icon: "error",
                         title: "Generation Failed",
@@ -452,6 +507,9 @@ function pollExportProgress() {
                             data.message ||
                             "Report generation failed. Please try again.",
                     });
+                } else {
+                    // never move backward — keep the fill monotonic
+                    exportTargetPercent = Math.max(exportTargetPercent, real);
                 }
             })
             .catch((error) =>
