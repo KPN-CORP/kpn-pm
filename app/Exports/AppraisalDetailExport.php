@@ -60,12 +60,29 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
         $this->dynamicHeaders = []; // Reset dynamic headers for each export
 
+        // Only this batch's rows are ever looked up below, so scope the lookup
+        // maps to the batch instead of loading the whole period on every batch.
+        $employeeIds = $this->data
+            ->map(fn($row) => $row['Employee ID']['dataId'] ?? null)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $formIds = $this->data
+            ->map(fn($row) => $row['Form ID']['dataId'] ?? null)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
         $contributorsGroupedByEmployee = AppraisalContributor::with([
             'employee' => function ($query) {
                 $query->select('employee_id', 'fullname', 'gender', 'email', 'job_level', 'group_company', 'designation_name', 'company_name', 'contribution_level_code'); // Adjust fields as needed
             }
         ])
         ->where('period', $this->period)
+        ->whereIn('employee_id', $employeeIds)
         ->get()
         ->groupBy('employee_id');
 
@@ -76,6 +93,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             'goal', // preloaded so per-contributor/summary lookups don't re-query
         ])
         ->where('period', $this->period)
+        ->whereIn('id', $formIds)
         ->get()
         ->groupBy('id');
 
