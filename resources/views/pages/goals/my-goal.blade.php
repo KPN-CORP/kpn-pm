@@ -195,7 +195,7 @@
 
             @if (Auth::user()->employee_id == $row->request->initiated->employee_id && $access)
                 @if (
-                    $row->request->goal->form_status != 'Draft' &&
+                    $row->request->goal->form_status != 'Draft' &&  
                     $row->request->created_by == Auth::user()->id
                 )
                     <a id="reviseGoalBtn"
