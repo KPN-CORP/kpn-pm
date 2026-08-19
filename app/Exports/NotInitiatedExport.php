@@ -58,6 +58,7 @@ class NotInitiatedExport implements FromView, WithStyles
             ->whereHas('employee', function ($q) {
                 $q->where('access_menu->doj', 1)
                 ->whereNull('deleted_at')
+                ->where('job_level', '>=', '2A')
                 ->where('job_level', '<', '4A');
             })
             ->get();
