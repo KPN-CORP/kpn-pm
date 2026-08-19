@@ -355,7 +355,23 @@ class MyGoalController extends Controller
             return redirect()->route('goals');
         }else{
 
-            if ($goalsCheck->isEmpty() || $goalsCheck->first()->approvalRequest == null) {
+            // Permission for the goal's initiator (creator of the approval request).
+            $isCurrentPeriod = !$goalsCheck->isEmpty();
+            $hasCreatorPermission = $isCurrentPeriod && $goalsCheck->first()->approvalRequest != null;
+
+            // Allow the direct manager/approver to revise a team member's already-submitted
+            // goal (current period) when that member's job level is 2A–3x, even though the
+            // employee initiated and submitted it themselves.
+            $goalOwner = Employee::where('employee_id', $goal->employee_id)->first();
+            $managerCanRevise = $isCurrentPeriod
+                && $goalOwner
+                && $goalOwner->job_level >= '2A'
+                && $goalOwner->job_level < '4A'
+                && ApprovalLayer::where('employee_id', $goal->employee_id)
+                    ->where('approver_id', $this->user)
+                    ->exists();
+
+            if (!$hasCreatorPermission && !$managerCanRevise) {
                 // User ID doesn't match the condition, show error message
                 Session::flash('error', [
                     'title' => 'Permission Denied',
