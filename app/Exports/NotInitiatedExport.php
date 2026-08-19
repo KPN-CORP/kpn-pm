@@ -51,7 +51,7 @@ class NotInitiatedExport implements FromView, WithStyles
                 'subordinates' => function ($query) use ($user) {
                     $query->where('period', $this->period)
                         ->where('category', $this->category)
-                        ->where('approver_id', $user);
+                        ->where('current_approval_id', $user);
                 },
             ])
             ->where('approver_id', $user)
