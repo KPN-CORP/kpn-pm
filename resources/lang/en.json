@@ -73,6 +73,12 @@
     "Approval": "Approval",
     "Not Initiated": "Not Initiated",
     "Note Import Goal Manager": "Template Import Goals can use from : ",
+    "What is this?": "What is this?",
+    "Goal Data Description": "Download the data of goals that are already initiated in the current period. Edit this file and re-import it to update existing goals.",
+    "Goal Template Description": "Download a blank template for employees whose goals are not yet initiated. Fill it in and import it to create new goals.",
+    "Note Import Goal Data": "To update goals that are already initiated in the current period, use the <strong>Goal Data</strong> file.",
+    "Note Import Goal Template": "To create goals for employees that are not yet initiated, use the <strong>Goal Template</strong> file.",
+    "Note Import Goal Download Location": "Both files can be downloaded from the <strong>\":tab\"</strong> tab &rarr; <strong>:download</strong>.",
     "Note Import Achievement Manager": "Template Import Achievement can use from : ",
     "Draft Goal Alert Message Open": "You still have targets in Draft status. Please submit them before the input period closed, as Draft targets will automatically move to the appraisal stage once the period closed.",
     "Draft Goal Alert Message Closed": "Target setting is now closed. You cannot make further changes, and all data will be processed for appraisal."
