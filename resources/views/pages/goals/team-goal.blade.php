@@ -209,6 +209,15 @@
                             $isApproved = $status == 'Approved';
                             $isPending = $status == 'Pending';
 
+                            // Revise access: the initiator can always revise a submitted goal.
+                            // In addition, the direct manager/approver may revise a team member's
+                            // already-submitted goal when that member's job level is 2A–3x.
+                            $teamJobLevel = $task->employee->job_level ?? null;
+                            $isRevisableLevel = $teamJobLevel !== null && $teamJobLevel >= '2A' && $teamJobLevel < '4A';
+                            $isInitiator = Auth::user()->employee_id == ($firstSubordinate->initiated->employee_id ?? null);
+                            $isTeamMemberGoal = $task->employee->employee_id != Auth::user()->employee_id;
+                            $canReviseSubmitted = $isInitiator || ($isRevisableLevel && $isTeamMemberGoal);
+
                             $rowStatus = 'approved';
                             if ($isDraft) $rowStatus = 'draft';
                             elseif ($status == 'Sendback') $rowStatus = 'revision';
@@ -260,7 +269,7 @@
                                     @if ($period == $goalPeriod && $formStatus != 'Draft' && $status != 'Sendback' && !$appraisalCheck && $goals)
                                         <a id="reviseGoalBtn{{ $goalId }}"
                                             class="btn btn-sm btn-outline-warning fw-semibold rounded-pill px-3
-                                            {{ (Auth::user()->employee_id == ($firstSubordinate->initiated->employee_id ?? null)) ? '' : 'd-none' }}"
+                                            {{ $canReviseSubmitted ? '' : 'd-none' }}"
 
                                             href="{{ route('goals.edit', $goalId) }}"
 
