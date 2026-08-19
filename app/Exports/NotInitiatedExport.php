@@ -35,15 +35,31 @@ class NotInitiatedExport implements FromView, WithStyles
 
         if(Auth()->user()->isApprover()){
 
-            $this->data = ApprovalLayer::with('employee')
+            // $this->data = ApprovalLayer::with('employee')
+            // ->where('approver_id', $user)
+            // ->whereHas('employee', fn($q) => $q->where('access_menu->doj', 1))
+            // ->whereHas('employee', fn($q) => $q->whereNull('deleted_at'))
+            // ->whereDoesntHave('subordinates', function ($query) use ($user) {
+            //     $query->where('period', $this->period)
+            //         ->where('category', $this->category)
+            //         ->where('approver_id', $user);
+            // }) // Ensures subordinates with these criteria do NOT exist 
+            // ->get();
+
+            $this->data = ApprovalLayer::with([
+                'employee',
+                'subordinates' => function ($query) use ($user) {
+                    $query->where('period', $this->period)
+                        ->where('category', $this->category)
+                        ->where('approver_id', $user);
+                },
+            ])
             ->where('approver_id', $user)
-            ->whereHas('employee', fn($q) => $q->where('access_menu->doj', 1))
-            ->whereHas('employee', fn($q) => $q->whereNull('deleted_at'))
-            ->whereDoesntHave('subordinates', function ($query) use ($user) {
-                $query->where('period', $this->period)
-                    ->where('category', $this->category)
-                    ->where('approver_id', $user);
-            }) // Ensures subordinates with these criteria do NOT exist
+            ->whereHas('employee', function ($q) {
+                $q->where('access_menu->doj', 1)
+                ->whereNull('deleted_at')
+                ->where('job_level', '<', '4A');
+            })
             ->get();
     
             $this->data->map(function($item) {
