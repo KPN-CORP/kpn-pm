@@ -35,33 +35,33 @@ class NotInitiatedExport implements FromView, WithStyles
 
         if(Auth()->user()->isApprover()){
 
-            // $this->data = ApprovalLayer::with('employee')
-            // ->where('approver_id', $user)
-            // ->whereHas('employee', fn($q) => $q->where('access_menu->doj', 1))
-            // ->whereHas('employee', fn($q) => $q->whereNull('deleted_at'))
-            // ->whereDoesntHave('subordinates', function ($query) use ($user) {
-            //     $query->where('period', $this->period)
-            //         ->where('category', $this->category)
-            //         ->where('approver_id', $user);
-            // }) // Ensures subordinates with these criteria do NOT exist 
-            // ->get();
-
-            $this->data = ApprovalLayer::with([
-                'employee',
-                'subordinates' => function ($query) use ($user) {
-                    $query->where('period', $this->period)
-                        ->where('category', $this->category)
-                        ->where('current_approval_id', $user);
-                },
-            ])
+            $this->data = ApprovalLayer::with('employee')
             ->where('approver_id', $user)
-            ->whereHas('employee', function ($q) {
-                $q->where('access_menu->doj', 1)
-                ->whereNull('deleted_at')
-                ->where('job_level', '>=', '2A')
-                ->where('job_level', '<', '4A');
-            })
+            ->whereHas('employee', fn($q) => $q->where('access_menu->doj', 1))
+            ->whereHas('employee', fn($q) => $q->whereNull('deleted_at'))
+            ->whereDoesntHave('subordinates', function ($query) use ($user) {
+                $query->where('period', $this->period)
+                    ->where('category', $this->category)
+                    ->where('current_approval_id', $user);
+            }) // Ensures subordinates with these criteria do NOT exist 
             ->get();
+
+            // $this->data = ApprovalLayer::with([
+            //     'employee',
+            //     'subordinates' => function ($query) use ($user) {
+            //         $query->where('period', $this->period)
+            //             ->where('category', $this->category)
+            //             ->where('current_approval_id', $user);
+            //     },
+            // ])
+            // ->where('approver_id', $user)
+            // ->whereHas('employee', function ($q) {
+            //     $q->where('access_menu->doj', 1)
+            //     ->whereNull('deleted_at')
+            //     ->where('job_level', '>=', '2A')
+            //     ->where('job_level', '<', '4A');
+            // })
+            // ->get();
     
             $this->data->map(function($item) {
                 // Format created_at

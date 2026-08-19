@@ -73,6 +73,12 @@
     "Approval": "Persetujuan",
     "Not Initiated": "Belum Mengajukan",
     "Note Import Goal Manager": "Template Import Goals bisa didapatkan pada : ",
+    "What is this?": "Apa ini?",
+    "Goal Data Description": "Unduh data goal yang sudah diinisiasi pada periode berjalan. Ubah file ini lalu impor kembali untuk memperbarui goal yang sudah ada.",
+    "Goal Template Description": "Unduh template kosong untuk karyawan yang goal-nya belum diinisiasi. Isi lalu impor untuk membuat goal baru.",
+    "Note Import Goal Data": "Untuk memperbarui goal yang sudah diinisiasi pada periode berjalan, gunakan file <strong>Goal Data</strong>.",
+    "Note Import Goal Template": "Untuk membuat goal bagi karyawan yang belum diinisiasi, gunakan file <strong>Goal Template</strong>.",
+    "Note Import Goal Download Location": "Kedua file dapat diunduh dari tab <strong>\":tab\"</strong> &rarr; <strong>:download</strong>.",
     "Note Import Achievement Manager": "Template Import Achievement bisa didapatkan pada : ",
     "Draft Goal Alert Message Open": "Anda masih memiliki Target berstatus Draft. Mohon submit sebelum periode input berakhir, karena Target dengan status Draft akan otomatis masuk tahap appraisal ketika periode berakhir.",
     "Draft Goal Alert Message Closed": "Periode setting target sudah ditutup. Perubahan tidak dapat dilakukan, dan semua data akan masuk ke tahap appraisal."

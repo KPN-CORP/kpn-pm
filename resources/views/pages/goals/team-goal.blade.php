@@ -133,7 +133,7 @@
             <div class="card shadow-sm border-0">
                 <div class="card-header bg-white border-bottom d-flex flex-column flex-md-row justify-content-between align-items-md-center py-2 gap-2">
                     <h5 class="m-0 fw-bold text-primary">Goals {{ $filterYear ?? $period }}</h5>
-                    <div class="d-flex flex-wrap gap-2">
+                    <div class="d-flex flex-wrap align-items-center gap-2">
                         <button type="button" class="btn btn-sm btn-soft-primary fw-medium" data-bs-toggle="modal" data-bs-target="#importModal">
                             <i class="ri-upload-cloud-2-line me-1"></i> Import Goal
                         </button>
@@ -153,8 +153,33 @@
                             <button type="submit" class="btn btn-sm btn-outline-secondary fw-medium"><i class="ri-download-cloud-2-line me-1"></i> Goal Template</button>
                         </form>
                         @endif
+                        @if (count($tasks) || count($notasks))
+                        <button type="button" class="btn btn-sm btn-link text-muted p-0 ms-1" data-bs-toggle="collapse" data-bs-target="#goalDownloadInfo" aria-expanded="false" aria-controls="goalDownloadInfo" title="{{ __('What is this?') }}">
+                            <i class="ri-question-line fs-5"></i>
+                        </button>
+                        @endif
                     </div>
                 </div>
+                @if (count($tasks) || count($notasks))
+                <div class="collapse" id="goalDownloadInfo">
+                    <div class="card-body border-bottom bg-primary-soft py-3">
+                        <div class="d-flex align-items-start gap-2 mb-2">
+                            <i class="ri-file-text-line text-primary mt-1"></i>
+                            <div style="font-size: 0.85rem;">
+                                <strong class="text-dark">Goal Data</strong>
+                                <div class="text-muted">{{ __('Goal Data Description') }}</div>
+                            </div>
+                        </div>
+                        <div class="d-flex align-items-start gap-2">
+                            <i class="ri-download-cloud-2-line text-primary mt-1"></i>
+                            <div style="font-size: 0.85rem;">
+                                <strong class="text-dark">Goal Template</strong>
+                                <div class="text-muted">{{ __('Goal Template Description') }}</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                @endif
                 <div class="card-body px-3 py-1" id="goal-container">
                     @foreach ($tasks as $index => $task)
                         @php
@@ -803,7 +828,9 @@
                     <div class="alert bg-primary-subtle border-0 shadow-sm mb-4">
                         <strong class="d-block mb-2 text-primary" style="font-size: 0.85rem;"><i class="ri-information-line me-1"></i> Notes:</strong>
                         <ul class="mb-0 ps-3 text-dark" style="font-size: 0.85rem;">
-                            <li>{{ __('Note Import Goal Manager') }}<strong><br> > Tab "{{ __('Not Initiated') }}" -> {{ __('Download') }}</strong></li>
+                            <li>{!! __('Note Import Goal Data') !!}</li>
+                            <li>{!! __('Note Import Goal Template') !!}</li>
+                            {{-- <li>{!! __('Note Import Goal Download Location', ['tab' => __('Not Initiated'), 'download' => __('Download')]) !!}</li> --}}
                         </ul>
                     </div>
                     <div class="form-group mb-0">
