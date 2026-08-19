@@ -210,13 +210,17 @@
                             $isPending = $status == 'Pending';
 
                             // Revise access: the initiator can always revise a submitted goal.
-                            // In addition, the direct manager/approver may revise a team member's
-                            // already-submitted goal when that member's job level is 2A–3x.
+                            // In addition, the direct manager may revise a team member's already-submitted
+                            // goal when that member's job level is 2A–3x and the manager is the CURRENT
+                            // approver of the goal (matches current_approval_id).
+                            // In all cases the goal must belong to a CURRENT/active employee record — a
+                            // rehired employee's OLD employee_id (soft-deleted on exit) is never revisable.
                             $teamJobLevel = $task->employee->job_level ?? null;
                             $isRevisableLevel = $teamJobLevel !== null && $teamJobLevel >= '2A' && $teamJobLevel < '4A';
+                            $goalOwnerActive = $task->employee && is_null($task->employee->deleted_at);
                             $isInitiator = Auth::user()->employee_id == ($firstSubordinate->initiated->employee_id ?? null);
-                            $isTeamMemberGoal = $task->employee->employee_id != Auth::user()->employee_id;
-                            $canReviseSubmitted = $isInitiator || ($isRevisableLevel && $isTeamMemberGoal);
+                            $isCurrentApprover = $approverId == Auth::user()->employee_id;
+                            $canReviseSubmitted = $goalOwnerActive && ($isInitiator || ($isRevisableLevel && $isCurrentApprover));
 
                             $rowStatus = 'approved';
                             if ($isDraft) $rowStatus = 'draft';

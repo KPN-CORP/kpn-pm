@@ -359,19 +359,25 @@ class MyGoalController extends Controller
             $isCurrentPeriod = !$goalsCheck->isEmpty();
             $hasCreatorPermission = $isCurrentPeriod && $goalsCheck->first()->approvalRequest != null;
 
-            // Allow the direct manager/approver to revise a team member's already-submitted
-            // goal (current period) when that member's job level is 2A–3x, even though the
-            // employee initiated and submitted it themselves.
+            // A rehired employee gets a NEW employee_id; the OLD one is soft-deleted on exit.
+            // Goals that belong to an old/inactive employee_id are never revisable.
             $goalOwner = Employee::where('employee_id', $goal->employee_id)->first();
+            $goalOwnerActive = $goalOwner && is_null($goalOwner->deleted_at);
+
+            // Allow the direct manager to revise a team member's already-submitted goal
+            // (current period) when that member's job level is 2A–3x, even though the
+            // employee initiated and submitted it themselves. Only the CURRENT approver
+            // of the goal (current_approval_id) may do so.
+            $approvalRequest = ApprovalRequest::where('form_id', $goal->id)->first();
+            $isCurrentApprover = $approvalRequest && $approvalRequest->current_approval_id == $this->user;
+
             $managerCanRevise = $isCurrentPeriod
-                && $goalOwner
+                && $goalOwnerActive
                 && $goalOwner->job_level >= '2A'
                 && $goalOwner->job_level < '4A'
-                && ApprovalLayer::where('employee_id', $goal->employee_id)
-                    ->where('approver_id', $this->user)
-                    ->exists();
+                && $isCurrentApprover;
 
-            if (!$hasCreatorPermission && !$managerCanRevise) {
+            if (!$goalOwnerActive || (!$hasCreatorPermission && !$managerCanRevise)) {
                 // User ID doesn't match the condition, show error message
                 Session::flash('error', [
                     'title' => 'Permission Denied',

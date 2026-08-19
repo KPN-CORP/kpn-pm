@@ -1,6 +1,6 @@
 {
     "UoM": {
-        "Time": ["Day (d)", "Month", "Year (yr)"],
+        "Time": ["Day (d)", "Week", "Month", "Year (yr)"],
         "Quantity": [
             "Unit",
             "Number"
