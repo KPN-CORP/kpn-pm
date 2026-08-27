@@ -116,6 +116,13 @@ class LayerController extends Controller
         $jumlahNikApp = count($nikApps);
         $userId = Auth::id();
 
+        // Prevent the same approver from being assigned to more than one layer.
+        $selectedApprovers = array_filter($nikApps, fn($value) => !is_null($value) && $value !== '');
+        if (count($selectedApprovers) !== count(array_unique($selectedApprovers))) {
+            Alert::error('Failed', 'An approver cannot be assigned to more than one layer.');
+            return redirect()->back();
+        }
+
         $approvalRequest = Goal::select('id')->where('employee_id', $employeeId)->first();
 
         $approvalLayersToDelete = ApprovalLayer::where('employee_id', $employeeId)->get();
