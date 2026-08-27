@@ -176,54 +176,81 @@ function populateModal(employeeId, fullName, app, layer, appName, employees) {
     // inserts a <span class="select2 select2-container"> wrapper, so a bare
     // ".select2" selector matches that span too - writing options into it would
     // wipe out the rendered widget and print the names as plain text.
+    // This works incrementally. The employee list holds thousands of entries, so
+    // rebuilding every option of every layer would create tens of thousands of
+    // DOM nodes on each run and freeze the page ("Page Unresponsive"). Only the
+    // handful of options that actually became taken or free are touched.
     function refreshLayerOptions() {
         var $selects = $('#viewlayer select.select2');
 
+        // Snapshot what each layer currently holds.
+        var chosen = [];
         $selects.each(function () {
-            var $select = $(this);
-            var currentVal = $select.val() ? String($select.val()) : '';
+            chosen.push(this.value ? String(this.value) : '');
+        });
+
+        $selects.each(function (idx) {
+            var select = this;
+            var own = chosen[idx];
 
             // Employees taken by the OTHER layers.
-            var taken = [];
-            $selects.each(function () {
-                if (this === $select[0]) {
-                    return;
+            var taken = {};
+            for (var t = 0; t < chosen.length; t++) {
+                if (t !== idx && chosen[t]) {
+                    taken[chosen[t]] = true;
                 }
-                var val = $(this).val();
-                if (val) {
-                    taken.push(String(val));
-                }
-            });
+            }
 
-            // Build the option list this layer should show.
-            var optionsHtml = '<option></option>';
-            var desiredIds = [];
-            for (var k = 0; k < employees.length; k++) {
-                var eid = String(employees[k].employee_id);
-                if (eid !== currentVal && taken.indexOf(eid) !== -1) {
+            // Remove options now taken elsewhere; note which ones remain.
+            var present = {};
+            for (var o = select.options.length - 1; o >= 0; o--) {
+                var v = select.options[o].value;
+                if (!v) {
                     continue;
                 }
-                desiredIds.push(eid);
-                optionsHtml += '<option value="' + eid + '"' + (eid === currentVal ? ' selected' : '') + '>' +
-                    employees[k].fullname + ' - ' + eid + '</option>';
+                if (v !== own && taken[v]) {
+                    select.remove(o);
+                } else {
+                    present[v] = true;
+                }
             }
 
-            // Skip layers whose list did not change, so the dropdown the user is
-            // interacting with is never rebuilt underneath them.
-            var currentIds = $select.find('option').map(function () {
-                return this.value ? String(this.value) : null;
-            }).get();
+            // Re-insert options that became free again, preserving the original
+            // ordering by anchoring on the next employee still in the list.
+            for (var k = 0; k < employees.length; k++) {
+                var eid = String(employees[k].employee_id);
+                if (taken[eid] || present[eid]) {
+                    continue;
+                }
 
-            var unchanged = desiredIds.length === currentIds.length &&
-                desiredIds.every(function (v, i) { return v === currentIds[i]; });
-            if (unchanged) {
-                return;
+                var anchor = null;
+                for (var m = k + 1; m < employees.length; m++) {
+                    if (present[String(employees[m].employee_id)]) {
+                        anchor = select.querySelector('option[value="' + employees[m].employee_id + '"]');
+                        if (anchor) {
+                            break;
+                        }
+                    }
+                }
+
+                select.insertBefore(new Option(employees[k].fullname + ' - ' + eid, eid), anchor);
+                present[eid] = true;
             }
-
-            // change.select2 only re-renders the widget; it does not fire the
-            // plain "change" handler below, so there is no recursion.
-            $select.html(optionsHtml).trigger('change.select2');
         });
+    }
+
+    // The change handler below cascades (it triggers "change" on the following
+    // layers), so coalesce the whole burst into a single run once it settles.
+    var exclusionPending = false;
+    function scheduleLayerOptions() {
+        if (exclusionPending) {
+            return;
+        }
+        exclusionPending = true;
+        setTimeout(function () {
+            exclusionPending = false;
+            refreshLayerOptions();
+        }, 0);
     }
 
     // Add change event listener to enable the next layer only if the current one is selected
@@ -244,7 +271,7 @@ function populateModal(employeeId, fullName, app, layer, appName, employees) {
             }
 
             // Keep the other layers free of already-picked employees.
-            refreshLayerOptions();
+            scheduleLayerOptions();
         });
     });
 
