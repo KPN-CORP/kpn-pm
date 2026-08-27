@@ -201,42 +201,47 @@ function populateModal(employeeId, fullName, app, layer, appName, employees) {
     modal.show();
 }
 
-// Disable, in every layer's dropdown, the employees already selected in the
-// other layers. This keeps an approver from being assigned to more than one
-// layer (e.g. if user A is chosen in Layer 1 they no longer appear in Layer 2).
+// Rebuild every layer's dropdown so that employees already chosen in the other
+// layers are removed from the list. This keeps an approver from being assigned
+// to more than one layer (e.g. if user A is chosen in Layer 1 they no longer
+// appear in Layer 2's options). The employee selected in the current layer is
+// always kept in that layer's own list.
 function updateLayerOptions() {
     var $selects = $('#viewlayer .select2');
+    var employees = (typeof employeesData !== 'undefined' && employeesData) ? employeesData : [];
 
-    // Collect the employees currently chosen across all layers.
+    // Collect the employees currently chosen across all layers (as strings).
     var selectedValues = [];
     $selects.each(function () {
         var val = $(this).val();
         if (val) {
-            selectedValues.push(val);
+            selectedValues.push(String(val));
         }
     });
 
-    // For each layer, disable options taken by a different layer and re-enable
-    // the rest. The value chosen in the current layer stays enabled.
     $selects.each(function () {
-        var currentVal = $(this).val();
+        var $select = $(this);
+        var currentVal = $select.val() ? String($select.val()) : '';
 
-        $(this).find('option').each(function () {
-            var optVal = $(this).val();
+        var optionsHtml = '<option></option>';
+        for (var j = 0; j < employees.length; j++) {
+            var id = String(employees[j].employee_id);
 
-            if (optVal === '') {
-                return; // keep the empty placeholder option
+            // Skip employees already taken by a different layer.
+            if (id !== currentVal && selectedValues.indexOf(id) !== -1) {
+                continue;
             }
 
-            var takenElsewhere = optVal !== currentVal && selectedValues.indexOf(optVal) !== -1;
-            $(this).prop('disabled', takenElsewhere);
-        });
-    });
+            var selected = (id === currentVal) ? ' selected' : '';
+            optionsHtml += '<option value="' + id + '"' + selected + '>' + employees[j].fullname + ' - ' + id + '</option>';
+        }
 
-    // Refresh Select2 so the disabled state is reflected in the open dropdown.
-    $selects.each(function () {
-        if ($(this).hasClass('select2-hidden-accessible')) {
-            $(this).trigger('change.select2');
+        // Replace the option set and let Select2 re-render the dropdown.
+        // Use the namespaced event so this does not re-trigger the layer's
+        // own change handler (which would recurse).
+        $select.html(optionsHtml);
+        if ($select.hasClass('select2-hidden-accessible')) {
+            $select.trigger('change.select2');
         }
     });
 }
