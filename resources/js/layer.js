@@ -168,6 +168,64 @@ function populateModal(employeeId, fullName, app, layer, appName, employees) {
         allowClear: true
     });
 
+    // Remove, from every layer's dropdown, the employees already chosen in the
+    // other layers: if User A is picked in Layer 1, User A no longer appears in
+    // Layer 2, 3, ... The employee chosen in a layer always stays in its own list.
+    //
+    // IMPORTANT: select only "select.select2". After Select2 initialises it also
+    // inserts a <span class="select2 select2-container"> wrapper, so a bare
+    // ".select2" selector matches that span too - writing options into it would
+    // wipe out the rendered widget and print the names as plain text.
+    function refreshLayerOptions() {
+        var $selects = $('#viewlayer select.select2');
+
+        $selects.each(function () {
+            var $select = $(this);
+            var currentVal = $select.val() ? String($select.val()) : '';
+
+            // Employees taken by the OTHER layers.
+            var taken = [];
+            $selects.each(function () {
+                if (this === $select[0]) {
+                    return;
+                }
+                var val = $(this).val();
+                if (val) {
+                    taken.push(String(val));
+                }
+            });
+
+            // Build the option list this layer should show.
+            var optionsHtml = '<option></option>';
+            var desiredIds = [];
+            for (var k = 0; k < employees.length; k++) {
+                var eid = String(employees[k].employee_id);
+                if (eid !== currentVal && taken.indexOf(eid) !== -1) {
+                    continue;
+                }
+                desiredIds.push(eid);
+                optionsHtml += '<option value="' + eid + '"' + (eid === currentVal ? ' selected' : '') + '>' +
+                    employees[k].fullname + ' - ' + eid + '</option>';
+            }
+
+            // Skip layers whose list did not change, so the dropdown the user is
+            // interacting with is never rebuilt underneath them.
+            var currentIds = $select.find('option').map(function () {
+                return this.value ? String(this.value) : null;
+            }).get();
+
+            var unchanged = desiredIds.length === currentIds.length &&
+                desiredIds.every(function (v, i) { return v === currentIds[i]; });
+            if (unchanged) {
+                return;
+            }
+
+            // change.select2 only re-renders the widget; it does not fire the
+            // plain "change" handler below, so there is no recursion.
+            $select.html(optionsHtml).trigger('change.select2');
+        });
+    }
+
     // Add change event listener to enable the next layer only if the current one is selected
     $('#viewlayer .select2').each(function (index) {
         $(this).on('change', function () {
@@ -184,8 +242,14 @@ function populateModal(employeeId, fullName, app, layer, appName, employees) {
                     $('#viewlayer .select2').eq(i).val('').prop('disabled', true).trigger('change');
                 }
             }
+
+            // Keep the other layers free of already-picked employees.
+            refreshLayerOptions();
         });
     });
+
+    // Apply the exclusion to the values already saved when the modal opens.
+    refreshLayerOptions();
 
     var editModal = document.getElementById('editModal');
     
