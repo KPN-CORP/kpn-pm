@@ -184,61 +184,15 @@ function populateModal(employeeId, fullName, app, layer, appName, employees) {
                     $('#viewlayer .select2').eq(i).val('').prop('disabled', true).trigger('change');
                 }
             }
-
-            // Prevent the same employee from being picked in more than one layer
-            updateLayerOptions();
         });
     });
-
-    // Apply exclusion to the pre-filled values when the modal first opens
-    updateLayerOptions();
 
     var editModal = document.getElementById('editModal');
-
+    
     // Initialize the Bootstrap modal
     var modal = new bootstrap.Modal(editModal);
-
+    
     modal.show();
-}
-
-// Disable, in every layer's dropdown, the employees already selected in the
-// other layers. This keeps an approver from being assigned to more than one
-// layer (e.g. if user A is chosen in Layer 1 they no longer appear in Layer 2).
-function updateLayerOptions() {
-    var $selects = $('#viewlayer .select2');
-
-    // Collect the employees currently chosen across all layers.
-    var selectedValues = [];
-    $selects.each(function () {
-        var val = $(this).val();
-        if (val) {
-            selectedValues.push(val);
-        }
-    });
-
-    // For each layer, disable options taken by a different layer and re-enable
-    // the rest. The value chosen in the current layer stays enabled.
-    $selects.each(function () {
-        var currentVal = $(this).val();
-
-        $(this).find('option').each(function () {
-            var optVal = $(this).val();
-
-            if (optVal === '') {
-                return; // keep the empty placeholder option
-            }
-
-            var takenElsewhere = optVal !== currentVal && selectedValues.indexOf(optVal) !== -1;
-            $(this).prop('disabled', takenElsewhere);
-        });
-    });
-
-    // Refresh Select2 so the disabled state is reflected in the open dropdown.
-    $selects.each(function () {
-        if ($(this).hasClass('select2-hidden-accessible')) {
-            $(this).trigger('change.select2');
-        }
-    });
 }
 
 $('#submitButton').on('click', function(e) {
