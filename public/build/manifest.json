@@ -1,6 +1,6 @@
 {
-  "_jquery-BT3bhPE2.js": {
-    "file": "assets/jquery-BT3bhPE2.js",
+  "_jquery-CHTzeeNo.js": {
+    "file": "assets/jquery-CHTzeeNo.js",
     "name": "jquery"
   },
   "public/images/bg-auth.jpg": {
@@ -76,24 +76,24 @@
     "src": "resources/fonts/remixicon.woff2"
   },
   "resources/js/app.js": {
-    "file": "assets/app-CJBlfWw3.js",
+    "file": "assets/app-CDgM18fL.js",
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,
     "imports": [
-      "_jquery-BT3bhPE2.js"
+      "_jquery-CHTzeeNo.js"
     ],
     "css": [
       "assets/app-DVNhP-d0.css"
     ]
   },
   "resources/js/guide.js": {
-    "file": "assets/guide-DzYpqoex.js",
+    "file": "assets/guide-CQcr2m74.js",
     "name": "guide",
     "src": "resources/js/guide.js",
     "isEntry": true,
     "imports": [
-      "_jquery-BT3bhPE2.js"
+      "_jquery-CHTzeeNo.js"
     ]
   },
   "resources/js/head.js": {
@@ -133,12 +133,12 @@
     "isEntry": true
   },
   "resources/js/team-goal.js": {
-    "file": "assets/team-goal-BZJhk8Rr.js",
+    "file": "assets/team-goal-BYz7yzBq.js",
     "name": "team-goal",
     "src": "resources/js/team-goal.js",
     "isEntry": true,
     "imports": [
-      "_jquery-BT3bhPE2.js"
+      "_jquery-CHTzeeNo.js"
     ]
   },
   "resources/js/tippy.min.js": {
