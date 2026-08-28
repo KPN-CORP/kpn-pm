@@ -195,18 +195,28 @@
                 // termasuk yang sudah Approved.
                 $scheduleOpen = $activePeriod && $activePeriod == $row->request->goal->period;
 
-                $isGoalInitiator = Auth::user()->employee_id == $row->request->initiated->employee_id;
+                // ATURAN LAMA -- hanya inisiator (pembuat approval request) yang boleh revise.
+                // Sengaja tidak dihapus, siapa tahu aturan ini dipakai lagi ke depannya.
+                // $isGoalOwner = Auth::user()->employee_id == $row->request->initiated->employee_id;
+                // $isReviseCase = $row->request->goal->form_status != 'Draft'
+                //     && $row->request->created_by == Auth::user()->id;
 
-                // Revise: goal sudah tidak Draft lagi (Submitted / Approved) dan diinisiasi sendiri.
+                // ATURAN SEKARANG -- pemilik goal boleh revise goal-nya sendiri walaupun
+                // goal tersebut dibuatkan (on-behalf) oleh manager.
+                $isGoalOwner = Auth::user()->employee_id == $row->request->employee_id;
+
+                // Revise: goal sudah tidak Draft lagi (Submitted / Approved).
+                // Sendback dikecualikan supaya jatuh ke $isEditCase dan tidak ikut
+                // terikat window schedule -- sama seperti guard di MyGoalController::edit().
                 $isReviseCase = $row->request->goal->form_status != 'Draft'
-                    && $row->request->created_by == Auth::user()->id;
+                    && $row->request->status != 'Sendback';
 
                 // Edit: goal masih Draft, atau masih Pending tanpa approval, atau di-sendback ke dirinya.
                 $isEditCase = $row->request->goal->form_status == 'Draft'
                     || ($row->request->status == 'Pending' && count($row->request->approval) == 0)
                     || $row->request->sendback_to == $row->request->employee_id;
 
-                $canReviseGoal = $isGoalInitiator && $access
+                $canReviseGoal = $isGoalOwner && $access
                     && (($isReviseCase && $scheduleOpen) || (!$isReviseCase && $isEditCase));
             @endphp
             <!-- Attribut data-status disimpan di sini -->
@@ -240,7 +250,7 @@
                 @endif
             @endif
 
-            @if ($isGoalInitiator && $access)
+            @if ($isGoalOwner && $access)
                 @if ($isReviseCase)
                     {{-- Revise tetap tersedia untuk goal Approved selama jadwal masih berjalan --}}
                     @if ($scheduleOpen)

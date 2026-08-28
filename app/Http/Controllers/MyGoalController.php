@@ -363,6 +363,12 @@ class MyGoalController extends Controller
             $isCurrentPeriod = !$goalsCheck->isEmpty();
             $hasCreatorPermission = $isCurrentPeriod && $goalsCheck->first()->approvalRequest != null;
 
+            // Pemilik goal boleh merevisi goal-nya sendiri walaupun goal tersebut
+            // dibuatkan (on-behalf) oleh manager -- pasangan dari $isGoalOwner di
+            // halaman My Goal. Aturan lama yang hanya mengizinkan inisiator masih
+            // tersimpan di $hasCreatorPermission di atas kalau nanti dipakai lagi.
+            $isGoalOwner = $isCurrentPeriod && $goal->employee_id == $this->user;
+
             // A rehired employee gets a NEW employee_id; the OLD one is soft-deleted on exit.
             // Goals that belong to an old/inactive employee_id are never revisable.
             $goalOwner = Employee::where('employee_id', $goal->employee_id)->first();
@@ -401,7 +407,10 @@ class MyGoalController extends Controller
                 return redirect('goals');
             }
 
-            if (!$goalOwnerActive || (!$hasCreatorPermission && !$managerCanRevise)) {
+            // ATURAN LAMA -- tanpa $isGoalOwner, goal on-behalf hanya bisa direvisi
+            // oleh manager yang menginisiasinya. Sengaja tidak dihapus.
+            // if (!$goalOwnerActive || (!$hasCreatorPermission && !$managerCanRevise)) {
+            if (!$goalOwnerActive || (!$hasCreatorPermission && !$isGoalOwner && !$managerCanRevise)) {
                 // User ID doesn't match the condition, show error message
                 Session::flash('error', [
                     'title' => 'Permission Denied',
