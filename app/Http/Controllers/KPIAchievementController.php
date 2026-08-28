@@ -245,6 +245,15 @@ class KPIAchievementController extends Controller
 
     public function bulkStore(Request $request)
     {
+        // file baru yang tersimpan di request ini, dihapus lagi jika gagal
+        $uploadedFiles = [];
+
+        $monthNames = [
+            1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr',
+            5 => 'May', 6 => 'Jun', 7 => 'Jul', 8 => 'Aug',
+            9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dec'
+        ];
+
         try {
             DB::beginTransaction();
 
@@ -317,16 +326,35 @@ class KPIAchievementController extends Controller
                         ->where('month', $month)
                         ->first();
 
+                    $hasNewFile = $request->hasFile("attachment.$kpiIndex.$month");
+                    $isEmptyValue = $value === null || trim((string)$value) === '';
+                    $fieldLabel = 'KPI ' . ($kpiIndex + 1) . ' - ' . ($monthNames[$month] ?? $month);
+
+                    // value wajib diisi jika ada attachment yang diupload
+                    if ($isEmptyValue && $hasNewFile) {
+                        throw ValidationException::withMessages([
+                            "ach.$kpiIndex.$month" => "$fieldLabel: achievement value is required when uploading an attachment.",
+                        ]);
+                    }
+
+                    $normalizedValue = $isEmptyValue
+                        ? null
+                        : $this->kpiService->normalizeDecimal($value);
+
+                    // value diisi tapi bukan angka yang valid
+                    if (!$isEmptyValue && $normalizedValue === null) {
+                        throw ValidationException::withMessages([
+                            "ach.$kpiIndex.$month" => "$fieldLabel: achievement value must be a number.",
+                        ]);
+                    }
+
                     $filePath = $existing ? ($existing->file ?? null) : null;
 
                     // FILE HANDLING
-                    if ($request->hasFile("attachment.$kpiIndex.$month")) {
+                    if ($hasNewFile) {
 
-                        if ($existing) {
-                            if ($existing->file) {
-                                Storage::disk('public')->delete($existing->file);
-                            }
-                            // $existing->delete();
+                        if ($existing && $existing->file) {
+                            Storage::disk('public')->delete($existing->file);
                         }
 
                         $file = $request->file("attachment.$kpiIndex.$month");
@@ -335,15 +363,12 @@ class KPIAchievementController extends Controller
                             "kpi-achievements/{$request->goal_id}/{$kpiIndex}",
                             'public'
                         );
+
+                        $uploadedFiles[] = $filePath;
                     }
 
-                    // SKIP jika kosong semua
-                    // DELETE jika value dikosongkan dan tidak ada attachment
-                    if (
-                        ($value === null || trim((string)$value) === '')
-                        && !$request->hasFile("attachment.$kpiIndex.$month")
-                        && $existing
-                    ) {
+                    // DELETE jika value dikosongkan (attachment baru sudah ditolak di atas)
+                    if ($isEmptyValue && $existing) {
 
                         if ($isSubmit) {
                             KPIAchievementSnapshotService::insertOne(
@@ -365,19 +390,9 @@ class KPIAchievementController extends Controller
                     }
 
                     // skip jika benar-benar kosong dan tidak ada existing
-                    if (
-                        ($value === null || trim((string)$value) === '')
-                        && !$filePath
-                    ) {
+                    if ($isEmptyValue) {
                         continue;
                     }
-
-                    $normalizedValue = (
-                        $value === null ||
-                        trim((string)$value) === ''
-                    )
-                        ? null
-                        : $this->kpiService->normalizeDecimal($value);
 
                     if ($existing) {
                         if ($isSubmit) {
@@ -423,8 +438,21 @@ class KPIAchievementController extends Controller
                 ? redirect('team-goals')->with('success', 'Achievements submitted successfully')
                 : redirect('goals')->with('success', 'Achievements submitted successfully');
 
+        } catch (ValidationException $e) {
+            DB::rollBack();
+
+            foreach ($uploadedFiles as $uploadedFile) {
+                Storage::disk('public')->delete($uploadedFile);
+            }
+
+            throw $e;
+
         } catch (\Throwable $e) {
             DB::rollBack();
+
+            foreach ($uploadedFiles as $uploadedFile) {
+                Storage::disk('public')->delete($uploadedFile);
+            }
             
             // TAMPILKAN ERROR KE LAYAR UNTUK DEBUGGING
             // dd([
