@@ -222,6 +222,11 @@
                             $isCurrentApprover = $approverId == Auth::user()->employee_id;
                             $canReviseSubmitted = $goalOwnerActive && ($isInitiator || ($isRevisableLevel && $isCurrentApprover));
 
+                            // Jadwal goal untuk periode ini masih berjalan (start_date <= hari ini <= end_date).
+                            // Selama masih dalam range schedule, goal boleh direvisi apapun statusnya
+                            // termasuk yang sudah Approved.
+                            $scheduleOpen = $activePeriod && $activePeriod == $goalPeriod;
+
                             $rowStatus = 'approved';
                             if ($isDraft) $rowStatus = 'draft';
                             elseif ($status == 'Sendback') $rowStatus = 'revision';
@@ -270,7 +275,7 @@
                                     <a href="javascript:void(0)" data-bs-id="{{ $employeeId }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $popover }}" class="badge {{ $badgeClass }} rounded-pill py-1 px-3 text-decoration-none fw-medium">{{ $label }}</a>
                                 </div>
                                 <div class="col-12 col-md-3 d-flex flex-nowrap gap-2 justify-content-md-end align-items-center mt-md-0 px-1 pt-1">
-                                    @if ($period == $goalPeriod && $formStatus != 'Draft' && $status != 'Sendback' && !$appraisalCheck && $goals)
+                                    @if ($scheduleOpen && $formStatus != 'Draft' && $status != 'Sendback' && !$appraisalCheck && $goals)
                                         <a id="reviseGoalBtn{{ $goalId }}"
                                             class="btn btn-sm btn-outline-warning fw-semibold rounded-pill px-3
                                             {{ $canReviseSubmitted ? '' : 'd-none' }}"

@@ -190,15 +190,24 @@
                     ? __('Review Period or Calculation Method is not set on this goal. Please revise the goal first.')
                     : null;
 
-                // kondisi yang sama dengan tampilnya tombol Revise Goals / Edit di bawah
-                $canReviseGoal = Auth::user()->employee_id == $row->request->initiated->employee_id
-                    && $access
-                    && (
-                        ($row->request->goal->form_status != 'Draft' && $row->request->created_by == Auth::user()->id)
-                        || $row->request->goal->form_status == 'Draft'
-                        || ($row->request->status == 'Pending' && count($row->request->approval) == 0)
-                        || $row->request->sendback_to == $row->request->employee_id
-                    );
+                // Jadwal goal untuk periode ini masih berjalan (start_date <= hari ini <= end_date).
+                // Selama masih dalam range schedule, goal boleh direvisi apapun statusnya
+                // termasuk yang sudah Approved.
+                $scheduleOpen = $activePeriod && $activePeriod == $row->request->goal->period;
+
+                $isGoalInitiator = Auth::user()->employee_id == $row->request->initiated->employee_id;
+
+                // Revise: goal sudah tidak Draft lagi (Submitted / Approved) dan diinisiasi sendiri.
+                $isReviseCase = $row->request->goal->form_status != 'Draft'
+                    && $row->request->created_by == Auth::user()->id;
+
+                // Edit: goal masih Draft, atau masih Pending tanpa approval, atau di-sendback ke dirinya.
+                $isEditCase = $row->request->goal->form_status == 'Draft'
+                    || ($row->request->status == 'Pending' && count($row->request->approval) == 0)
+                    || $row->request->sendback_to == $row->request->employee_id;
+
+                $canReviseGoal = $isGoalInitiator && $access
+                    && (($isReviseCase && $scheduleOpen) || (!$isReviseCase && $isEditCase));
             @endphp
             <!-- Attribut data-status disimpan di sini -->
             <div class="card shadow-sm mb-4 py-0 goal-card border-0" data-year="{{ $row->request->period }}" data-status="{{ $row->request->status }}">
@@ -231,22 +240,18 @@
                 @endif
             @endif
 
-            @if (Auth::user()->employee_id == $row->request->initiated->employee_id && $access)
-                @if (
-                    $row->request->goal->form_status != 'Draft' &&  
-                    $row->request->created_by == Auth::user()->id
-                )
-                    <a id="reviseGoalBtn"
-                        class="btn btn-outline-warning btn-sm fw-semibold revise-goal-btn"
-                        href="{{ route('goals.edit', $row->request->goal->id) }}"
-                        data-has-achievement="{{ $row->request->goal->hasAchievement ? 1 : 0 }}">
-                        {{ __('Revise Goals') }}
-                    </a>
-                @elseif (
-                    $row->request->goal->form_status == 'Draft' ||
-                    ($row->request->status == 'Pending' && count($row->request->approval) == 0) ||
-                    $row->request->sendback_to == $row->request->employee_id
-                )
+            @if ($isGoalInitiator && $access)
+                @if ($isReviseCase)
+                    {{-- Revise tetap tersedia untuk goal Approved selama jadwal masih berjalan --}}
+                    @if ($scheduleOpen)
+                        <a id="reviseGoalBtn"
+                            class="btn btn-outline-warning btn-sm fw-semibold revise-goal-btn"
+                            href="{{ route('goals.edit', $row->request->goal->id) }}"
+                            data-has-achievement="{{ $row->request->goal->hasAchievement ? 1 : 0 }}">
+                            {{ __('Revise Goals') }}
+                        </a>
+                    @endif
+                @elseif ($isEditCase)
                     <a class="btn btn-outline-warning btn-sm fw-semibold"
                         href="{{ route('goals.edit', $row->request->goal->id) }}"
                         onclick="showLoader()">
