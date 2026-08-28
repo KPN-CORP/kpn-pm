@@ -310,6 +310,23 @@ class KPIAchievementController extends Controller
                 if (!isset($formData[$kpiIndex])) continue;
 
                 $kpi = $formData[$kpiIndex];
+
+                $kpiLabel = 'KPI ' . ($kpiIndex + 1)
+                    . (!empty($kpi['kpi']) ? ' (' . $kpi['kpi'] . ')' : '');
+
+                // goal lama bisa tidak punya review_period / calculation_method
+                if (!isset($kpi['review_period']) || (int) $kpi['review_period'] < 1) {
+                    throw ValidationException::withMessages([
+                        "ach.$kpiIndex" => "$kpiLabel: Review Period is not set on this goal. Please revise the goal first before updating the achievement.",
+                    ]);
+                }
+
+                if (empty($kpi['calculation_method'])) {
+                    throw ValidationException::withMessages([
+                        "ach.$kpiIndex" => "$kpiLabel: Calculation Method is not set on this goal. Please revise the goal first before updating the achievement.",
+                    ]);
+                }
+
                 $period = (int) $kpi['review_period'];
 
                 $kpiId = $request->kpi_id[$kpiIndex] ?? $kpiIds[$kpiIndex];

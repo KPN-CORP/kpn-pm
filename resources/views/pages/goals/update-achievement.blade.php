@@ -336,6 +336,25 @@ input[type=number] {
 @endsection
 
 @push('scripts')
+@if ($errors->any())
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const messages = @json($errors->all());
+
+    Swal.fire({
+        icon: 'error',
+        title: 'Achievement could not be saved',
+        html: '<ul class="text-start mb-0 ps-3">' +
+            messages.map(function (message) {
+                const safe = document.createElement('div');
+                safe.innerText = message;
+                return '<li>' + safe.innerHTML + '</li>';
+            }).join('') +
+            '</ul>'
+    });
+});
+</script>
+@endif
 <script>
 function removeAttachment(btnElement, index, monthNum) {
     if (confirm('Are you sure you want to remove this attachment?')) {
