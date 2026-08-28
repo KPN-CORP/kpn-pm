@@ -303,6 +303,10 @@ class TeamGoalController extends Controller
         $link = __('Task Box');
 
         $period = $this->period;
+
+        // Periode goal yang jadwalnya sedang berjalan (start_date <= hari ini <= end_date).
+        $activePeriod = $this->appService->goalActivePeriod();
+
         $selectYear = Schedule::withTrashed()
         ->where('event_type', 'goals')
         ->where('schedule_periode', '!=', $period)
@@ -310,7 +314,7 @@ class TeamGoalController extends Controller
         ->orderBy('period', 'ASC')
         ->get();
 
-        return view('pages.goals.team-goal', compact('data', 'tasks', 'notasks', 'noAchievements', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'reviewPeriodOption', 'calculationMethodOption', 'selectYear', 'period'));
+        return view('pages.goals.team-goal', compact('data', 'tasks', 'notasks', 'noAchievements', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'reviewPeriodOption', 'calculationMethodOption', 'selectYear', 'period', 'activePeriod'));
        
     }
     

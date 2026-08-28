@@ -168,6 +168,91 @@ function populateModal(employeeId, fullName, app, layer, appName, employees) {
         allowClear: true
     });
 
+    // Remove, from every layer's dropdown, the employees already chosen in the
+    // other layers: if User A is picked in Layer 1, User A no longer appears in
+    // Layer 2, 3, ... The employee chosen in a layer always stays in its own list.
+    //
+    // IMPORTANT: select only "select.select2". After Select2 initialises it also
+    // inserts a <span class="select2 select2-container"> wrapper, so a bare
+    // ".select2" selector matches that span too - writing options into it would
+    // wipe out the rendered widget and print the names as plain text.
+    // This works incrementally. The employee list holds thousands of entries, so
+    // rebuilding every option of every layer would create tens of thousands of
+    // DOM nodes on each run and freeze the page ("Page Unresponsive"). Only the
+    // handful of options that actually became taken or free are touched.
+    function refreshLayerOptions() {
+        var $selects = $('#viewlayer select.select2');
+
+        // Snapshot what each layer currently holds.
+        var chosen = [];
+        $selects.each(function () {
+            chosen.push(this.value ? String(this.value) : '');
+        });
+
+        $selects.each(function (idx) {
+            var select = this;
+            var own = chosen[idx];
+
+            // Employees taken by the OTHER layers.
+            var taken = {};
+            for (var t = 0; t < chosen.length; t++) {
+                if (t !== idx && chosen[t]) {
+                    taken[chosen[t]] = true;
+                }
+            }
+
+            // Remove options now taken elsewhere; note which ones remain.
+            var present = {};
+            for (var o = select.options.length - 1; o >= 0; o--) {
+                var v = select.options[o].value;
+                if (!v) {
+                    continue;
+                }
+                if (v !== own && taken[v]) {
+                    select.remove(o);
+                } else {
+                    present[v] = true;
+                }
+            }
+
+            // Re-insert options that became free again, preserving the original
+            // ordering by anchoring on the next employee still in the list.
+            for (var k = 0; k < employees.length; k++) {
+                var eid = String(employees[k].employee_id);
+                if (taken[eid] || present[eid]) {
+                    continue;
+                }
+
+                var anchor = null;
+                for (var m = k + 1; m < employees.length; m++) {
+                    if (present[String(employees[m].employee_id)]) {
+                        anchor = select.querySelector('option[value="' + employees[m].employee_id + '"]');
+                        if (anchor) {
+                            break;
+                        }
+                    }
+                }
+
+                select.insertBefore(new Option(employees[k].fullname + ' - ' + eid, eid), anchor);
+                present[eid] = true;
+            }
+        });
+    }
+
+    // The change handler below cascades (it triggers "change" on the following
+    // layers), so coalesce the whole burst into a single run once it settles.
+    var exclusionPending = false;
+    function scheduleLayerOptions() {
+        if (exclusionPending) {
+            return;
+        }
+        exclusionPending = true;
+        setTimeout(function () {
+            exclusionPending = false;
+            refreshLayerOptions();
+        }, 0);
+    }
+
     // Add change event listener to enable the next layer only if the current one is selected
     $('#viewlayer .select2').each(function (index) {
         $(this).on('change', function () {
@@ -184,8 +269,14 @@ function populateModal(employeeId, fullName, app, layer, appName, employees) {
                     $('#viewlayer .select2').eq(i).val('').prop('disabled', true).trigger('change');
                 }
             }
+
+            // Keep the other layers free of already-picked employees.
+            scheduleLayerOptions();
         });
     });
+
+    // Apply the exclusion to the values already saved when the modal opens.
+    refreshLayerOptions();
 
     var editModal = document.getElementById('editModal');
     

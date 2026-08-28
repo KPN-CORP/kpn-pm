@@ -178,6 +178,36 @@
                 ? \Carbon\Carbon::parse($achievement['approval_date'])->format('d M Y H:i')
                 : '-';
                 $achievementCreatedBy = $achievement['created_by'] ?? null;
+
+                // achievement tidak bisa diisi kalau KPI belum punya review period / calculation method
+                $incompleteKpi = collect($row->formData ?? [])->first(function ($kpi) {
+                    return !isset($kpi['review_period'])
+                        || (int) $kpi['review_period'] < 1
+                        || empty($kpi['calculation_method']);
+                });
+
+                $achievementBlockedReason = $incompleteKpi
+                    ? __('Review Period or Calculation Method is not set on this goal. Please revise the goal first.')
+                    : null;
+
+                // Jadwal goal untuk periode ini masih berjalan (start_date <= hari ini <= end_date).
+                // Selama masih dalam range schedule, goal boleh direvisi apapun statusnya
+                // termasuk yang sudah Approved.
+                $scheduleOpen = $activePeriod && $activePeriod == $row->request->goal->period;
+
+                $isGoalInitiator = Auth::user()->employee_id == $row->request->initiated->employee_id;
+
+                // Revise: goal sudah tidak Draft lagi (Submitted / Approved) dan diinisiasi sendiri.
+                $isReviseCase = $row->request->goal->form_status != 'Draft'
+                    && $row->request->created_by == Auth::user()->id;
+
+                // Edit: goal masih Draft, atau masih Pending tanpa approval, atau di-sendback ke dirinya.
+                $isEditCase = $row->request->goal->form_status == 'Draft'
+                    || ($row->request->status == 'Pending' && count($row->request->approval) == 0)
+                    || $row->request->sendback_to == $row->request->employee_id;
+
+                $canReviseGoal = $isGoalInitiator && $access
+                    && (($isReviseCase && $scheduleOpen) || (!$isReviseCase && $isEditCase));
             @endphp
             <!-- Attribut data-status disimpan di sini -->
             <div class="card shadow-sm mb-4 py-0 goal-card border-0" data-year="{{ $row->request->period }}" data-status="{{ $row->request->status }}">
@@ -185,30 +215,43 @@
     <h5 class="m-0 font-weight-bold text-primary">{{ __('Goal') }} {{ $row->request->period }}</h5>
     
     @if ($period == $row->request->goal->period && !$row->request->appraisalCheck)
+        <div class="d-flex flex-column align-items-end gap-1">
+
+        @if ($achievementBlockedReason && $canReviseGoal)
+            <div class="alert alert-warning border-0 py-1 px-2 mb-0 small d-flex align-items-center gap-1">
+                <i class="ri-error-warning-line"></i>
+                <span>{{ __('Please update Review Period and Calc Method on Revise Goals') }}</span>
+            </div>
+        @endif
+
         <div class="d-flex flex-wrap gap-2">
-            
+
             @if (!$achievement || $achievementCreatedBy ?? $achievementCreatedBy === Auth::id())
-                <a class="btn btn-outline-{{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? 'warning' : ($row->request->goal->form_status === 'Approved' ? 'success fw-semibold' : 'secondary') }} btn-sm" href="{{ route('goals.update-achievement', $row->request->goal->id) }}">
-                    {{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? __('Revise Achievement') : __('Update Achievement') }}
-                </a>
+                @if ($achievementBlockedReason)
+                    <span class="d-inline-block" tabindex="0" title="{{ $achievementBlockedReason }}">
+                        <button type="button" class="btn btn-outline-secondary btn-sm opacity-50" disabled>
+                            {{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? __('Revise Achievement') : __('Update Achievement') }}
+                        </button>
+                    </span>
+                @else
+                    <a class="btn btn-outline-{{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? 'warning' : ($row->request->goal->form_status === 'Approved' ? 'success fw-semibold' : 'secondary') }} btn-sm" href="{{ route('goals.update-achievement', $row->request->goal->id) }}">
+                        {{ $achievementApprovalInfo && $achievementStatus == 'Draft' ? __('Revise Achievement') : __('Update Achievement') }}
+                    </a>
+                @endif
             @endif
 
-            @if (Auth::user()->employee_id == $row->request->initiated->employee_id && $access)
-                @if (
-                    $row->request->goal->form_status != 'Draft' &&  
-                    $row->request->created_by == Auth::user()->id
-                )
-                    <a id="reviseGoalBtn"
-                        class="btn btn-outline-warning btn-sm fw-semibold revise-goal-btn"
-                        href="{{ route('goals.edit', $row->request->goal->id) }}"
-                        data-has-achievement="{{ $row->request->goal->hasAchievement ? 1 : 0 }}">
-                        {{ __('Revise Goals') }}
-                    </a>
-                @elseif (
-                    $row->request->goal->form_status == 'Draft' ||
-                    ($row->request->status == 'Pending' && count($row->request->approval) == 0) ||
-                    $row->request->sendback_to == $row->request->employee_id
-                )
+            @if ($isGoalInitiator && $access)
+                @if ($isReviseCase)
+                    {{-- Revise tetap tersedia untuk goal Approved selama jadwal masih berjalan --}}
+                    @if ($scheduleOpen)
+                        <a id="reviseGoalBtn"
+                            class="btn btn-outline-warning btn-sm fw-semibold revise-goal-btn"
+                            href="{{ route('goals.edit', $row->request->goal->id) }}"
+                            data-has-achievement="{{ $row->request->goal->hasAchievement ? 1 : 0 }}">
+                            {{ __('Revise Goals') }}
+                        </a>
+                    @endif
+                @elseif ($isEditCase)
                     <a class="btn btn-outline-warning btn-sm fw-semibold"
                         href="{{ route('goals.edit', $row->request->goal->id) }}"
                         onclick="showLoader()">
@@ -216,7 +259,9 @@
                     </a>
                 @endif
             @endif
-            
+
+        </div>
+
         </div>
     @endif
 </div>

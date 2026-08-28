@@ -1,3 +1,8 @@
+@php
+    // tanggal disimpan UTC, ditampilkan mengikuti timezone aplikasi
+    $displayTimezone = config('app.display_timezone', 'Asia/Jakarta');
+    $dateTimeFormat = 'd M Y H:i';
+@endphp
 <table>
     <thead>
     <tr>
@@ -18,8 +23,10 @@
         <th>Approval Status</th>
         <th>Current Approver</th>
         <th>Current Approver ID</th>
+        <th>Initiated On</th>
         <th>Initiated By</th>
         <th>Initiated By ID</th>
+        <th>Last Updated On</th>
         <th>Period</th>
         </tr>
     </thead>
@@ -47,8 +54,10 @@
                     <td>{{ $row->status=='Pending'? ($row->sendback_to ? 'Waiting For Revision' : ($row->goal->form_status=='Draft'?'Not Started':'Waiting For Approval')) : $row->status }}</td>
                     <td>{{ $row->status=='Sendback' && $row->sendback_to == $row->employee_id || $row->goal->form_status=='Draft' ? '-' : $row->manager->fullname ?? '-' }}</td>
                     <td>{{ $row->status=='Sendback' && $row->sendback_to == $row->employee_id || $row->goal->form_status=='Draft' ? '-' : $row->manager->employee_id ?? '-' }}</td>
+                    <td>{{ $row->created_at ? \Carbon\Carbon::parse($row->created_at)->timezone($displayTimezone)->format($dateTimeFormat) : '-' }}</td>
                         <td>{{ $row->initiated ? $row->initiated->name : ($row->employee?->fullname ?? '-') }}</td>
                     <td>{{ $row->initiated ? $row->initiated->employee_id : ($row->employee?->employee_id ?? '-') }}</td>
+                    <td>{{ $row->updated_at ? \Carbon\Carbon::parse($row->updated_at)->timezone($displayTimezone)->format($dateTimeFormat) : '-' }}</td>
                     <td>{{ $row->goal->period }}</td>
                 </tr>
             @endforeach

@@ -62,6 +62,10 @@ class MyGoalController extends Controller
 
         $period = $this->appService->goalPeriod();
 
+        // Periode goal yang jadwalnya sedang berjalan (start_date <= hari ini <= end_date).
+        // Null kalau tidak ada schedule 'goals' yang aktif hari ini.
+        $activePeriod = $this->appService->goalActivePeriod();
+
         // Retrieve the selected year from the request
         $filterYear = $request->input('filterYear');
 
@@ -249,7 +253,7 @@ class MyGoalController extends Controller
 
         $countDraft = Goal::where('employee_id', $user)->where('category', $this->category)->where('form_status', 'Draft')->count();
 
-        return view('pages.goals.my-goal', compact('data', 'link', 'parentLink', 'uomOption', 'typeOption', 'reviewPeriodOption', 'calculationMethodOption', 'access', 'selectYear', 'adjustByManager', 'period', 'countDraft'));
+        return view('pages.goals.my-goal', compact('data', 'link', 'parentLink', 'uomOption', 'typeOption', 'reviewPeriodOption', 'calculationMethodOption', 'access', 'selectYear', 'adjustByManager', 'period', 'activePeriod', 'countDraft'));
     }
 
     function show($id) {
@@ -376,6 +380,26 @@ class MyGoalController extends Controller
                 && $goalOwner->job_level >= '2A'
                 && $goalOwner->job_level < '4A'
                 && $isCurrentApprover;
+
+            // Revise (goal sudah Submitted / Approved) hanya boleh selama jadwal goal
+            // periode tersebut masih berjalan. Draft dan goal yang di-sendback tidak
+            // terikat window ini karena belum pernah masuk proses approval.
+            $activePeriod = $this->appService->goalActivePeriod();
+            $scheduleOpen = $activePeriod && $activePeriod == $goal->period;
+            $isReviseCase = $goal->form_status != 'Draft'
+                && ($approvalRequest->status ?? null) != 'Sendback';
+
+            if ($isReviseCase && !$scheduleOpen) {
+                Session::flash('error', [
+                    'title' => 'Cannot revise goal',
+                    'message' => "The goal schedule for period {$goal->period} is closed. You can no longer revise this goal."
+                ]);
+
+                if ($this->user != $goal->employee_id) {
+                    return redirect('team-goals');
+                }
+                return redirect('goals');
+            }
 
             if (!$goalOwnerActive || (!$hasCreatorPermission && !$managerCanRevise)) {
                 // User ID doesn't match the condition, show error message
@@ -660,7 +684,34 @@ class MyGoalController extends Controller
         $firstLayer = ApprovalLayer::where('employee_id', $request->employee_id)->orderBy('layer', 'asc')->first();
         $approver = $firstLayer->approver_id;
 
-        if($request->employee_id != $user){
+        $existingGoal = Goal::select('id', 'form_status', 'period')->find($request->id);
+        $existingStatus = ApprovalRequest::where('form_id', $request->id)->value('status');
+
+        // Goal yang sudah Approved lalu direvisi harus mengulang proses approval dari
+        // layer 1, siapapun yang merevisi. Tanpa ini, revisi oleh approver layer terakhir
+        // akan langsung Approved lagi tanpa persetujuan ulang.
+        $wasApproved = $existingGoal && $existingGoal->form_status === 'Approved';
+
+        // Guard yang sama dengan edit(): revisi hanya boleh selama jadwal goal periode
+        // tersebut masih berjalan, supaya POST langsung tidak menembus window schedule.
+        $activePeriod = $this->appService->goalActivePeriod();
+        $scheduleOpen = $existingGoal && $activePeriod && $activePeriod == $existingGoal->period;
+        $isReviseCase = $existingGoal
+            && $existingGoal->form_status != 'Draft'
+            && $existingStatus != 'Sendback';
+
+        if ($isReviseCase && !$scheduleOpen) {
+            Session::flash('error', [
+                'title' => 'Cannot revise goal',
+                'message' => "The goal schedule for period {$existingGoal->period} is closed. You can no longer revise this goal."
+            ]);
+
+            return $request->employee_id != $user
+                ? redirect('team-goals')
+                : redirect('goals');
+        }
+
+        if($request->employee_id != $user && !$wasApproved){
             $nextLayer = ApprovalLayer::where('approver_id', $user)
                                         ->where('employee_id', $request->employee_id)->max('layer');
 
@@ -850,8 +901,10 @@ class MyGoalController extends Controller
                 throw new Exception("Failed to create approval snapshot");
             }
 
-            // Create initial approval record
-            if ($user != $request->employee_id) {
+            // Create initial approval record.
+            // Dilewati saat goal Approved direvisi: siklus approval dimulai dari nol,
+            // jadi si perevisi tidak boleh langsung tercatat sebagai approver.
+            if ($user != $request->employee_id && !$wasApproved) {
                 $existingApproval = Approval::where('request_id', $approvalRequest->id)
                     ->where('approver_id', Auth::user()->employee_id)
                     ->first();

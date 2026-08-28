@@ -149,6 +149,23 @@ input[type=number] {
         </div>
     @endif
 
+    @if ($errors->any())
+        <div class="alert alert-danger border-0 mt-3 p-3">
+            <strong class="d-block mb-1"><i class="ri-error-warning-line me-1"></i> Achievement could not be saved:</strong>
+            <ul class="mb-0 ps-3">
+                @foreach ($errors->all() as $error)
+                    <li class="text-dark">{{ $error }}</li>
+                @endforeach
+            </ul>
+        </div>
+    @endif
+
+    @if (session('error'))
+        <div class="alert alert-danger border-0 mt-3 p-3">
+            <span class="text-dark"><i class="ri-error-warning-line me-1"></i> {{ session('error') }}</span>
+        </div>
+    @endif
+
     <form id="achievementForm" action="{{ route('achievement.bulk-store') }}" method="POST" enctype="multipart/form-data">
         @csrf
         @php
@@ -256,7 +273,7 @@ input[type=number] {
                                         name="ach[{{ $index }}][{{ $monthNum }}]" 
                                         class="input-compact" 
                                         placeholder="-"
-                                        value="{{ isset($data['ach'][$monthNum]) ? rtrim(rtrim($data['ach'][$monthNum], '0'), '.') : '' }}"
+                                        value="{{ old("ach.$index.$monthNum", isset($data['ach'][$monthNum]) ? rtrim(rtrim($data['ach'][$monthNum], '0'), '.') : '') }}"
                                         readonly
                                         data-month="{{ $monthNum }}"> 
 
@@ -319,6 +336,25 @@ input[type=number] {
 @endsection
 
 @push('scripts')
+@if ($errors->any())
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const messages = @json($errors->all());
+
+    Swal.fire({
+        icon: 'error',
+        title: 'Achievement could not be saved',
+        html: '<ul class="text-start mb-0 ps-3">' +
+            messages.map(function (message) {
+                const safe = document.createElement('div');
+                safe.innerText = message;
+                return '<li>' + safe.innerHTML + '</li>';
+            }).join('') +
+            '</ul>'
+    });
+});
+</script>
+@endif
 <script>
 function removeAttachment(btnElement, index, monthNum) {
     if (confirm('Are you sure you want to remove this attachment?')) {
@@ -391,6 +427,31 @@ document.addEventListener('DOMContentLoaded', function () {
             submitInput.value = type;
 
             const isSubmit = type === 'submit';
+
+            // attachment tanpa value akan ditolak server, cegah sejak awal
+            const missingValue = [];
+
+            document.querySelectorAll('.file-input-trigger').forEach(fileInput => {
+                if (!fileInput.files || fileInput.files.length === 0) return;
+
+                const box = fileInput.closest('.month-box');
+                const valueInput = box ? box.querySelector('.input-compact') : null;
+
+                if (valueInput && valueInput.value.trim() === '') {
+                    const label = box.querySelector('.text-uppercase');
+                    missingValue.push(label ? label.innerText.trim() : '-');
+                    valueInput.classList.add('is-invalid');
+                }
+            });
+
+            if (missingValue.length > 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Achievement value is required',
+                    text: 'Please fill in the achievement value for: ' + missingValue.join(', ')
+                });
+                return;
+            }
 
             Swal.fire({
                 title: 'Are you sure?',

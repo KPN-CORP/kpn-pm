@@ -6,6 +6,9 @@ return [
     'debug' => (bool) env('APP_DEBUG', false),
     'url' => env('APP_URL', 'http://localhost'),
     'timezone' => env('APP_TIMEZONE', 'UTC'),
+
+    // Timezone yang dipakai untuk menampilkan tanggal ke user (DB tetap disimpan UTC)
+    'display_timezone' => env('APP_DISPLAY_TIMEZONE', 'Asia/Jakarta'),
     'locale' => env('APP_LOCALE', 'en'),
     'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
     'faker_locale' => env('APP_FAKER_LOCALE', 'en_US'),
