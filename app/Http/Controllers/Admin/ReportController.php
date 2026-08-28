@@ -200,16 +200,18 @@ class ReportController extends Controller
             // Apply employee filters
             $data = $query->get();
 
-            $data->map(function($item) {
-                // Format created_at
-                $createdDate = Carbon::parse($item->created_at);
+            $displayTimezone = config('app.display_timezone', 'Asia/Jakarta');
 
-                    $item->formatted_created_at = $createdDate->format('d M Y g:ia');
+            $data->map(function($item) use ($displayTimezone) {
+                // Format created_at (disimpan UTC, ditampilkan waktu lokal)
+                $createdDate = Carbon::parse($item->created_at)->timezone($displayTimezone);
+
+                    $item->formatted_created_at = $createdDate->format('d M Y H:i');
     
-                // Format updated_at
-                $updatedDate = Carbon::parse($item->updated_at);
+                // Format updated_at (disimpan UTC, ditampilkan waktu lokal)
+                $updatedDate = Carbon::parse($item->updated_at)->timezone($displayTimezone);
 
-                    $item->formatted_updated_at = $updatedDate->format('d M Y g:ia');
+                    $item->formatted_updated_at = $updatedDate->format('d M Y H:i');
 
                 // Determine name and approval layer
                 if ($item->sendback_to == $item->employee->employee_id) {

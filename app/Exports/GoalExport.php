@@ -139,7 +139,7 @@ class GoalExport implements FromView, WithStyles
     
     public function styles($sheet)
 {
-    $sheet->getStyle('A1:T1')->getFont()->setBold(true);
+    $sheet->getStyle('A1:V1')->getFont()->setBold(true);
     $totalRows = isset($this->goals) ? (count($this->goals) * 10) + 1 : 20;
     
     // Dropdown Review Period (Kolom L)
