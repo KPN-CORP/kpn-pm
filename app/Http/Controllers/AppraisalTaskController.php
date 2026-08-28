@@ -287,6 +287,7 @@ public function getTeamData(Request $request)
         $user = $this->user;
         $period = $this->appService->appraisalPeriod();
         $filterYear = $request->input('filterYear');
+        $isCurrentPeriod = !$filterYear || $filterYear == $this->appService->appraisalPeriod();
 
         if ($filterYear && $filterYear != '') {
             $period = $filterYear;
@@ -358,7 +359,7 @@ public function getTeamData(Request $request)
         });
 
         // Format data untuk DataTables
-        $data = $datas->map(function ($team, $index) {
+        $data = $datas->map(function ($team, $index) use ($isCurrentPeriod) {
             $employee = $team->employee;
             $goal = $team->goal->first();
             $contributor = $team->contributors->first();
@@ -393,7 +394,7 @@ public function getTeamData(Request $request)
                 'approval_date' => $contributor
                     ? $this->appService->formatDate($contributor->created_at)
                     : '-',
-                'action' => view('components.action-buttons', ['team' => $team])->render(),
+                'action' => view('components.action-buttons', ['team' => $team, 'isCurrentPeriod' => $isCurrentPeriod])->render(),
             ];
         })->filter()->values();
 
