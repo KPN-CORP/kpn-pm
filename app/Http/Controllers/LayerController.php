@@ -77,10 +77,18 @@ class LayerController extends Controller
         ->select('al.employee_id', 'emp.fullname', 'emp.job_level', 'emp.contribution_level_code', 'emp.group_company', 'emp.office_area')
         ->selectRaw("GROUP_CONCAT(al.layer ORDER BY al.layer ASC SEPARATOR '|') AS layers")
         ->selectRaw("GROUP_CONCAT(al.approver_id ORDER BY al.layer ASC SEPARATOR '|') AS approver_ids")
-        ->selectRaw("GROUP_CONCAT(emp1.fullname ORDER BY al.layer ASC SEPARATOR '|') AS approver_names")
-        ->selectRaw("GROUP_CONCAT(emp1.job_level ORDER BY al.layer ASC SEPARATOR '|') AS approver_job_levels")
+        // COALESCE keeps the position of every layer in the list: GROUP_CONCAT drops
+        // NULLs, so an approver that no longer resolves to an active employee would
+        // otherwise shift the remaining names onto the wrong layer.
+        ->selectRaw("GROUP_CONCAT(COALESCE(emp1.fullname, '') ORDER BY al.layer ASC SEPARATOR '|') AS approver_names")
+        ->selectRaw("GROUP_CONCAT(COALESCE(emp1.job_level, '') ORDER BY al.layer ASC SEPARATOR '|') AS approver_job_levels")
         ->leftJoin('employees as emp', 'emp.employee_id', '=', 'al.employee_id')
-        ->leftJoin('employees as emp1', 'emp1.employee_id', '=', 'al.approver_id')
+        // Only active approvers are resolved; a soft deleted one is rendered as
+        // "No approver available" instead of showing an inactive employee.
+        ->leftJoin('employees as emp1', function ($join) {
+            $join->on('emp1.employee_id', '=', 'al.approver_id')
+                ->whereNull('emp1.deleted_at');
+        })
         ->whereNull('emp.deleted_at') // Add condition to check if deleted_at is null
         ->groupBy('al.employee_id', 'emp.fullname', 'emp.job_level', 'emp.contribution_level_code', 'emp.group_company', 'emp.office_area')
         ->orderBy('emp.fullname')
@@ -95,8 +103,11 @@ class LayerController extends Controller
         })
         ->get();
 
+        // The Employee model has no SoftDeletes trait, so deleted employees must be
+        // excluded explicitly or they show up as selectable superiors.
         $employees = Employee::select('employee_id', 'fullname')
         // ->whereNotIn('job_level', ['2A', '2B', '2C', '2D', '3A', '3B','4A'])
+        ->whereNull('deleted_at')
         ->orderBy('fullname', 'asc')
         ->get();
 
