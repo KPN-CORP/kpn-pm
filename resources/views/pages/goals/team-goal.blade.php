@@ -647,6 +647,7 @@
         $goalId = $firstSubordinate->goal->id;
         $formDataArr = $firstSubordinate->goal->form_data_parsed ?? [];
         $months = [1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'May', 6 => 'Jun', 7 => 'Jul', 8 => 'Aug', 9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dec'];
+        $appService = app(\App\Services\AppService::class);
         $reviewPeriodOption = $reviewPeriodOption ?? [];
         $calculationMethodOption = $calculationMethodOption ?? [];
     @endphp
@@ -676,10 +677,20 @@
                             <div class="row g-2 mb-3 bg-light p-2 rounded border border-light mx-0">
                                 <div class="col-6 col-md-2">
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">Target</span>
-                                    <span class="fw-bold text-dark col-value">{{ number_format(
-                                                $row['target'],
-                                                0
-                                            ) ?? '-' }}</span>
+                                    @php
+                                        // Target may be stored pre-formatted ("1,500", "1.000.000"),
+                                        // so normalise the separators before formatting it.
+                                        $rawTarget = trim((string) ($row['target'] ?? ''));
+                                        $targetValue = preg_match('/^\d[\d., ]*$/', $rawTarget)
+                                            ? $appService->normalizeTarget($rawTarget)
+                                            : null;
+                                    @endphp
+                                    <span class="fw-bold text-dark col-value">{{ $targetValue !== null
+                                                ? number_format(
+                                                    $targetValue,
+                                                    fmod($targetValue, 1) == 0 ? 0 : 2
+                                                )
+                                                : ($rawTarget !== '' ? $rawTarget : '-') }}</span>
                                 </div>
                                 <div class="col-6 col-md-2">
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">UoM</span>

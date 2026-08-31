@@ -884,7 +884,7 @@ class OnBehalfController extends Controller
                 $kpiData[$index] = [
                     'kpi' => $kpi,
                     'description' => $request->description[$index] ?? '',
-                    'target' => $request->target[$index],
+                    'target' => $this->appService->normalizeTarget($request->target[$index] ?? null),
                     'uom' => $request->uom[$index],
                     'weightage' => $request->weightage[$index],
                     'type' => $request->type[$index],
