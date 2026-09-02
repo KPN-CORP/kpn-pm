@@ -157,6 +157,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::post('/team-goals/submit', [TeamGoalController::class, 'store'])->name('team-goals.submit');
     Route::get('/team-goals/edit/{id}', [TeamGoalController::class, 'edit'])->name('team-goals.edit');
     Route::get('/team-goals/approval/{id}', [TeamGoalController::class, 'approval'])->name('team-goals.approval');
+    Route::get('/team-goals/approval-history/{id}', [TeamGoalController::class, 'approvalHistory'])->name('team-goals.approval-history');
     Route::get('/get-tooltip-content', [TeamGoalController::class, 'getTooltipContent']);
     Route::get('/units-of-measurement', [TeamGoalController::class, 'unitOfMeasurement']);
     Route::post('/import-goals-manager', [TeamGoalController::class, 'import'])->name('importgoalsmanager');

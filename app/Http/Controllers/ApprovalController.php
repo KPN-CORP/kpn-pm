@@ -11,6 +11,7 @@ use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
 use App\Models\Goal;
 use App\Models\Proposed360;
+use App\Services\AppService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -67,7 +68,7 @@ class ApprovalController extends Controller
                 $kpiData[$index] = [
                     'kpi' => $kpi,
                     'description' => $request->description[$index] ?? '',
-                    'target' => $request->target[$index],
+                    'target' => app(AppService::class)->normalizeTarget($request->target[$index] ?? null),
                     'uom' => $request->uom[$index],
                     'weightage' => $request->weightage[$index],
                     'type' => $request->type[$index],
