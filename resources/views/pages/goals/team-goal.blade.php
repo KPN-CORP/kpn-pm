@@ -275,6 +275,12 @@
                                     <a href="javascript:void(0)" data-bs-id="{{ $employeeId }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $popover }}" class="badge {{ $badgeClass }} rounded-pill py-1 px-3 text-decoration-none fw-medium">{{ $label }}</a>
                                 </div>
                                 <div class="col-12 col-md-3 d-flex flex-nowrap gap-2 justify-content-md-end align-items-center mt-md-0 px-1 pt-1">
+                                    @if ($hasData && !$isDraft)
+                                        <a href="javascript:void(0)" class="btn btn-light text-secondary border btn-sm rounded-pill px-2 btn-approval-history"
+                                            data-history-url="{{ route('team-goals.approval-history', $goalId) }}"
+                                            data-history-employee="{{ $task->employee->fullname ?? '' }}"
+                                            data-bs-toggle="tooltip" title="{{ __('Approval History') }}"><i class="ri-history-line"></i></a>
+                                    @endif
                                     @if ($scheduleOpen && $formStatus != 'Draft' && $status != 'Sendback' && !$appraisalCheck && $goals)
                                         <a id="reviseGoalBtn{{ $goalId }}"
                                             class="btn btn-sm btn-outline-warning fw-semibold rounded-pill px-3
@@ -637,6 +643,22 @@
             </div>
         </div>
     </div> 
+</div>
+
+<div class="modal fade" id="modalApprovalHistory" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-light border-bottom px-4 py-3">
+                <h6 class="modal-title text-dark fw-bold mb-0"><i class="ri-history-line me-2 text-primary"></i>{{ __('Approval History') }}<span id="approvalHistoryEmployee"></span></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0 bg-white" id="approvalHistoryBody">
+                <div class="p-5 text-center text-muted">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>{{ __('Loading') }}...
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 @foreach ($tasks as $task)
@@ -1042,6 +1064,38 @@
         }
     );
 
+</script>
+<script>
+    document.addEventListener('click', function (e) {
+        const button = e.target.closest('.btn-approval-history');
+        if (!button) {
+            return;
+        }
+
+        e.preventDefault();
+
+        const body = document.getElementById('approvalHistoryBody');
+        const employee = document.getElementById('approvalHistoryEmployee');
+
+        employee.textContent = button.dataset.historyEmployee ? ' - ' + button.dataset.historyEmployee : '';
+        body.innerHTML = '<div class="p-5 text-center text-muted"><div class="spinner-border spinner-border-sm me-2" role="status"></div>{{ __('Loading') }}...</div>';
+
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalApprovalHistory')).show();
+
+        fetch(button.dataset.historyUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error(response.status);
+                }
+                return response.text();
+            })
+            .then(function (html) {
+                body.innerHTML = html;
+            })
+            .catch(function () {
+                body.innerHTML = '<div class="p-5 text-center text-muted">{{ __('Failed to load approval history.') }}</div>';
+            });
+    });
 </script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {

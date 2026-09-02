@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\InvalidGoalImport;
 use App\Imports\GoalsDataImportManager;
 use App\Models\Appraisal;
+use App\Models\Approval;
 use App\Models\ApprovalLayer;
 use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
@@ -121,11 +122,11 @@ class TeamGoalController extends Controller
                 }
                 
                 // Determine name and approval layer
-                if ($subordinate->sendback_to == $subordinate->employee->employee_id) {
+                if ($subordinate->employee && $subordinate->sendback_to == $subordinate->employee->employee_id) {
                     $subordinate->name = $subordinate->employee->fullname . ' (' . $subordinate->employee->employee_id . ')';
                     $subordinate->approvalLayer = '';
                 } else {
-                    $subordinate->name = $subordinate->manager->fullname . ' (' . $subordinate->manager->employee_id . ')';
+                    $subordinate->name = $subordinate->manager ? $subordinate->manager->fullname . ' (' . $subordinate->manager->employee_id . ')' : '';
                     $subordinate->approvalLayer = ApprovalLayer::where('employee_id', $subordinate->employee_id)
                                                             ->where('approver_id', $subordinate->current_approval_id)
                                                             ->value('layer');
@@ -631,6 +632,169 @@ class TeamGoalController extends Controller
             'beforeSnapshot'
         ));
 
+    }
+
+    /**
+     * Approval timeline of one goal: who submitted it, every approval step that
+     * was taken (including the ones a sendback rolled back) and what the request
+     * is waiting on right now. Rendered as a partial for the Task Box modal.
+     */
+    function approvalHistory($id)
+    {
+        $approvalRequest = ApprovalRequest::with(['employee', 'initiated'])
+            ->where('form_id', $id)
+            ->where('category', $this->category)
+            ->firstOrFail();
+
+        // Visible to anyone in the employee's approval layer, to the goal owner
+        // and to the user who initiated the request.
+        $isApprover = ApprovalLayer::where('employee_id', $approvalRequest->employee_id)
+            ->where('approver_id', $this->user)
+            ->exists();
+
+        if (!$isApprover
+            && $approvalRequest->employee_id != $this->user
+            && $approvalRequest->created_by != Auth::id()) {
+            abort(403);
+        }
+
+        // A sendback soft-deletes the approvals it resets, so withTrashed() is
+        // what makes the earlier approval rounds visible again.
+        $approvals = Approval::withTrashed()
+            ->where('request_id', $approvalRequest->id)
+            ->orderBy('id')
+            ->get();
+
+        $layers = ApprovalLayer::where('employee_id', $approvalRequest->employee_id)
+            ->pluck('layer', 'approver_id');
+
+        $employeeIds = $approvals->pluck('approver_id')
+            ->push($approvalRequest->current_approval_id)
+            ->push($approvalRequest->sendback_to)
+            ->push($approvalRequest->employee_id)
+            ->filter()->unique()->values();
+
+        $employees = Employee::whereIn('employee_id', $employeeIds)->get()->keyBy('employee_id');
+
+        // Approvers who already left keep their user record even when the
+        // employee row is gone, so fall back to it before showing a bare id.
+        $userNames = User::whereIn('employee_id', $employeeIds)->pluck('name', 'employee_id');
+
+        $fullnameOf = fn ($employeeId) => $employees->get($employeeId)->fullname ?? $userNames[$employeeId] ?? null;
+
+        $nameOf = function ($employeeId) use ($fullnameOf) {
+            if (!$employeeId) {
+                return '-';
+            }
+            $fullname = $fullnameOf($employeeId);
+
+            return $fullname ? $fullname.' ('.$employeeId.')' : $employeeId;
+        };
+
+        $employeeName = $fullnameOf($approvalRequest->employee_id) ?? '-';
+
+        $roleOf = function ($employeeId) use ($layers, $approvalRequest) {
+            if (!$employeeId) {
+                return null;
+            }
+            if ($employeeId == $approvalRequest->employee_id) {
+                return __('Employee');
+            }
+
+            return isset($layers[$employeeId]) ? 'Manager L'.$layers[$employeeId] : __('Approver');
+        };
+
+        $events = [];
+
+        $initiatorId = $approvalRequest->initiated->employee_id ?? $approvalRequest->employee_id;
+        $events[] = [
+            'type' => 'submitted',
+            'title' => __('Goal submitted'),
+            'actor' => $nameOf($initiatorId),
+            'role' => $roleOf($initiatorId),
+            'date' => $approvalRequest->created_at,
+            'messages' => null,
+        ];
+
+        foreach ($approvals as $approval) {
+            $events[] = [
+                'type' => $approval->trashed() ? 'reset' : 'approved',
+                'title' => $approval->trashed() ? __('Approved (reset by sendback)') : __('Approved'),
+                'actor' => $nameOf($approval->approver_id),
+                'role' => $roleOf($approval->approver_id),
+                'date' => $approval->updated_at ?? $approval->created_at,
+                'messages' => $approval->messages,
+            ];
+        }
+
+        // Every approval reset by the same sendback shares one deleted_at, so
+        // group them into a single sendback entry.
+        $approvals->filter(fn ($approval) => $approval->trashed())
+            ->groupBy(fn ($approval) => $approval->deleted_at->format('Y-m-d H:i:s'))
+            ->each(function ($group) use (&$events, $nameOf) {
+                $resetNames = $group->map(fn ($approval) => $nameOf($approval->approver_id))->implode(', ');
+
+                $events[] = [
+                    'type' => 'sendback',
+                    'title' => __('Sent back for revision'),
+                    'actor' => null,
+                    'role' => null,
+                    'date' => $group->first()->deleted_at,
+                    'messages' => __('Approval reset for').': '.$resetNames,
+                ];
+            });
+
+        if ($approvalRequest->status === 'Pending') {
+            $events[] = [
+                'type' => 'pending',
+                'title' => __('Waiting for approval'),
+                'actor' => $nameOf($approvalRequest->current_approval_id),
+                'role' => $roleOf($approvalRequest->current_approval_id),
+                'date' => null,
+                'messages' => null,
+            ];
+        } elseif ($approvalRequest->status === 'Sendback') {
+            $events[] = [
+                'type' => 'sendback-current',
+                'title' => __('Waiting for revision'),
+                'actor' => $nameOf($approvalRequest->sendback_to),
+                'role' => $roleOf($approvalRequest->sendback_to),
+                'date' => $approvalRequest->updated_at,
+                'messages' => $approvalRequest->sendback_messages,
+            ];
+        } elseif ($approvalRequest->status === 'Approved') {
+            $events[] = [
+                'type' => 'final',
+                'title' => __('Fully approved'),
+                'actor' => null,
+                'role' => null,
+                'date' => $approvalRequest->updated_at,
+                'messages' => null,
+            ];
+        }
+
+        // Undated entries (the step still being waited on) stay at the bottom.
+        usort($events, function ($a, $b) {
+            if (!$a['date']) {
+                return 1;
+            }
+            if (!$b['date']) {
+                return -1;
+            }
+
+            return $a['date'] <=> $b['date'];
+        });
+
+        // Goals are auto-approved once the PA form is submitted, which leaves the
+        // request Pending without any further approval step.
+        $autoApproved = Appraisal::where('goals_id', $approvalRequest->form_id)->exists();
+
+        return view('pages.goals.partials.approval-history', compact(
+            'approvalRequest',
+            'employeeName',
+            'events',
+            'autoApproved'
+        ));
     }
 
     public function getTooltipContent(Request $request)

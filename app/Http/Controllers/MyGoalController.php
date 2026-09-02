@@ -114,7 +114,7 @@ class MyGoalController extends Controller
             }
 
             // Determine name and approval layer
-            if ($item->sendback_to == $item->employee->employee_id) {
+            if ($item->employee && $item->sendback_to == $item->employee->employee_id) {
                 $item->name = $item->employee->fullname . ' (' . $item->employee->employee_id . ')';
                 $item->approvalLayer = '';
             } else {
@@ -238,7 +238,8 @@ class MyGoalController extends Controller
         $link = __('My Goal');
 
         $employee = Employee::where('employee_id', $user)->first();
-        $access_menu = json_decode($employee->access_menu, true);
+        // No employee record (exited / not yet synced) means no goal access.
+        $access_menu = json_decode($employee->access_menu ?? '{}', true);
         $access = ($access_menu['goals'] ?? false) && ($access_menu['doj'] ?? false);
 
         $selectYear = ApprovalRequest::where('employee_id', $user)
