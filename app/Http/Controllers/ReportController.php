@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\ApprovalLayer;
 use App\Models\ApprovalRequest;
 use App\Models\Company;
+use App\Models\Goal;
 use App\Models\Location;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -47,6 +48,35 @@ class ReportController extends Controller
 
         return view('reports.app', compact('locations', 'companies', 'groupCompanies', 'selectYear'),  [
             'parentLink' => $parentLink, 'link' => $link
+        ]);
+    }
+
+    /**
+     * Isi modal detail Goal untuk satu karyawan, dimuat lewat AJAX.
+     *
+     * Padanan Admin\ReportController::goalDetail untuk report non-admin.
+     * Hak aksesnya mengikuti filter report ini: user harus berada di
+     * approval layer karyawan tersebut, atau karyawan itu sendiri.
+     */
+    public function goalDetail($goalId)
+    {
+        $goal = Goal::with('employee')->where('id', $goalId)->firstOrFail();
+
+        abort_unless($goal->employee, 404);
+
+        $user = Auth::user()->employee_id;
+
+        $inApprovalLayer = ApprovalLayer::where('employee_id', $goal->employee_id)
+            ->where(function ($query) use ($user) {
+                $query->where('employee_id', $user)->orWhere('approver_id', $user);
+            })
+            ->exists();
+
+        abort_unless($inApprovalLayer || $goal->employee_id == $user, 403);
+
+        return view('reports-admin.partials.goal-detail', [
+            'employee' => $goal->employee,
+            'formData' => json_decode($goal->form_data, true) ?? [],
         ]);
     }
 
@@ -118,7 +148,10 @@ class ReportController extends Controller
         // Fetch the data based on the constructed query
         $data = $query->get();
 
-        $data->map(function($item) {
+        // Satu query layer untuk semua baris, bukan satu query per baris.
+        $layerMap = ApprovalLayer::layerMapFor($data->pluck('employee_id'));
+
+        $data->map(function($item) use ($layerMap) {
             // Format created_at
             $createdDate = Carbon::parse($item->created_at);
 
@@ -135,9 +168,7 @@ class ReportController extends Controller
                 $item->approvalLayer = '';
             } else {
                 $item->name = $item->manager->fullname . ' (' . $item->manager->employee_id . ')';
-                $item->approvalLayer = ApprovalLayer::where('employee_id', $item->employee_id)
-                                                    ->where('approver_id', $item->current_approval_id)
-                                                    ->value('layer');
+                $item->approvalLayer = $layerMap[$item->employee_id.'-'.$item->current_approval_id] ?? null;
             }
 
             return $item;

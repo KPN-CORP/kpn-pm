@@ -2,10 +2,11 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\AppService;
 use Closure;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use App\Services\AppService;
+use Illuminate\Support\Facades\View;
 
 class NotificationMiddleware
 {
@@ -19,19 +20,34 @@ class NotificationMiddleware
     /**
      * Handle an incoming request.
      *
-     * @param  \Illuminate\Http\Request  $request
+     * Hitungan notifikasi HANYA dipakai di layouts_.shared.left-sidebar.
+     * Dulu dihitung eager di sini untuk setiap request — termasuk ratusan
+     * request AJAX/JSON (endpoint *-data, check-file, changes-company, dll)
+     * yang tidak pernah merender sidebar. Sekarang didaftarkan sebagai view
+     * composer, jadi query-nya baru jalan kalau sidebar-nya benar-benar
+     * dirender.
+     *
      * @param  \Closure  $next
      * @return mixed
      */
     public function handle(Request $request, Closure $next)
     {
-        $filterYear = $request->filterYear ?? null;
-        
         if (Auth::check()) {
-            // Share notification counts in views
-            view()->share('notificationAppraisal', $this->appService->getNotificationCountsAppraisal(Auth::user()->employee_id, $filterYear));
-            view()->share('notificationGoal', $this->appService->getNotificationCountsGoal(Auth::user()->employee_id, $filterYear));
-            // view()->share('notificationProposed360', $this->appService->getNotificationCountsAppraisal(Auth::user()->employee_id, $filterYear));
+            $appService = $this->appService;
+            $employeeId = Auth::user()->employee_id;
+            $filterYear = $request->filterYear ?? null;
+
+            // Cukup satu pendaftaran. Laravel menormalkan nama view ("/"
+            // menjadi "."), jadi layout yang menulis
+            // @include('layouts_.shared/left-sidebar') tetap cocok dengan
+            // nama bertitik di bawah — mendaftarkan kedua ejaan justru
+            // membuat callback-nya jalan dua kali.
+            View::composer('layouts_.shared.left-sidebar', function ($view) use ($appService, $employeeId, $filterYear) {
+                $view->with([
+                    'notificationGoal' => $appService->getNotificationCountsGoal($employeeId, $filterYear),
+                    'notificationAppraisal' => $appService->getNotificationCountsAppraisal($employeeId, $filterYear),
+                ]);
+            });
         }
 
         return $next($request);

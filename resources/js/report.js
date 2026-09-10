@@ -5,6 +5,7 @@ function hideLoader() {
 }
 
 import bootstrap from "bootstrap/dist/js/bootstrap.bundle.min.js";
+import { initializePopovers } from "./popovers";
 
 function adminReportType(val) {
     $("#report_type").val(val);
@@ -14,8 +15,10 @@ function adminReportType(val) {
     const customsearch = $("#customsearch");
     const formData = reportForm.serialize();
 
-    initializePopovers();
-
+    // initializePopovers() dulu dipanggil di sini — sebelum AJAX — sehingga
+    // memasang popover pada konten report SEBELUMNYA yang sebentar lagi
+    // dibuang. Sekarang popover memakai delegasi di <body>, jadi tidak perlu
+    // dipasang ulang sama sekali.
     showLoader();
     if (val) {
         exportButton.removeClass("disabled"); // Enable export button
@@ -194,13 +197,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
-function initializePopovers() {
-    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-        return new bootstrap.Popover(popoverTriggerEl);
-    });
-
-}
 
 function reportType(val) {
     $("#report_type").val(val);
@@ -492,4 +488,44 @@ function showEditModal(employee) {
 }   
 
 window.showEditModal = showEditModal;
+
+/**
+ * Buka modal Edit karyawan dengan mengambil datanya saat diklik.
+ *
+ * Dulu tombol Edit membawa SELURUH record karyawan di dalam atribut onclick
+ * (json_encode($row)) untuk setiap baris — ~1,5 KB per baris x 6.399 baris,
+ * penyebab utama halaman report EmployeePA jadi 24,5 MB, sekaligus
+ * membocorkan ktp, npwp, nomor rekening, alamat dan nama ibu kandung ke
+ * source halaman. Sekarang tombolnya hanya membawa employee_id, dan 8 field
+ * yang dibutuhkan form diambil saat dibutuhkan.
+ */
+function openEditEmployeeModal(employeeId) {
+    if (!employeeId) {
+        return;
+    }
+
+    fetch("/employeepa/edit-data/" + encodeURIComponent(employeeId), {
+        headers: { "X-Requested-With": "XMLHttpRequest" },
+    })
+        .then(function (response) {
+            if (!response.ok) {
+                throw new Error(response.status);
+            }
+            return response.json();
+        })
+        .then(function (payload) {
+            window.showEditModal(payload.data);
+        })
+        .catch(function () {
+            if (window.Swal) {
+                window.Swal.fire({
+                    icon: "error",
+                    title: "Failed to load employee",
+                    text: "Please reload the page and try again.",
+                });
+            }
+        });
+}
+
+window.openEditEmployeeModal = openEditEmployeeModal;
 

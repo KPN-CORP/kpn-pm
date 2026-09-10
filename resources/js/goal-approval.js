@@ -1,4 +1,5 @@
 import $ from 'jquery';
+import { initializePopovers } from "./popovers";
 
 import numeral from 'numeral';
 
@@ -421,13 +422,6 @@ function changeCategory(val) {
     const customsearch = $("#customsearch");
     const formData = form.serialize();
 
-    function initializePopovers() {
-        const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-        popoverTriggerList.map(function (el) {
-            return new bootstrap.Popover(el);
-        });
-    }
-
     showLoader();
 
     // Set CSRF token jika diperlukan
@@ -466,7 +460,8 @@ function changeCategory(val) {
             });
 
             // Re-init popover setiap table draw
-            onBehalfTable.on("draw", initializePopovers);
+            // Popover memakai delegasi (lihat popovers.js), jadi tidak perlu
+            // dibangun ulang pada setiap draw DataTables.
             initializePopovers();
 
             // Event search custom
@@ -498,12 +493,6 @@ document.addEventListener("DOMContentLoaded", function () {
     const contentOnBehalf = $("#contentOnBehalf");
     const customsearch = $("#customsearch");
 
-    function initializePopovers() {
-        const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-        const popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-            return new bootstrap.Popover(popoverTriggerEl);
-        });
-    }
     
     // Submit form event handler
     form.on("submit", function (event) {

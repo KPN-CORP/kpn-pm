@@ -122,7 +122,7 @@
                                     <td>{{ $employee->job_level }}</td>
                                     <td>{{ $employee->office_area }}</td>
                                     <td class="text-center" style="background-color: white;" class="sticky-col">
-                                        <button class="btn btn-sm btn-outline-warning" title="Edit" onclick="showEditModal({{ json_encode($employee) }})">
+                                        <button class="btn btn-sm btn-outline-warning" title="Edit" onclick="openEditEmployeeModal({{ Illuminate\Support\Js::from($employee->employee_id) }})">
                                             <i class="ri-edit-box-line"></i>
                                         </button>
                                         <a class="btn btn-sm btn-danger" title="Delete" onclick="handleDeleteEmployeePA(this)" data-id="{{ $employee->employee_id }}"><i class="ri-delete-bin-line"></i></a>

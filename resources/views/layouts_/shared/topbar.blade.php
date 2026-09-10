@@ -67,7 +67,7 @@
                 </a>
             </li>
             <?php 
-                $lang = session('locale') ? session('locale') : env('APP_LOCALE', env('APP_FALLBACK_LOCALE'));
+                $lang = session('locale') ?: config('app.locale', config('app.fallback_locale'));
             ?>
             <li class="dropdown">
                 <a class="nav-link dropdown-toggle arrow-none" data-bs-toggle="dropdown" href="#" role="button" aria-haspopup="false" aria-expanded="false">

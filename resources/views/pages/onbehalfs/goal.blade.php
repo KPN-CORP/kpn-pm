@@ -31,7 +31,7 @@
                     <tr>
                       <td>{{ $row->employee->fullname .' ('.$row->employee->employee_id.')'}}</td>
                       <td class="text-center">
-                        <a href="javascript:void(0)" class="btn btn-outline-secondary rounded btn-sm {{ $row->goal->form_status === 'Draft' ? 'disabled' : '' }}" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $row->goal->id }}"><i class="ri-file-text-line"></i></a>
+                        <a href="javascript:void(0)" class="btn btn-outline-secondary rounded btn-sm btn-goal-detail {{ $row->goal->form_status === 'Draft' ? 'disabled' : '' }}" data-detail-url="{{ route('admin.onbehalf.goal-detail', $row->goal->id) }}"><i class="ri-file-text-line"></i></a>
                       </td>
                       <td class="text-center">
                         <a href="javascript:void(0)" data-bs-id="{{ $row->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->approvalLayer ? 'Manager L'.$row->approvalLayer.' : '.$row->name : $row->name }}" class="badge py-1 px-2 rounded-pill {{ $row->goal->form_status == 'Draft' || $row->status == 'Sendback' ? 'bg-secondary' : ($row->status === 'Approved' ? 'bg-success' : 'bg-warning')}} ">{{ $row->goal->form_status == 'Draft' ? 'Draft': ($row->status == 'Pending' ? __('Pending') : ($row->status == 'Sendback' ? 'Waiting For Revision' : $row->status)) }}</a></td>
@@ -39,9 +39,6 @@
                       <td>{{ $row->initiated->name ? $row->initiated->name .' ('. $row->initiated->employee_id .')'  : '-' }}</td>
                       <td class="text-center">{{ $row->formatted_updated_at }}</td>
                       <td>{{ $row->updatedBy ? $row->updatedBy->name.' ('.$row->updatedBy->employee_id.')' : '-' }}</td>
-                      @if ($data)
-                      @include('pages.onbehalfs.goal_detail')
-                      @endif
                       <td class="text-center sorting_1 px-1">
                         @can('approvalonbehalf')
                         <div class="btn-group dropstart">
@@ -72,3 +69,58 @@
     </div>
 </div>
      
+
+{{-- Modal detail Goal — SATU shell, isinya dimuat lewat AJAX. --}}
+<div class="modal fade" id="modalGoalDetail" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl mt-2" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title h4">KPI's</span>
+                <button type="button" class="btn-close mr-3" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-primary-subtle" id="goalDetailBody">
+                <div class="p-5 text-center text-muted">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>{{ __('Loading') }}...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Blok ini di-inject lewat AJAX dan dieksekusi ulang setiap kali
+    // konten dimuat ulang. Tanpa penjaga ini, handler click menumpuk
+    // dan satu klik akan memicu beberapa request sekaligus.
+    if (!window.kpnObGoalDetailBound) {
+        window.kpnObGoalDetailBound = true;
+
+        // Isi modal dimuat saat dibuka, bukan di-render untuk semua baris.
+        document.addEventListener('click', function (e) {
+            const button = e.target.closest('.btn-goal-detail');
+            if (!button || button.classList.contains('disabled')) {
+                return;
+            }
+
+            e.preventDefault();
+
+            const body = document.getElementById('goalDetailBody');
+            body.innerHTML = '<div class="p-5 text-center text-muted"><div class="spinner-border spinner-border-sm me-2" role="status"></div>{{ __('Loading') }}...</div>';
+
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalGoalDetail')).show();
+
+            fetch(button.dataset.detailUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error(response.status);
+                    }
+                    return response.text();
+                })
+                .then(function (html) {
+                    body.innerHTML = html;
+                })
+                .catch(function () {
+                    body.innerHTML = '<div class="p-5 text-center text-muted">{{ __('Failed to load goal details.') }}</div>';
+                });
+        });
+    }
+</script>

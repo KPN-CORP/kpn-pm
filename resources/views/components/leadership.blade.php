@@ -5,7 +5,7 @@
             <div class="col-lg">
                 <div class="mb-4">
                     <?php 
-                        $lang = session('locale') ? session('locale') : env('APP_LOCALE', env('APP_FALLBACK_LOCALE'));
+                        $lang = session('locale') ?: config('app.locale', config('app.fallback_locale'));
                     ?>
                     @foreach ($ratings as $rating)
                     <ul>

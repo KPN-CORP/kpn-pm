@@ -31,4 +31,11 @@ return [
         ],
     ],
 
+    'integration' => [
+        // Static bearer token untuk endpoint /api/integration/employees.
+        // Wajib lewat config (bukan env() langsung) supaya tetap terbaca
+        // setelah 'php artisan config:cache'.
+        'token_ga' => env('INTEGRATION_API_TOKEN_GA'),
+    ],
+
 ];
