@@ -31,7 +31,7 @@
                     <tr id="row-{{ $rowKey }}">
                       <td>{{ $row->request->employee->fullname .' ('.$row->request->employee->employee_id.')'}}</td>
                       <td class="text-center">
-                        <a href="javascript:void(0)" class="btn btn-outline-secondary rounded btn-sm {{ $row->request->appraisal->form_status === 'Draft' ? 'disabled' : '' }}" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $row->request->appraisal->id }}"><i class="ri-file-text-line"></i></a>
+                        <a href="javascript:void(0)" class="btn btn-outline-secondary rounded btn-sm btn-appraisal-detail {{ $row->request->appraisal->form_status === 'Draft' ? 'disabled' : '' }}" data-detail-url="{{ route('admin.onbehalf.appraisal-detail', $row->request->appraisal->id) }}"><i class="ri-file-text-line"></i></a>
                       </td>
                       <td class="text-center">
                         <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->request->approvalLayer ? 'Manager L'.$row->request->approvalLayer.' : '.$row->request->name : $row->request->name }}" class="badge py-1 px-2 rounded-pill {{ $row->request->appraisal->form_status == 'Draft' || $row->request->status == 'Sendback' ? 'bg-secondary' : ($row->request->status === 'Approved' ? 'bg-success' : 'bg-warning')}} ">
@@ -92,10 +92,62 @@
                   </tbody>
 
                 </table>
-                @foreach ($data as $row)
-                  @include('pages.onbehalfs.appraisal_detail', ['row' => $row])
-                @endforeach
               </div>
             </div>
     </div>
 </div>
+
+{{-- Modal detail Appraisal — SATU shell, isinya dimuat lewat AJAX. --}}
+<div class="modal fade" id="modalAppraisalDetail" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Appraisal Detail</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-primary-subtle" id="appraisalDetailBody">
+                <div class="p-5 text-center text-muted">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>{{ __('Loading') }}...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Blok ini di-inject lewat AJAX dan dieksekusi ulang setiap kali
+    // konten dimuat ulang. Tanpa penjaga ini, handler click menumpuk
+    // dan satu klik akan memicu beberapa request sekaligus.
+    if (!window.kpnObAppraisalDetailBound) {
+        window.kpnObAppraisalDetailBound = true;
+
+        // Isi modal dimuat saat dibuka, bukan di-render untuk semua baris.
+        document.addEventListener('click', function (e) {
+            const button = e.target.closest('.btn-appraisal-detail');
+            if (!button || button.classList.contains('disabled')) {
+                return;
+            }
+
+            e.preventDefault();
+
+            const body = document.getElementById('appraisalDetailBody');
+            body.innerHTML = '<div class="p-5 text-center text-muted"><div class="spinner-border spinner-border-sm me-2" role="status"></div>{{ __('Loading') }}...</div>';
+
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAppraisalDetail')).show();
+
+            fetch(button.dataset.detailUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error(response.status);
+                    }
+                    return response.text();
+                })
+                .then(function (html) {
+                    body.innerHTML = html;
+                })
+                .catch(function () {
+                    body.innerHTML = '<div class="p-5 text-center text-muted">{{ __('Failed to load appraisal details.') }}</div>';
+                });
+        });
+    }
+</script>

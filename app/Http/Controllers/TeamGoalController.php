@@ -17,6 +17,7 @@ use App\Models\User;
 use App\Services\AppService;
 use App\Services\KPIAchievementService;
 use App\Services\KPIService;
+use App\Support\GoalOptions;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -55,22 +56,11 @@ class TeamGoalController extends Controller
         // Retrieve the selected year from the request
         $filterYear = $request->input('filterYear');
         
-        $datas = ApprovalLayer::with(['employee','subordinates' => function ($query) use ($user, $filterYear){
-            $query->with(['goal', 'updatedBy', 'approval' => function ($query) {
-                $query->with('approverName');
-            }])->whereHas('goal', function ($query) {
-                $query->whereNull('deleted_at');
-            })->whereHas('approvalLayer', function ($query) use ($user) {
-                $query->where('employee_id', $user)->orWhere('approver_id', $user);
-            })->when($filterYear, function ($query) use ($filterYear) {
-                $query->where('period', $filterYear);
-            }, function ($query) {
-                $query->where('period', $this->period);
-            })->where('category', $this->category);
-        }])->where('approver_id', $user)->get();
-        
         $tasks = ApprovalLayer::with(['employee', 'subordinates' => function ($query) use ($user, $filterYear) {
-            $query->with(['goal', 'updatedBy', 'initiated', 'approval' => function ($query) {
+            // 'employee' + 'manager' wajib ikut di-eager-load: keduanya dipakai
+            // di map() di bawah, dan tanpa ini setiap subordinate memicu dua
+            // query employees sendiri (86 query lazy-load pada satu halaman).
+            $query->with(['goal', 'employee', 'manager', 'updatedBy', 'initiated', 'approval' => function ($query) {
             $query->with('approverName');
             }])->whereHas('goal', function ($query) {
             $query->whereNull('deleted_at');
@@ -103,8 +93,44 @@ class TeamGoalController extends Controller
         })
         ->values(); // Reset the indexing after grouping and sorting
         
-        $tasks->each(function($item) {
-            $item->subordinates->map(function($subordinate) {
+        // ---- Lookup bulk -------------------------------------------------
+        // Sebelumnya setiap subordinate menjalankan 5 query sendiri (layer,
+        // appraisal exists, achievement per goal, achievement terakhir,
+        // isFirstLayer). Untuk manager dengan 150 anak buah itu ~750 query
+        // hanya untuk merender satu halaman. Sekarang semuanya diambil sekali
+        // di depan.
+        $allSubordinates = $tasks->pluck('subordinates')->flatten();
+        $subordinateGoalIds = $allSubordinates->pluck('goal.id')->filter()->unique();
+        $subordinateEmployeeIds = $allSubordinates->pluck('employee_id')->filter()->unique();
+
+        $layerMap = ApprovalLayer::layerMapFor($subordinateEmployeeIds);
+
+        $appraisedGoalIds = $subordinateGoalIds->isEmpty()
+            ? collect()
+            : Appraisal::whereIn('goals_id', $subordinateGoalIds)->pluck('goals_id')->flip();
+
+        $achievementsByGoal = KPIAchievementService::getByGoals($subordinateGoalIds);
+
+        $latestAchievements = $subordinateGoalIds->isEmpty()
+            ? collect()
+            : KPIAchievement::with('approver')
+                ->whereIn('goal_id', $subordinateGoalIds)
+                ->orderBy('updated_at', 'DESC')
+                ->get()
+                ->groupBy('goal_id')
+                ->map->first();
+
+        $firstLayerMap = $subordinateEmployeeIds->isEmpty()
+            ? collect()
+            : ApprovalLayer::whereIn('employee_id', $subordinateEmployeeIds)
+                ->where('approver_id', $this->user)
+                ->where('layer', 1)
+                ->get()
+                ->keyBy('employee_id');
+        // ------------------------------------------------------------------
+
+        $tasks->each(function($item) use ($layerMap, $appraisedGoalIds, $achievementsByGoal, $latestAchievements, $firstLayerMap) {
+            $item->subordinates->map(function($subordinate) use ($layerMap, $appraisedGoalIds, $achievementsByGoal, $latestAchievements, $firstLayerMap) {
                 // Format created_at
                 $createdDate = Carbon::parse($subordinate->created_at);
                 if ($createdDate->isToday()) {
@@ -127,84 +153,26 @@ class TeamGoalController extends Controller
                     $subordinate->approvalLayer = '';
                 } else {
                     $subordinate->name = $subordinate->manager ? $subordinate->manager->fullname . ' (' . $subordinate->manager->employee_id . ')' : '';
-                    $subordinate->approvalLayer = ApprovalLayer::where('employee_id', $subordinate->employee_id)
-                                                            ->where('approver_id', $subordinate->current_approval_id)
-                                                            ->value('layer');
+                    $subordinate->approvalLayer = $layerMap[$subordinate->employee_id.'-'.$subordinate->current_approval_id] ?? null;
                 }
 
-                $appraisalCheck = Appraisal::where('goals_id', $subordinate->goal->id)->exists();
-
-                $subordinate->appraisalCheck = $appraisalCheck;
+                $subordinate->appraisalCheck = $appraisedGoalIds->has($subordinate->goal->id);
 
                 // Add object to array $data
                 
-                $formData = json_decode($subordinate->goal->form_data, true);
-
-                $achievementData = KPIAchievementService::getByGoal($subordinate->goal->id);
-
-                foreach ($formData as $i => &$kpi) {
-                    
-                    $kpiId = $kpi['kpi_id'] ?? null;
-
-                    // inject achievement
-                    $kpi['ach'] = $kpiId && isset($achievementData[$kpiId]['ach'])
-                        ? $achievementData[$kpiId]['ach']
-                        : array_fill(1, 12, null);
-
-                    $kpi['attachment'] = $kpiId && isset($achievementData[$kpiId]['attachment'])
-                        ? $achievementData[$kpiId]['attachment']
-                        : array_fill(1, 12, null);
-
-                    // ambil values (non-null)
-                    $values = collect($kpi['ach'])
-                        ->filter(fn($v) => $v !== null && $v !== '')
-                        ->values()
-                        ->toArray();
-
-                    // CALCULATE KPI
-                    $actual = $this->kpiService->aggregate(
-                        $kpi['calculation_method'] ?? 'last',
-                        $values, $kpi['review_period'] ?? null
-                    );
-
-                    $achievement = $this->kpiService->achievement(
-                        $actual,
-                        (float)($kpi['target'] ?? 0),
-                        $kpi['type'] ?? 'Higher Better'
-                    );
-
-                    // inject hasil ke KPI (SETELAH attachment sesuai request kamu)
-                    $kpi['values'] = $values;
-                    $kpi['actual'] = empty($values) ? '-' : round($actual, 2);
-                    $kpi['achievement'] = empty($values) ? 0 : round($achievement, 2);
-                }
-                unset($kpi);
+                $formData = $this->parseGoalFormData(
+                    json_decode($subordinate->goal->form_data, true),
+                    $achievementsByGoal[$subordinate->goal->id] ?? []
+                );
 
                 $subordinate->goal->form_data_parsed = $formData;
                 $subordinate->goal->hasAchievement = collect($formData)->pluck('ach')->flatten()->filter(fn($v) => $v !== null && $v !== '')->isNotEmpty();
 
-                $latestApproval = KPIAchievement::with('approver')
-                    ->where('goal_id', $subordinate->goal->id)
-                    ->latest('updated_at')
-                    ->first();
+                $subordinate->goal->achievement_status = $this->achievementStatus(
+                    $latestAchievements[$subordinate->goal->id] ?? null
+                );
 
-                if ($latestApproval) {
-                    $subordinate->goal->achievement_status = [
-                        'current_approver_employee' => $latestApproval->approver
-                            ? $latestApproval->approver->fullname . ' (' . $latestApproval->approver->employee_id . ')'
-                            : null,
-                        'approval_status' => $latestApproval->approval_status,
-                        'approval_info' => $latestApproval->approval_info,
-                        'approval_date' => $latestApproval->updated_at,
-                        'created_by' => $latestApproval->created_by,
-                    ];
-                } else {
-                    $subordinate->goal->achievement_status = null;
-                }
-
-                $isFirstLayer = ApprovalLayer::where('employee_id', $subordinate->employee_id)->where('approver_id', $this->user)->where('layer', 1)->first();
-                    
-                $subordinate->isFirstLayer = $isFirstLayer;
+                $subordinate->isFirstLayer = $firstLayerMap[$subordinate->employee_id] ?? null;
 
                 return $subordinate;
             });
@@ -223,16 +191,22 @@ class TeamGoalController extends Controller
         })
         ->get();  
 
-        $notasks = $notasks->map(function($item) {
+        // Sama seperti di atas: satu query untuk semua baris, bukan satu per baris.
+        $notaskEmployeeIds = $notasks->pluck('employee_id')->filter()->unique();
+
+        $notaskFirstLayerIds = $notaskEmployeeIds->isEmpty()
+            ? collect()
+            : ApprovalLayer::whereIn('employee_id', $notaskEmployeeIds)
+                ->where('approver_id', $user)
+                ->where('layer', 1)
+                ->pluck('employee_id')
+                ->flip();
+
+        $notasks = $notasks->map(function($item) use ($notaskFirstLayerIds) {
             // Format created_at
             $doj = Carbon::parse($item->employee->date_of_joining);
 
-            $isManager = ApprovalLayer::where('employee_id', $item->employee_id)
-             ->where('approver_id', Auth::user()->employee_id)
-             ->where('layer', 1)
-             ->exists();
-
-            $item->isManager = $isManager;
+            $item->isManager = $notaskFirstLayerIds->has($item->employee_id);
             $item->formatted_doj = $doj->format('d M Y');
             
             return $item;
@@ -240,45 +214,14 @@ class TeamGoalController extends Controller
 
         $notasks = $notasks->sortByDesc('isManager')->values(); // Reset the indexing after sorting
         
+        // $data dan $formData dulu dibangun di sini dari query $datas — yang
+        // isinya duplikat persis dari $tasks di atas (query yang sama, eager
+        // load yang sama, dijalankan dua kali). Hasilnya tidak pernah dibaca
+        // sama sekali oleh pages/goals/team-goal.blade.php, jadi query dan
+        // loop-nya dihapus. Variabelnya tetap dikirim ke view sebagai nilai
+        // kosong supaya compact() di bawah tidak berubah bentuk.
         $data = [];
         $formData = [];
-
-        foreach ($datas as $request) {
-
-            $dataItem = new stdClass();
-            $dataItem->request = $request;
-
-            // Check if subordinates is not empty and has elements
-            if ($request->subordinates->isNotEmpty()) {
-            $firstSubordinate = $request->subordinates->first();
-        
-            // Check form status and created_by conditions
-            if ($firstSubordinate->created_by != Auth::user()->id) {
-                
-                // Check if approval relation exists and has elements
-                if ($firstSubordinate->approval->isNotEmpty()) {
-                $approverName = $firstSubordinate->approval->first();
-                $dataApprover = $approverName->approverName->fullname;
-                } else {
-                $dataApprover = '';
-                }
-        
-                // Create object to store request and approver fullname
-                $dataItem->approver_name = $dataApprover;
-            }
-            } else {
-            // Handle case when subordinates is empty
-            // Create object with empty or default values
-            $dataItem->approver_name = ''; // or some default value
-            
-            // Add object to array $data
-            $data[] = $dataItem;
-            
-            $formData = '';
-            }
-
-            $data[] = $dataItem;
-        }
 
         $noAchievements = $tasks->flatMap(fn($t) => $t->subordinates)
             ->filter(fn($s) => $s->goal->hasAchievement === false)
@@ -639,6 +582,133 @@ class TeamGoalController extends Controller
      * was taken (including the ones a sendback rolled back) and what the request
      * is waiting on right now. Rendered as a partial for the Task Box modal.
      */
+    /**
+     * Hitung nilai KPI (ach, attachment, actual, achievement) untuk satu goal.
+     *
+     * Dipakai bersama oleh index() dan achievementDetail() supaya angka di
+     * daftar dan di dalam modal tidak bisa berbeda.
+     *
+     * @param  array|null  $formData         goal->form_data yang sudah di-decode
+     * @param  array       $achievementData  hasil KPIAchievementService untuk goal ini
+     */
+    private function parseGoalFormData($formData, array $achievementData): array
+    {
+        $formData = is_array($formData) ? $formData : [];
+
+        foreach ($formData as &$kpi) {
+
+            $kpiId = $kpi['kpi_id'] ?? null;
+
+            // inject achievement
+            $kpi['ach'] = $kpiId && isset($achievementData[$kpiId]['ach'])
+                ? $achievementData[$kpiId]['ach']
+                : array_fill(1, 12, null);
+
+            $kpi['attachment'] = $kpiId && isset($achievementData[$kpiId]['attachment'])
+                ? $achievementData[$kpiId]['attachment']
+                : array_fill(1, 12, null);
+
+            // ambil values (non-null)
+            $values = collect($kpi['ach'])
+                ->filter(fn($v) => $v !== null && $v !== '')
+                ->values()
+                ->toArray();
+
+            // CALCULATE KPI
+            $actual = $this->kpiService->aggregate(
+                $kpi['calculation_method'] ?? 'last',
+                $values, $kpi['review_period'] ?? null
+            );
+
+            $achievement = $this->kpiService->achievement(
+                $actual,
+                (float)($kpi['target'] ?? 0),
+                $kpi['type'] ?? 'Higher Better'
+            );
+
+            // inject hasil ke KPI (SETELAH attachment sesuai request kamu)
+            $kpi['values'] = $values;
+            $kpi['actual'] = empty($values) ? '-' : round($actual, 2);
+            $kpi['achievement'] = empty($values) ? 0 : round($achievement, 2);
+        }
+        unset($kpi);
+
+        return $formData;
+    }
+
+    /**
+     * Ringkasan status approval achievement terakhir untuk satu goal.
+     */
+    private function achievementStatus($latestApproval): ?array
+    {
+        if (!$latestApproval) {
+            return null;
+        }
+
+        return [
+            'current_approver_employee' => $latestApproval->approver
+                ? $latestApproval->approver->fullname . ' (' . $latestApproval->approver->employee_id . ')'
+                : null,
+            'approval_status' => $latestApproval->approval_status,
+            'approval_info' => $latestApproval->approval_info,
+            'approval_date' => $latestApproval->updated_at,
+            'created_by' => $latestApproval->created_by,
+        ];
+    }
+
+    /**
+     * Isi modal "Achievement Details" untuk satu goal, dimuat lewat AJAX.
+     *
+     * Sebelumnya blok ini di-render inline untuk SETIAP baris di halaman team
+     * goals (43 modal, ~2,9 MB dari 3,75 MB HTML). Pengecekan hak akses
+     * mengikuti approvalHistory() di bawah.
+     */
+    public function achievementDetail($id)
+    {
+        $approvalRequest = ApprovalRequest::with(['employee', 'goal'])
+            ->where('form_id', $id)
+            ->where('category', $this->category)
+            ->firstOrFail();
+
+        abort_unless($approvalRequest->goal, 404);
+
+        // Sama seperti approval history: boleh dilihat oleh siapa pun di
+        // approval layer karyawan tersebut, oleh pemilik goal, dan oleh user
+        // yang membuat request-nya.
+        $isApprover = ApprovalLayer::where('employee_id', $approvalRequest->employee_id)
+            ->where('approver_id', $this->user)
+            ->exists();
+
+        if (!$isApprover
+            && $approvalRequest->employee_id != $this->user
+            && $approvalRequest->created_by != Auth::id()) {
+            abort(403);
+        }
+
+        $goal = $approvalRequest->goal;
+
+        $goal->form_data_parsed = $this->parseGoalFormData(
+            json_decode($goal->form_data, true),
+            KPIAchievementService::getByGoal($goal->id)
+        );
+
+        $goal->achievement_status = $this->achievementStatus(
+            KPIAchievement::with('approver')
+                ->where('goal_id', $goal->id)
+                ->latest('updated_at')
+                ->first()
+        );
+
+        $options = GoalOptions::all();
+
+        return view('pages.goals.partials.achievement-detail', [
+            'firstSubordinate' => $approvalRequest,
+            'formDataArr' => $goal->form_data_parsed,
+            'reviewPeriodOption' => $options['Review Period'] ?? [],
+            'calculationMethodOption' => $options['Calculation Method'] ?? [],
+        ]);
+    }
+
     function approvalHistory($id)
     {
         $approvalRequest = ApprovalRequest::with(['employee', 'initiated'])

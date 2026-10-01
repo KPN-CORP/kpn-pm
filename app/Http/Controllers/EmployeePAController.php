@@ -80,8 +80,13 @@ class EmployeePAController extends Controller
         $parentLink = 'Settings';
         $link = 'Employee';
 
+        // ORDER BY parent_company_id sementara kolomnya tidak ada di GROUP BY
+        // membuat query ini gagal di MySQL dengan sql_mode default
+        // (only_full_group_by) — halaman ini error 500 karenanya. MIN()
+        // mempertahankan maksud urutannya (per parent company dulu) tanpa
+        // mengubah pengelompokan.
         $designations = Designation::select('designation_name','job_code')
-        ->orderBy('parent_company_id', 'asc')
+        ->orderByRaw('MIN(parent_company_id) asc')
         ->orderBy('designation_name', 'asc')
         ->orderBy('job_code', 'asc')
         ->groupBy('job_code','designation_name')
@@ -144,6 +149,63 @@ class EmployeePAController extends Controller
         }
 
     }
+    /**
+     * Data satu karyawan untuk mengisi modal Edit, diambil saat tombol Edit
+     * diklik.
+     *
+     * Sebelumnya SELURUH record di-embed ke dalam atribut onclick setiap
+     * baris:
+     *
+     *     onclick="showEditModal({{ json_encode($row) }})"
+     *
+     * Itu ~1,5 KB JSON per baris x 6.399 baris (~9 MB mentah, sekitar dua
+     * kali lipat setelah di-escape ke atribut HTML) — penyebab utama halaman
+     * report EmployeePA membengkak jadi 24,5 MB. Yang lebih penting: record
+     * lengkap ikut terbawa, termasuk ktp, kk, npwp, nomor rekening, alamat,
+     * tanggal lahir dan nama ibu kandung — semuanya terbaca di source
+     * halaman dan tersimpan di cache browser.
+     *
+     * Endpoint ini hanya mengembalikan 8 field yang benar-benar dipakai form
+     * Edit (lihat showEditModal di resources/js/report.js).
+     */
+    public function editData($employeeId)
+    {
+        $user = Auth::user();
+
+        // Modal Edit dipakai dari dua layar dengan permission berbeda:
+        // Settings > Employee (employeepa) dan Report > EmployeePA
+        // (viewreport). Jadi dicek di sini, bukan lewat middleware route.
+        abort_unless($user->can('employeepa') || $user->can('viewreport'), 403);
+
+        $employee = EmployeeAppraisal::select([
+            'employee_id',
+            'fullname',
+            'date_of_joining',
+            'contribution_level_code',
+            'unit',
+            'designation_code',
+            'job_level',
+            'work_area_code',
+            'group_company',
+        ])->where('employee_id', $employeeId)->firstOrFail();
+
+        // Batasan role yang sama dengan daftarnya, supaya endpoint ini tidak
+        // bisa dipakai membaca karyawan di luar cakupan user. Kedua layar
+        // (EmployeePAController::index dan report EmployeePA) memakai AND
+        // untuk ketiga field ini, jadi dicocokkan persis seperti itu.
+        $criteria = [
+            'work_area_code' => $this->permissionLocations,
+            'contribution_level_code' => $this->permissionCompanies,
+            'group_company' => $this->permissionGroupCompanies,
+        ];
+
+        foreach (array_filter($criteria, fn ($values) => !empty($values)) as $field => $values) {
+            abort_unless(in_array($employee->{$field}, $values), 403);
+        }
+
+        return response()->json(['status' => 'success', 'data' => $employee]);
+    }
+
     public function update(Request $request)
     {
         $userId = Auth::id();

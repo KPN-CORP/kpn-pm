@@ -96,7 +96,10 @@ class MyAppraisalController extends Controller
 
             $datas = $datasQuery->get();
             
-            $formattedData = $datas->map(function($item) {
+            // Satu query layer untuk semua baris, bukan satu query per baris.
+            $layerMap = ApprovalLayerAppraisal::layerMapFor($datas->pluck('employee_id'));
+
+            $formattedData = $datas->map(function($item) use ($layerMap) {
                 $item->formatted_created_at = $this->appService->formatDate($item->appraisal->created_at);
 
                 $item->formatted_updated_at = $this->appService->formatDate($item->appraisal->updated_at);
@@ -106,9 +109,7 @@ class MyAppraisalController extends Controller
                     $item->approvalLayer = '';
                 } else {
                     $item->name = $item->manager->fullname . ' (' . $item->manager->employee_id . ')';
-                    $item->approvalLayer = ApprovalLayerAppraisal::where('employee_id', $item->employee_id)
-                                                        ->where('approver_id', $item->current_approval_id)
-                                                        ->value('layer');
+                    $item->approvalLayer = $layerMap[$item->employee_id.'-'.$item->current_approval_id] ?? null;
                 }
                 return $item;
             });

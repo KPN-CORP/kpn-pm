@@ -33,6 +33,7 @@ import 'datatables.net-buttons/js/buttons.html5.js';
 
 import './plugins/perfect-scrollbar.min.js';
 
+import { initializePopovers } from './popovers.js';
 import './script.js';
 import './quill.min.js';
 
@@ -89,13 +90,11 @@ $(document).ready(() => {
                 $("#preloader").delay(350).fadeOut("slow");
             });
 
-            // Popovers
-            const popoverTriggerList = document.querySelectorAll(
-                '[data-bs-toggle="popover"]'
-            );
-            const popoverList = [...popoverTriggerList].map(
-                (popoverTriggerEl) => new bootstrap.Popover(popoverTriggerEl)
-            );
+            // Popovers — dipasang sekali lewat delegasi di popovers.js.
+            // Loop per-elemen di sini dulu membuat satu instance Popover untuk
+            // SETIAP elemen saat halaman dimuat; di Team Goals itu 1.415
+            // instance sekaligus.
+            initializePopovers();
 
             // Tooltips
             const tooltipTriggerList = document.querySelectorAll(

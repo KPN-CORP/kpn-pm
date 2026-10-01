@@ -44,7 +44,7 @@
                             <td>{{ $row->office_area }}</td>
                             <td>{{ $row->group_company }}</td>
                             <td class="text-center">
-                                <button class="btn btn-sm btn-outline-warning mb-1" title="Update" onclick="showEditModal({{ json_encode($row) }})">
+                                <button class="btn btn-sm btn-outline-warning mb-1" title="Update" onclick="openEditEmployeeModal({{ Illuminate\Support\Js::from($row->employee_id) }})">
                                     <i class="ri-edit-box-line"></i>
                                 </button>
                                 <a class="btn btn-sm btn-danger mb-1" title="Terminated" onclick="handleDeleteEmployeePA(this)" data-id="{{ $row->employee_id }}"><i class="ri-delete-bin-line"></i></a>

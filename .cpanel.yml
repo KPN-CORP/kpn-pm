@@ -35,7 +35,11 @@ deployment:
       # Copy public assets into the site document root
       cp -r public/css public/img public/images public/js public/scss "$PUBHTML"/
 
-      # Refresh Laravel caches in the live app
+      # Refresh Laravel caches in the live app.
+      # optimize:clear membuang cache lama, lalu optimize MEMBANGUN ULANG
+      # cache config/route/view/event. Tanpa 'optimize' setiap request harus
+      # mem-parse ulang ~30 file config + routes/web.php dan meng-compile
+      # blade — itu ratusan milidetik per request di shared hosting.
       cd "$DEPLOYPATH"
-      php artisan view:clear
       php artisan optimize:clear
+      php artisan optimize

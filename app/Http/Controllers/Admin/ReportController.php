@@ -19,6 +19,7 @@ use App\Models\Report;
 use App\Models\Schedule;
 use App\Services\KPIAchievementService;
 use App\Services\KPIService;
+use App\Support\GoalOptions;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -113,6 +114,200 @@ class ReportController extends Controller
         return view('reports-admin.app', compact('locations', 'companies', 'groupCompanies', 'link', 'parentLink', 'selectYear', 'period'));
     }
 
+    /**
+     * Lengkapi satu baris report Achievement: hitung KPI (actual,
+     * achievement, label) dan rapikan data approver-nya.
+     *
+     * Dipakai bersama oleh getReportContent() dan achievementDetail().
+     *
+     * @param  \App\Models\Goal  $item
+     * @param  array             $achievementData  hasil KPIAchievementService untuk goal ini
+     * @param  \Illuminate\Support\Collection  $approvalLayers  map "employeeId-approverId" => ApprovalLayer
+     */
+    private function decorateAchievementGoal($item, array $achievementData, $approvalLayers)
+    {
+
+            $formData = json_decode($item->form_data, true) ?? [];
+
+            $isEmptyAchievement = empty($achievementData);
+
+            foreach ($formData as &$kpi) {
+
+                $kpiId = $kpi['kpi_id'] ?? null;
+
+                // inject monthly achievement
+                $kpi['ach'] = $kpiId && isset($achievementData[$kpiId]['ach'])
+                    ? $achievementData[$kpiId]['ach']
+                    : array_fill(1, 12, null);
+
+                $kpi['attachment'] = $kpiId && isset($achievementData[$kpiId]['attachment'])
+                    ? $achievementData[$kpiId]['attachment']
+                    : array_fill(1, 12, null);
+
+                $kpi['approval_status'] = $kpiId && isset($achievementData[$kpiId]['approval_status'])
+                    ? $achievementData[$kpiId]['approval_status']
+                    : array_fill(1, 12, null);
+
+                // ========================
+                // HITUNG ACTUAL & ACHIEVEMENT
+                // ========================
+                $values = collect($kpi['ach'])
+                    ->filter(fn($v) => $v !== null && $v !== '')
+                    ->values()
+                    ->toArray();
+
+                $actual = $this->kpiService->aggregate(
+                    $kpi['calculation_method'] ?? 'last',
+                    $values, $kpi['review_period'] ?? null
+                );
+
+                $achievementValue = $isEmptyAchievement
+                    ? 0
+                    : $this->kpiService->achievement(
+                        $actual,
+                        (float)($kpi['target'] ?? 0),
+                        $kpi['type'] ?? 'Higher Better'
+                    );
+                
+                // Dulu goal.json dibaca dari disk DI DALAM loop KPI ini,
+                // jadi 500 goal x 5 KPI = ~5.000 kali File::exists +
+                // File::get + json_decode untuk file statis yang sama.
+                $reviewPeriodMap = GoalOptions::reviewPeriodLabels();
+                $calculationMethodMap = GoalOptions::calculationMethodLabels();
+
+                $kpi['actual'] = round($actual, 2);
+                $kpi['achievement'] = round($achievementValue, 2);
+
+                $kpi['review_period_label'] = $reviewPeriodMap[$kpi['review_period'] ?? ''] ?? '-';
+                $kpi['calculation_method_label'] = $calculationMethodMap[$kpi['calculation_method'] ?? ''] ?? '-';
+            }
+
+            // inject ke item
+            $item->formData = $formData;
+
+            $achievement = $item->achievement;
+
+            if ($achievement) {
+
+                $achievement->formatted_created_at = Carbon::parse($achievement->created_at)->format('d M Y g:ia');
+                $achievement->formatted_updated_at = Carbon::parse($achievement->updated_at)->format('d M Y g:ia');
+
+                $approver = optional($achievement->approver);
+
+                $achievement->name = $approver->fullname
+                    ? $approver->fullname . ' (' . $approver->employee_id . ')'
+                    : '-';
+
+                $key = $item->employee_id . '-' . $achievement->current_approver_employee_id;
+
+                $layerData = $approvalLayers->get($key);
+
+                $achievement->approvalLayer = $layerData->layer ?? null;
+
+                // ðŸ”¥ RE-ASSIGN BALIK
+                $item->achievement = $achievement;
+
+            } else {
+
+                // ðŸ”¥ JANGAN SET KE RELATION LANGSUNG
+                $item->setRelation('achievement', (object)[
+                    'name' => '-',
+                    'approvalLayer' => null,
+                    'formatted_created_at' => '-',
+                    'formatted_updated_at' => '-',
+                    'approval_status' => '-',
+                ]);
+            }
+
+
+        return $item;
+    }
+
+    /**
+     * Isi modal detail Achievement untuk satu goal, dimuat lewat AJAX.
+     *
+     * Sebelumnya di-render inline untuk setiap baris report (modal berisi
+     * tabel KPI x 12 bulan, jadi hampir seluruh ukuran halaman).
+     * Pengecekan hak akses sama dengan goalDetail().
+     */
+    public function achievementDetail($goalId)
+    {
+        $goal = Goal::with(['employee', 'achievement.approver'])->where('id', $goalId)->firstOrFail();
+
+        $this->authorizeReportEmployee($goal->employee);
+
+        $approvalLayers = ApprovalLayer::where('employee_id', $goal->employee_id)
+            ->where('layer', 1)
+            ->get()
+            ->keyBy(fn ($layer) => $layer->employee_id.'-'.$layer->approver_id);
+
+        $row = $this->decorateAchievementGoal(
+            $goal,
+            KPIAchievementService::getByGoal($goal->id),
+            $approvalLayers
+        );
+
+        return view('reports-admin.partials.achievement-detail', ['row' => $row]);
+    }
+
+    /**
+     * Pastikan karyawan ini berada dalam cakupan report milik user.
+     *
+     * Memakai batasan role yang sama dengan query report
+     * (group_company / work_area_code / contribution_level_code). Report
+     * memakai orWhereHas, jadi karyawan cocok kalau memenuhi SALAH SATU
+     * batasan yang di-set; kalau role tidak punya batasan sama sekali,
+     * memang boleh melihat semuanya.
+     */
+    private function authorizeReportEmployee($employee): void
+    {
+        abort_unless($employee, 404);
+
+        $criteria = [
+            'work_area_code' => $this->permissionLocations,
+            'group_company' => $this->permissionGroupCompanies,
+            'contribution_level_code' => $this->permissionCompanies,
+        ];
+
+        $restrictions = array_filter($criteria, fn ($values) => !empty($values));
+
+        if (empty($restrictions)) {
+            return;
+        }
+
+        foreach ($restrictions as $field => $values) {
+            if (in_array($employee->{$field}, $values)) {
+                return;
+            }
+        }
+
+        abort(403);
+    }
+
+    /**
+     * Isi modal detail Goal untuk satu karyawan, dimuat lewat AJAX.
+     *
+     * Sebelumnya blok ini di-render inline untuk SETIAP baris report — pada
+     * report Goal 2026 itu 1.422 modal = 38 MB HTML dalam satu response.
+     *
+     * Hak akses memakai batasan role yang sama dengan report-nya sendiri
+     * (group_company / work_area_code / contribution_level_code), supaya
+     * endpoint ini tidak bisa dipakai membaca goal di luar cakupan user.
+     */
+    public function goalDetail($goalId)
+    {
+        $goal = Goal::with('employee')->where('id', $goalId)->firstOrFail();
+
+        $employee = $goal->employee;
+
+        $this->authorizeReportEmployee($employee);
+
+        return view('reports-admin.partials.goal-detail', [
+            'employee' => $employee,
+            'formData' => json_decode($goal->form_data, true) ?? [],
+        ]);
+    }
+
     public function changesGroupCompany(Request $request)
     {
         $selectedGroupCompany = $request->input('groupCompany');
@@ -202,7 +397,10 @@ class ReportController extends Controller
 
             $displayTimezone = config('app.display_timezone', 'Asia/Jakarta');
 
-            $data->map(function($item) use ($displayTimezone) {
+            // Satu query untuk semua layer, menggantikan satu query per baris.
+            $layerMap = ApprovalLayer::layerMapFor($data->pluck('employee_id'));
+
+            $data->map(function($item) use ($displayTimezone, $layerMap) {
                 // Format created_at (disimpan UTC, ditampilkan waktu lokal)
                 $createdDate = Carbon::parse($item->created_at)->timezone($displayTimezone);
 
@@ -219,9 +417,7 @@ class ReportController extends Controller
                     $item->approvalLayer = '';
                 } else {
                     $item->name = $item->manager->fullname . ' (' . $item->manager->employee_id . ')';
-                    $item->approvalLayer = ApprovalLayer::where('employee_id', $item->employee_id)
-                                                        ->where('approver_id', $item->current_approval_id)
-                                                        ->value('layer');
+                    $item->approvalLayer = $layerMap[$item->employee_id.'-'.$item->current_approval_id] ?? null;
                 }
 
                 return $item;
@@ -346,113 +542,19 @@ class ReportController extends Controller
                 return $item->employee_id . '-' . $item->approver_id;
             });
 
-            $data->map(function($item) use ($approvalLayers) {
+            // Satu query achievement untuk semua goal di halaman ini, bukan
+            // satu query per goal.
+            $achievementsByGoal = KPIAchievementService::getByGoals($data->pluck('id'));
 
-                $formData = json_decode($item->form_data, true) ?? [];
-
-                // ambil achievement KPI (service kamu)
-                $achievementData = KPIAchievementService::getByGoal($item->id) ?? [];
-                $isEmptyAchievement = empty($achievementData);
-
-                foreach ($formData as &$kpi) {
-
-                    $kpiId = $kpi['kpi_id'] ?? null;
-
-                    // inject monthly achievement
-                    $kpi['ach'] = $kpiId && isset($achievementData[$kpiId]['ach'])
-                        ? $achievementData[$kpiId]['ach']
-                        : array_fill(1, 12, null);
-
-                    $kpi['attachment'] = $kpiId && isset($achievementData[$kpiId]['attachment'])
-                        ? $achievementData[$kpiId]['attachment']
-                        : array_fill(1, 12, null);
-
-                    $kpi['approval_status'] = $kpiId && isset($achievementData[$kpiId]['approval_status'])
-                        ? $achievementData[$kpiId]['approval_status']
-                        : array_fill(1, 12, null);
-
-                    // ========================
-                    // HITUNG ACTUAL & ACHIEVEMENT
-                    // ========================
-                    $values = collect($kpi['ach'])
-                        ->filter(fn($v) => $v !== null && $v !== '')
-                        ->values()
-                        ->toArray();
-
-                    $actual = $this->kpiService->aggregate(
-                        $kpi['calculation_method'] ?? 'last',
-                        $values, $kpi['review_period'] ?? null
-                    );
-
-                    $achievementValue = $isEmptyAchievement
-                        ? 0
-                        : $this->kpiService->achievement(
-                            $actual,
-                            (float)($kpi['target'] ?? 0),
-                            $kpi['type'] ?? 'Higher Better'
-                        );
-                    
-                    $options = [];
-
-                    if (File::exists($this->path)) {
-                        $options = json_decode(File::get($this->path), true) ?? [];
-                    }
-
-                    $reviewPeriodMap = collect($options['Review Period'] ?? [])
-                        ->flatten(1)
-                        ->pluck('label', 'value')
-                        ->toArray();
-
-                    $calculationMethodMap = collect($options['Calculation Method'] ?? [])
-                        ->flatten(1)
-                        ->pluck('label', 'value')
-                        ->toArray();
-
-                    $kpi['actual'] = round($actual, 2);
-                    $kpi['achievement'] = round($achievementValue, 2);
-
-                    $kpi['review_period_label'] = $reviewPeriodMap[$kpi['review_period'] ?? ''] ?? '-';
-                    $kpi['calculation_method_label'] = $calculationMethodMap[$kpi['calculation_method'] ?? ''] ?? '-';
-                }
-
-                // inject ke item
-                $item->formData = $formData;
-
-                $achievement = $item->achievement;
-
-                if ($achievement) {
-
-                    $achievement->formatted_created_at = Carbon::parse($achievement->created_at)->format('d M Y g:ia');
-                    $achievement->formatted_updated_at = Carbon::parse($achievement->updated_at)->format('d M Y g:ia');
-
-                    $approver = optional($achievement->approver);
-
-                    $achievement->name = $approver->fullname
-                        ? $approver->fullname . ' (' . $approver->employee_id . ')'
-                        : '-';
-
-                    $key = $item->employee_id . '-' . $achievement->current_approver_employee_id;
-
-                    $layerData = $approvalLayers->get($key);
-
-                    $achievement->approvalLayer = $layerData->layer ?? null;
-
-                    // ðŸ”¥ RE-ASSIGN BALIK
-                    $item->achievement = $achievement;
-
-                } else {
-
-                    // ðŸ”¥ JANGAN SET KE RELATION LANGSUNG
-                    $item->setRelation('achievement', (object)[
-                        'name' => '-',
-                        'approvalLayer' => null,
-                        'formatted_created_at' => '-',
-                        'formatted_updated_at' => '-',
-                        'approval_status' => '-',
-                    ]);
-                }
-
-                return $item;
+            // Logika per-baris dipindah ke decorateAchievementGoal() supaya
+            // endpoint modal (achievementDetail) memakai perhitungan yang
+            // persis sama — angka di tabel dan di modal tidak bisa berbeda.
+            $data->map(function ($item) use ($approvalLayers, $achievementsByGoal) {
+                return $this->decorateAchievementGoal(
+                    $item,
+                    $achievementsByGoal[$item->id] ?? [],
+                    $approvalLayers
+                );
             });
 
             $route = 'reports-admin.achievement';
@@ -557,9 +659,12 @@ class ReportController extends Controller
                 return $item->employee_id . '-' . $item->approver_id;
             });
 
-        $data->map(function($item) use ($approvalLayers) {
+        // Bulk, sama seperti di getReportContent(): satu query untuk semua goal.
+        $achievementsByGoal = KPIAchievementService::getByGoals($data->pluck('id'));
+
+        $data->map(function($item) use ($approvalLayers, $achievementsByGoal) {
             $formData = json_decode($item->form_data, true) ?? [];
-            $achievementData = \App\Services\KPIAchievementService::getByGoal($item->id) ?? [];
+            $achievementData = $achievementsByGoal[$item->id] ?? [];
             $isEmptyAchievement = empty($achievementData);
 
             foreach ($formData as &$kpi) {
@@ -572,13 +677,8 @@ class ReportController extends Controller
                 $actual = $this->kpiService->aggregate($kpi['calculation_method'] ?? 'last', $values, $kpi['review_period'] ?? null);
                 $achievementValue = $isEmptyAchievement ? 0 : $this->kpiService->achievement($actual, (float)($kpi['target'] ?? 0), $kpi['type'] ?? 'Higher Better');
 
-                $options = [];
-                if (\Illuminate\Support\Facades\File::exists($this->path)) {
-                    $options = json_decode(\Illuminate\Support\Facades\File::get($this->path), true) ?? [];
-                }
-
-                $reviewPeriodMap = collect($options['Review Period'] ?? [])->flatten(1)->pluck('label', 'value')->toArray();
-                $calculationMethodMap = collect($options['Calculation Method'] ?? [])->flatten(1)->pluck('label', 'value')->toArray();
+                $reviewPeriodMap = GoalOptions::reviewPeriodLabels();
+                $calculationMethodMap = GoalOptions::calculationMethodLabels();
 
                 $kpi['actual'] = round($actual, 2);
                 $kpi['achievement'] = round($achievementValue, 2);

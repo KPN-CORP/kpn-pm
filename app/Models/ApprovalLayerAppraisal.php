@@ -20,6 +20,43 @@ class ApprovalLayerAppraisal extends Model
         'updated_at',
     ];
 
+    /**
+     * Ambil layer untuk banyak employee sekaligus, dikunci "employeeId-approverId".
+     * Padanan ApprovalLayer::layerMapFor() untuk jalur appraisal — menggantikan
+     * satu query per baris di layar list.
+     *
+     * @param  iterable  $employeeIds
+     * @return array<string, mixed>
+     */
+    public static function layerMapFor($employeeIds): array
+    {
+        $employeeIds = collect($employeeIds)->filter()->unique()->values();
+
+        if ($employeeIds->isEmpty()) {
+            return [];
+        }
+
+        // PENTING: data punya pasangan (employee_id, approver_id) ganda —
+        // orang yang sama terdaftar sebagai layer 1 DAN layer 2 untuk
+        // karyawan yang sama (~50 pasangan di produksi). Query lama
+        // ->value('layer') tanpa ORDER BY mengembalikan baris ber-id
+        // terkecil, jadi di sini urutkan id menaik dan pertahankan yang
+        // PERTAMA per pasangan. Tanpa ini badge "Manager L1" berubah jadi
+        // "Manager L2" untuk karyawan-karyawan tersebut.
+        $map = [];
+
+        static::query()
+            ->select(['id', 'employee_id', 'approver_id', 'layer'])
+            ->whereIn('employee_id', $employeeIds)
+            ->orderBy('id')
+            ->get()
+            ->each(function ($row) use (&$map) {
+                $map[$row->employee_id.'-'.$row->approver_id] ??= $row->layer;
+            });
+
+        return $map;
+    }
+
     public function employee()
     {
         return $this->belongsTo(EmployeeAppraisal::class, 'employee_id', 'employee_id');
