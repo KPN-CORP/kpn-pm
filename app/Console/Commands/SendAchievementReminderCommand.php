@@ -52,7 +52,7 @@ class SendAchievementReminderCommand extends Command
         |--------------------------------------------------------------------------
         */
 
-        if ($goals->flatMap->achievementList->count() === 0) {
+        if ($goals->flatMap->reminderAchievements->count() === 0) {
 
             Log::debug('no pending achievement found');
 

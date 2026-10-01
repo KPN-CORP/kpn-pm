@@ -94,6 +94,20 @@ class AchievementReminderService
 
                 /*
                 |--------------------------------------------------------------------------
+                | Skip if current month is not the KPI due month
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    !$this->shouldSendReminder(
+                        (int) $kpi['review_period']
+                    )
+                ) {
+                    continue;
+                }
+
+                /*
+                |--------------------------------------------------------------------------
                 | Find achievement by KPI
                 |--------------------------------------------------------------------------
                 */
@@ -103,7 +117,21 @@ class AchievementReminderService
 
                 /*
                 |--------------------------------------------------------------------------
-                | Skip if KPI never has achievement
+                | Skip if achievement for current due month already filled
+                |--------------------------------------------------------------------------
+                */
+
+                if (
+                    $achievements->contains(
+                        fn ($achievement) => (int) $achievement->month === now()->month
+                    )
+                ) {
+                    continue;
+                }
+
+                /*
+                |--------------------------------------------------------------------------
+                | KPI never has achievement
                 |--------------------------------------------------------------------------
                 */
 
@@ -129,15 +157,16 @@ class AchievementReminderService
                     continue;
                 }
 
+                /*
+                |--------------------------------------------------------------------------
+                | KPI has previous achievement, but not for current due month
+                |--------------------------------------------------------------------------
+                */
+
                 $latestAchievement = $achievements
                     ->sortByDesc('updated_at')
                     ->first();
 
-                /*
-                |--------------------------------------------------------------------------
-                | Check reminder
-                |--------------------------------------------------------------------------
-                */
                 Log::debug('Checking pending achievement', [
                     'goal_id' => $goal->id,
                     'employee_id' => $goal->employee_id,
@@ -147,22 +176,15 @@ class AchievementReminderService
                     'achievement_updated_at' => $latestAchievement?->updated_at,
                 ]);
 
-                if (
-                    $this->shouldSendReminder(
-                        (int) $kpi['review_period']
-                    )
-                ) {
-
-                    $goal->reminderAchievements->push([
-                        'achievement_id' => $latestAchievement->id,
-                        'kpi_id' => $kpi['kpi_id'],
-                        'kpi' => $kpi['kpi'],
-                        'target' => $kpi['target'] ?? null,
-                        'review_period' => $kpi['review_period'],
-                        'updated_at' => $latestAchievement->updated_at,
-                        'status' => 'Update Required',
-                    ]);
-                }
+                $goal->reminderAchievements->push([
+                    'achievement_id' => $latestAchievement->id,
+                    'kpi_id' => $kpi['kpi_id'],
+                    'kpi' => $kpi['kpi'],
+                    'target' => $kpi['target'] ?? null,
+                    'review_period' => $kpi['review_period'],
+                    'updated_at' => $latestAchievement->updated_at,
+                    'status' => 'Update Required',
+                ]);
             }
 
 
@@ -184,6 +206,11 @@ class AchievementReminderService
     protected function shouldSendReminder(
         int $reviewPeriod
     ): bool {
+
+        // review_period tidak valid (kosong / bukan angka) -> hindari modulo by zero
+        if ($reviewPeriod < 1) {
+            return false;
+        }
 
         $result = now()->month % $reviewPeriod === 0;
 
