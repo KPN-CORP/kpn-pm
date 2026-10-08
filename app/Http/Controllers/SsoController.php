@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Events\UserActionLogged;
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Services\RehireMergeService;
 use App\Http\Requests\Auth\LoginRequest;
 use Illuminate\Support\Facades\Auth;
 use RealRashid\SweetAlert\Facades\Alert;
@@ -139,6 +140,9 @@ class SsoController extends Controller
                 'token' => $token,
                 'email_log' => $email,
                 ]);
+
+                // Tidak lewat Auth::login, jadi event Login tidak jalan.
+                app(RehireMergeService::class)->mergeOnLogin($user->employee_id);
 
                 // Generate JWT with custom claims
                 $customClaims = [
