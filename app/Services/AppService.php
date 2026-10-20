@@ -21,6 +21,7 @@ use App\Models\Schedule;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 use stdClass;
@@ -41,6 +42,32 @@ class AppService
     private static array $periodCache = [];
 
     /**
+     * Hasil checkFlowAccess / checkKpiUnit per request. Sidebar memanggilnya
+     * di setiap render halaman; key-nya memuat employee_id supaya aman di
+     * worker yang hidup lama.
+     *
+     * @var array<string, bool>
+     */
+    private static array $accessCache = [];
+
+    /**
+     * Data master yang dibaca berulang kali per baris di layar rating,
+     * kalibrasi dan export (convertRating, formGroupAppraisal). Isinya jarang
+     * berubah, jadi cukup sekali query per request.
+     *
+     * @var array<string, mixed>
+     */
+    private static array $masterCache = [];
+
+    /**
+     * Lama (detik) badge notifikasi di sidebar di-cache per user. Aksi milik
+     * user itu sendiri (POST/PUT/DELETE) langsung menghapus cache-nya, lihat
+     * NotificationMiddleware; perubahan dari user lain terlihat paling lambat
+     * setelah TTL ini.
+     */
+    public const NOTIFICATION_CACHE_TTL = 60;
+
+    /**
      * Kosongkan cache periode. Dipakai di test dan di queue worker yang
      * hidup lama, supaya perubahan schedule tetap terbaca.
      */
@@ -48,6 +75,8 @@ class AppService
     {
         self::$periodCache = [];
         self::$weightageCache = [];
+        self::$accessCache = [];
+        self::$masterCache = [];
     }
 
     private function rememberPeriod(string $key, callable $resolver)
@@ -87,13 +116,26 @@ class AppService
         return self::$weightageCache[$key];
     }
 
+    private function rememberMaster(string $key, callable $resolver)
+    {
+        if (! array_key_exists($key, self::$masterCache)) {
+            self::$masterCache[$key] = $resolver();
+        }
+
+        return self::$masterCache[$key];
+    }
+
     public function formGroupAppraisal($employee_id, $form_name)
     {
         $employee = EmployeeAppraisal::select('employee_id', 'group_company', 'job_level', 'company_name', 'work_area_code')->where('employee_id', $employee_id)->first();
-        
-        $datas = FormGroupAppraisal::with(['formAppraisals', 'rating'])->where('name', $form_name)->get();
 
-        $data = json_decode($datas, true);
+        // Dipanggil per karyawan di layar rating/kalibrasi dan export; daftar
+        // form group-nya sama untuk semua karyawan, jadi cukup diambil sekali
+        // (3 query: form group + formAppraisals + rating) per request.
+        $data = $this->rememberMaster('form_group:'.$form_name, fn () => json_decode(
+            FormGroupAppraisal::with(['formAppraisals', 'rating'])->where('name', $form_name)->get(),
+            true
+        ));
 
         $criteria = [
             "job_level" => $employee->job_level,
@@ -833,31 +875,36 @@ class AppService
 
     public function convertRating(float $value, $formID): ?string
     {
-        $formGroup = MasterCalibration::where('id_calibration_group', $formID)->first();
-        
-        $condition = null;
-        
-        $roundedValue = (int) round($value);
-
+        // Dipanggil sampai dua kali per baris di layar rating dan export-nya.
+        // Dulu 2 query per panggilan; sekarang master calibration & master
+        // rating per group diambil sekali per request lalu dicocokkan di PHP
+        // dengan aturan yang sama persis dengan query lamanya.
         if ($value == 0) {
             // If value is 0, get the record with the smallest value
-            $condition = MasterRating::orderBy('value', 'asc')->first();
-        } else {
-            // Otherwise, proceed with the original query logic
-            $condition = MasterRating::where(function ($query) use ($formGroup, $value) {
-                $query->where('id_rating_group', $formGroup->id_rating_group)
-                      ->where('min_range', '<=', $value)
-                      ->where('max_range', '>=', $value);
-            })
-            ->orWhere(function ($query) use ($formGroup, $roundedValue) {
-                        $query->where('id_rating_group', $formGroup->id_rating_group)
-                              ->where('min_range', 0)
-                              ->where('max_range', 0)
-                              ->where('value', $roundedValue); // Use rounded value here
-                    })
-                    ->orderBy('min_range', 'desc')
-                    ->first();
+            $condition = $this->rememberMaster('rating:lowest', fn () => MasterRating::orderBy('value', 'asc')->first());
+
+            return $condition ? $condition->parameter : null;
         }
+
+        $formGroup = $this->rememberMaster('calibration:'.$formID, fn () => MasterCalibration::where('id_calibration_group', $formID)->first());
+
+        $ratingGroupId = $formGroup->id_rating_group;
+
+        $ratings = $this->rememberMaster('rating_group:'.$ratingGroupId, fn () => MasterRating::where('id_rating_group', $ratingGroupId)->get());
+
+        $roundedValue = (int) round($value);
+
+        $condition = $ratings
+            ->filter(function ($rating) use ($value, $roundedValue) {
+                $min = (float) $rating->min_range;
+                $max = (float) $rating->max_range;
+
+                return ($min <= $value && $max >= $value)
+                    // Use rounded value here
+                    || ($min == 0 && $max == 0 && (int) $rating->value === $roundedValue);
+            })
+            ->sortByDesc(fn ($rating) => (float) $rating->min_range)
+            ->first();
 
         return $condition ? $condition->parameter : null;
     }
@@ -929,6 +976,14 @@ class AppService
     {
         // Cari data pada ApprovalLayerAppraisal berdasarkan employee_id
         $approvalLayerAppraisals = ApprovalLayerAppraisal::with(['approver', 'employee'])->where('employee_id', $employeeId)->where('layer_type', '!=', 'calibrator')->get();
+
+        // Dulu satu query AppraisalContributor per layer; sekarang sekali
+        // untuk semua approver karyawan ini.
+        $existingContributors = AppraisalContributor::where('employee_id', $employeeId)
+            ->whereIn('contributor_id', $approvalLayerAppraisals->pluck('approver_id')->unique()->values())
+            ->where('period', $this->appraisalPeriod())
+            ->pluck('contributor_id')
+            ->flip();
         
         // Simpan data yang tidak ada di AppraisalContributor
         $notFoundData = [];
@@ -942,12 +997,9 @@ class AppService
             // }
             
             // Cek apakah kombinasi employee_id dan approver_id tidak ada di AppraisalContributor
-            $appraisalContributor = AppraisalContributor::where('employee_id', $approvalLayer->employee_id)
-                                                        ->where('contributor_id', $approvalLayer->approver_id)
-                                                        ->where('period', $this->appraisalPeriod())
-                                                        ->first();
+            $hasContributed = $existingContributors->has($approvalLayer->approver_id);
             // Jika tidak ditemukan, tambahkan ke notFoundData
-            if (is_null($appraisalContributor) && isset($review360['review360']) && $review360['review360'] == 0) {
+            if (! $hasContributed && isset($review360['review360']) && $review360['review360'] == 0) {
                 $notFoundData[] = [
                     'employee_id'  => $approvalLayer->employee_id,
                     'approver_id'  => $approvalLayer->approver_id,
@@ -1008,6 +1060,22 @@ class AppService
     {
         $user = Auth::user();
 
+        if (! $user) {
+            return false;
+        }
+
+        $key = 'flow:'.$user->employee_id.':'.$moduleTransaction;
+
+        if (! array_key_exists($key, self::$accessCache)) {
+            self::$accessCache[$key] = $this->resolveFlowAccess($user, $moduleTransaction);
+        }
+
+        return self::$accessCache[$key];
+    }
+
+    private function resolveFlowAccess($user, string $moduleTransaction): bool
+    {
+
         $employee = $user->employee ?? null;
 
         if (!$employee) {
@@ -1042,16 +1110,22 @@ class AppService
         return false;
     }
 
-    public function checkKpiUnit(): bool 
+    public function checkKpiUnit(): bool
     {
-        $user = KpiUnits::with(['masterCalibration' => function($query) {
-                $query->where('period', $this->appraisalPeriod());
-            }])->where('employee_id', Auth::user()->employee_id)->where('status_aktif', 'T')->where('periode', $this->appraisalPeriod())->first();
+        $employeeId = Auth::user()?->employee_id;
 
-        if (!$user) return false;
+        if (! $employeeId) {
+            return false;
+        }
 
-        // rule Anda di sini
-        return true; // contoh
+        $key = 'kpi_unit:'.$employeeId;
+
+        // Dulu ->with('masterCalibration')->first(): relasinya di-load tapi
+        // tidak pernah dipakai, yang dibutuhkan cuma ada/tidaknya baris.
+        return self::$accessCache[$key] ??= KpiUnits::where('employee_id', $employeeId)
+            ->where('status_aktif', 'T')
+            ->where('periode', $this->appraisalPeriod())
+            ->exists();
     }
 
     public function appraisalActivePeriod()
@@ -1074,10 +1148,41 @@ class AppService
         return null;
     }
 
+    public static function notificationCacheKey(string $type, $employeeId, $filterYear): string
+    {
+        return 'notif:'.$type.':'.$employeeId.':'.($filterYear ?? 'current');
+    }
+
+    public static function forgetNotificationCounts($employeeId, $filterYear = null): void
+    {
+        foreach (['goal', 'appraisal'] as $type) {
+            Cache::forget(self::notificationCacheKey($type, $employeeId, null));
+
+            if ($filterYear) {
+                Cache::forget(self::notificationCacheKey($type, $employeeId, $filterYear));
+            }
+        }
+    }
+
     public function getNotificationCountsGoal($user, $filterYear)
     {
         $period = $filterYear && $this->goalPeriod() != $filterYear ? null : $this->goalPeriod();
-        
+
+        // Filter tahun selain periode berjalan: dulu tetap menjalankan query
+        // dengan "period IS NULL" yang hasilnya selalu 0.
+        if ($period === null) {
+            return 0;
+        }
+
+        return Cache::remember(
+            self::notificationCacheKey('goal', $user, $filterYear),
+            self::NOTIFICATION_CACHE_TTL,
+            fn () => $this->countGoalNotifications($user, $period)
+        );
+    }
+
+    private function countGoalNotifications($user, $period): int
+    {
         $category = 'Goals';
 
         // Dulu ->get() lalu ->count(): meng-hydrate seluruh model hanya untuk
@@ -1100,6 +1205,20 @@ class AppService
     public function getNotificationCountsAppraisal($user, $filterYear)
     {
         $period = $filterYear && $this->appraisalPeriod() != $filterYear ? null : $this->appraisalPeriod();
+
+        if ($period === null) {
+            return 0;
+        }
+
+        return Cache::remember(
+            self::notificationCacheKey('appraisal', $user, $filterYear),
+            self::NOTIFICATION_CACHE_TTL,
+            fn () => $this->countAppraisalNotifications($user, $period)
+        );
+    }
+
+    private function countAppraisalNotifications($user, $period): int
+    {
 
         // Kedua hitungan di bawah dulu meng-eager-load relasi lalu memfilter
         // di PHP (->get()->filter()->count()). Filternya diterjemahkan apa

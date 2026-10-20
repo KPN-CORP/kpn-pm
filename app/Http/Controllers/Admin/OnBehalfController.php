@@ -46,6 +46,7 @@ class OnBehalfController extends Controller
     protected $permissionGroupCompanies;
     protected $permissionCompanies;
     protected $permissionLocations;
+    protected array $restrictionData = [];
     protected $roles;
     protected $category;
     protected $appService;
@@ -70,6 +71,23 @@ class OnBehalfController extends Controller
         $this->permissionGroupCompanies = $restrictionData['group_company'] ?? [];
         $this->permissionCompanies = $restrictionData['contribution_level_code'] ?? [];
         $this->permissionLocations = $restrictionData['work_area_code'] ?? [];
+
+        $this->restrictionData = $restrictionData ?? [];
+    }
+
+    /**
+     * Opsi filter (group company, lokasi, company) untuk halaman index &
+     * report. Dulu di-query di constructor, jadi setiap aksi controller ini —
+     * termasuk endpoint AJAX/detail yang tidak memakainya — menjalankan tiga
+     * query DISTINCT ke tabel employees.
+     */
+    private function loadFilterOptions(): void
+    {
+        if ($this->groupCompanies !== null) {
+            return;
+        }
+
+        $restrictionData = $this->restrictionData;
 
         $groupCompanyCodes = $restrictionData['group_company'] ?? [];
 
@@ -106,6 +124,8 @@ class OnBehalfController extends Controller
 
         $parentLink = 'Admin';
         $link = 'On Behalf';
+
+        $this->loadFilterOptions();
 
         $locations = $this->locations;
         $companies = $this->companies;
@@ -740,6 +760,8 @@ class OnBehalfController extends Controller
         }
     
         
+        $this->loadFilterOptions();
+
         $locations = $this->locations;
         $companies = $this->companies;
         $groupCompanies = $this->groupCompanies;
@@ -1429,8 +1451,6 @@ class OnBehalfController extends Controller
 
                 // Process withRequests using preloaded data
                 $withRequests = $group['with_requests']->map(function ($data) use ($id, $calibration, $suggestedRatings, $ratingValues, $period) {
-                    Log::info('Processing withRequests item.', ['itemId' => $data->id]);
-
                     $employeeId = $data->employee->employee_id;
                     $formId = $data->approvalRequest->where('category', 'Appraisal')->where('period', $period)->first()->form_id;
 
@@ -1502,15 +1522,19 @@ class OnBehalfController extends Controller
                 Log::info('Processed withRequests.', ['processedCount' => $withRequests->count()]);
 
                 // Process `without_requests`
-                $withoutRequests = $group['without_requests']->map(function ($data) use ($id, $calibration) {
-                    Log::info('Processing withoutRequests item.', ['itemId' => $data->id]);
+                // Dulu satu query Calibration::exists() per baris; sekarang sekali
+                // untuk semua karyawan di grup ini.
+                $pendingCalibrations = Calibration::where('approver_id', $id)
+                    ->whereIn('employee_id', $group['without_requests']->pluck('employee.employee_id')->filter()->unique()->values())
+                    ->where('status', 'Pending')
+                    ->distinct()
+                    ->pluck('employee_id')
+                    ->flip();
 
+                $withoutRequests = $group['without_requests']->map(function ($data) use ($id, $calibration, $pendingCalibrations) {
                     $data->suggested_rating = null;
 
-                    $isCalibrator = Calibration::where('approver_id', $id)
-                        ->where('employee_id', $data->employee->employee_id)
-                        ->where('status', 'Pending')
-                        ->exists();
+                    $isCalibrator = $pendingCalibrations->has($data->employee->employee_id);
                     $data->is_calibrator = $isCalibrator;
 
                     $data->rating_allowed = $this->appService->ratingAllowedCheck($data->employee->employee_id);

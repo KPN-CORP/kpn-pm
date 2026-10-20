@@ -171,14 +171,21 @@ class EmployeeController extends Controller
             $querypa->where('date_of_joining', '<=', $schedule->last_join_date);
         }
 
-        $employees = $query->get();
-        $employeePA = $querypa->get();
+        // Command ini jalan tiap menit. Dulu setiap baris di-UPDATE ulang
+        // (plus satu baris log per karyawan) walaupun access_menu-nya sudah
+        // benar, jadi pada hari start/end schedule ribuan baris ditulis ulang
+        // setiap menit. Sekarang hanya baris yang nilainya berubah yang ditulis.
+        $updated = 0;
 
         if($schedule->event_type=='goals'){
-            foreach ($employees as $employee) {
+            foreach ($query->select('id', 'access_menu')->cursor() as $employee) {
 
-                $accessMenuJson = json_decode($employee->access_menu, true);
-    
+                $accessMenuJson = json_decode($employee->access_menu, true) ?? [];
+
+                if (($accessMenuJson['goals'] ?? null) == $accessMenu && ($accessMenuJson['doj'] ?? null) == 1) {
+                    continue;
+                }
+
                 $accessMenuJson['goals'] = $accessMenu;
                 $accessMenuJson['doj'] = 1;
     
@@ -189,13 +196,19 @@ class EmployeeController extends Controller
                         'updated_at' => Carbon::now()  // Update the updated_at column
                     ]);
 
-                Log::info('Scheduled access_menu employees table updated.');
+                $updated++;
             }
         }else if($schedule->event_type=='schedulepa'){
-            foreach ($employeePA as $employee) {
+            foreach ($querypa->select('id', 'access_menu')->cursor() as $employee) {
 
-                $accessMenuJson = json_decode($employee->access_menu, true);
-    
+                $accessMenuJson = json_decode($employee->access_menu, true) ?? [];
+
+                if (($accessMenuJson['accesspa'] ?? null) == 1
+                    && ($accessMenuJson['createpa'] ?? null) == $accessMenu
+                    && ($accessMenuJson['review360'] ?? null) == $schedule->review_360) {
+                    continue;
+                }
+
                 $accessMenuJson['accesspa'] = 1;
                 $accessMenuJson['createpa'] = $accessMenu;
                 $accessMenuJson['review360'] = $schedule->review_360;
@@ -207,8 +220,12 @@ class EmployeeController extends Controller
                         'updated_at' => Carbon::now()  // Update the updated_at column
                     ]);
 
-                Log::info('Scheduled access_menu employees_pa table updated.');
+                $updated++;
             }
+        }
+
+        if ($updated > 0) {
+            Log::info('Scheduled access_menu updated.', ['schedule_id' => $schedule->id, 'event_type' => $schedule->event_type, 'rows' => $updated]);
         }
     }
 

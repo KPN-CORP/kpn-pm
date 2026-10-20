@@ -6,6 +6,7 @@ use App\Services\AppService;
 use App\Services\RehireMergeService;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\URL;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
@@ -40,6 +41,11 @@ class AppServiceProvider extends ServiceProvider
         });
         View::share('flowAccess', fn($moduleTransaction) => $appService->checkFlowAccess($moduleTransaction));
         View::share('userRatingAccess', fn() => $appService->checkKpiUnit());
+
+        // Cache statis di AppService (periode, weightage, hak akses) hidup
+        // selama proses PHP. Di queue worker prosesnya hidup lama, jadi
+        // dikosongkan di awal setiap job supaya perubahan schedule terbaca.
+        Queue::before(fn () => AppService::flushPeriodCache());
 
         // Karyawan rehire: pindahkan data id lama ke id baru saat login
         // (form login & SSO dbauth). SSO JWT memanggilnya langsung.

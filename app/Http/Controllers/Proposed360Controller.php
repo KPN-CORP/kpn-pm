@@ -98,49 +98,21 @@ class Proposed360Controller extends Controller
                     'id','employee_id','fullname','designation_name','manager_l1_id','manager_l2_id'
                 )
                 ->with(['appraisalLayer'=>fn($q)=>$q->whereIn('layer_type',['peers','subordinate'])])
-                ->where('manager_l2_id',$authEmpId)
-                ->orWhere('manager_l1_id',$authEmpId)
+                // Dibungkus satu grup: tanpa ini orWhere-nya lolos dari scope
+                // SoftDeletes sehingga karyawan yang sudah dihapus ikut tampil.
+                ->where(function ($q) use ($authEmpId) {
+                    $q->where('manager_l2_id', $authEmpId)
+                        ->orWhere('manager_l1_id', $authEmpId);
+                })
                 ->get();
         }
 
         /* ===========================================
         * 3) TEAM SUBORDINATES
         * =========================================== */
-        $teamIds = $datas->pluck('employee_id')->all();
-
-        $childrenRaw = EmployeeAppraisal::select(
-                'id','employee_id','fullname','designation_name',
-                'manager_l1_id','manager_l2_id'
-            )
-            ->where(function ($q) use ($teamIds) {
-                $q->whereIn('manager_l1_id', $teamIds)
-                ->orWhereIn('manager_l2_id', $teamIds);
-            })
-            ->get();
-
-        $children = collect();
-        foreach ($teamIds as $tid) {
-            $children[$tid] = $childrenRaw
-                ->where('manager_l1_id', $tid)
-                ->merge($childrenRaw->where('manager_l2_id', $tid))
-                ->unique('employee_id')
-                ->values();
-        }
-
-        $allEmployees = EmployeeAppraisal::select(
-            'employee_id','fullname','designation_name',
-            'manager_l1_id','manager_l2_id'
-        )
-        ->get()
-        ->keyBy('employee_id');
-
-        // isi subordinate & peers untuk TEAM
-        $datas->transform(function ($emp) use ($children, $allEmployees) {
-            $emp->subordinates    = $children->get($emp->employee_id, collect());
-            $emp->peer_candidates = $this->buildPeerCandidatesFor($emp->employee_id, $allEmployees);
-            return $emp;
-        });
-
+        // Subordinate & peer candidates untuk TEAM dulu dihitung di sini lalu
+        // dihitung ulang (untuk objek yang sama) di langkah 5 setelah data
+        // pending digabung. Sekarang cukup sekali, di langkah 5.
         if ($selfRow) {
             $selfRow->subordinates = $datas;
         }
@@ -206,12 +178,8 @@ class Proposed360Controller extends Controller
                 ->values();
         }
 
-        $allEmployees = EmployeeAppraisal::select(
-            'employee_id','fullname','designation_name',
-            'manager_l1_id','manager_l2_id'
-        )
-        ->get()
-        ->keyBy('employee_id');
+        // $allEmployees sudah dimuat di langkah 1 (query yang sama persis);
+        // dulu seluruh tabel employees_pa diambil ulang di sini.
 
         // final transform
         $datas->transform(function ($emp) use ($childrenMap, $allEmployees) {
@@ -602,9 +570,28 @@ private function buildPeerCandidatesFor(string $targetEmpId, Collection $allEmp)
 
 
     /**
+     * Hasil buildRoleCandidatesMap per kombinasi role, untuk satu request.
+     * Dipanggil per baris tabel dengan role yang hampir selalu sama, dan
+     * setiap panggilan butuh 4–6 query (termasuk Schema::hasTable).
+     *
+     * @var array<string, \Illuminate\Support\Collection>
+     */
+    private array $roleCandidatesCache = [];
+
+    private function buildRoleCandidatesMap(array $roleNames)
+    {
+        $key = implode('|', array_map('strval', $roleNames));
+
+        $this->roleCandidatesCache[$key] ??= $this->resolveRoleCandidatesMap($roleNames);
+
+        // clone: pemanggil boleh mengubah map-nya tanpa mengotori cache.
+        return clone $this->roleCandidatesCache[$key];
+    }
+
+    /**
      * Bangun map kandidat approver untuk role (fullname (employee_id)).
      */
-    private function buildRoleCandidatesMap(array $roleNames)
+    private function resolveRoleCandidatesMap(array $roleNames)
     {
         $map = collect();
 

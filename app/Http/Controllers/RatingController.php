@@ -182,8 +182,6 @@ class RatingController extends Controller
 
                 // Process withRequests using preloaded data
                 $withRequests = $group['with_requests']->map(function ($data) use ($user, $calibration, $suggestedRatings, $ratingValues) {
-                    Log::info('Processing withRequests item.', ['itemId' => $data->id]);
-
                     $employeeId = $data->employee->employee_id;
                     $formId = $data->approvalRequest->where('category', 'Appraisal')->where('period', $this->period)->first()->form_id;
 
@@ -254,15 +252,19 @@ class RatingController extends Controller
                 Log::info('Processed withRequests.', ['processedCount' => $withRequests->count()]);
 
                 // Process `without_requests`
-                $withoutRequests = $group['without_requests']->map(function ($data) use ($user, $calibration) {
-                    Log::info('Processing withoutRequests item.', ['itemId' => $data->id]);
+                // Dulu satu query Calibration::exists() per baris; sekarang sekali
+                // untuk semua karyawan di grup ini.
+                $pendingCalibrations = Calibration::where('approver_id', $user)
+                    ->whereIn('employee_id', $group['without_requests']->pluck('employee.employee_id')->filter()->unique()->values())
+                    ->where('status', 'Pending')
+                    ->distinct()
+                    ->pluck('employee_id')
+                    ->flip();
 
+                $withoutRequests = $group['without_requests']->map(function ($data) use ($user, $calibration, $pendingCalibrations) {
                     $data->suggested_rating = null;
 
-                    $isCalibrator = Calibration::where('approver_id', $user)
-                        ->where('employee_id', $data->employee->employee_id)
-                        ->where('status', 'Pending')
-                        ->exists();
+                    $isCalibrator = $pendingCalibrations->has($data->employee->employee_id);
                     $data->is_calibrator = $isCalibrator;
 
                     $data->rating_allowed = $this->appService->ratingAllowedCheck($data->employee->employee_id);
@@ -645,13 +647,19 @@ class RatingController extends Controller
                 });
 
                 // Process `without_requests`
-                $withoutRequests = $group['without_requests']->map(function ($data) use ($user, $calibration) {
+                // Dulu satu query Calibration::exists() per baris; sekarang sekali
+                // untuk semua karyawan di grup ini.
+                $pendingCalibrations = Calibration::where('approver_id', $user)
+                    ->whereIn('employee_id', $group['without_requests']->pluck('employee.employee_id')->filter()->unique()->values())
+                    ->where('status', 'Pending')
+                    ->distinct()
+                    ->pluck('employee_id')
+                    ->flip();
+
+                $withoutRequests = $group['without_requests']->map(function ($data) use ($user, $calibration, $pendingCalibrations) {
                     $data->suggested_rating = null;
 
-                    $isCalibrator = Calibration::where('approver_id', $user)
-                        ->where('employee_id', $data->employee->employee_id)
-                        ->where('status', 'Pending')
-                        ->exists();
+                    $isCalibrator = $pendingCalibrations->has($data->employee->employee_id);
 
                     $data->is_calibrator = $isCalibrator;
                     $data->rating_allowed = $this->appService->ratingAllowedCheck($data->employee->employee_id);
@@ -851,13 +859,19 @@ class RatingController extends Controller
                 });
 
                 // Process `without_requests`
-                $withoutRequests = $group['without_requests']->map(function ($data) use ($user, $calibration) {
+                // Dulu satu query Calibration::exists() per baris; sekarang sekali
+                // untuk semua karyawan di grup ini.
+                $pendingCalibrations = Calibration::where('approver_id', $user)
+                    ->whereIn('employee_id', $group['without_requests']->pluck('employee.employee_id')->filter()->unique()->values())
+                    ->where('status', 'Pending')
+                    ->distinct()
+                    ->pluck('employee_id')
+                    ->flip();
+
+                $withoutRequests = $group['without_requests']->map(function ($data) use ($user, $calibration, $pendingCalibrations) {
                     $data->suggested_rating = null;
 
-                    $isCalibrator = Calibration::where('approver_id', $user)
-                        ->where('employee_id', $data->employee->employee_id)
-                        ->where('status', 'Pending')
-                        ->exists();
+                    $isCalibrator = $pendingCalibrations->has($data->employee->employee_id);
 
                     $data->is_calibrator = $isCalibrator;
                     $data->rating_allowed = $this->appService->ratingAllowedCheck($data->employee->employee_id);

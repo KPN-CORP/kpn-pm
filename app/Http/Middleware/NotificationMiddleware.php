@@ -50,6 +50,16 @@ class NotificationMiddleware
             });
         }
 
-        return $next($request);
+        $response = $next($request);
+
+        // Badge notifikasi di-cache sebentar (AppService::NOTIFICATION_CACHE_TTL).
+        // Setiap aksi yang mengubah data (submit/approve/sendback, dll)
+        // membuang cache user ini supaya badge-nya langsung akurat di
+        // halaman berikutnya.
+        if (Auth::check() && ! $request->isMethodSafe()) {
+            AppService::forgetNotificationCounts(Auth::user()->employee_id, $request->filterYear ?? null);
+        }
+
+        return $response;
     }
 }

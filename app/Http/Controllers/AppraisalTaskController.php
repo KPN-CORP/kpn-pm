@@ -205,7 +205,16 @@ public function getTeamData(Request $request)
         ->where('layer_type', 'manager')
         ->get();
 
-        $datas->each(function ($item) use ($period) {
+        // Dulu satu query Calibration::exists() per baris; sekarang sekali
+        // untuk semua karyawan di tabel ini.
+        $calibratedEmployees = $datas->isEmpty() ? collect() : Calibration::whereIn('employee_id', $datas->pluck('employee_id')->unique()->values())
+            ->where('status', 'Approved')
+            ->where('period', $period)
+            ->distinct()
+            ->pluck('employee_id')
+            ->flip();
+
+        $datas->each(function ($item) use ($period, $calibratedEmployees) {
             $goalData = optional($item->goal->first())->form_data;
             $appraisalData = optional($item->contributors->first())->form_data;
 
@@ -236,10 +245,7 @@ public function getTeamData(Request $request)
             }
 
             // Cek calibration
-            $item->calibrationCheck = Calibration::where('employee_id', $item->employee_id)
-                ->where('status', 'Approved')
-                ->where('period', $period)
-                ->exists();
+            $item->calibrationCheck = $calibratedEmployees->has($item->employee_id);
         });
 
         $data = $datas->map(function ($team, $index) use ($isCurrentPeriod) {
@@ -321,7 +327,16 @@ public function getTeamData(Request $request)
         ->has('approvalRequest')
         ->get();
 
-        $datas->each(function ($item) use ($period) {
+        // Dulu satu query Calibration::exists() per baris; sekarang sekali
+        // untuk semua karyawan di tabel ini.
+        $calibratedEmployees = $datas->isEmpty() ? collect() : Calibration::whereIn('employee_id', $datas->pluck('employee_id')->unique()->values())
+            ->where('status', 'Approved')
+            ->where('period', $period)
+            ->distinct()
+            ->pluck('employee_id')
+            ->flip();
+
+        $datas->each(function ($item) use ($period, $calibratedEmployees) {
             $goalData = optional($item->goal->first())->form_data;
             $appraisalData = optional($item->contributors->first())->form_data;
 
@@ -353,10 +368,7 @@ public function getTeamData(Request $request)
             }
 
             // Cek calibration
-            $item->calibrationCheck = Calibration::where('employee_id', $item->employee_id)
-                ->where('status', 'Approved')
-                ->where('period', $period)
-                ->exists();
+            $item->calibrationCheck = $calibratedEmployees->has($item->employee_id);
         });
 
         // Format data untuk DataTables
