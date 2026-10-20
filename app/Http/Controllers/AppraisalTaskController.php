@@ -18,6 +18,7 @@ use App\Models\KpiUnits;
 use App\Models\MasterCalibration;
 use App\Models\Schedule;
 use App\Services\AppService;
+use App\Services\KPIService;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Http\Request;
@@ -433,6 +434,7 @@ public function getTeamData(Request $request)
 
         if ($goal) {
             $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
+            $goalData = KPIService::withGoalActuals($goalData, $goal);
         } else {
             Session::flash('error', "Goal for $period are not found.");
             return redirect()->back();
@@ -480,6 +482,7 @@ public function getTeamData(Request $request)
 
         if ($goal) {
             $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
+            $goalData = KPIService::withGoalActuals($goalData, $goal);
         } else {
             Session::flash('error', "Goals for not found.");
             return redirect()->back();
@@ -571,7 +574,7 @@ public function getTeamData(Request $request)
         $appraisalId = $contributorCheck->appraisal_id ?? null;
 
         if ($goals) {
-            $goalData = json_decode($goals->form_data, true);
+            $goalData = KPIService::withGoalActuals(json_decode($goals->form_data, true), $goals);
         } else {
             Session::flash('error', "Goals for not found.");
             return redirect()->back();
@@ -615,23 +618,6 @@ public function getTeamData(Request $request)
                 }
             }
 
-
-            // Read the contents of the JSON file
-
-            $selfReviewData = [];
-            foreach ($formData['formData'] as $item) {
-                if ($item['formName'] === 'KPI') {
-                    $selfReviewData = array_slice($item, 1);
-                    break;
-                }
-            }
-
-            // Add the achievements to the goalData
-            foreach ($goalData as $index => &$goal) {
-                if (isset($selfReviewData[$index])) {
-                    $goal['actual'] = $selfReviewData[$index]['achievement'];
-                }
-            }
 
             foreach ($formData['formData'] as &$form) {
                 if ($form['formName'] === 'Culture') {
@@ -1097,6 +1083,9 @@ public function getTeamData(Request $request)
                 throw new Exception("No goals found for this period ($period).");
             }
 
+            // Achievement KPI selalu dari goal achievement, abaikan nilai dari request
+            $datas['formData'] = KPIService::applyGoalActuals($datas['formData'], $goals);
+
             $goalData = json_decode($goals->form_data, true);
 
             $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $validatedData['employee_id'])->value('approver_id');
@@ -1262,6 +1251,9 @@ public function getTeamData(Request $request)
                 'formGroupName' => $formGroupName,
                 'formData' => $formData,
             ];
+
+            // Achievement KPI selalu dari goal achievement, abaikan nilai dari request
+            $datas['formData'] = KPIService::applyGoalActuals($datas['formData'], $goals);
 
             $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee, $period);
 
