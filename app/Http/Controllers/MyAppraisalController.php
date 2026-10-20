@@ -28,6 +28,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use RealRashid\SweetAlert\Facades\Alert;
 use stdClass;
 use App\Services\AppService;
+use App\Services\KPIService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -334,6 +335,7 @@ class MyAppraisalController extends Controller
         // check goals
         if ($goalChecked) {
             $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
+            $goalData = KPIService::withGoalActuals($goalData, $goal);
         } else {
             Session::flash('error', "Your Goal for $period are not found.");
             return redirect()->route('appraisals');
@@ -420,6 +422,9 @@ class MyAppraisalController extends Controller
             if (!$goals) {
                 return back()->withErrors(['message' => 'Goal not found for selected employee and period.']);
             }
+
+            // Achievement KPI selalu dari goal achievement, abaikan nilai dari request
+            $formData = KPIService::applyGoalActuals($formData, $goals);
 
             $datas = [
                 'formGroupName' => $formGroupName,
@@ -603,23 +608,10 @@ class MyAppraisalController extends Controller
             $data = json_decode($appraisal->form_data, true);
 
             
-            $selfReviewData = [];
-            foreach ($formData['formData'] as $item) {
-                if ($item['formName'] === 'KPI') {
-                    $selfReviewData = array_slice($item, 1);
-                    break;
-                }
-            }
 
             
-            // Add the achievements to the goalData
-            foreach ($goalData as $index => &$goal) {
-                if (isset($selfReviewData[$index])) {
-                    $goal['actual'] = $selfReviewData[$index]['achievement'];
-                } else {
-                    $goal['actual'] = [];
-                }
-            }
+            // Achievement diambil dari goal achievement (tidak bisa diedit)
+            $goalData = KPIService::withGoalActuals($goalData, $goal);
 
             
             foreach ($formData['formData'] as &$form) {                
@@ -751,6 +743,12 @@ class MyAppraisalController extends Controller
         unset($form); // keluar dari reference
 
         $appraisal = Appraisal::findOrFail($validated['id']);
+
+        // Achievement KPI selalu dari goal achievement, abaikan nilai dari request
+        $goal = Goal::where('employee_id', $appraisal->employee_id)->where('period', $appraisal->period)->first();
+        if ($goal) {
+            $formData = KPIService::applyGoalActuals($formData, $goal);
+        }
 
         $dataPayload = [
             'formGroupName' => $validated['formGroupName'],

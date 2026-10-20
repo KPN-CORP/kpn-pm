@@ -117,6 +117,72 @@ class KPIService
         ];
     }
 
+    /**
+     * Actual per KPI (index sesuai urutan form_data goal), dihitung dari goal achievement
+     * dengan logic yang sama seperti halaman My Goal. KPI tanpa achievement = 0.
+     */
+    public static function goalActuals(Goal $goal): array
+    {
+        $formData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
+
+        $achievements = KPIAchievement::where('goal_id', $goal->id)
+            ->get()
+            ->groupBy('kpi_id');
+
+        $actuals = [];
+
+        foreach ($formData ?? [] as $index => $kpi) {
+            $kpiId = $kpi['kpi_id'] ?? null;
+
+            $values = collect($kpiId ? ($achievements[$kpiId] ?? []) : [])
+                ->sortBy('month')
+                ->pluck('value')
+                ->filter(fn ($v) => $v !== null && $v !== '')
+                ->values()
+                ->toArray();
+
+            $actuals[$index] = empty($values)
+                ? 0
+                : round(self::aggregate($kpi['calculation_method'] ?? 'last', $values, $kpi['review_period'] ?? null), 2);
+        }
+
+        return $actuals;
+    }
+
+    /**
+     * Isi $goalData[i]['actual'] dari goal achievement (untuk input Achievement di form appraisal).
+     */
+    public static function withGoalActuals(array $goalData, Goal $goal): array
+    {
+        $actuals = self::goalActuals($goal);
+
+        foreach ($goalData as $index => &$kpi) {
+            $kpi['actual'] = $actuals[$index] ?? 0;
+        }
+
+        return $goalData;
+    }
+
+    /**
+     * Timpa nilai achievement form KPI yang dikirim dari request dengan nilai dari goal achievement.
+     */
+    public static function applyGoalActuals(array $formData, Goal $goal): array
+    {
+        $actuals = self::goalActuals($goal);
+
+        foreach ($formData as &$form) {
+            if (($form['formName'] ?? null) !== 'KPI') {
+                continue;
+            }
+
+            foreach ($actuals as $index => $actual) {
+                $form[$index]['achievement'] = (string) $actual;
+            }
+        }
+
+        return $formData;
+    }
+
     function layerApproval(string $employeeId)
     {
         $approvalLayer = ApprovalLayer::query()

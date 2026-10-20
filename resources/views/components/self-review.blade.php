@@ -3,6 +3,15 @@
         Objektif Kerja
     </h4>
     <input type="hidden" name="formData[{{ $formIndex }}][formName]" value="{{ $name }}">
+    @php
+        // Format angka sama seperti halaman My Goal: 1,000 dan 0.50
+        $formatNumber = function ($value) {
+            if (!is_numeric($value)) {
+                return $value;
+            }
+            return number_format((float) $value, str_contains((string) $value, '.') ? 2 : 0);
+        };
+    @endphp
     @forelse ($goalData as $index => $data)
     <div class="row">
         <div class="card col-md-12 mb-2 p-0 border border-primary bg-light-subtle">
@@ -32,14 +41,15 @@
                     <div class="col-lg-2 mb-3">
                         <div class="form-group">
                             <label class="form-label" for="target">{{ __('Target In UoM') }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</label>
-                            <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['target'] }}</p>
+                            <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $formatNumber($data['target']) }}</p>
                         </div>
                     </div>
                     <div class="col-lg-2 mb-3">
                         <div class="form-group">
                             <label class="form-label" for="target">{{ __('Achievement In') }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</label>
-                            <input type="number" id="achievement-{{ $index + 1 }}" name="formData[{{ $formIndex }}][{{ $index }}][achievement]" placeholder="{{ __('Enter Achievement') }}.." value="{{ isset($data['actual']) ? $data['actual'] : "" }}" class="form-control achievement mt-1" />
-                            <div class="text-danger error-message"></div>
+                            @php $actual = is_scalar($data['actual'] ?? null) ? $data['actual'] : 0; @endphp
+                            <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $formatNumber($actual) }}</p>
+                            <input type="hidden" id="achievement-{{ $index + 1 }}" name="formData[{{ $formIndex }}][{{ $index }}][achievement]" value="{{ $actual }}" />
                         </div>
                     </div>
                 </div>
