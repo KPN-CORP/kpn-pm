@@ -928,10 +928,15 @@ private function getGroupCompanies()
 
         $isZip = count($data) > $batchSize;
 
-        // Seed progress so the UI shows 0% immediately instead of "idle".
+        // Seed progress so the UI shows the request immediately instead of
+        // "idle". Status 'queued' (bukan 'processing') sampai queue worker
+        // benar-benar mengambil job-nya — job sendiri yang mengubahnya ke
+        // 'processing'. Dengan begitu UI bisa membedakan "sedang diproses"
+        // dari "belum diambil worker" (mis. worker tidak jalan).
         Cache::put('export_appraisal_progress_' . $userID, [
-            'status'  => 'processing',
-            'percent' => 0,
+            'status'    => 'queued',
+            'percent'   => 0,
+            'queued_at' => now()->timestamp,
         ], now()->addHour());
 
         $job = ExportAppraisalDetails::dispatch($this->appService, $data, $headers, $userID, $batchSize, Auth::user(), $period);
@@ -1005,6 +1010,12 @@ private function getGroupCompanies()
 
         if (!$progress) {
             return response()->json(['status' => 'idle', 'percent' => 0]);
+        }
+
+        // Lama menunggu dihitung di server supaya tidak bergantung pada jam
+        // di browser user.
+        if (($progress['status'] ?? null) === 'queued' && isset($progress['queued_at'])) {
+            $progress['waiting_seconds'] = max(0, now()->timestamp - $progress['queued_at']);
         }
 
         return response()->json($progress);

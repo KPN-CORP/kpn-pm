@@ -383,17 +383,30 @@ let exportAnimFrame = null;        // smooth fill animation
 let exportDisplayedPercent = 0;    // what the bar currently shows
 let exportTargetPercent = 0;       // where the bar is heading
 let exportDone = false;            // true once backend reports completed
+let exportQueued = true;           // true until a queue worker picks the job up
+
+const EXPORT_TEXT_PROCESSING = "The reports are being processed. Please keep this page open.";
+const EXPORT_TEXT_QUEUED = "Waiting for the report job to start...";
+const EXPORT_TEXT_STUCK =
+    "The report job has not started yet. The background worker may not be running; please contact the administrator if this continues.";
+const EXPORT_STUCK_AFTER_SECONDS = 60;
+
+function setExportText(text) {
+    const el = document.getElementById("exportProgressText");
+    if (el && el.textContent !== text) el.textContent = text;
+}
 
 function showExportProgress() {
     exportDisplayedPercent = 0;
     exportTargetPercent = 0;
     exportDone = false;
+    exportQueued = true;
 
     Swal.fire({
         title: "Generating Report Details",
         html: `
-            <div class="text-start mb-2" style="font-size: 0.9rem;">
-                The reports are being processed. Please keep this page open.
+            <div id="exportProgressText" class="text-start mb-2" style="font-size: 0.9rem;">
+                ${EXPORT_TEXT_QUEUED}
             </div>
             <div class="progress" style="height: 22px;">
                 <div id="exportProgressBar"
@@ -432,7 +445,10 @@ function startExportAnim() {
     stopExportAnim();
 
     const tick = () => {
-        if (!exportDone && exportTargetPercent < 90) {
+        // Only creep while the job is actually running: while it is still
+        // queued the bar must stay put, otherwise it fakes progress for a job
+        // that has not started (e.g. no queue worker running).
+        if (!exportDone && !exportQueued && exportTargetPercent < 90) {
             // gentle decelerating creep toward a soft 90% ceiling
             exportTargetPercent += (90 - exportTargetPercent) * 0.012;
         }
@@ -507,7 +523,17 @@ function pollExportProgress() {
                             data.message ||
                             "Report generation failed. Please try again.",
                     });
+                } else if (data.status === "queued") {
+                    exportQueued = true;
+                    const waited = data.waiting_seconds || 0;
+                    setExportText(
+                        waited > EXPORT_STUCK_AFTER_SECONDS
+                            ? EXPORT_TEXT_STUCK
+                            : EXPORT_TEXT_QUEUED
+                    );
                 } else {
+                    exportQueued = false;
+                    setExportText(EXPORT_TEXT_PROCESSING);
                     // never move backward — keep the fill monotonic
                     exportTargetPercent = Math.max(exportTargetPercent, real);
                 }
