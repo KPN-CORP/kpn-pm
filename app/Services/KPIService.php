@@ -118,65 +118,111 @@ class KPIService
     }
 
     /**
-     * Actual per KPI (index sesuai urutan form_data goal), dihitung dari goal achievement
-     * dengan logic yang sama seperti halaman My Goal. KPI tanpa achievement = 0.
+     * Achievement tracking per bulan per KPI (index sesuai urutan form_data goal): [index => [1..12 => value|null]].
+     *
+     * Default dari goal achievement. Kalau $appraisalForms (list formData appraisal, dari DB atau request)
+     * punya KPI dengan 'ach', nilai bulan yang sesuai review period ditimpa dengan nilai tersebut.
      */
-    public static function goalActuals(Goal $goal): array
+    public static function achievementTracking(Goal $goal, array $appraisalForms = []): array
     {
-        $formData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
+        $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
+        $goalAchievements = KPIAchievementService::getByGoal($goal->id);
 
-        $achievements = KPIAchievement::where('goal_id', $goal->id)
-            ->get()
-            ->groupBy('kpi_id');
+        $savedKpi = collect($appraisalForms)->first(fn ($form) => ($form['formName'] ?? null) === 'KPI') ?? [];
 
-        $actuals = [];
+        $tracking = [];
 
-        foreach ($formData ?? [] as $index => $kpi) {
+        foreach ($goalData ?? [] as $index => $kpi) {
             $kpiId = $kpi['kpi_id'] ?? null;
+            $months = $kpiId && isset($goalAchievements[$kpiId]['ach'])
+                ? $goalAchievements[$kpiId]['ach']
+                : array_fill(1, 12, null);
 
-            $values = collect($kpiId ? ($achievements[$kpiId] ?? []) : [])
-                ->sortBy('month')
-                ->pluck('value')
-                ->filter(fn ($v) => $v !== null && $v !== '')
-                ->values()
-                ->toArray();
+            $saved = $savedKpi[$index]['ach'] ?? null;
 
-            $actuals[$index] = empty($values)
-                ? 0
-                : round(self::aggregate($kpi['calculation_method'] ?? 'last', $values, $kpi['review_period'] ?? null), 2);
+            if (is_array($saved)) {
+                foreach ($months as $month => $value) {
+                    if (self::isTrackedMonth($month, $kpi['review_period'] ?? null)) {
+                        $months[$month] = self::cleanMonthValue($saved[$month] ?? null);
+                    }
+                }
+            }
+
+            $tracking[$index] = $months;
         }
 
-        return $actuals;
+        return $tracking;
     }
 
     /**
-     * Isi $goalData[i]['actual'] dari goal achievement (untuk input Achievement di form appraisal).
+     * Bulan yang bisa diisi sesuai review period (sama seperti halaman Update Achievement goal).
      */
-    public static function withGoalActuals(array $goalData, Goal $goal): array
+    public static function isTrackedMonth(int $month, $reviewPeriod): bool
     {
-        $actuals = self::goalActuals($goal);
+        $period = (int) $reviewPeriod;
 
+        return $period <= 1 || $month % $period === 0;
+    }
+
+    private static function cleanMonthValue($value): ?string
+    {
+        $value = str_replace(',', '', trim((string) $value));
+
+        return is_numeric($value) ? (string) (float) $value : null;
+    }
+
+    /**
+     * Actual satu KPI dari tracking bulanan, pakai calculation method KPI tersebut. Tanpa nilai = 0.
+     */
+    public static function trackingActual(array $kpi, array $months): float
+    {
+        $values = collect($months)
+            ->sortKeys()
+            ->filter(fn ($v) => $v !== null && $v !== '')
+            ->map(fn ($v) => (float) $v)
+            ->values()
+            ->toArray();
+
+        return empty($values)
+            ? 0
+            : round(self::aggregate($kpi['calculation_method'] ?? 'last', $values, $kpi['review_period'] ?? null), 2);
+    }
+
+    /**
+     * Isi $goalData[i] dengan 'ach', 'actual' dan 'achievement_percent' untuk ditampilkan di form appraisal.
+     */
+    public static function withAchievementTracking(array $goalData, array $tracking): array
+    {
         foreach ($goalData as $index => &$kpi) {
-            $kpi['actual'] = $actuals[$index] ?? 0;
+            $kpi['ach'] = $tracking[$index] ?? array_fill(1, 12, null);
+            $kpi['actual'] = self::trackingActual($kpi, $kpi['ach']);
+            $kpi['achievement_percent'] = round(self::achievement(
+                $kpi['actual'],
+                (float) ($kpi['target'] ?? 0),
+                $kpi['type'] ?? 'Higher Better'
+            ), 2);
         }
 
         return $goalData;
     }
 
     /**
-     * Timpa nilai achievement form KPI yang dikirim dari request dengan nilai dari goal achievement.
+     * Tulis 'ach' dan 'achievement' (actual hasil hitung) ke form KPI yang akan disimpan.
+     * Nilai achievement dari request diabaikan, selalu dihitung ulang dari tracking.
      */
-    public static function applyGoalActuals(array $formData, Goal $goal): array
+    public static function applyAchievementTracking(array $formData, Goal $goal, array $tracking): array
     {
-        $actuals = self::goalActuals($goal);
+        $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
 
         foreach ($formData as &$form) {
             if (($form['formName'] ?? null) !== 'KPI') {
                 continue;
             }
 
-            foreach ($actuals as $index => $actual) {
-                $form[$index]['achievement'] = (string) $actual;
+            foreach ($goalData ?? [] as $index => $kpi) {
+                $months = $tracking[$index] ?? array_fill(1, 12, null);
+                $form[$index]['ach'] = $months;
+                $form[$index]['achievement'] = (string) self::trackingActual($kpi, $months);
             }
         }
 
@@ -215,7 +261,7 @@ class KPIService
         return round((float) $value, 2);
     }
 
-    private static function calculateAverage(array $values, int $reviewPeriod): float
+    private static function calculateAverage(array $values, ?int $reviewPeriod): float
     {
         $total = array_sum($values);
 

@@ -110,7 +110,8 @@
                                     'id' => 'input_' . strtolower(str_replace(' ', '_', $row['title'])),
                                     'formIndex' => $index,
                                     'name' => $row['name'],
-                                    'data' => $row['data']
+                                    'data' => $row['data'],
+                                    'editableAchievement' => true,
                                     ])
                                 </div>
                             @endforeach
