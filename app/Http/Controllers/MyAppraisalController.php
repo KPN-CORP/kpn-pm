@@ -334,7 +334,8 @@ class MyAppraisalController extends Controller
         // check goals
         if ($goalChecked) {
             $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
-            $goalData = KPIService::withGoalActuals($goalData, $goal);
+            // Achievement tracking default dari goal achievement, bisa diedit di form appraisal
+            $goalData = KPIService::withAchievementTracking($goalData, KPIService::achievementTracking($goal));
         } else {
             Session::flash('error', "Your Goal for $period are not found.");
             return redirect()->route('appraisals');
@@ -422,8 +423,8 @@ class MyAppraisalController extends Controller
                 return back()->withErrors(['message' => 'Goal not found for selected employee and period.']);
             }
 
-            // Achievement KPI selalu dari goal achievement, abaikan nilai dari request
-            $formData = KPIService::applyGoalActuals($formData, $goals);
+            // Achievement KPI dihitung dari tracking bulanan yang diisi user (default goal achievement)
+            $formData = KPIService::applyAchievementTracking($formData, $goals, KPIService::achievementTracking($goals, $formData));
 
             $datas = [
                 'formGroupName' => $formGroupName,
@@ -609,8 +610,8 @@ class MyAppraisalController extends Controller
             
 
             
-            // Achievement diambil dari goal achievement (tidak bisa diedit)
-            $goalData = KPIService::withGoalActuals($goalData, $goal);
+            // Achievement tracking dari appraisal yang tersimpan, fallback ke goal achievement
+            $goalData = KPIService::withAchievementTracking($goalData, KPIService::achievementTracking($goal, $formData['formData'] ?? []));
 
             
             foreach ($formData['formData'] as &$form) {                
@@ -743,10 +744,10 @@ class MyAppraisalController extends Controller
 
         $appraisal = Appraisal::findOrFail($validated['id']);
 
-        // Achievement KPI selalu dari goal achievement, abaikan nilai dari request
+        // Achievement KPI dihitung dari tracking bulanan yang diisi user (default goal achievement)
         $goal = Goal::where('employee_id', $appraisal->employee_id)->where('period', $appraisal->period)->first();
         if ($goal) {
-            $formData = KPIService::applyGoalActuals($formData, $goal);
+            $formData = KPIService::applyAchievementTracking($formData, $goal, KPIService::achievementTracking($goal, $formData));
         }
 
         $dataPayload = [

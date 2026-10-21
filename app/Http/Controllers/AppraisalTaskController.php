@@ -434,7 +434,7 @@ public function getTeamData(Request $request)
 
         if ($goal) {
             $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
-            $goalData = KPIService::withGoalActuals($goalData, $goal);
+            $goalData = KPIService::withAchievementTracking($goalData, KPIService::achievementTracking($goal));
         } else {
             Session::flash('error', "Goal for $period are not found.");
             return redirect()->back();
@@ -482,7 +482,7 @@ public function getTeamData(Request $request)
 
         if ($goal) {
             $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
-            $goalData = KPIService::withGoalActuals($goalData, $goal);
+            $goalData = KPIService::withAchievementTracking($goalData, KPIService::achievementTracking($goal, $this->employeeAppraisalForms($request->id, $period)));
         } else {
             Session::flash('error', "Goals for not found.");
             return redirect()->back();
@@ -574,7 +574,11 @@ public function getTeamData(Request $request)
         $appraisalId = $contributorCheck->appraisal_id ?? null;
 
         if ($goals) {
-            $goalData = KPIService::withGoalActuals(json_decode($goals->form_data, true), $goals);
+            // Achievement tracking mengikuti self appraisal karyawan, fallback ke goal achievement
+            $goalData = KPIService::withAchievementTracking(
+                json_decode($goals->form_data, true),
+                KPIService::achievementTracking($goals, json_decode($appraisal->form_data ?? '[]', true)['formData'] ?? [])
+            );
         } else {
             Session::flash('error', "Goals for not found.");
             return redirect()->back();
@@ -1083,8 +1087,8 @@ public function getTeamData(Request $request)
                 throw new Exception("No goals found for this period ($period).");
             }
 
-            // Achievement KPI selalu dari goal achievement, abaikan nilai dari request
-            $datas['formData'] = KPIService::applyGoalActuals($datas['formData'], $goals);
+            // Achievement KPI dari goal achievement, abaikan nilai dari request
+            $datas['formData'] = KPIService::applyAchievementTracking($datas['formData'], $goals, KPIService::achievementTracking($goals));
 
             $goalData = json_decode($goals->form_data, true);
 
@@ -1252,8 +1256,12 @@ public function getTeamData(Request $request)
                 'formData' => $formData,
             ];
 
-            // Achievement KPI selalu dari goal achievement, abaikan nilai dari request
-            $datas['formData'] = KPIService::applyGoalActuals($datas['formData'], $goals);
+            // Achievement KPI mengikuti self appraisal karyawan (fallback goal achievement), abaikan nilai dari request
+            $datas['formData'] = KPIService::applyAchievementTracking(
+                $datas['formData'],
+                $goals,
+                KPIService::achievementTracking($goals, $this->employeeAppraisalForms($validatedData['employee_id'], $period))
+            );
 
             $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee, $period);
 
@@ -1455,6 +1463,16 @@ public function getTeamData(Request $request)
             }
             return redirect('appraisals-task')->with('error', 'An error occurred while submitting the appraisal.');
         }
+    }
+
+    /**
+     * List formData self appraisal karyawan pada periode tsb (untuk achievement tracking KPI).
+     */
+    private function employeeAppraisalForms(string $employeeId, $period): array
+    {
+        $formData = Appraisal::where('employee_id', $employeeId)->where('period', $period)->value('form_data');
+
+        return json_decode($formData ?? '[]', true)['formData'] ?? [];
     }
 
     private function accessMenu($id)
