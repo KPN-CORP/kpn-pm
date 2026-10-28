@@ -21,6 +21,7 @@ class IntegrationEmployeeController extends Controller
             'fullname',
             'email',
             'group_company',
+            'company_name',
             'office_area',
             'unit',
             'manager_l1_id',
