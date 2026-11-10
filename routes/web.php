@@ -420,6 +420,9 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         // Goals - Admin
         Route::get('/onbehalf', [AdminOnBehalfController::class, 'index'])->name('onbehalf');
         Route::post('/admin/onbehalf/content', [AdminOnBehalfController::class, 'getOnBehalfContent'])->name('admin.onbehalf.content');
+        Route::post('/admin/onbehalf/data', [AdminOnBehalfController::class, 'onBehalfData'])->name('admin.onbehalf.data');
+        Route::get('/admin/onbehalf/detail/{category}/{id}', [AdminOnBehalfController::class, 'onBehalfDetail'])
+            ->whereIn('category', ['goals', 'appraisal'])->whereNumber('id')->name('admin.onbehalf.detail');
         Route::get('/admin/rating/{id}', [AdminOnBehalfController::class, 'rating'])->name('admin.onbehalfs.rating');
         // Route::get('/admin/onbehalf/{id}', [AdminOnBehalfController::class, 'getOnBehalfContent'])->name('admin.onbehalf.content');
         Route::post('/admin/goal-content', [AdminOnBehalfController::class, 'getGoalContent']);
