@@ -36,6 +36,7 @@ use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use RealRashid\SweetAlert\Facades\Alert;
 use stdClass;
+use Yajra\DataTables\Facades\DataTables;
 
 class OnBehalfController extends Controller
 {
@@ -110,7 +111,14 @@ class OnBehalfController extends Controller
         $companies = $this->companies;
         $groupCompanies = $this->groupCompanies;
 
-        return view('pages.onbehalfs.app', compact('link', 'parentLink', 'locations', 'companies', 'groupCompanies'));
+        // Kerangka tabel Goals/Appraisal ikut dirender di halaman supaya ganti kategori
+        // tidak perlu request tambahan; baris tetap diambil lewat onBehalfData().
+        $listTabs = [
+            'Goals' => $this->statusTabs('Goals'),
+            'Appraisal' => $this->statusTabs('Appraisal'),
+        ];
+
+        return view('pages.onbehalfs.app', compact('link', 'parentLink', 'locations', 'companies', 'groupCompanies', 'listTabs'));
        
     }
 
@@ -137,237 +145,12 @@ class OnBehalfController extends Controller
 
         $data = [];
         
-        if ($filterCategory == 'Goals') {
-
-            $period = $this->appService->goalPeriod();
-
-            // Mengambil data pengajuan berdasarkan employee_id atau manager_id
-            $datas = ApprovalRequest::with(['employee', 'goal', 'updatedBy', 'initiated', 'approval' => function ($query) {
-                $query->with('approverName'); // Load nested relationship
-            }])->where('category', $filterCategory)->where('period', $period)->whereHas('employee')->whereHas('manager');
-            
-            $criteria = [
-                'work_area_code' => $permissionLocations,
-                'group_company' => $permissionGroupCompanies,
-                'contribution_level_code' => $permissionCompanies,
-            ];
-
-            $datas->where(function ($query) use ($criteria) {
-                foreach ($criteria as $key => $value) {
-                    if ($value !== null && !empty($value)) {
-                        $query->orWhereHas('employee', function ($subquery) use ($key, $value) {
-                            $subquery->whereIn($key, $value);
-                        });
-                    }
-                }
-            });
-            
-            // Apply filters based on request parameters
-            if (!empty($group_company)) {
-                $datas->whereHas('employee', function ($datas) use ($group_company) {
-                    $datas->whereIn('group_company', $group_company);
-                });
-            }
-            if (!empty($location)) {
-                $datas->whereHas('employee', function ($datas) use ($location) {
-                    $datas->whereIn('work_area_code', $location);
-                });
-            }
-    
-            if (!empty($company)) {
-                $datas->whereHas('employee', function ($datas) use ($company) {
-                    $datas->whereIn('contribution_level_code', $company);
-                });
-            }
-            
-            $datas = $datas->get();
-            
-            $datas->map(function($item) {
-
-                // Format created_at
-                $createdDate = Carbon::parse($item->created_at);
-
-                    $item->formatted_created_at = $createdDate->format('d M Y');
-    
-                // Format updated_at
-                $updatedDate = Carbon::parse($item->updated_at);
-
-                    $item->formatted_updated_at = $updatedDate->format('d M Y');
-
-                // Determine name and approval layer
-                if ($item->sendback_to == $item->employee->employee_id) {
-                    $item->name = $item->employee->fullname . ' (' . $item->employee->employee_id . ')';
-                    $item->approvalLayer = '';
-                } else {
-                    $item->name = $item->manager->fullname . ' (' . $item->manager->employee_id . ')';
-                    $item->approvalLayer = ApprovalLayer::where('employee_id', $item->employee_id)
-                                                        ->where('approver_id', $item->current_approval_id)
-                                                        ->value('layer');
-                }
-
-                $access_menu = json_decode($item->employee->access_menu ?? '', true) ?: [];
-                $access = !empty($access_menu['goals']) && !empty($access_menu['doj']);
-
-                $item->access = $access;
-
-                return $item;
-
-                });
-            
-            foreach ($datas as $request) {
-                // Memeriksa status form dan pembuatnya
-                if ($request->goal->form_status != 'Draft' || $request->created_by == Auth::user()->id) {
-                    // Mengambil nilai fullname dari relasi approverName
-                    if ($request->approval->first()) {
-                        $approverName = $request->approval->first();
-                        $dataApprover = $approverName->approverName->fullname;
-                    }else{
-                        $dataApprover = '';
-                    }
-                    // Buat objek untuk menyimpan data request dan approver fullname
-                    $dataItem = new stdClass();
-                    $dataItem = $request;              
-                    // Tambahkan objek $dataItem ke dalam array $data
-                    $data[] = $dataItem;
-                    
-                }
-            }
-            Log::info('OnBehalf - Goals Data:', [
-                'category' => $category,
-                'filter_category' => $filterCategory,
-                'count' => count($data),
-                'data' => collect($data)->take(5), // hanya tampilkan 5 pertama untuk menghindari log berlebihan
-            ]);
-        }      
-
-        if ($filterCategory == 'Appraisal') {
-
-            $period = $this->appService->appraisalPeriod();
-
-            $datas = ApprovalRequest::with([
-                'employee',
-                'appraisal',
-                'updatedBy',
-                'initiated',
-                'calibration' => function ($query) {
-                    $query->where('status', 'Pending');
-                },
-                'approval' => function ($query) {
-                    $query->with('approverName');
-                }
-            ])
-            ->where('category', $filterCategory)
-            ->where('period', $period)
-            ->whereHas('employee')
-            ->whereHas('manager');
-
-            // Apply permission-based filters
-            $criteria = [
-                'work_area_code' => $permissionLocations,
-                'group_company' => $permissionGroupCompanies,
-                'contribution_level_code' => $permissionCompanies,
-            ];
-
-            $datas->where(function ($query) use ($criteria) {
-                foreach ($criteria as $key => $value) {
-                    if (!empty($value)) {
-                        $query->orWhereHas('employee', function ($subquery) use ($key, $value) {
-                            $subquery->whereIn($key, $value);
-                        });
-                    }
-                }
-            });
-
-            // Apply request filters
-            if (!empty($group_company)) {
-                $datas->whereHas('employee', function ($query) use ($group_company) {
-                    $query->whereIn('group_company', $group_company);
-                });
-            }
-
-            if (!empty($location)) {
-                $datas->whereHas('employee', function ($query) use ($location) {
-                    $query->whereIn('work_area_code', $location);
-                });
-            }
-
-            if (!empty($company)) {
-                $datas->whereHas('employee', function ($query) use ($company) {
-                    $query->whereIn('contribution_level_code', $company);
-                });
-            }
-
-            $datas = $datas->get();
-
-            foreach ($datas as $request) {
-                $appraisal = $request->appraisal;
-
-                if (!$appraisal) continue; // Skip jika appraisal null
-
-                // Cek form_status atau created_by
-                if (($appraisal->goal->form_status ?? null) !== 'Draft' || $request->created_by == Auth::user()->id) {
-
-                    $request->formatted_created_at = $this->appService->formatDate($appraisal->created_at);
-                    $request->formatted_updated_at = $this->appService->formatDate($appraisal->updated_at);
-
-                    if ($request->sendback_to == $request->employee->employee_id) {
-                        $request->name = $request->employee->fullname . ' (' . $request->employee->employee_id . ')';
-                        $request->approvalLayer = '';
-                    } else {
-                        $request->name = $request->manager->fullname . ' (' . $request->manager->employee_id . ')';
-                        $request->approvalLayer = ApprovalLayerAppraisal::where('employee_id', $request->employee_id)
-                            ->where('approver_id', $request->current_approval_id)
-                            ->value('layer');
-                    }
-
-                    // Get final rating
-                    $finalRating = null;
-                    $formGroupId = $appraisal->form_group_id ?? null;
-
-                    if ($formGroupId) {
-                        $formGroup = FormGroupAppraisal::with('rating')->find($formGroupId);
-                        if ($formGroup && $formGroup->rating) {
-                            foreach ($formGroup->rating as $rating) {
-                                if ((int)$rating->value === (int)$appraisal->rating) {
-                                    $finalRating = $rating->parameter;
-                                    break;
-                                }
-                            }
-                        }
-                    }
-
-                    $dataApprover = $request->approval->first()->approverName->fullname ?? '';
-
-                    $goalData = json_decode($appraisal->goal->form_data ?? '', true) ?: [];
-
-                    $form_data = Auth::user()->id == $appraisal->created_by
-                        ? ($appraisal->approvalSnapshots->form_data ?? $appraisal->form_data)
-                        : $appraisal->form_data;
-
-                    $appraisalData = json_decode($form_data, true);
-
-                    $employeeData = $request->employee;
-
-                    $formData = $this->appService->combineFormData($appraisalData, $goalData, 'employee', $employeeData, $period);
-
-                    // Simpan dalam objek stdClass
-                    $dataItem = new \stdClass();
-                    $dataItem->request = $request;
-                    $dataItem->approver_name = $dataApprover;
-                    $dataItem->name = $request->name;
-                    $dataItem->approvalLayer = $request->approvalLayer;
-                    $dataItem->finalRating = $finalRating;
-                    $dataItem->formData = $formData;
-
-                    $data[] = $dataItem;
-                }
-            }
-
-            Log::info('OnBehalf - Appraisal Data:', [
-                'category' => $category,
-                'filter_category' => $filterCategory,
-                'count' => count($data),
-                'data' => collect($data)->take(5), // limit preview in log
+        // Goals & Appraisal: kirim kerangka tabel saja, baris diambil server-side
+        // lewat onBehalfData() supaya halaman tidak memuat ribuan baris sekaligus.
+        if (in_array($filterCategory, ['Goals', 'Appraisal'], true)) {
+            return view('pages.onbehalfs.list', [
+                'category' => $filterCategory,
+                'tabs' => $this->statusTabs($filterCategory),
             ]);
         }
 
@@ -452,114 +235,9 @@ class OnBehalfController extends Controller
                 return $item->employee_id . '-' . $item->approver_id;
             });
 
-            $data->map(function($item) use ($approvalLayers) {
-
-                $formData = json_decode($item->form_data, true) ?? [];
-
-                // ambil achievement KPI (service kamu)
-                $achievementData = KPIAchievementService::getByGoal($item->id) ?? [];
-                $isEmptyAchievement = empty($achievementData);
-
-                foreach ($formData as &$kpi) {
-
-                    $kpiId = $kpi['kpi_id'] ?? null;
-
-                    // inject monthly achievement
-                    $kpi['ach'] = $kpiId && isset($achievementData[$kpiId]['ach'])
-                        ? $achievementData[$kpiId]['ach']
-                        : array_fill(1, 12, null);
-
-                    $kpi['attachment'] = $kpiId && isset($achievementData[$kpiId]['attachment'])
-                        ? $achievementData[$kpiId]['attachment']
-                        : array_fill(1, 12, null);
-
-                    $kpi['approval_status'] = $kpiId && isset($achievementData[$kpiId]['approval_status'])
-                        ? $achievementData[$kpiId]['approval_status']
-                        : array_fill(1, 12, null);
-
-                    // ========================
-                    // HITUNG ACTUAL & ACHIEVEMENT
-                    // ========================
-                    $values = collect($kpi['ach'])
-                        ->filter(fn($v) => $v !== null && $v !== '')
-                        ->values()
-                        ->toArray();
-
-                    $actual = $this->kpiService->aggregate(
-                        $kpi['calculation_method'] ?? 'last',
-                        $values, $kpi['review_period'] ?? null
-                    );
-
-                    $achievementValue = $isEmptyAchievement
-                        ? 0
-                        : $this->kpiService->achievement(
-                            $actual,
-                            (float)($kpi['target'] ?? 0),
-                            $kpi['type'] ?? 'Higher Better'
-                        );
-                    
-                    $options = [];
-
-                    if (File::exists($this->path)) {
-                        $options = json_decode(File::get($this->path), true) ?? [];
-                    }
-
-                    $reviewPeriodMap = collect($options['Review Period'] ?? [])
-                        ->flatten(1)
-                        ->pluck('label', 'value')
-                        ->toArray();
-
-                    $calculationMethodMap = collect($options['Calculation Method'] ?? [])
-                        ->flatten(1)
-                        ->pluck('label', 'value')
-                        ->toArray();
-
-                    $kpi['actual'] = round($actual, 2);
-                    $kpi['achievement'] = round($achievementValue, 2);
-
-                    $kpi['review_period_label'] = $reviewPeriodMap[$kpi['review_period'] ?? ''] ?? '-';
-                    $kpi['calculation_method_label'] = $calculationMethodMap[$kpi['calculation_method'] ?? ''] ?? '-';
-                }
-
-                // inject ke item
-                $item->formData = $formData;
-
-                $achievement = $item->achievement;
-
-                if ($achievement) {
-
-                    $achievement->formatted_created_at = Carbon::parse($achievement->created_at)->format('d M Y g:ia');
-                    $achievement->formatted_updated_at = Carbon::parse($achievement->updated_at)->format('d M Y g:ia');
-
-                    $approver = optional($achievement->approver);
-
-                    $achievement->name = $approver->fullname
-                        ? $approver->fullname . ' (' . $approver->employee_id . ')'
-                        : '-';
-
-                    $key = $item->employee_id . '-' . $achievement->current_approver_employee_id;
-
-                    $layerData = $approvalLayers->get($key);
-
-                    $achievement->approvalLayer = $layerData->layer ?? null;
-
-                    // ðŸ”¥ RE-ASSIGN BALIK
-                    $item->achievement = $achievement;
-
-                } else {
-
-                    // ðŸ”¥ JANGAN SET KE RELATION LANGSUNG
-                    $item->setRelation('achievement', (object)[
-                        'name' => '-',
-                        'approvalLayer' => null,
-                        'formatted_created_at' => '-',
-                        'formatted_updated_at' => '-',
-                        'approval_status' => '-',
-                    ]);
-                }
-
-                return $item;
-            });
+            // Daftar hanya butuh status/tanggal; perhitungan KPI per bulan
+            // dilakukan di achievementDetail() saat modal detail dibuka.
+            $data->each(fn ($item) => $this->decorateAchievementStatus($item, $approvalLayers));
 
             Log::info('OnBehalf - Appraisal Data:', [
                 'category' => $category,
@@ -574,17 +252,462 @@ class OnBehalfController extends Controller
         $companies = $this->companies;
         $groupCompanies = $this->groupCompanies;
         
-        if ($filterCategory == 'Goals') {
-            return view('pages.onbehalfs.goal', compact('data', 'link', 'parentLink', 'locations', 'companies', 'groupCompanies'));
-        } elseif ($filterCategory == 'Appraisal') {
-            return view('pages.onbehalfs.appraisal', compact('data', 'link', 'parentLink', 'locations', 'companies', 'groupCompanies'));
-        } elseif ($filterCategory == 'Rating') {
+        if ($filterCategory == 'Rating') {
             return view('pages.onbehalfs.calibrator', compact('data', 'link', 'parentLink', 'locations', 'companies', 'groupCompanies'));
         } elseif ($filterCategory == 'Achievement') {
             return view('pages.onbehalfs.achievement', compact('data', 'link', 'parentLink', 'locations', 'companies', 'groupCompanies'));
         } else {
             return view('pages.onbehalfs.empty');
         }
+    }
+
+    /**
+     * Tab status per kategori: key => label tombol.
+     */
+    private function statusTabs(string $category): array
+    {
+        $tabs = [
+            'all' => __('All Task'),
+            'draft' => 'Draft',
+            'sendback' => __('Waiting For Revision'),
+            'pending' => __('Pending'),
+            'approved' => __('Approved'),
+        ];
+
+        if ($category === 'Appraisal') {
+            unset($tabs['sendback']);
+        }
+
+        return $tabs;
+    }
+
+    /**
+     * Query dasar daftar On Behalf (Goals / Appraisal): periode, scope permission role,
+     * filter offcanvas, dan aturan visibilitas Draft. Dipakai bersama oleh tabel,
+     * hitungan tab, dan detail supaya scope permission tidak bisa berbeda.
+     */
+    private function onBehalfBaseQuery(Request $request, string $category)
+    {
+        $period = $category === 'Goals'
+            ? $this->appService->goalPeriod()
+            : $this->appService->appraisalPeriod();
+
+        $query = ApprovalRequest::query()
+            ->where('approval_requests.category', $category)
+            ->where('approval_requests.period', $period)
+            ->whereHas('employee')
+            ->whereHas('manager');
+
+        $criteria = [
+            'work_area_code' => $this->permissionLocations,
+            'group_company' => $this->permissionGroupCompanies,
+            'contribution_level_code' => $this->permissionCompanies,
+        ];
+
+        $query->where(function ($q) use ($criteria) {
+            foreach ($criteria as $column => $values) {
+                if (!empty($values)) {
+                    $q->orWhereHas('employee', fn ($e) => $e->whereIn($column, $values));
+                }
+            }
+        });
+
+        $requestFilters = [
+            'group_company' => 'group_company',
+            'location' => 'work_area_code',
+            'company' => 'contribution_level_code',
+        ];
+
+        foreach ($requestFilters as $input => $column) {
+            $values = array_filter((array) $request->input($input, []));
+            if ($values) {
+                $query->whereHas('employee', fn ($e) => $e->whereIn($column, $values));
+            }
+        }
+
+        $userId = Auth::id();
+
+        if ($category === 'Goals') {
+            // Draft hanya terlihat oleh pembuatnya
+            $query->whereHas('goal')->where(function ($q) use ($userId) {
+                $q->whereHas('goal', fn ($g) => $g->where(fn ($s) => $s->whereNull('form_status')->orWhere('form_status', '!=', 'Draft')))
+                    ->orWhere('approval_requests.created_by', $userId);
+            });
+        } else {
+            $query->whereHas('appraisal')->where(function ($q) use ($userId) {
+                $q->whereDoesntHave('appraisal.goal', fn ($g) => $g->where('form_status', 'Draft'))
+                    ->orWhere('approval_requests.created_by', $userId);
+            });
+        }
+
+        return $query;
+    }
+
+    private function applyStatusTab($query, string $category, string $tab): void
+    {
+        $form = $category === 'Goals' ? 'goal' : 'appraisal';
+
+        if ($tab === 'draft') {
+            $query->whereHas($form, fn ($f) => $f->where('form_status', 'Draft'));
+        } elseif (in_array($tab, ['sendback', 'pending', 'approved'], true)) {
+            $query->whereDoesntHave($form, fn ($f) => $f->where('form_status', 'Draft'))
+                ->where('approval_requests.status', ucfirst($tab));
+        }
+    }
+
+    /**
+     * Pencarian bebas: mencakup semua teks yang tampil di tabel (nama, ID, pembuat,
+     * pengubah, tanggal terformat, dan label status yang sudah diterjemahkan).
+     */
+    private function applyOnBehalfSearch($query, string $category, string $term): void
+    {
+        $term = trim($term);
+        if ($term === '') {
+            return;
+        }
+
+        $like = '%' . str_replace(['\\', '%', '_'], ['\\\\', '\\%', '\\_'], $term) . '%';
+        $needle = mb_strtolower($term);
+
+        $statusLabels = [
+            'draft' => ['Draft'],
+            'sendback' => ['Waiting For Revision', __('Waiting For Revision')],
+            'pending' => ['Pending', __('Pending')],
+            'approved' => ['Approved', __('Approved')],
+        ];
+
+        $query->where(function ($q) use ($category, $like, $needle, $statusLabels) {
+            $q->whereHas('employee', fn ($e) => $e->where(fn ($s) => $s->where('fullname', 'like', $like)->orWhere('employee_id', 'like', $like)))
+                ->orWhereHas('initiated', fn ($u) => $u->where(fn ($s) => $s->where('name', 'like', $like)->orWhere('employee_id', 'like', $like)))
+                ->orWhereHas('updatedBy', fn ($u) => $u->where(fn ($s) => $s->where('name', 'like', $like)->orWhere('employee_id', 'like', $like)));
+
+            if ($category === 'Goals') {
+                $q->orWhereRaw("DATE_FORMAT(approval_requests.created_at, '%d %b %Y') LIKE ?", [$like])
+                    ->orWhereRaw("DATE_FORMAT(approval_requests.updated_at, '%d %b %Y') LIKE ?", [$like]);
+            } else {
+                $q->orWhereHas('appraisal', fn ($a) => $a->where(fn ($s) => $s
+                    ->whereRaw("DATE_FORMAT(appraisals.created_at, '%d %b %Y') LIKE ?", [$like])
+                    ->orWhereRaw("DATE_FORMAT(appraisals.updated_at, '%d %b %Y') LIKE ?", [$like])));
+            }
+
+            foreach ($statusLabels as $tab => $labels) {
+                foreach ($labels as $label) {
+                    if (str_contains(mb_strtolower($label), $needle)) {
+                        $q->orWhere(fn ($s) => $this->applyStatusTab($s, $category, $tab));
+                        break;
+                    }
+                }
+            }
+        });
+    }
+
+    /**
+     * Label dan warna badge status, sama dengan tampilan sebelumnya.
+     */
+    private function statusBadge(string $category, ApprovalRequest $row): array
+    {
+        $formStatus = $category === 'Goals' ? $row->goal?->form_status : $row->appraisal?->form_status;
+
+        if ($formStatus === 'Draft') {
+            return ['Draft', 'bg-secondary'];
+        }
+
+        return match ($row->status) {
+            'Pending' => [__('Pending'), 'bg-warning'],
+            'Sendback' => ['Waiting For Revision', 'bg-secondary'],
+            'Approved' => [$row->status, 'bg-success'],
+            default => [$row->status, 'bg-warning'],
+        };
+    }
+
+    /**
+     * Nama approver saat ini dan layer-nya (untuk popover status).
+     */
+    private function currentApprover(string $category, ApprovalRequest $row): array
+    {
+        if ($row->sendback_to == $row->employee->employee_id) {
+            return [$row->employee->fullname . ' (' . $row->employee->employee_id . ')', ''];
+        }
+
+        $layerModel = $category === 'Goals' ? ApprovalLayer::class : ApprovalLayerAppraisal::class;
+
+        $layer = $layerModel::where('employee_id', $row->employee_id)
+            ->where('approver_id', $row->current_approval_id)
+            ->value('layer');
+
+        return [optional($row->manager)->fullname . ' (' . optional($row->manager)->employee_id . ')', $layer];
+    }
+
+    private function userLabel($user): string
+    {
+        return $user && $user->name ? $user->name . ' (' . $user->employee_id . ')' : '-';
+    }
+
+    /**
+     * Endpoint server-side DataTables untuk tabel On Behalf Goals / Appraisal.
+     */
+    public function onBehalfData(Request $request)
+    {
+        $category = $request->input('filter_category');
+        abort_unless(in_array($category, ['Goals', 'Appraisal'], true), 404);
+
+        $isGoals = $category === 'Goals';
+        $tab = (string) $request->input('status', 'all');
+
+        $query = $this->onBehalfBaseQuery($request, $category)
+            ->select('approval_requests.*')
+            ->with($isGoals
+                ? ['employee:id,employee_id,fullname,access_menu', 'manager:id,employee_id,fullname', 'goal:id,form_status', 'initiated', 'updatedBy']
+                : [
+                    'employee:id,employee_id,fullname',
+                    'manager:id,employee_id,fullname',
+                    'appraisal:id,form_status,created_at,updated_at',
+                    'initiated',
+                    'updatedBy',
+                    'calibration' => fn ($q) => $q->where('status', 'Pending'),
+                ]);
+
+        $this->applyStatusTab($query, $category, $tab);
+
+        $formDate = function ($row, string $field) use ($isGoals) {
+            if ($isGoals) {
+                return Carbon::parse($row->{$field})->format('d M Y');
+            }
+
+            return $row->appraisal ? $this->appService->formatDate($row->appraisal->{$field}) : '-';
+        };
+
+        $orderByDate = function (string $field) use ($isGoals) {
+            return function ($q, $dir) use ($field, $isGoals) {
+                $dir = $dir === 'desc' ? 'desc' : 'asc';
+                if ($isGoals) {
+                    $q->orderBy('approval_requests.' . $field, $dir);
+                } else {
+                    $q->orderBy(
+                        \App\Models\Appraisal::select($field)->whereColumn('appraisals.id', 'approval_requests.form_id')->limit(1),
+                        $dir
+                    );
+                }
+            };
+        };
+
+        return DataTables::eloquent($query)
+            ->filter(fn ($q) => $this->applyOnBehalfSearch($q, $category, (string) $request->input('search.value', '')))
+            ->addColumn('employee', fn ($row) => $row->employee->fullname . ' (' . $row->employee->employee_id . ')')
+            ->addColumn('detail', function ($row) use ($isGoals, $category) {
+                $form = $isGoals ? $row->goal : $row->appraisal;
+                $disabled = optional($form)->form_status === 'Draft' ? 'disabled' : '';
+                $url = route('admin.onbehalf.detail', [strtolower($category), $row->id]);
+
+                return '<button type="button" class="btn btn-outline-secondary rounded btn-sm js-onbehalf-detail ' . $disabled . '" data-url="' . e($url) . '" title="' . e(__('View')) . '"><i class="ri-file-text-line"></i></button>';
+            })
+            ->addColumn('status', function ($row) use ($category) {
+                [$label, $badge] = $this->statusBadge($category, $row);
+                [$name, $layer] = $this->currentApprover($category, $row);
+                $popover = $layer ? 'Manager L' . $layer . ' : ' . $name : $name;
+
+                return '<a href="javascript:void(0)" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="' . e($popover) . '" class="badge py-1 px-2 rounded-pill ' . $badge . '">' . e($label) . '</a>';
+            })
+            ->addColumn('created', fn ($row) => $formDate($row, 'created_at'))
+            ->addColumn('initiated', fn ($row) => $this->userLabel($row->initiated))
+            ->addColumn('updated', fn ($row) => $formDate($row, 'updated_at'))
+            ->addColumn('updated_by', fn ($row) => $this->userLabel($row->updatedBy))
+            ->addColumn('action', function ($row) use ($isGoals) {
+                if ($isGoals) {
+                    $access_menu = json_decode($row->employee->access_menu ?? '', true) ?: [];
+                    $row->access = !empty($access_menu['goals']) && !empty($access_menu['doj']);
+                }
+
+                return view($isGoals ? 'pages.onbehalfs.cells.goal-action' : 'pages.onbehalfs.cells.appraisal-action', ['row' => $row])->render();
+            })
+            ->orderColumn('employee', function ($q, $dir) {
+                $q->orderBy(
+                    Employee::select('fullname')->whereColumn('employees.employee_id', 'approval_requests.employee_id')->limit(1),
+                    $dir === 'desc' ? 'desc' : 'asc'
+                );
+            })
+            ->orderColumn('created', $orderByDate('created_at'))
+            ->orderColumn('updated', $orderByDate('updated_at'))
+            ->only(['employee', 'detail', 'status', 'created', 'initiated', 'updated', 'updated_by', 'action'])
+            ->rawColumns(['detail', 'status', 'action'])
+            ->toJson();
+    }
+
+    /**
+     * Detail Goals / Appraisal satu baris, dimuat saat tombol detail diklik.
+     */
+    public function onBehalfDetail(Request $request, string $category, int $id)
+    {
+        $category = $category === 'goals' ? 'Goals' : 'Appraisal';
+
+        $item = $this->onBehalfBaseQuery($request, $category)
+            ->with($category === 'Goals'
+                ? ['employee', 'goal']
+                : ['employee', 'manager', 'appraisal.goal', 'appraisal.approvalSnapshots', 'initiated', 'approval'])
+            ->findOrFail($id);
+
+        if ($category === 'Goals') {
+            return view('pages.onbehalfs.goal_detail', ['row' => $item]);
+        }
+
+        $appraisal = $item->appraisal;
+        $item->formatted_created_at = $this->appService->formatDate($appraisal->created_at);
+        $item->formatted_updated_at = $this->appService->formatDate($appraisal->updated_at);
+        [$name, $layer] = $this->currentApprover($category, $item);
+
+        $goalData = json_decode($appraisal->goal->form_data ?? '', true) ?: [];
+        $formJson = Auth::id() == $appraisal->created_by
+            ? ($appraisal->approvalSnapshots->form_data ?? $appraisal->form_data)
+            : $appraisal->form_data;
+
+        try {
+            $formData = $this->appService->combineFormData(
+                json_decode($formJson ?? '', true),
+                $goalData,
+                'employee',
+                $item->employee,
+                $this->appService->appraisalPeriod()
+            );
+        } catch (Exception $e) {
+            Log::warning('OnBehalf appraisal detail failed', ['request_id' => $id, 'error' => $e->getMessage()]);
+
+            return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
+        }
+
+        $row = new stdClass();
+        $row->request = $item;
+        $row->name = $name;
+        $row->approvalLayer = $layer;
+        $row->formData = $formData;
+
+        return view('pages.onbehalfs.appraisal_detail', ['row' => $row]);
+    }
+
+    /**
+     * Status achievement untuk daftar & modal: tanggal terformat, nama approver, layer.
+     */
+    private function decorateAchievementStatus(Goal $item, $approvalLayers): Goal
+    {
+        $achievement = $item->achievement;
+
+        if ($achievement) {
+            $achievement->formatted_created_at = Carbon::parse($achievement->created_at)->format('d M Y g:ia');
+            $achievement->formatted_updated_at = Carbon::parse($achievement->updated_at)->format('d M Y g:ia');
+
+            $approver = optional($achievement->approver);
+            $achievement->name = $approver->fullname
+                ? $approver->fullname . ' (' . $approver->employee_id . ')'
+                : '-';
+
+            $layerData = $approvalLayers->get($item->employee_id . '-' . $achievement->current_approver_employee_id);
+            $achievement->approvalLayer = $layerData->layer ?? null;
+        } else {
+            $item->setRelation('achievement', (object) [
+                'name' => '-',
+                'approvalLayer' => null,
+                'formatted_created_at' => '-',
+                'formatted_updated_at' => '-',
+                'approval_status' => '-',
+            ]);
+        }
+
+        return $item;
+    }
+
+    /**
+     * KPI goal + achievement bulanan, actual, dan % achievement (untuk modal detail).
+     */
+    private function achievementFormData(Goal $item): array
+    {
+        $formData = json_decode($item->form_data, true) ?? [];
+
+        $achievementData = KPIAchievementService::getByGoal($item->id) ?? [];
+        $isEmptyAchievement = empty($achievementData);
+
+        $options = File::exists($this->path) ? (json_decode(File::get($this->path), true) ?? []) : [];
+        $reviewPeriodMap = collect($options['Review Period'] ?? [])->flatten(1)->pluck('label', 'value')->toArray();
+        $calculationMethodMap = collect($options['Calculation Method'] ?? [])->flatten(1)->pluck('label', 'value')->toArray();
+
+        foreach ($formData as &$kpi) {
+            $kpiId = $kpi['kpi_id'] ?? null;
+
+            foreach (['ach', 'attachment', 'approval_status'] as $field) {
+                $kpi[$field] = $kpiId && isset($achievementData[$kpiId][$field])
+                    ? $achievementData[$kpiId][$field]
+                    : array_fill(1, 12, null);
+            }
+
+            $values = collect($kpi['ach'])
+                ->filter(fn ($v) => $v !== null && $v !== '')
+                ->values()
+                ->toArray();
+
+            $actual = $this->kpiService->aggregate(
+                $kpi['calculation_method'] ?? 'last',
+                $values,
+                $kpi['review_period'] ?? null
+            );
+
+            $achievementValue = $isEmptyAchievement
+                ? 0
+                : $this->kpiService->achievement($actual, (float) ($kpi['target'] ?? 0), $kpi['type'] ?? 'Higher Better');
+
+            $kpi['actual'] = round($actual, 2);
+            $kpi['achievement'] = round($achievementValue, 2);
+            $kpi['review_period_label'] = $reviewPeriodMap[$kpi['review_period'] ?? ''] ?? '-';
+            $kpi['calculation_method_label'] = $calculationMethodMap[$kpi['calculation_method'] ?? ''] ?? '-';
+        }
+        unset($kpi);
+
+        return $formData;
+    }
+
+    /**
+     * Pastikan karyawan masuk scope permission role admin (group company / company / lokasi).
+     */
+    private function authorizeOnBehalfEmployee($employee): void
+    {
+        abort_unless($employee, 404);
+
+        $criteria = [
+            'work_area_code' => $this->permissionLocations,
+            'group_company' => $this->permissionGroupCompanies,
+            'contribution_level_code' => $this->permissionCompanies,
+        ];
+
+        if (collect($criteria)->every(fn ($values) => empty($values))) {
+            return;
+        }
+
+        foreach ($criteria as $column => $values) {
+            if (!empty($values) && in_array($employee->{$column}, $values)) {
+                return;
+            }
+        }
+
+        abort(403);
+    }
+
+    /**
+     * Isi modal detail Achievement (On Behalf), dimuat lewat AJAX saat tombol detail diklik.
+     */
+    public function achievementDetail(string $goalId)
+    {
+        $goal = Goal::with(['employee', 'achievement.approver'])
+            ->whereHas('achievement.approver')
+            ->findOrFail($goalId);
+
+        $this->authorizeOnBehalfEmployee($goal->employee);
+
+        $approvalLayers = ApprovalLayer::where('employee_id', $goal->employee_id)
+            ->where('layer', 1)
+            ->get()
+            ->keyBy(fn ($layer) => $layer->employee_id . '-' . $layer->approver_id);
+
+        $this->decorateAchievementStatus($goal, $approvalLayers);
+        $goal->formData = $this->achievementFormData($goal);
+
+        return view('pages.onbehalfs.partials.achievement-detail', ['row' => $goal]);
     }
 
     // function create($id) {

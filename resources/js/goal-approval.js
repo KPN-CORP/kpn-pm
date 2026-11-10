@@ -412,160 +412,275 @@ for (var i = 0; i < weightageInputs.length; i++) {
     weightageInputs[i].addEventListener("keyup", updateWeightageSummary);
 }
 
-function changeCategory(val) {
-    // Set filter category berdasarkan dropdown
-    $("#filter_category").val(val);
+// ---------------------------------------------------------------------------
+// On Behalf (admin) – load the content per category.
+// Goals & Appraisal use server-side DataTables (#onBehalfTable[data-server-side]);
+// Rating still renders all rows and uses a client-side table.
+// ---------------------------------------------------------------------------
+let onBehalfStatus = "all";
+let onBehalfSearchTimer = null;
 
-    const form = $("#onbehalf_filter");
+function csrfToken() {
+    return $('meta[name="csrf-token"]').attr("content");
+}
+
+function initializeOnBehalfPopovers() {
+    document
+        .querySelectorAll('#contentOnBehalf [data-bs-toggle="popover"]')
+        .forEach((el) => bootstrap.Popover.getOrCreateInstance(el));
+}
+
+function setActiveFilterTab(button) {
+    const $btn = $(button);
+    $btn.closest(".card-header")
+        .find(".filter-btn")
+        .removeClass("btn-primary active")
+        .addClass("btn-outline-primary")
+        .attr("aria-pressed", "false");
+    $btn.removeClass("btn-outline-primary")
+        .addClass("btn-primary active")
+        .attr("aria-pressed", "true");
+}
+
+function updateOnBehalfFilterBadge() {
+    const count = ["#group_company", "#company", "#location"].reduce(
+        (sum, sel) => sum + (($(sel).val() || []).length ? 1 : 0),
+        0
+    );
+    const $badge = $("#onBehalfFilterCount");
+    $badge.text(count).toggleClass("d-none", count === 0);
+}
+
+function reloadOnBehalfTable() {
+    if ($.fn.DataTable.isDataTable("#onBehalfTable")) {
+        const table = $("#onBehalfTable").DataTable();
+        if (table.init().serverSide) {
+            table.ajax.reload(null, false);
+            return;
+        }
+    }
+    loadOnBehalfContent();
+}
+
+window.reloadOnBehalfTable = reloadOnBehalfTable;
+
+function initServerSideOnBehalfTable() {
+    const $table = $("#onBehalfTable");
+    const category = $table.data("category");
+    onBehalfStatus = "all";
+
+    // Kunci tabel & tab selama data dimuat supaya tombol Action, detail,
+    // paging, dan tab tidak bisa diklik pada data yang sedang diganti.
+    const $card = $table.closest(".card");
+    $table.on("processing.dt", function (e, settings, processing) {
+        $card.toggleClass("onbehalf-loading", processing).attr("aria-busy", processing ? "true" : "false");
+        if (processing) {
+            $card.find('[data-bs-toggle="dropdown"]').each(function () {
+                bootstrap.Dropdown.getInstance(this)?.hide();
+            });
+        }
+    });
+
+    $table.DataTable({
+        processing: true,
+        serverSide: true,
+        dom: "lrtip",
+        scrollX: true,
+        scrollCollapse: true,
+        fixedColumns: { leftColumns: 0, rightColumns: 1 },
+        pageLength: 25,
+        order: [[5, "desc"]],
+        search: { search: $("#customsearch").val() || "" },
+        language: { processing: "Loading..." },
+        ajax: {
+            url: $table.data("url"),
+            type: "POST",
+            headers: { "X-CSRF-TOKEN": csrfToken() },
+            data: function (d) {
+                d.filter_category = category;
+                d.status = onBehalfStatus;
+                d.group_company = $("#group_company").val() || [];
+                d.company = $("#company").val() || [];
+                d.location = $("#location").val() || [];
+            },
+            error: function (xhr) {
+                console.error("Error fetching On Behalf data:", xhr);
+                $table.closest(".card").find(".dataTables_processing").hide();
+                Swal.fire({
+                    icon: "error",
+                    title: "Failed to load data",
+                    text: (xhr.responseJSON && xhr.responseJSON.message) || "Please try again.",
+                });
+            },
+        },
+        columns: [
+            { data: "employee", name: "employee" },
+            { data: "detail", name: "detail", orderable: false, searchable: false, className: "text-center" },
+            { data: "status", name: "status", orderable: false, className: "text-center" },
+            { data: "created", name: "created", className: "text-center" },
+            { data: "initiated", name: "initiated", orderable: false },
+            { data: "updated", name: "updated", className: "text-center" },
+            { data: "updated_by", name: "updated_by", orderable: false },
+            { data: "action", name: "action", orderable: false, searchable: false, className: "text-center sorting_1 px-1" },
+        ],
+        drawCallback: initializeOnBehalfPopovers,
+    });
+}
+
+function initClientSideOnBehalfTable() {
+    const onBehalfTable = $("#onBehalfTable").DataTable({
+        dom: "lrtip",
+        stateSave: true,
+        fixedColumns: { leftColumns: 0, rightColumns: 1 },
+        scrollCollapse: true,
+        scrollX: true,
+        pageLength: 25,
+        columnDefs: [{ targets: [0], orderable: false }],
+    });
+
+    onBehalfTable.on("draw", initializeOnBehalfPopovers);
+    onBehalfTable.search($("#customsearch").val() || "").draw();
+}
+
+function renderOnBehalfContent(html) {
     const contentOnBehalf = $("#contentOnBehalf");
-    const customsearch = $("#customsearch");
-    const formData = form.serialize();
 
-    function initializePopovers() {
-        const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-        popoverTriggerList.map(function (el) {
-            return new bootstrap.Popover(el);
-        });
+    if ($.fn.DataTable.isDataTable("#onBehalfTable")) {
+        $("#onBehalfTable").DataTable().destroy();
+    }
+    contentOnBehalf.html(html);
+
+    const $table = $("#onBehalfTable");
+    if ($table.data("server-side")) {
+        initServerSideOnBehalfTable();
+    } else if ($table.length) {
+        initClientSideOnBehalfTable();
+    }
+
+    // Tandai tab "All" sebagai aktif bila view belum menandai tab apa pun
+    const $tabs = contentOnBehalf.find(".filter-btn");
+    if ($tabs.length && !$tabs.filter(".active").length) {
+        setActiveFilterTab($tabs.first());
+    }
+
+    initializeOnBehalfPopovers();
+    updateOnBehalfFilterBadge();
+}
+
+function loadOnBehalfContent() {
+    const contentOnBehalf = $("#contentOnBehalf");
+    const category = $("#filter_category").val();
+
+    // Goals/Appraisal: kerangka tabel sudah ada di halaman (<template>),
+    // jadi langsung render dan hanya request data tabelnya.
+    const template = document.getElementById("onBehalfListTemplate-" + category);
+    if (template) {
+        renderOnBehalfContent(template.innerHTML);
+        return;
     }
 
     showLoader();
 
-    // Set CSRF token jika diperlukan
-    $.ajaxSetup({
-        headers: {
-            "X-CSRF-TOKEN": $('meta[name="csrf-token"]').attr("content"),
-        },
-    });
-
     $.ajax({
         url: "/admin/onbehalf/content",
         method: "POST",
-        data: formData,
-        success: function (data) {
-            contentOnBehalf.html(data);
-
-            // Hapus instance sebelumnya jika ada
-            if ($.fn.DataTable.isDataTable("#onBehalfTable")) {
-                $("#onBehalfTable").DataTable().destroy();
-            }
-
-            // Inisialisasi ulang DataTable
-            const onBehalfTable = $("#onBehalfTable").DataTable({
-                dom: "lrtip",
-                stateSave: true,
-                fixedColumns: {
-                    leftColumns: 0,
-                    rightColumns: 1,
-                },
-                scrollCollapse: true,
-                scrollX: true,
-                pageLength: 25,
-                columnDefs: [
-                    { targets: [0], orderable: false },
-                ],
-            });
-
-            // Re-init popover setiap table draw
-            onBehalfTable.on("draw", initializePopovers);
-            initializePopovers();
-
-            // Event search custom
-            customsearch.off("keyup").on("keyup", function () {
-                onBehalfTable.search($(this).val()).draw();
-            });
-
-            // Event filter button
-            $(".filter-btn").off("click").on("click", function () {
-                const filterValue = $(this).data("id");
-                onBehalfTable.search(filterValue === "all" ? "" : filterValue).draw();
-            });
-
+        headers: { "X-CSRF-TOKEN": csrfToken() },
+        data: $("#onbehalf_filter").serialize(),
+        success: function (html) {
+            renderOnBehalfContent(html);
             hideLoader();
         },
         error: function (xhr, status, error) {
             console.error("Error fetching report content:", error);
-            contentOnBehalf.html("Error fetching report content. Please try again.");
+            contentOnBehalf.html(
+                '<div class="alert alert-danger">Error fetching report content. Please try again.</div>'
+            );
             hideLoader();
         },
     });
 }
 
+function changeCategory(val) {
+    $("#filter_category").val(val);
+    loadOnBehalfContent();
+}
+
 window.changeCategory = changeCategory;
 
+// Tab status: tandai yang aktif; untuk tabel server-side, filter lewat server.
+$(document).on("click", "#contentOnBehalf .filter-btn", function () {
+    setActiveFilterTab(this);
+
+    const $table = $("#onBehalfTable");
+    if ($table.data("server-side") && $.fn.DataTable.isDataTable($table)) {
+        onBehalfStatus = $(this).data("status") || "all";
+        $table.DataTable().ajax.reload();
+    } else if ($.fn.DataTable.isDataTable($table)) {
+        const filterValue = $(this).data("id");
+        $table.DataTable().search(filterValue === "all" ? "" : filterValue).draw();
+    }
+});
+
+// Pencarian bebas (debounce untuk server-side)
+$(document).on("keyup", "#customsearch", function () {
+    const value = $(this).val();
+    const $table = $("#onBehalfTable");
+    if (!$.fn.DataTable.isDataTable($table)) return;
+
+    clearTimeout(onBehalfSearchTimer);
+    onBehalfSearchTimer = setTimeout(
+        () => $table.DataTable().search(value).draw(),
+        $table.data("server-side") ? 400 : 0
+    );
+});
+
+// Detail Goals/Appraisal dimuat saat diklik, bukan dirender untuk setiap baris
+$(document).on("click", "#contentOnBehalf .js-onbehalf-detail", function () {
+    const holder = $("#onBehalfDetailHolder");
+    showLoader();
+
+    $.get($(this).data("url"))
+        .done(function (html) {
+            holder.html(html);
+            const modalEl = holder.find(".modal")[0];
+            if (!modalEl) return;
+
+            modalEl.addEventListener("hidden.bs.modal", function () {
+                bootstrap.Modal.getInstance(modalEl)?.dispose();
+                holder.empty();
+            });
+            modalEl.addEventListener("shown.bs.modal", function () {
+                modalEl.querySelectorAll("textarea[readonly]").forEach(autoResize);
+                modalEl
+                    .querySelectorAll('[data-bs-toggle="popover"]')
+                    .forEach((el) => bootstrap.Popover.getOrCreateInstance(el));
+            });
+            new bootstrap.Modal(modalEl).show();
+        })
+        .fail(function (xhr) {
+            Swal.fire({
+                icon: "error",
+                title: "Failed to load detail",
+                text: (xhr.responseJSON && xhr.responseJSON.message) || "Please try again.",
+            });
+        })
+        .always(hideLoader);
+});
 
 document.addEventListener("DOMContentLoaded", function () {
-    const form = $("#onbehalf_filter");
-    const contentOnBehalf = $("#contentOnBehalf");
-    const customsearch = $("#customsearch");
+    $("#onbehalf_filter").on("submit", function (event) {
+        event.preventDefault();
+        const offcanvas = document.getElementById("offcanvasRight");
+        if (offcanvas) bootstrap.Offcanvas.getOrCreateInstance(offcanvas).hide();
 
-    function initializePopovers() {
-        const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-        const popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-            return new bootstrap.Popover(popoverTriggerEl);
-        });
-    }
-    
-    // Submit form event handler
-    form.on("submit", function (event) {
-        event.preventDefault(); // Prevent default form submission behavior
-        const formData = form.serialize();
-        showLoader();
-
-        // Send AJAX request to fetch and display report content
-        $.ajax({
-            url: "/admin/onbehalf/content", // Endpoint URL to fetch report content
-            method: "POST",
-            data: formData, // Send serialized form data
-            success: function (data) {
-                contentOnBehalf.html(data); // Update report content
-
-                const onBehalfTable = $("#onBehalfTable").DataTable({
-                    dom: "lrtip",
-                    stateSave: true,
-                    fixedColumns: {
-                        leftColumns: 0,
-                        rightColumns: 1
-                    },
-                    scrollCollapse: true,
-                    scrollX: true,
-                    pageLength: 25,
-                    columnDefs: [
-                        { targets: [0], orderable: false }, // Disable sorting for the first column
-                    ],
-                });
-                
-                onBehalfTable.on('draw', function () {
-                    initializePopovers();
-                });
-                
-                customsearch.on("keyup", function () {
-                    onBehalfTable.search($(this).val()).draw();
-                });
-
-                $(".filter-btn").on("click", function () {
-                    const filterValue = $(this).data("id");
-
-                    if (filterValue === "all") {
-                        onBehalfTable.search("").draw(); // Clear the search for 'All Task'
-                    } else {
-                        onBehalfTable.search(filterValue).draw();
-                    }
-                });
-                
-                initializePopovers();
-                
-                hideLoader();
-
-                $("#offcanvas-cancel").click();
-            },
-            error: function (xhr, status, error) {
-                console.error("Error fetching report content:", error);
-                // Optionally display an error message to the user
-                contentOnBehalf.html(
-                    "Error fetching report content. Please try again."
-                );
-            },
-        });
+        // Tabel server-side: cukup reload data (tab yang dipilih tetap)
+        const $table = $("#onBehalfTable");
+        if ($table.data("server-side") && $.fn.DataTable.isDataTable($table)) {
+            updateOnBehalfFilterBadge();
+            $table.DataTable().ajax.reload();
+            return;
+        }
+        loadOnBehalfContent();
     });
 });
 
@@ -584,10 +699,6 @@ document.querySelectorAll('textarea[readonly]').forEach(textarea => {
 function revokeGoal(button) {
     const goalId = button.getAttribute('data-id');
     const employee = button.getAttribute('data-name');
-    const form = $("#onbehalf_filter");
-    const contentOnBehalf = $("#contentOnBehalf");
-    const customsearch = $("#customsearch");
-    const formData = form.serialize();
 
     Swal.fire({
         title: 'Are you sure?',
@@ -615,56 +726,7 @@ function revokeGoal(button) {
                     Swal.fire('Revise Granted!', 'The employee now can revise their goals.', 'success');
                     $(button).addClass('d-none'); // Hide button after successful action
                     
-                    $.ajax({
-                        url: "/admin/onbehalf/content",
-                        method: "POST",
-                        data: formData,
-                        success: function (data) {
-                            contentOnBehalf.html(data); // Update report content
-
-                            // Destroy existing DataTable if it exists
-                            if ($.fn.DataTable.isDataTable("#onBehalfTable")) {
-                                $("#onBehalfTable").DataTable().destroy();
-                            }
-
-                            // Initialize DataTable
-                            const onBehalfTable = $("#onBehalfTable").DataTable({
-                                dom: "lrtip",
-                                stateSave: true,
-                                fixedColumns: {
-                                    leftColumns: 0,
-                                    rightColumns: 1
-                                },
-                                scrollCollapse: true,
-                                scrollX: true,
-                                pageLength: 25,
-                                columnDefs: [
-                                    { targets: [0], orderable: false }, // Disable sorting for the first column
-                                ],
-                            });
-
-                            // Reinitialize Popovers after DataTable redraw
-                            onBehalfTable.on('draw', function () {
-                                initializePopovers();
-                            });
-
-                            // Search functionality
-                            customsearch.off("keyup").on("keyup", function () {
-                                onBehalfTable.search($(this).val()).draw();
-                            });
-
-                            // Filter buttons
-                            $(".filter-btn").off("click").on("click", function () {
-                                const filterValue = $(this).data("id");
-                                onBehalfTable.search(filterValue === "all" ? "" : filterValue).draw();
-                            });
-                        },
-                        error: function (xhr, status, error) {
-                            console.error("Error fetching report content:", error);
-                            contentOnBehalf.html("Error fetching report content. Please try again.");
-                            hideLoader();
-                        }
-                    });
+                    reloadOnBehalfTable();
                 } else {
                     Swal.fire('Error!', data.message, 'error');
                 }
