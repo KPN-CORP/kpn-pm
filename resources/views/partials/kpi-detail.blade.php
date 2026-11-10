@@ -19,19 +19,19 @@
                             <p class="mt-1 mb-0">{{ $key + 1 }}</p>
                         </td>
                         <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
-                            <p class="mt-1 mb-0 text-muted" style="white-space: pre-line">{{ $data['kpi'] }}</p>
+                            <p class="mt-1 mb-0 text-muted" style="white-space: pre-line">{{ $data['kpi'] ?? '-' }}</p>
                         </td>
                         <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
-                            <p class="mt-1 mb-0 text-muted">{{ $data['type'] }}</p>
+                            <p class="mt-1 mb-0 text-muted">{{ $data['type'] ?? '-' }}</p>
                         </td>
                         <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
-                            <p class="mt-1 mb-0 text-muted">{{ $data['weightage'] }}%</p>
+                            <p class="mt-1 mb-0 text-muted">{{ $data['weightage'] ?? 0 }}%</p>
                         </td>
                         <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
-                            <p class="mt-1 mb-0 text-muted">{{ $data['target'] }} {{ is_null($data['custom_uom']) ? $data['uom'] : $data['custom_uom'] }}</p>
+                            <p class="mt-1 mb-0 text-muted">{{ $data['target'] ?? '-' }} {{ $data['custom_uom'] ?? ($data['uom'] ?? '') }}</p>
                         </td>
                         <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
-                            <p class="mt-1 mb-0 text-muted">{{ $data['achievement'] }} {{ is_null($data['custom_uom']) ? $data['uom'] : $data['custom_uom'] }}</p>
+                            <p class="mt-1 mb-0 text-muted">{{ $data['achievement'] ?? '-' }} {{ $data['custom_uom'] ?? ($data['uom'] ?? '') }}</p>
                         </td>
                         <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
                             <p class="mt-1 mb-0 text-muted">{{ isset($data['percentage']) ? round($data['percentage']) . '%' : '0%' }}</p>
