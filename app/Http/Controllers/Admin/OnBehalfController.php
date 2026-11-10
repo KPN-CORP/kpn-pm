@@ -235,114 +235,9 @@ class OnBehalfController extends Controller
                 return $item->employee_id . '-' . $item->approver_id;
             });
 
-            $data->map(function($item) use ($approvalLayers) {
-
-                $formData = json_decode($item->form_data, true) ?? [];
-
-                // ambil achievement KPI (service kamu)
-                $achievementData = KPIAchievementService::getByGoal($item->id) ?? [];
-                $isEmptyAchievement = empty($achievementData);
-
-                foreach ($formData as &$kpi) {
-
-                    $kpiId = $kpi['kpi_id'] ?? null;
-
-                    // inject monthly achievement
-                    $kpi['ach'] = $kpiId && isset($achievementData[$kpiId]['ach'])
-                        ? $achievementData[$kpiId]['ach']
-                        : array_fill(1, 12, null);
-
-                    $kpi['attachment'] = $kpiId && isset($achievementData[$kpiId]['attachment'])
-                        ? $achievementData[$kpiId]['attachment']
-                        : array_fill(1, 12, null);
-
-                    $kpi['approval_status'] = $kpiId && isset($achievementData[$kpiId]['approval_status'])
-                        ? $achievementData[$kpiId]['approval_status']
-                        : array_fill(1, 12, null);
-
-                    // ========================
-                    // HITUNG ACTUAL & ACHIEVEMENT
-                    // ========================
-                    $values = collect($kpi['ach'])
-                        ->filter(fn($v) => $v !== null && $v !== '')
-                        ->values()
-                        ->toArray();
-
-                    $actual = $this->kpiService->aggregate(
-                        $kpi['calculation_method'] ?? 'last',
-                        $values, $kpi['review_period'] ?? null
-                    );
-
-                    $achievementValue = $isEmptyAchievement
-                        ? 0
-                        : $this->kpiService->achievement(
-                            $actual,
-                            (float)($kpi['target'] ?? 0),
-                            $kpi['type'] ?? 'Higher Better'
-                        );
-                    
-                    $options = [];
-
-                    if (File::exists($this->path)) {
-                        $options = json_decode(File::get($this->path), true) ?? [];
-                    }
-
-                    $reviewPeriodMap = collect($options['Review Period'] ?? [])
-                        ->flatten(1)
-                        ->pluck('label', 'value')
-                        ->toArray();
-
-                    $calculationMethodMap = collect($options['Calculation Method'] ?? [])
-                        ->flatten(1)
-                        ->pluck('label', 'value')
-                        ->toArray();
-
-                    $kpi['actual'] = round($actual, 2);
-                    $kpi['achievement'] = round($achievementValue, 2);
-
-                    $kpi['review_period_label'] = $reviewPeriodMap[$kpi['review_period'] ?? ''] ?? '-';
-                    $kpi['calculation_method_label'] = $calculationMethodMap[$kpi['calculation_method'] ?? ''] ?? '-';
-                }
-
-                // inject ke item
-                $item->formData = $formData;
-
-                $achievement = $item->achievement;
-
-                if ($achievement) {
-
-                    $achievement->formatted_created_at = Carbon::parse($achievement->created_at)->format('d M Y g:ia');
-                    $achievement->formatted_updated_at = Carbon::parse($achievement->updated_at)->format('d M Y g:ia');
-
-                    $approver = optional($achievement->approver);
-
-                    $achievement->name = $approver->fullname
-                        ? $approver->fullname . ' (' . $approver->employee_id . ')'
-                        : '-';
-
-                    $key = $item->employee_id . '-' . $achievement->current_approver_employee_id;
-
-                    $layerData = $approvalLayers->get($key);
-
-                    $achievement->approvalLayer = $layerData->layer ?? null;
-
-                    // ðŸ”¥ RE-ASSIGN BALIK
-                    $item->achievement = $achievement;
-
-                } else {
-
-                    // ðŸ”¥ JANGAN SET KE RELATION LANGSUNG
-                    $item->setRelation('achievement', (object)[
-                        'name' => '-',
-                        'approvalLayer' => null,
-                        'formatted_created_at' => '-',
-                        'formatted_updated_at' => '-',
-                        'approval_status' => '-',
-                    ]);
-                }
-
-                return $item;
-            });
+            // Daftar hanya butuh status/tanggal; perhitungan KPI per bulan
+            // dilakukan di achievementDetail() saat modal detail dibuka.
+            $data->each(fn ($item) => $this->decorateAchievementStatus($item, $approvalLayers));
 
             Log::info('OnBehalf - Appraisal Data:', [
                 'category' => $category,
@@ -686,6 +581,133 @@ class OnBehalfController extends Controller
         $row->formData = $formData;
 
         return view('pages.onbehalfs.appraisal_detail', ['row' => $row]);
+    }
+
+    /**
+     * Status achievement untuk daftar & modal: tanggal terformat, nama approver, layer.
+     */
+    private function decorateAchievementStatus(Goal $item, $approvalLayers): Goal
+    {
+        $achievement = $item->achievement;
+
+        if ($achievement) {
+            $achievement->formatted_created_at = Carbon::parse($achievement->created_at)->format('d M Y g:ia');
+            $achievement->formatted_updated_at = Carbon::parse($achievement->updated_at)->format('d M Y g:ia');
+
+            $approver = optional($achievement->approver);
+            $achievement->name = $approver->fullname
+                ? $approver->fullname . ' (' . $approver->employee_id . ')'
+                : '-';
+
+            $layerData = $approvalLayers->get($item->employee_id . '-' . $achievement->current_approver_employee_id);
+            $achievement->approvalLayer = $layerData->layer ?? null;
+        } else {
+            $item->setRelation('achievement', (object) [
+                'name' => '-',
+                'approvalLayer' => null,
+                'formatted_created_at' => '-',
+                'formatted_updated_at' => '-',
+                'approval_status' => '-',
+            ]);
+        }
+
+        return $item;
+    }
+
+    /**
+     * KPI goal + achievement bulanan, actual, dan % achievement (untuk modal detail).
+     */
+    private function achievementFormData(Goal $item): array
+    {
+        $formData = json_decode($item->form_data, true) ?? [];
+
+        $achievementData = KPIAchievementService::getByGoal($item->id) ?? [];
+        $isEmptyAchievement = empty($achievementData);
+
+        $options = File::exists($this->path) ? (json_decode(File::get($this->path), true) ?? []) : [];
+        $reviewPeriodMap = collect($options['Review Period'] ?? [])->flatten(1)->pluck('label', 'value')->toArray();
+        $calculationMethodMap = collect($options['Calculation Method'] ?? [])->flatten(1)->pluck('label', 'value')->toArray();
+
+        foreach ($formData as &$kpi) {
+            $kpiId = $kpi['kpi_id'] ?? null;
+
+            foreach (['ach', 'attachment', 'approval_status'] as $field) {
+                $kpi[$field] = $kpiId && isset($achievementData[$kpiId][$field])
+                    ? $achievementData[$kpiId][$field]
+                    : array_fill(1, 12, null);
+            }
+
+            $values = collect($kpi['ach'])
+                ->filter(fn ($v) => $v !== null && $v !== '')
+                ->values()
+                ->toArray();
+
+            $actual = $this->kpiService->aggregate(
+                $kpi['calculation_method'] ?? 'last',
+                $values,
+                $kpi['review_period'] ?? null
+            );
+
+            $achievementValue = $isEmptyAchievement
+                ? 0
+                : $this->kpiService->achievement($actual, (float) ($kpi['target'] ?? 0), $kpi['type'] ?? 'Higher Better');
+
+            $kpi['actual'] = round($actual, 2);
+            $kpi['achievement'] = round($achievementValue, 2);
+            $kpi['review_period_label'] = $reviewPeriodMap[$kpi['review_period'] ?? ''] ?? '-';
+            $kpi['calculation_method_label'] = $calculationMethodMap[$kpi['calculation_method'] ?? ''] ?? '-';
+        }
+        unset($kpi);
+
+        return $formData;
+    }
+
+    /**
+     * Pastikan karyawan masuk scope permission role admin (group company / company / lokasi).
+     */
+    private function authorizeOnBehalfEmployee($employee): void
+    {
+        abort_unless($employee, 404);
+
+        $criteria = [
+            'work_area_code' => $this->permissionLocations,
+            'group_company' => $this->permissionGroupCompanies,
+            'contribution_level_code' => $this->permissionCompanies,
+        ];
+
+        if (collect($criteria)->every(fn ($values) => empty($values))) {
+            return;
+        }
+
+        foreach ($criteria as $column => $values) {
+            if (!empty($values) && in_array($employee->{$column}, $values)) {
+                return;
+            }
+        }
+
+        abort(403);
+    }
+
+    /**
+     * Isi modal detail Achievement (On Behalf), dimuat lewat AJAX saat tombol detail diklik.
+     */
+    public function achievementDetail(string $goalId)
+    {
+        $goal = Goal::with(['employee', 'achievement.approver'])
+            ->whereHas('achievement.approver')
+            ->findOrFail($goalId);
+
+        $this->authorizeOnBehalfEmployee($goal->employee);
+
+        $approvalLayers = ApprovalLayer::where('employee_id', $goal->employee_id)
+            ->where('layer', 1)
+            ->get()
+            ->keyBy(fn ($layer) => $layer->employee_id . '-' . $layer->approver_id);
+
+        $this->decorateAchievementStatus($goal, $approvalLayers);
+        $goal->formData = $this->achievementFormData($goal);
+
+        return view('pages.onbehalfs.partials.achievement-detail', ['row' => $goal]);
     }
 
     // function create($id) {

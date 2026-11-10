@@ -13,7 +13,7 @@
             </div>
           </div>
         <div class="card-body">
-            <table class="table table-sm table-hover nowrap align-middle w-100" id="adminReportTable" cellspacing="0">
+            <table class="table table-sm table-hover nowrap align-middle w-100" id="onBehalfTable" cellspacing="0">
                 <thead class="thead-light">
                     <tr>
                         <th>Employees</th>
