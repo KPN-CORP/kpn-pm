@@ -6,6 +6,25 @@
     overflow: hidden; /* Prevent scrollbars from appearing */
     resize: none; /* Disable manual resizing by the user */
 }
+
+/* Saat tabel On Behalf memuat data: tab, tabel, dan paging tidak bisa diklik */
+.onbehalf-loading { cursor: progress; }
+.onbehalf-loading .filter-btn,
+.onbehalf-loading .dataTables_scroll,
+.onbehalf-loading .dataTables_length,
+.onbehalf-loading .dataTables_info,
+.onbehalf-loading .dataTables_paginate {
+    pointer-events: none;
+    opacity: .5;
+    user-select: none;
+    transition: opacity .15s ease-in-out;
+}
+/* Indikator "Loading..." di atas tabel, bukan di tengah 25 baris (di luar layar) */
+.onbehalf-loading .dataTables_processing {
+    z-index: 10;
+    top: 110px !important;
+    margin-top: 0 !important;
+}
 </style>
 @endsection
 
@@ -32,7 +51,7 @@
           <div class="row">
             <div class="col-md-auto">
               <div class="mr-4 d-md-block d-none">
-                <button class="input-group-text bg-white border-dark-subtle" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight" aria-controls="offcanvasRight"><i class="ri-filter-line me-1"></i>Filters</button>
+                <button class="input-group-text bg-white border-dark-subtle" type="button" data-bs-toggle="offcanvas" data-bs-target="#offcanvasRight" aria-controls="offcanvasRight"><i class="ri-filter-line me-1"></i>Filters<span id="onBehalfFilterCount" class="badge rounded-pill bg-primary ms-1 d-none" title="Active filters">0</span></button>
               </div>
             </div>
             <div class="col-md-auto">
@@ -63,6 +82,12 @@
             </div>
           </div>
         </div>
+
+        @foreach ($listTabs as $listCategory => $tabs)
+          <template id="onBehalfListTemplate-{{ $listCategory }}">
+            @include('pages.onbehalfs.list', ['category' => $listCategory, 'tabs' => $tabs])
+          </template>
+        @endforeach
 
         <div class="offcanvas offcanvas-end" tabindex="-1"  id="offcanvasRight" aria-labelledby="offcanvasRightLabel" aria-modal="false" role="dialog">
         <div class="offcanvas-header">
@@ -113,7 +138,7 @@
           </form>
         </div> <!-- end offcanvas-body-->
         <div class="offcanvas-footer p-3 text-end">
-          <a class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">{{ __('Cancel') }}</a>
+          <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="offcanvas">{{ __('Cancel') }}</button>
           <button type="submit" class="btn btn-primary" form="onbehalf_filter">Apply</button>
         </div>
     </div>
@@ -150,8 +175,6 @@
     e.preventDefault();
 
     const url    = btn.getAttribute('data-url');
-    const rowSel = btn.getAttribute('data-row');
-    const empId  = btn.getAttribute('data-emp');
 
     // Reason wajib
     const { value: reason } = await Swal.fire({
@@ -177,9 +200,8 @@
     try {
       const resp = await postRevoke(url, { reason: reason.trim() });
 
-      // Hapus baris (vanilla)
-      const tr = document.querySelector(rowSel);
-      if (tr) tr.remove();
+      // Muat ulang tabel (server-side) supaya baris & hitungan tab ikut ter-update
+      if (window.reloadOnBehalfTable) window.reloadOnBehalfTable();
 
       Swal.fire({ icon: 'success', title: 'Revoked', text: resp.message || 'Appraisal revoked successfully.' });
     } catch (err) {

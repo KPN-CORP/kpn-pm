@@ -60,6 +60,8 @@ use App\Http\Controllers\WeightageController;
 use App\Imports\ApprovalLayerAppraisalImport;
 use Illuminate\Support\Facades\Route;
 use App\Http\Middleware\NotificationMiddleware;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Storage;
 
 Route::get('language/{locale}', [LanguageController::class, 'switchLanguage'])->name('language.switch');
 
@@ -75,7 +77,12 @@ Route::get('schedule-PA', [ScheduleController::class, 'DailyUpdateSchedulePA']);
 
 Route::get('wa-employee/{id}', [EmployeeController::class, 'getEmployeeFromWA']);
 
-Route::get('/test-email', [HomeController::class, 'testEmail']);
+Route::get('/test-email', function () {
+    $messages = '<p>This is a test message with <strong>bold</strong> text.</p>';
+    $name = 'John Doe';
+
+    return view('email.reminderschedule', compact('messages', 'name'));
+});
 
 Route::middleware('guest')->group(function () {
     Route::get('register', [RegisteredUserController::class, 'create'])
@@ -107,7 +114,9 @@ Route::middleware('guest')->group(function () {
 
 Route::middleware('auth', 'locale', 'notification')->group(function () {
 
-    Route::get('/', [HomeController::class, 'landing']);
+    Route::get('/', function () {
+        return redirect('goals');
+    });
 
     Route::get('/search-employee', [SearchController::class, 'searchEmployee']);
 
@@ -149,7 +158,6 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::get('/team-goals/edit/{id}', [TeamGoalController::class, 'edit'])->name('team-goals.edit');
     Route::get('/team-goals/approval/{id}', [TeamGoalController::class, 'approval'])->name('team-goals.approval');
     Route::get('/team-goals/approval-history/{id}', [TeamGoalController::class, 'approvalHistory'])->name('team-goals.approval-history');
-    Route::get('/team-goals/achievement-detail/{id}', [TeamGoalController::class, 'achievementDetail'])->name('team-goals.achievement-detail');
     Route::get('/get-tooltip-content', [TeamGoalController::class, 'getTooltipContent']);
     Route::get('/units-of-measurement', [TeamGoalController::class, 'unitOfMeasurement']);
     Route::post('/import-goals-manager', [TeamGoalController::class, 'import'])->name('importgoalsmanager');
@@ -205,7 +213,12 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
 
     Route::post('/export', [ExportExcelController::class, 'export'])->name('export');
     Route::post('/admin-export', [ExportExcelController::class, 'exportAdmin'])->name('admin.export');
-    Route::get('/check-file', [ExportExcelController::class, 'checkFile']);
+    Route::get('/check-file', function (Request $request) {
+
+        $exists = Storage::disk('public')->exists($request->file);
+
+        return response()->json(['exists' => $exists]);
+    });
     Route::post('/notInitiatedReport', [ExportExcelController::class, 'notInitiated'])->name('team-goals.notInitiated');
     Route::post('/initiatedReport', [ExportExcelController::class, 'initiated'])->name('team-goals.initiated');
     Route::post('/AchievementReport', [ExportExcelController::class, 'achievement'])->name('team-goals.achievement');
@@ -213,7 +226,6 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     // Route::get('/export/goals', [ReportController::class, 'exportGoal'])->name('export.goal');
     Route::post('/get-report-content', [ReportController::class, 'getReportContent'])->name('reports.content');
 
-    Route::get('/reports/goal-detail/{id}', [ReportController::class, 'goalDetail'])->name('reports.goal-detail');
     Route::get('/changes-group-company', [ReportController::class, 'changesGroupCompany']);
     Route::get('/changes-company', [ReportController::class, 'changesCompany']);
 
@@ -291,11 +303,6 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::delete('/calibrationDestroy/{id}', [CalibrationController::class, 'destroy'])->name('calibrationDestroy');
         Route::post('/CalibrationsUpdate', [CalibrationController::class, 'update'])->name('updatecalibrations');
     });
-
-    // Dipakai modal Edit di DUA layar dengan permission berbeda
-    // (Settings > Employee = employeepa, Report > EmployeePA = viewreport),
-    // jadi permission-nya dicek di dalam controller, bukan di sini.
-    Route::get('/employeepa/edit-data/{employeeId}', [EmployeePAController::class, 'editData'])->name('employeepa.edit-data');
 
     Route::middleware(['permission:employeepa'])->group(function () {
         Route::get('/admemployees', [EmployeePAController::class, 'index'])->name('admemployee');
@@ -413,9 +420,9 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         // Goals - Admin
         Route::get('/onbehalf', [AdminOnBehalfController::class, 'index'])->name('onbehalf');
         Route::post('/admin/onbehalf/content', [AdminOnBehalfController::class, 'getOnBehalfContent'])->name('admin.onbehalf.content');
-        Route::get('/admin/onbehalf/goal-detail/{id}', [AdminOnBehalfController::class, 'goalDetail'])->name('admin.onbehalf.goal-detail');
-        Route::get('/admin/onbehalf/achievement-detail/{id}', [AdminOnBehalfController::class, 'achievementDetail'])->name('admin.onbehalf.achievement-detail');
-        Route::get('/admin/onbehalf/appraisal-detail/{id}', [AdminOnBehalfController::class, 'appraisalDetail'])->name('admin.onbehalf.appraisal-detail');
+        Route::post('/admin/onbehalf/data', [AdminOnBehalfController::class, 'onBehalfData'])->name('admin.onbehalf.data');
+        Route::get('/admin/onbehalf/detail/{category}/{id}', [AdminOnBehalfController::class, 'onBehalfDetail'])
+            ->whereIn('category', ['goals', 'appraisal'])->whereNumber('id')->name('admin.onbehalf.detail');
         Route::get('/admin/rating/{id}', [AdminOnBehalfController::class, 'rating'])->name('admin.onbehalfs.rating');
         // Route::get('/admin/onbehalf/{id}', [AdminOnBehalfController::class, 'getOnBehalfContent'])->name('admin.onbehalf.content');
         Route::post('/admin/goal-content', [AdminOnBehalfController::class, 'getGoalContent']);
@@ -430,8 +437,6 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::get('/reports-admin', [AdminReportController::class, 'index'])->name('admin.reports');
         // Route::get('/admin/get-report-content/{reportType}', [AdminReportController::class, 'getReportContent']);
         Route::post('/admin/get-report-content', [AdminReportController::class, 'getReportContent']);
-        Route::get('/admin/reports/goal-detail/{id}', [AdminReportController::class, 'goalDetail'])->name('admin.reports.goal-detail');
-        Route::get('/admin/reports/achievement-detail/{id}', [AdminReportController::class, 'achievementDetail'])->name('admin.reports.achievement-detail');
         Route::get('/admin/changes-group-company', [AdminReportController::class, 'changesGroupCompany']);
         Route::get('/admin/changes-company', [AdminReportController::class, 'changesCompany']);
         //Employee
@@ -478,6 +483,8 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
 });
 
 
-Route::fallback([HomeController::class, 'notFound']);
+Route::fallback(function () {
+    return view('errors.404');
+});
 
 require __DIR__.'/auth.php';
