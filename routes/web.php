@@ -158,6 +158,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::get('/team-goals/edit/{id}', [TeamGoalController::class, 'edit'])->name('team-goals.edit');
     Route::get('/team-goals/approval/{id}', [TeamGoalController::class, 'approval'])->name('team-goals.approval');
     Route::get('/team-goals/approval-history/{id}', [TeamGoalController::class, 'approvalHistory'])->name('team-goals.approval-history');
+    Route::get('/team-goals/achievement-detail/{id}', [TeamGoalController::class, 'achievementDetail'])->name('team-goals.achievement-detail');
     Route::get('/get-tooltip-content', [TeamGoalController::class, 'getTooltipContent']);
     Route::get('/units-of-measurement', [TeamGoalController::class, 'unitOfMeasurement']);
     Route::post('/import-goals-manager', [TeamGoalController::class, 'import'])->name('importgoalsmanager');
@@ -423,6 +424,8 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::post('/admin/onbehalf/data', [AdminOnBehalfController::class, 'onBehalfData'])->name('admin.onbehalf.data');
         Route::get('/admin/onbehalf/detail/{category}/{id}', [AdminOnBehalfController::class, 'onBehalfDetail'])
             ->whereIn('category', ['goals', 'appraisal'])->whereNumber('id')->name('admin.onbehalf.detail');
+        Route::get('/admin/onbehalf/achievement-detail/{id}', [AdminOnBehalfController::class, 'achievementDetail'])
+            ->name('admin.onbehalf.achievement-detail');
         Route::get('/admin/rating/{id}', [AdminOnBehalfController::class, 'rating'])->name('admin.onbehalfs.rating');
         // Route::get('/admin/onbehalf/{id}', [AdminOnBehalfController::class, 'getOnBehalfContent'])->name('admin.onbehalf.content');
         Route::post('/admin/goal-content', [AdminOnBehalfController::class, 'getGoalContent']);
@@ -437,6 +440,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::get('/reports-admin', [AdminReportController::class, 'index'])->name('admin.reports');
         // Route::get('/admin/get-report-content/{reportType}', [AdminReportController::class, 'getReportContent']);
         Route::post('/admin/get-report-content', [AdminReportController::class, 'getReportContent']);
+        Route::get('/admin/reports/achievement-detail/{id}', [AdminReportController::class, 'achievementDetail'])->name('admin.reports.achievement-detail');
         Route::get('/admin/changes-group-company', [AdminReportController::class, 'changesGroupCompany']);
         Route::get('/admin/changes-company', [AdminReportController::class, 'changesCompany']);
         //Employee
