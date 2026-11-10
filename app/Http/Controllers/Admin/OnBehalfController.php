@@ -205,8 +205,8 @@ class OnBehalfController extends Controller
                                                         ->value('layer');
                 }
 
-                $access_menu = json_decode($item->employee->access_menu, true);
-                $access = $access_menu['goals'] && $access_menu['doj'] ?? null;
+                $access_menu = json_decode($item->employee->access_menu ?? '', true) ?: [];
+                $access = !empty($access_menu['goals']) && !empty($access_menu['doj']);
 
                 $item->access = $access;
 
@@ -338,9 +338,11 @@ class OnBehalfController extends Controller
 
                     $dataApprover = $request->approval->first()->approverName->fullname ?? '';
 
-                    $goalData = json_decode($request->appraisal->goal->form_data, true);
+                    $goalData = json_decode($appraisal->goal->form_data ?? '', true) ?: [];
 
-                    $form_data = Auth::user()->id == $request->appraisal->created_by ? $request->appraisal->approvalSnapshots->form_data : $request->appraisal->form_data;
+                    $form_data = Auth::user()->id == $appraisal->created_by
+                        ? ($appraisal->approvalSnapshots->form_data ?? $appraisal->form_data)
+                        : $appraisal->form_data;
 
                     $appraisalData = json_decode($form_data, true);
 
