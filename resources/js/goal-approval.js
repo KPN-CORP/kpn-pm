@@ -607,6 +607,15 @@ function changeCategory(val) {
 
 window.changeCategory = changeCategory;
 
+// Buka kembali kategori terakhir saat halaman On Behalf dimuat dengan ?category=...
+// (mis. setelah approve/revise dari halaman detail) supaya daftarnya tidak kembali kosong.
+$(function () {
+    const initial = $("#category").data("initial-category");
+    if (initial) {
+        changeCategory(initial);
+    }
+});
+
 // Tab status: tandai yang aktif; untuk tabel server-side, filter lewat server.
 $(document).on("click", "#contentOnBehalf .filter-btn", function () {
     setActiveFilterTab(this);

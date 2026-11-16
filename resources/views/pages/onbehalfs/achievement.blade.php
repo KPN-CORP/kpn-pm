@@ -73,7 +73,7 @@
                             </button>
                             <div class="dropdown-menu dropdown-menu-animated">
                               @if ( $achievement->approval_status != 'Approved' )
-                                <a class="dropdown-item" href="{{ route('goals.approval-achievement', $achievement->goal_id) }}">Approve</a>
+                                <a class="dropdown-item" href="{{ route('goals.approval-achievement', ['id' => $achievement->goal_id, 'type' => 'onbehalf']) }}">Approve</a>
                               @else
                               <a class="dropdown-item disabled" href="javascript:void(0)">{{ __('No Action') }}</a>
                               @endif

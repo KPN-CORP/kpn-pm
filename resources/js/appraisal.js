@@ -191,6 +191,14 @@ $(function () {
     return res;
   }
 
+  // Tujuan setelah submit: pakai data-redirect dari tombol (dipasang di blade sesuai
+  // state halaman, mis. kembali ke On Behalf), fallback ke halaman daftar seperti semula.
+  function redirectTarget($btn, step) {
+    const target = $btn.data('redirect');
+    if (target) return String(target);
+    return step === 'review' ? '/appraisals-task' : '/appraisals';
+  }
+
   function toggleBtn($btn, on) {
     const $sp = $btn.find('.spinner-border');
     $btn.toggleClass('disabled', !!on).prop('disabled', !!on);
@@ -224,13 +232,7 @@ $(function () {
       toggleBtn($btn, true);
       await submitViaAjax(submitType);
       Swal.fire({ title: 'Appraisal submitted successfully!', icon: 'success', timer: 1500, showConfirmButton: false });
-      if (step === 'review') {
-          window.location.href = '/appraisals-task';
-        
-      } else {
-          window.location.href = '/appraisals';
-        
-      }
+      window.location.href = redirectTarget($btn, step);
     } catch (e) {
       console.error(e);
       Swal.fire('Error', e.message || 'Submit gagal', 'error');
@@ -250,13 +252,7 @@ $(function () {
       toggleBtn($btn, true);
       await submitViaAjax(submitType);
       Swal.fire({ title: 'Draft saved successfully.', icon: 'success', timer: 1500, showConfirmButton: false });
-      if (step === 'review') {
-          window.location.href = '/appraisals-task';
-        
-      } else {
-          window.location.href = '/appraisals';
-        
-      }
+      window.location.href = redirectTarget($btn, step);
     } catch (e) {
       console.error(e);
       Swal.fire('Error', e.message || 'Save draft gagal', 'error');

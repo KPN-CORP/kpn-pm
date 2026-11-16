@@ -27,6 +27,7 @@ use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 use RealRashid\SweetAlert\Facades\Alert;
 use stdClass;
+use App\Services\AppraisalAchievementAttachmentService;
 use App\Services\AppService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
@@ -95,8 +96,36 @@ class MyAppraisalController extends Controller
             }
 
             $datas = $datasQuery->get();
+<<<<<<< Updated upstream
             
             $formattedData = $datas->map(function($item) {
+=======
+
+            // Approval request bisa menunjuk ke appraisal yang sudah dihapus
+            // (soft delete). Baris seperti ini tidak punya data apa pun untuk
+            // ditampilkan dan sebelumnya membuat seluruh halaman kosong karena
+            // null property error, jadi dibuang lebih dulu.
+            $orphanRequests = $datas->filter(fn ($item) => is_null($item->appraisal));
+
+            if ($orphanRequests->isNotEmpty()) {
+                Log::warning('Approval request tanpa appraisal diabaikan di My Appraisal.', [
+                    'employee_id' => $user,
+                    'request_ids' => $orphanRequests->pluck('id')->all(),
+                    'form_ids'    => $orphanRequests->pluck('form_id')->all(),
+                ]);
+
+                $datas = $datas->reject(fn ($item) => is_null($item->appraisal))->values();
+            }
+
+            if ($datas->isEmpty()) {
+                return $this->emptyAppraisalView($accessMenu);
+            }
+
+            // Satu query layer untuk semua baris, bukan satu query per baris.
+            $layerMap = ApprovalLayerAppraisal::layerMapFor($datas->pluck('employee_id'));
+
+            $formattedData = $datas->map(function($item) use ($layerMap) {
+>>>>>>> Stashed changes
                 $item->formatted_created_at = $this->appService->formatDate($item->appraisal->created_at);
 
                 $item->formatted_updated_at = $this->appService->formatDate($item->appraisal->updated_at);
@@ -114,9 +143,11 @@ class MyAppraisalController extends Controller
             });
             
             
-            $adjustByManager = $datas->first()->updatedBy ? 
-                ApprovalLayerAppraisal::where('approver_id', $datas->first()->updatedBy->employee_id)
-                    ->where('employee_id', $datas->first()->employee_id)
+            $firstRequest = $datas->first();
+
+            $adjustByManager = $firstRequest->updatedBy ?
+                ApprovalLayerAppraisal::where('approver_id', $firstRequest->updatedBy->employee_id)
+                    ->where('employee_id', $firstRequest->employee_id)
                     ->first() : null;
 
             // Setelah data digabungkan, gunakan combineFormData untuk setiap jenis kontributor
@@ -127,8 +158,20 @@ class MyAppraisalController extends Controller
             $technicalData = $this->getDataByName($formGroupData['data']['form_appraisals'], 'Technical') ?? [];
 
             $data = [];
+            $employeeData = $employee;
+            $groupedContributors = collect();
+
             foreach ($formattedData as $request) {
-                
+
+                if (!$request->appraisal->goal) {
+                    Log::warning('Appraisal tanpa goal diabaikan di My Appraisal.', [
+                        'employee_id'  => $user,
+                        'request_id'   => $request->id,
+                        'appraisal_id' => $request->appraisal->id,
+                    ]);
+                    continue;
+                }
+
                 if ($request->appraisal->goal->form_status != 'Draft' || $request->created_by == Auth::user()->id) {
                     // dd($request);
 
@@ -280,35 +323,51 @@ class MyAppraisalController extends Controller
             $parentLink = __('Appraisal');
             $link = __('My Appraisal');
 
-            $selectYear = ApprovalRequest::where('employee_id', $datas->first()->employee_id)->where('category', $this->category)->select('period')->distinct()
+            $selectYear = ApprovalRequest::where('employee_id', $user)->where('category', $this->category)->select('period')->distinct()
                 ->orderBy('period', 'desc')->get();
 
             $achievements = Achievements::where('employee_id', $user)->where('period', $period)->get();
 
             // View Cement only //
-            $viewAchievement = $employeeData->group_company == 'Cement' ? true : false;
-            
+            $viewAchievement = optional($employeeData)->group_company == 'Cement';
+
             return view('pages.appraisals.my-appraisal', compact('data', 'link', 'parentLink', 'uomOption', 'typeOption', 'accessMenu', 'selectYear', 'adjustByManager', 'achievements', 'viewAchievement'));
 
         } catch (Exception $e) {
-            Log::error('Error in index method: ' . $e->getMessage());
+            Log::error('Error in index method: ' . $e->getMessage(), [
+                'employee_id' => $user,
+                'period'      => $period,
+                'filterYear'  => $filterYear,
+                'exception'   => $e,
+            ]);
 
             // Return empty data to be consumed in the Blade template
-            return view('pages.appraisals.my-appraisal', [
-                'data' => [],
-                'link' => 'My Appraisal',
-                'parentLink' => 'Appraisal',
-                'formData' => ['formData' => []],
-                'uomOption' => [],
-                'typeOption' => [],
-                'goals' => null,
-                'selectYear' => [],
-                'adjustByManager' => null,
-                'appraisalData' => [],
-                'accessMenu' => $accessMenu,
-                'achievements' => [],
-            ]);
+            return $this->emptyAppraisalView($accessMenu);
         }
+    }
+
+    /**
+     * Tampilan My Appraisal tanpa data; dipakai saat memang belum ada
+     * appraisal dan saat terjadi error supaya Blade tetap dapat variabel
+     * yang sama.
+     */
+    private function emptyAppraisalView($accessMenu = [])
+    {
+        return view('pages.appraisals.my-appraisal', [
+            'data' => [],
+            'link' => 'My Appraisal',
+            'parentLink' => 'Appraisal',
+            'formData' => ['formData' => []],
+            'uomOption' => [],
+            'typeOption' => [],
+            'goals' => null,
+            'selectYear' => [],
+            'adjustByManager' => null,
+            'appraisalData' => [],
+            'accessMenu' => $accessMenu,
+            'achievements' => [],
+            'viewAchievement' => false,
+        ]);
     }
 
     public function create(Request $request)
@@ -333,6 +392,15 @@ class MyAppraisalController extends Controller
         // check goals
         if ($goalChecked) {
             $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
+<<<<<<< Updated upstream
+=======
+            // Achievement tracking default dari goal achievement, bisa diedit di form appraisal
+            $goalData = KPIService::withAchievementTracking(
+                $goalData,
+                KPIService::achievementTracking($goal),
+                KPIService::attachmentTracking($goal)
+            );
+>>>>>>> Stashed changes
         } else {
             Session::flash('error', "Your Goal for $period are not found.");
             return redirect()->route('appraisals');
@@ -398,7 +466,7 @@ class MyAppraisalController extends Controller
 
             // Validasi data
             // Log::info('Validated data', $request->all());
-            $validatedData = $request->validate([
+            $validatedData = $request->validate(array_merge([
                 'form_group_id' => 'required|string',
                 'employee_id'   => 'required|string|size:11',
                 'approver_id'   => 'required|string|size:11',
@@ -406,7 +474,7 @@ class MyAppraisalController extends Controller
                 'formData'      => 'required|array',
                 'attachment'    => 'nullable|array',
                 'attachment.*'  => 'file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png|max:10240',
-            ]);
+            ], AppraisalAchievementAttachmentService::validationRules()));
 
             $formGroupName = $validatedData['formGroupName'];
             $formData = $validatedData['formData'];
@@ -420,6 +488,26 @@ class MyAppraisalController extends Controller
                 return back()->withErrors(['message' => 'Goal not found for selected employee and period.']);
             }
 
+<<<<<<< Updated upstream
+=======
+            // Attachment per bulan di grid Achievement Tracking. Appraisal baru, jadi basisnya
+            // attachment goal achievement lalu ditimpa file yang diunggah di form ini.
+            $achAttachment = AppraisalAchievementAttachmentService::resolve(
+                $request,
+                $goals,
+                KPIService::attachmentTracking($goals)
+            );
+            $storedAttachmentFiles = $achAttachment['stored'];
+
+            // Achievement KPI dihitung dari tracking bulanan yang diisi user (default goal achievement)
+            $formData = KPIService::applyAchievementTracking(
+                $formData,
+                $goals,
+                KPIService::achievementTracking($goals, $formData),
+                $achAttachment['attachments']
+            );
+
+>>>>>>> Stashed changes
             $datas = [
                 'formGroupName' => $formGroupName,
                 'formData' => $formData,
@@ -488,16 +576,21 @@ class MyAppraisalController extends Controller
             $approval->created_by = Auth::user()->id;
             $approval->save();
 
+            // File attachment lama yang sudah diganti/dihapus, dibuang setelah data tersimpan
+            AppraisalAchievementAttachmentService::delete($achAttachment['stale']);
+
             // Log::info('Appraisal saved successfully, redirecting...');
             return redirect('appraisals')->with('success', $messages);
 
         } catch (ValidationException $e) {
             // Kembalikan ke form dengan error validasi
             // Log::error('Validation error', ['errors' => $e->validator->errors()]);
+            AppraisalAchievementAttachmentService::delete($storedAttachmentFiles ?? []);
             return back()->withErrors($e->validator)->withInput();
         } catch (\Exception $e) {
             // Tangani error umum lainnya
             // Log::error('General error', ['message' => $e->getMessage()]);
+            AppraisalAchievementAttachmentService::delete($storedAttachmentFiles ?? []);
             return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage())->withInput();
         }
     }
@@ -611,6 +704,7 @@ class MyAppraisalController extends Controller
             }
 
             
+<<<<<<< Updated upstream
             // Add the achievements to the goalData
             foreach ($goalData as $index => &$goal) {
                 if (isset($selfReviewData[$index])) {
@@ -619,6 +713,14 @@ class MyAppraisalController extends Controller
                     $goal['actual'] = [];
                 }
             }
+=======
+            // Achievement tracking dari appraisal yang tersimpan, fallback ke goal achievement
+            $goalData = KPIService::withAchievementTracking(
+                $goalData,
+                KPIService::achievementTracking($goal, $formData['formData'] ?? []),
+                KPIService::attachmentTracking($goal, $formData['formData'] ?? [])
+            );
+>>>>>>> Stashed changes
 
             
             foreach ($formData['formData'] as &$form) {                
@@ -711,7 +813,7 @@ class MyAppraisalController extends Controller
         $period = $this->appService->appraisalPeriod();
 
         // ✅ Validasi
-        $validated = $request->validate([
+        $validated = $request->validate(array_merge([
             'id'            => 'required|uuid',
             'employee_id'   => 'required|string|size:11',
             'formGroupName' => 'required|string|min:5|max:100',
@@ -722,7 +824,7 @@ class MyAppraisalController extends Controller
             // daftar file lama yang dipertahankan
             'keep_files'    => 'nullable|array',
             'keep_files.*'  => 'string',
-        ]);
+        ], AppraisalAchievementAttachmentService::validationRules()));
 
         // Normalisasi formData (sesuai logic kamu)
         $formData = $validated['formData'];
@@ -751,6 +853,33 @@ class MyAppraisalController extends Controller
 
         $appraisal = Appraisal::findOrFail($validated['id']);
 
+<<<<<<< Updated upstream
+=======
+        // Achievement KPI dihitung dari tracking bulanan yang diisi user (default goal achievement)
+        $goal = Goal::where('employee_id', $appraisal->employee_id)->where('period', $appraisal->period)->first();
+        $achAttachment = ['attachments' => [], 'stored' => [], 'stale' => []];
+
+        if ($goal) {
+            // Attachment per bulan di grid Achievement Tracking. Nilai bulanan ikut request
+            // (di-post dari form), attachment lama tidak ikut di-post jadi dibaca dari data
+            // appraisal yang tersimpan lalu ditimpa file baru / permintaan hapus dari request.
+            $savedForms = json_decode($appraisal->form_data ?? '[]', true)['formData'] ?? [];
+
+            $achAttachment = AppraisalAchievementAttachmentService::resolve(
+                $request,
+                $goal,
+                KPIService::attachmentTracking($goal, $savedForms)
+            );
+
+            $formData = KPIService::applyAchievementTracking(
+                $formData,
+                $goal,
+                KPIService::achievementTracking($goal, $formData),
+                $achAttachment['attachments']
+            );
+        }
+
+>>>>>>> Stashed changes
         $dataPayload = [
             'formGroupName' => $validated['formGroupName'],
             'formData'      => $formData,
@@ -849,9 +978,13 @@ class MyAppraisalController extends Controller
                     Storage::disk('public')->delete($diskPath);
                 }
             }
+            AppraisalAchievementAttachmentService::delete($achAttachment['stored']);
             report($e);
             return back()->withErrors(['message' => 'Failed to update appraisal.'])->withInput();
         }
+
+        // Attachment achievement lama yang sudah diganti/dihapus
+        AppraisalAchievementAttachmentService::delete($achAttachment['stale']);
 
         return redirect('appraisals')->with('success', $message);
     }

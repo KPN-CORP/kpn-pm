@@ -6,6 +6,13 @@ use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
 use App\Exceptions\InvalidOrderException;
 
+// PHP 8.5 deprecates PDO::MYSQL_ATTR_SSL_CA, which Laravel 11's own
+// vendor/laravel/framework/config/database.php still uses. Config files are
+// loaded by the LoadConfiguration bootstrapper, which runs BEFORE
+// HandleExceptions resets error_reporting(-1) -- so this only silences
+// deprecations during config loading, not for the rest of the request.
+error_reporting(error_reporting() & ~E_DEPRECATED);
+
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
         web: __DIR__.'/../routes/web.php',

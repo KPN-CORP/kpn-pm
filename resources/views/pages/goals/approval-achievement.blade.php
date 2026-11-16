@@ -142,6 +142,8 @@
         @csrf
 
         <input type="hidden" name="goal_id" value="{{ $id }}" style="display: none" />
+        {{-- Halaman asal, supaya setelah Approve kembali ke On Behalf bila dibuka dari sana --}}
+        <input type="hidden" name="type" value="{{ $type ?? '' }}" />
         <h6 class="fw-bold text-dark mb-3 mt-4">{{ __('Achievement Target') }} {{ now()->year }} </h6>
         @if ($approvalInfo)
             <div class="alert alert-warning border-0 mt-3 p-3">
@@ -434,7 +436,7 @@
                                 <a class="dropdown-item py-1" href="javascript:void(0)" onclick="sendBackAchievement('{{ $id }}','{{ $employee->employee_id }}','{{ $employee->fullname }}')">{{ $employee->fullname .' ('.$employee->employee_id.')' }}</a>
                             </div>
                         </div>
-                        <a href="{{ route( $isManager ? 'team-goals' : 'onbehalf') }}"
+                        <a href="{{ $backUrl }}"
                             class="btn btn-light text-secondary border px-3 btn-sm fw-medium">{{ __('Cancel') }}</a>
                         <button type="button" id="submitButton" onclick="confirmAprrovalAchievement()" class="btn btn-primary btn-sm fw-medium">
                             <span class="spinner-border spinner-border-sm me-1 d-none" role="status" aria-hidden="true"></span>{{ __('Approve') }}

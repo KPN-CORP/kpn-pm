@@ -102,10 +102,17 @@ class OnBehalfController extends Controller
             ->orderBy('contribution_level_code')->get();
     }
     
-    function index() {
+    function index(Request $request) {
 
         $parentLink = 'Admin';
         $link = 'On Behalf';
+
+        // Kategori yang terakhir dibuka, dikirim lewat ?category= saat kembali dari
+        // halaman approval/revise supaya daftar langsung terbuka di kategori yang sama.
+        $selectedCategory = $request->input('category');
+        $selectedCategory = in_array($selectedCategory, ['Goals', 'Achievement', 'Appraisal', 'Rating'], true)
+            ? $selectedCategory
+            : null;
 
         $locations = $this->locations;
         $companies = $this->companies;
@@ -118,7 +125,7 @@ class OnBehalfController extends Controller
             'Appraisal' => $this->statusTabs('Appraisal'),
         ];
 
-        return view('pages.onbehalfs.app', compact('link', 'parentLink', 'locations', 'companies', 'groupCompanies', 'listTabs'));
+        return view('pages.onbehalfs.app', compact('link', 'parentLink', 'locations', 'companies', 'groupCompanies', 'listTabs', 'selectedCategory'));
        
     }
 
@@ -1090,7 +1097,7 @@ class OnBehalfController extends Controller
 
             DB::commit();
             return redirect()
-                    ->route('onbehalf')
+                    ->route('onbehalf', ['category' => 'Goals'])
                     ->with('success', 'Achievements approved successfully');
 
         } catch (Exception $e) {

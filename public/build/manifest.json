@@ -76,7 +76,11 @@
     "src": "resources/fonts/remixicon.woff2"
   },
   "resources/js/app.js": {
+<<<<<<< Updated upstream
     "file": "assets/app-c22nW_vW.js",
+=======
+    "file": "assets/app-Ds7r0cNM.js",
+>>>>>>> Stashed changes
     "name": "app",
     "src": "resources/js/app.js",
     "isEntry": true,

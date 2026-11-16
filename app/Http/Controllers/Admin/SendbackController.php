@@ -52,7 +52,7 @@ class SendbackController extends Controller
         $model->save();
 
         // Kirim respons JSON ke JavaScript
-        return redirect()->route('onbehalf');        
+        return redirect()->route('onbehalf', ['category' => 'Goals']);
 
     }
 }

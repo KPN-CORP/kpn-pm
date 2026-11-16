@@ -433,6 +433,14 @@ public function getTeamData(Request $request)
 
         if ($goal) {
             $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
+<<<<<<< Updated upstream
+=======
+            $goalData = KPIService::withAchievementTracking(
+                $goalData,
+                KPIService::achievementTracking($goal),
+                KPIService::attachmentTracking($goal)
+            );
+>>>>>>> Stashed changes
         } else {
             Session::flash('error', "Goal for $period are not found.");
             return redirect()->back();
@@ -480,6 +488,16 @@ public function getTeamData(Request $request)
 
         if ($goal) {
             $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
+<<<<<<< Updated upstream
+=======
+            $employeeForms = $this->employeeAppraisalForms($request->id, $period);
+
+            $goalData = KPIService::withAchievementTracking(
+                $goalData,
+                KPIService::achievementTracking($goal, $employeeForms),
+                KPIService::attachmentTracking($goal, $employeeForms)
+            );
+>>>>>>> Stashed changes
         } else {
             Session::flash('error', "Goals for not found.");
             return redirect()->back();
@@ -571,7 +589,18 @@ public function getTeamData(Request $request)
         $appraisalId = $contributorCheck->appraisal_id ?? null;
 
         if ($goals) {
+<<<<<<< Updated upstream
             $goalData = json_decode($goals->form_data, true);
+=======
+            // Achievement tracking mengikuti self appraisal karyawan, fallback ke goal achievement
+            $appraisalForms = json_decode($appraisal->form_data ?? '[]', true)['formData'] ?? [];
+
+            $goalData = KPIService::withAchievementTracking(
+                json_decode($goals->form_data, true),
+                KPIService::achievementTracking($goals, $appraisalForms),
+                KPIService::attachmentTracking($goals, $appraisalForms)
+            );
+>>>>>>> Stashed changes
         } else {
             Session::flash('error', "Goals for not found.");
             return redirect()->back();
@@ -740,8 +769,8 @@ public function getTeamData(Request $request)
 
         $viewAchievement = $employee->group_company == 'Cement' ? true : false;
 
-        $parentLink = __('Appraisal');
-        $link = 'Review Appraisal';
+        $parentLink = $type === 'onbehalf' ? 'On Behalf' : __('Appraisal');
+        $link = $type === 'onbehalf' ? 'Approval' : 'Review Appraisal';
 
         // Pass the data to the view
         return view('pages.appraisals-task.review', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'goals', 'approval', 'goalData', 'user', 'achievement', 'appraisalId', 'ratings', 'appraisal', 'type', 'achievements', 'viewAchievement', 'contributorTransaction'));
@@ -1097,6 +1126,17 @@ public function getTeamData(Request $request)
                 throw new Exception("No goals found for this period ($period).");
             }
 
+<<<<<<< Updated upstream
+=======
+            // Achievement KPI dari goal achievement, abaikan nilai dari request
+            $datas['formData'] = KPIService::applyAchievementTracking(
+                $datas['formData'],
+                $goals,
+                KPIService::achievementTracking($goals),
+                KPIService::attachmentTracking($goals)
+            );
+
+>>>>>>> Stashed changes
             $goalData = json_decode($goals->form_data, true);
 
             $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $validatedData['employee_id'])->value('approver_id');
@@ -1219,12 +1259,14 @@ public function getTeamData(Request $request)
 
     public function storeReview(Request $request)
     {
+        // Diambil di luar try supaya blok catch tetap tahu halaman asalnya (On Behalf / Appraisal Task).
+        $type = $request->type;
+
         try {
 
             $period = $this->appService->appraisalPeriod();
             $submit_status = $request->submit_type == 'submit_draft' ? 'Draft' : 'Approved';
             $messages = $request->submit_type == 'submit_draft' ? 'Draft saved successfully.' : 'Appraisal submitted successfully.';
-            $type = $request->type;
 
             $onbehalfMessages = $type === 'onbehalf' ? 'Approved by admin ' . Auth::user()->id : null;
 
@@ -1263,6 +1305,19 @@ public function getTeamData(Request $request)
                 'formData' => $formData,
             ];
 
+<<<<<<< Updated upstream
+=======
+            // Achievement KPI mengikuti self appraisal karyawan (fallback goal achievement), abaikan nilai dari request
+            $employeeForms = $this->employeeAppraisalForms($validatedData['employee_id'], $period);
+
+            $datas['formData'] = KPIService::applyAchievementTracking(
+                $datas['formData'],
+                $goals,
+                KPIService::achievementTracking($goals, $employeeForms),
+                KPIService::attachmentTracking($goals, $employeeForms)
+            );
+
+>>>>>>> Stashed changes
             $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee, $period);
 
             $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)
@@ -1450,7 +1505,7 @@ public function getTeamData(Request $request)
 
             // Return a response, such as a redirect or a JSON response
             if ($type === 'onbehalf') {
-                return redirect()->route('onbehalf');
+                return redirect()->route('onbehalf', ['category' => 'Appraisal'])->with('success', $messages);
             }
 
             return redirect('appraisals-task')->with('success', $messages);
@@ -1459,7 +1514,7 @@ public function getTeamData(Request $request)
             DB::rollBack(); // Rollback the transaction in case of an error
             Log::error('Error in storeReview method: ' . $e->getMessage());
             if ($type === 'onbehalf') {
-                return redirect()->route('onbehalf')->with('error', 'An error occurred while submitting the appraisal.');
+                return redirect()->route('onbehalf', ['category' => 'Appraisal'])->with('error', 'An error occurred while submitting the appraisal.');
             }
             return redirect('appraisals-task')->with('error', 'An error occurred while submitting the appraisal.');
         }

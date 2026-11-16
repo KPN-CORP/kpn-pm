@@ -38,12 +38,12 @@
               <div class="col-lg">
                 <div class="mb-3">
                   <label class="form-label" for="category">Select Category :</label>
-                  <select name="category" id="category" onchange="changeCategory(this.value)" class="form-select border-dark-subtle" @style('width: 120px')>
+                  <select name="category" id="category" onchange="changeCategory(this.value)" class="form-select border-dark-subtle" @style('width: 120px')
+                      data-initial-category="{{ $selectedCategory ?? '' }}">
                       <option value="">- select -</option>
-                      <option value="Goals">Goals</option>
-                      <option value="Achievement">Achievement</option>
-                      <option value="Appraisal">Appraisal</option>
-                      <option value="Rating">Rating</option>
+                      @foreach (['Goals', 'Achievement', 'Appraisal', 'Rating'] as $categoryOption)
+                          <option value="{{ $categoryOption }}" @selected(($selectedCategory ?? null) === $categoryOption)>{{ $categoryOption }}</option>
+                      @endforeach
                   </select>
                 </div>
               </div>

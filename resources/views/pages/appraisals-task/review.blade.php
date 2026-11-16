@@ -3,6 +3,12 @@
     use Illuminate\Support\Str;
         $existing = json_decode($appraisal->file ?? '[]', true) ?: [];
 
+        // Halaman ini bisa dibuka dari Appraisal Task atau dari Admin > On Behalf.
+        // Simpan state asalnya supaya tombol Submit/Draft/Close kembali ke halaman yang benar.
+        $isOnBehalf = $type === 'onbehalf';
+        $backUrl = $isOnBehalf
+            ? route('onbehalf', ['category' => 'Appraisal'])
+            : route('appraisals-task');
 @endphp
 @extends('layouts_.vertical', ['page_title' => 'Appraisal'])
 
@@ -263,7 +269,7 @@
                             @if ($type != 'onbehalf')
                                 <div class="col-md">
                                     <div class="mb-3 text-end">
-                                        <a data-id="submit_draft" data-step="review" type="button" class="btn btn-sm btn-outline-secondary submit-draft"><span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Save as Draft') }}</a>
+                                        <a data-id="submit_draft" data-step="review" data-redirect="{{ $backUrl }}" type="button" class="btn btn-sm btn-outline-secondary submit-draft"><span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Save as Draft') }}</a>
                                     </div>
                                 </div>
                             @endif
@@ -272,9 +278,9 @@
                                 <a type="button" class="btn btn-light border me-3 prev-btn" style="display: none;"><i class="ri-arrow-left-line"></i>{{ __('Prev') }}</a>
                                 <a type="button" class="btn btn-primary next-btn">{{ __('Next') }} <i class="ri-arrow-right-line"></i></a>
                                 @if ($filteredFormDatas['viewCategory']=="detail")
-                                    <a href="{{ route('appraisals-task') }}" class="btn btn-outline-primary px-md-4">{{ __('Close') }}</a>
+                                    <a href="{{ $backUrl }}" class="btn btn-outline-primary px-md-4">{{ __('Close') }}</a>
                                 @else
-                                    <a data-id="submit_form" data-step="review" class="btn btn-primary submit-user px-md-4" style="display: none;"><span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Submit') }}</a>
+                                    <a data-id="submit_form" data-step="review" data-redirect="{{ $backUrl }}" class="btn btn-primary submit-user px-md-4" style="display: none;"><span class="spinner-border spinner-border-sm me-1 d-none" aria-hidden="true"></span>{{ __('Submit') }}</a>
                                 @endif
                             </div>
                             <input type="hidden" name="submit_type" id="submitType" value="">

@@ -117,6 +117,175 @@ class KPIService
         ];
     }
 
+<<<<<<< Updated upstream
+=======
+    /**
+     * Achievement tracking per bulan per KPI (index sesuai urutan form_data goal): [index => [1..12 => value|null]].
+     *
+     * Default dari goal achievement. Kalau $appraisalForms (list formData appraisal, dari DB atau request)
+     * punya KPI dengan 'ach', nilai bulan yang sesuai review period ditimpa dengan nilai tersebut.
+     */
+    public static function achievementTracking(Goal $goal, array $appraisalForms = []): array
+    {
+        $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
+        $goalAchievements = KPIAchievementService::getByGoal($goal->id);
+
+        $savedKpi = collect($appraisalForms)->first(fn ($form) => ($form['formName'] ?? null) === 'KPI') ?? [];
+
+        $tracking = [];
+
+        foreach ($goalData ?? [] as $index => $kpi) {
+            $kpiId = $kpi['kpi_id'] ?? null;
+            $months = $kpiId && isset($goalAchievements[$kpiId]['ach'])
+                ? $goalAchievements[$kpiId]['ach']
+                : array_fill(1, 12, null);
+
+            $saved = $savedKpi[$index]['ach'] ?? null;
+
+            if (is_array($saved)) {
+                foreach ($months as $month => $value) {
+                    if (self::isTrackedMonth($month, $kpi['review_period'] ?? null)) {
+                        $months[$month] = self::cleanMonthValue($saved[$month] ?? null);
+                    }
+                }
+            }
+
+            $tracking[$index] = $months;
+        }
+
+        return $tracking;
+    }
+
+    /**
+     * Attachment achievement per bulan per KPI (index sesuai urutan form_data goal):
+     * [index => [1..12 => path disk 'public'|null]].
+     *
+     * Default dari attachment goal achievement (halaman Update Achievement). Kalau $appraisalForms
+     * punya KPI dengan 'ach_attachment', bulan yang sesuai review period ditimpa dengan nilai
+     * tersebut, termasuk null kalau user menghapus attachment di form appraisal.
+     */
+    public static function attachmentTracking(Goal $goal, array $appraisalForms = []): array
+    {
+        $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
+        $goalAchievements = KPIAchievementService::getByGoal($goal->id);
+
+        $savedKpi = collect($appraisalForms)->first(fn ($form) => ($form['formName'] ?? null) === 'KPI') ?? [];
+
+        $attachments = [];
+
+        foreach ($goalData ?? [] as $index => $kpi) {
+            $kpiId = $kpi['kpi_id'] ?? null;
+            $months = $kpiId && isset($goalAchievements[$kpiId]['attachment'])
+                ? $goalAchievements[$kpiId]['attachment']
+                : array_fill(1, 12, null);
+
+            $saved = $savedKpi[$index]['ach_attachment'] ?? null;
+
+            if (is_array($saved)) {
+                foreach (array_keys($months) as $month) {
+                    if (self::isTrackedMonth($month, $kpi['review_period'] ?? null)) {
+                        $months[$month] = self::cleanAttachmentValue($saved[$month] ?? null);
+                    }
+                }
+            }
+
+            $attachments[$index] = $months;
+        }
+
+        return $attachments;
+    }
+
+    /**
+     * Bulan yang bisa diisi sesuai review period (sama seperti halaman Update Achievement goal).
+     */
+    public static function isTrackedMonth(int $month, $reviewPeriod): bool
+    {
+        $period = (int) $reviewPeriod;
+
+        return $period <= 1 || $month % $period === 0;
+    }
+
+    private static function cleanMonthValue($value): ?string
+    {
+        $value = str_replace(',', '', trim((string) $value));
+
+        return is_numeric($value) ? (string) (float) $value : null;
+    }
+
+    private static function cleanAttachmentValue($value): ?string
+    {
+        $value = is_string($value) ? trim($value) : null;
+
+        return $value === '' ? null : $value;
+    }
+
+    /**
+     * Actual satu KPI dari tracking bulanan, pakai calculation method KPI tersebut. Tanpa nilai = 0.
+     */
+    public static function trackingActual(array $kpi, array $months): float
+    {
+        $values = collect($months)
+            ->sortKeys()
+            ->filter(fn ($v) => $v !== null && $v !== '')
+            ->map(fn ($v) => (float) $v)
+            ->values()
+            ->toArray();
+
+        return empty($values)
+            ? 0
+            : round(self::aggregate($kpi['calculation_method'] ?? 'last', $values, $kpi['review_period'] ?? null), 2);
+    }
+
+    /**
+     * Isi $goalData[i] dengan 'ach', 'ach_attachment', 'actual' dan 'achievement_percent'
+     * untuk ditampilkan di form appraisal.
+     */
+    public static function withAchievementTracking(array $goalData, array $tracking, array $attachments = []): array
+    {
+        foreach ($goalData as $index => &$kpi) {
+            $kpi['ach'] = $tracking[$index] ?? array_fill(1, 12, null);
+            $kpi['ach_attachment'] = $attachments[$index] ?? array_fill(1, 12, null);
+            $kpi['actual'] = self::trackingActual($kpi, $kpi['ach']);
+            $kpi['achievement_percent'] = round(self::achievement(
+                $kpi['actual'],
+                (float) ($kpi['target'] ?? 0),
+                $kpi['type'] ?? 'Higher Better'
+            ), 2);
+        }
+
+        return $goalData;
+    }
+
+    /**
+     * Tulis 'ach', 'ach_attachment' dan 'achievement' (actual hasil hitung) ke form KPI yang akan
+     * disimpan. Nilai achievement dari request diabaikan, selalu dihitung ulang dari tracking.
+     *
+     * $attachments kosong berarti attachment tidak ikut ditulis, data lama tidak disentuh.
+     */
+    public static function applyAchievementTracking(array $formData, Goal $goal, array $tracking, array $attachments = []): array
+    {
+        $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
+
+        foreach ($formData as &$form) {
+            if (($form['formName'] ?? null) !== 'KPI') {
+                continue;
+            }
+
+            foreach ($goalData ?? [] as $index => $kpi) {
+                $months = $tracking[$index] ?? array_fill(1, 12, null);
+                $form[$index]['ach'] = $months;
+                $form[$index]['achievement'] = (string) self::trackingActual($kpi, $months);
+
+                if (!empty($attachments)) {
+                    $form[$index]['ach_attachment'] = $attachments[$index] ?? array_fill(1, 12, null);
+                }
+            }
+        }
+
+        return $formData;
+    }
+
+>>>>>>> Stashed changes
     function layerApproval(string $employeeId)
     {
         $approvalLayer = ApprovalLayer::query()

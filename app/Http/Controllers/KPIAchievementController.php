@@ -488,9 +488,12 @@ class KPIAchievementController extends Controller
         }
     }
 
-    public function approvalAchievement($id)
+    public function approvalAchievement(Request $request, $id)
     {
         try {
+            // State halaman asal: 'onbehalf' bila dibuka dari Admin > On Behalf,
+            // supaya tombol Cancel/Approve kembali ke daftar On Behalf.
+            $type = $request->input('type') === 'onbehalf' ? 'onbehalf' : null;
             $goal = Goal::with('employee.managerL1')->findOrFail($id);
 
             $formData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true) ?? [];
@@ -642,7 +645,8 @@ class KPIAchievementController extends Controller
             }
 
             $employee = $goal->employee;
-            $parentLink = $isManager ? __('Achievement') : __('On Behalf');
+            $isOnBehalf = $type === 'onbehalf' || !$isManager;
+            $parentLink = $isOnBehalf ? __('On Behalf') : __('Achievement');
             $link = __('Approval');
 
             return view('pages.goals.approval-achievement', [
@@ -652,7 +656,11 @@ class KPIAchievementController extends Controller
                 'id' => $id,
                 'parentLink' => $parentLink,
                 'link' => $link,
-                'isManager' => $isManager
+                'isManager' => $isManager,
+                'type' => $type,
+                'backUrl' => $isOnBehalf
+                    ? route('onbehalf', ['category' => 'Achievement'])
+                    : route('team-goals'),
             ]);
 
         } catch (\Exception $e) {
@@ -784,10 +792,12 @@ class KPIAchievementController extends Controller
 
             DB::commit();
 
-            if ($hasInvalidApprover) {
+            // State halaman asal diutamakan; $hasInvalidApprover tetap dipakai sebagai
+            // fallback untuk link lama yang belum mengirim 'type'.
+            if ($request->input('type') === 'onbehalf' || $hasInvalidApprover) {
 
                 return redirect()
-                    ->route('onbehalf')
+                    ->route('onbehalf', ['category' => 'Achievement'])
                     ->with(
                         'success',
                         'Achievements approved successfully'
