@@ -346,7 +346,7 @@
                                                         @forelse ($row->formData['formData'] as $form)
                                                             @if ($form['formName'] === 'KPI')
                                                                 {{-- Kartu KPI sama dengan popup detail appraisal (On Behalf) --}}
-                                                                @include('pages.onbehalfs.partials.kpi-cards', ['form' => $form, 'tracking' => $row->kpiTracking ?? []])
+                                                                @include('pages.onbehalfs.partials.kpi-cards', ['form' => $form, 'tracking' => $row->kpiTracking ?? [], 'files' => $row->kpiFiles ?? []])
                                                             @endif
                                                         @empty
                                                             <p>No form data available.</p>

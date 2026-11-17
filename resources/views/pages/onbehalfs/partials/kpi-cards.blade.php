@@ -6,6 +6,7 @@
     Variabel:
       $form      KPI hasil AppService::combineFormData (index numerik => KPI goal + achievement/percentage)
       $tracking  KPIService::achievementTracking(): [index KPI => [1..12 => nilai bulanan]]
+      $files     KPIService::achievementFiles(): [index KPI => [1..12 => path file]] (opsional)
 
     Achievement & % diambil dari $form (nilai yang dipakai untuk score), bukan dihitung ulang,
     supaya kartu selalu sama dengan "KPI | Score" di atasnya.
@@ -65,6 +66,7 @@
         $uom = is_null($data['custom_uom'] ?? null) ? ($data['uom'] ?? '-') : $data['custom_uom'];
         $percent = (float) ($data['percentage'] ?? 0);
         $monthly = $tracking[$index] ?? ($data['ach'] ?? []);
+        $monthlyFiles = $files[$index] ?? ($data['ach_file'] ?? []);
     @endphp
     <div class="kpi-review-card mb-3 p-3 {{ $loop->even ? 'bg-light-subtle' : 'bg-white' }}">
         <div class="row g-3 mb-2">
@@ -120,8 +122,8 @@
                     <div class="read-only-month pb-1">
                         <span class="text-uppercase fw-bold text-secondary d-block mb-1" style="font-size: 0.65rem;">{{ $monthLabel }}</span>
                         <span class="fw-bold text-dark" style="font-size: 1.1rem;">{{ $formatNumber($value) }}</span>
-                        @if (!empty($data['ach_file'][$monthNum]))
-                            <a href="{{ asset('storage/'.$data['ach_file'][$monthNum]) }}" target="_blank"
+                        @if (!empty($monthlyFiles[$monthNum]))
+                            <a href="{{ asset('storage/'.$monthlyFiles[$monthNum]) }}" target="_blank"
                                 class="d-block mt-1 rounded border border-primary text-primary text-decoration-none" style="font-size: 0.65rem; padding: 2px 0;">
                                 <i class="ri-file-line"></i> VIEW
                             </a>

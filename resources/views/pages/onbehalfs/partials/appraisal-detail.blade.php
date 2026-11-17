@@ -146,7 +146,7 @@
                                 <div class="card card-body mb-3">
                                     @includeWhen($item['formName'] == 'Leadership', 'partials.leadership-detail', ['formData' => $row->formData])
                                     @includeWhen($item['formName'] == 'Culture', 'partials.culture-detail', ['formData' => $row->formData])
-                                    @includeWhen($item['formName'] == 'KPI', 'pages.onbehalfs.partials.kpi-cards', ['form' => $item, 'tracking' => $row->kpiTracking ?? []])
+                                    @includeWhen($item['formName'] == 'KPI', 'pages.onbehalfs.partials.kpi-cards', ['form' => $item, 'tracking' => $row->kpiTracking ?? [], 'files' => $row->kpiFiles ?? []])
                                 </div>
                             </div>
                         </div>

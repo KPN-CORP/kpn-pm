@@ -236,6 +236,9 @@ class MyAppraisalController extends Controller
                     $dataItem->kpiTracking = $request->appraisal->goal
                         ? KPIService::achievementTracking($request->appraisal->goal, $appraisalData['formData'] ?? [])
                         : [];
+                    $dataItem->kpiFiles = $request->appraisal->goal
+                        ? KPIService::achievementFiles($request->appraisal->goal, $appraisalData['formData'] ?? [])
+                        : [];
                     $data[] = $dataItem;
                 }
             }

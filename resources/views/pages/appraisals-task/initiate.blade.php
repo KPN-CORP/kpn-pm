@@ -135,7 +135,7 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <form id="formAppraisalUser" action="{{ route('appraisals-task.submit') }}" method="POST" enctype="multipart/form-data">
+                        <form id="formAppraisalUser" action="{{ route('appraisals-task.submit') }}" method="POST" enctype="multipart/form-data" data-keep-input>
                         @csrf
                         <input type="hidden" id="user_id" value="{{ Auth::user()->employee_id }}">
                         <input type="hidden" id="employee_id" name="employee_id" value="{{ $goal->employee_id }}">

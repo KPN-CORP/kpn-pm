@@ -583,6 +583,7 @@ class OnBehalfController extends Controller
         // Tracking achievement bulanan per KPI untuk kartu KPI (sama sumbernya dengan halaman Review Appraisal)
         $appraisalForms = (json_decode($formJson ?? '', true) ?: [])['formData'] ?? [];
         $kpiTracking = $appraisal->goal ? KPIService::achievementTracking($appraisal->goal, $appraisalForms) : [];
+        $kpiFiles = $appraisal->goal ? KPIService::achievementFiles($appraisal->goal, $appraisalForms) : [];
 
         $row = new stdClass();
         $row->request = $item;
@@ -590,6 +591,7 @@ class OnBehalfController extends Controller
         $row->approvalLayer = $layer;
         $row->formData = $formData;
         $row->kpiTracking = $kpiTracking;
+        $row->kpiFiles = $kpiFiles;
 
         return view('pages.onbehalfs.partials.detail-modal', [
             'title' => 'Appraisal Detail',

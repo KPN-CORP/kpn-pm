@@ -150,7 +150,7 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <form id="formAppraisalUser" action="{{ route('appraisals-task.submitReview') }}" method="POST" enctype="multipart/form-data">
+                        <form id="formAppraisalUser" action="{{ route('appraisals-task.submitReview') }}" method="POST" enctype="multipart/form-data" data-keep-input>
                         @csrf
                         <input type="hidden" id="user_id" value="{{ Auth::user()->employee_id }}">
                         <input type="hidden" name="type" value="{{ $type }}">
