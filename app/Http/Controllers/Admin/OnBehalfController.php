@@ -547,7 +547,11 @@ class OnBehalfController extends Controller
             ->findOrFail($id);
 
         if ($category === 'Goals') {
-            return view('pages.onbehalfs.goal_detail', ['row' => $item]);
+            return view('pages.onbehalfs.partials.detail-modal', [
+                'title' => 'Goal Detail',
+                'view' => 'pages.onbehalfs.partials.goal-detail',
+                'row' => $item,
+            ]);
         }
 
         $appraisal = $item->appraisal;
@@ -574,13 +578,65 @@ class OnBehalfController extends Controller
             return response()->json(['status' => 'error', 'message' => $e->getMessage()], 422);
         }
 
+        $formData = $this->withCultureLeadershipItems($formData, $item->employee_id);
+
+        // Tracking achievement bulanan per KPI untuk kartu KPI (sama sumbernya dengan halaman Review Appraisal)
+        $appraisalForms = (json_decode($formJson ?? '', true) ?: [])['formData'] ?? [];
+        $kpiTracking = $appraisal->goal ? KPIService::achievementTracking($appraisal->goal, $appraisalForms) : [];
+
         $row = new stdClass();
         $row->request = $item;
         $row->name = $name;
         $row->approvalLayer = $layer;
         $row->formData = $formData;
+        $row->kpiTracking = $kpiTracking;
 
-        return view('pages.onbehalfs.appraisal_detail', ['row' => $row]);
+        return view('pages.onbehalfs.partials.detail-modal', [
+            'title' => 'Appraisal Detail',
+            'view' => 'pages.onbehalfs.partials.appraisal-detail',
+            'row' => $row,
+        ]);
+    }
+
+    /**
+     * Tambahkan judul & teks item Culture/Leadership ke hasil combineFormData (yang hanya berisi score),
+     * sama seperti detail Admin Appraisal (Admin\AppraisalController::getDetailData), agar modal
+     * menampilkan judul, deskripsi item, lalu score — bukan hanya "Score: x".
+     */
+    private function withCultureLeadershipItems(array $formData, string $employeeId): array
+    {
+        $formGroup = $this->appService->formGroupAppraisal($employeeId, 'Appraisal Form');
+        $formAppraisals = $formGroup['data']['form_appraisals'] ?? [];
+
+        $sections = [
+            'Culture' => $this->appService->getDataByName($formAppraisals, 'Culture') ?? [],
+            'Leadership' => $this->appService->getDataByName($formAppraisals, 'Leadership') ?? [],
+        ];
+
+        foreach ($formData['formData'] ?? [] as $formIndex => $form) {
+            $sectionData = $sections[$form['formName'] ?? ''] ?? null;
+            if (!$sectionData) {
+                continue;
+            }
+
+            foreach ($sectionData as $index => $section) {
+                foreach ($section['items'] ?? [] as $itemIndex => $itemText) {
+                    if (isset($form[$index][$itemIndex])) {
+                        $form[$index][$itemIndex] = [
+                            'formItem' => $itemText,
+                            'score' => $form[$index][$itemIndex]['score'] ?? null,
+                        ];
+                    }
+                }
+                if (isset($form[$index])) {
+                    $form[$index]['title'] = $section['title'] ?? null;
+                }
+            }
+
+            $formData['formData'][$formIndex] = $form;
+        }
+
+        return $formData;
     }
 
     /**
@@ -1090,7 +1146,7 @@ class OnBehalfController extends Controller
 
             DB::commit();
             return redirect()
-                    ->route('onbehalf')
+                    ->route('onbehalf', ['category' => 'Achievement'])
                     ->with('success', 'Achievements approved successfully');
 
         } catch (Exception $e) {

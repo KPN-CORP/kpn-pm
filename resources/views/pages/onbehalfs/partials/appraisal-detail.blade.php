@@ -34,7 +34,7 @@
                     <div class="row px-2">
                         <div class="col-lg col-sm-12 p-2">
                             <h5>{{ __('Initiated By') }}</h5>
-                            <p class="mt-2 mb-0 text-muted">{{ $row->request->initiated->name }} ({{ $row->request->initiated->employee_id }})</p>
+                            <p class="mt-2 mb-0 text-muted">{{ $row->request->initiated?->name ? $row->request->initiated->name . ' (' . $row->request->initiated->employee_id . ')' : '-' }}</p>
                         </div>
                         <div class="col-lg col-sm-12 p-2">
                             <h5>{{ __('Initiated Date') }}</h5>
@@ -53,12 +53,12 @@
                             <div>
                                 @php
                                     $popoverContent = match (true) {
-                                        in_array($row->request->appraisal->first()?->goal?->form_status, ['Draft']) => 'Draft',
+                                        in_array($row->request->appraisal?->goal?->form_status, ['Draft']) => 'Draft',
                                         default => $row->approvalLayer ? "Manager L{$row->approvalLayer} : {$row->name}" : $row->name,
                                     };
 
                                     $badgeClass = match (true) {
-                                        in_array($row->request->appraisal->first()?->goal?->form_status, ['Draft']),
+                                        in_array($row->request->appraisal?->goal?->form_status, ['Draft']),
                                         $row->request->appraisal->form_status === 'Draft',
                                         $row->request->sendback_to == $row->request->employee_id => 'bg-secondary',
                                         $row->request->status === 'Approved' => 'bg-success',
@@ -115,12 +115,13 @@
 
                     @forelse ($row->formData['formData'] as $indexItem => $item)
                         <div class="row">
+                            @php($collapseId = 'onbehalf-appraisal-' . $row->request->appraisal->id . '-' . $indexItem)
                             <button class="btn rounded mb-2 py-2 bg-white border-opacity-50 border-primary bg-opacity-10 text-primary align-items-center d-flex justify-content-between"
-                                    {{-- type="button"
+                                    type="button"
                                     data-bs-toggle="collapse"
-                                    data-bs-target="#collapse-{{ $indexItem }}"
+                                    data-bs-target="#{{ $collapseId }}"
                                     aria-expanded="false"
-                                    aria-controls="collapse-{{ $indexItem }}" --}}
+                                    aria-controls="{{ $collapseId }}"
                                     >
                                 <span class="fs-16 ms-1">
                                     {{ $item['formName'] }}
@@ -133,17 +134,19 @@
                                         }
                                     }}
                                 </span>
-                                {{-- <span>
-                                    <p class="d-none d-md-inline me-1">Details</p>
+                                <span>
+                                    <span class="d-none d-md-inline me-1">Details</span>
                                     <i class="ri-arrow-down-s-line"></i>
-                                </span> --}}
+                                </span>
                             </button>
 
-                            <div class="collapse" id="collapse-{{ $indexItem }}">
+                            {{-- Culture/Leadership pakai $row->formData (hasil combineFormData) karena
+                                 judul tiap item baru ditambahkan di sana; form_data mentah tidak punya title. --}}
+                            <div class="collapse" id="{{ $collapseId }}">
                                 <div class="card card-body mb-3">
-                                    @includeWhen($item['formName'] == 'Leadership', 'partials.leadership-detail', ['formData' => $formData])
-                                    @includeWhen($item['formName'] == 'Culture', 'partials.culture-detail', ['formData' => $formData])
-                                    @includeWhen($item['formName'] == 'KPI', 'partials.kpi-detail', ['form' => $item])
+                                    @includeWhen($item['formName'] == 'Leadership', 'partials.leadership-detail', ['formData' => $row->formData])
+                                    @includeWhen($item['formName'] == 'Culture', 'partials.culture-detail', ['formData' => $row->formData])
+                                    @includeWhen($item['formName'] == 'KPI', 'pages.onbehalfs.partials.kpi-cards', ['form' => $item, 'tracking' => $row->kpiTracking ?? []])
                                 </div>
                             </div>
                         </div>

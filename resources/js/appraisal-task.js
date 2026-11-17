@@ -533,18 +533,17 @@ document.addEventListener('DOMContentLoaded', function() {
     if ($stickyElement.length > 0) {
         var stickyOffset = $stickyElement.offset().top;
 
+        // Tempel tepat di bawah topbar (tinggi topbar bisa beda per layout)
+        function updateStickyTop() {
+            var navbarHeight = $('.navbar-custom').outerHeight() || 70;
+            $stickyElement[0].style.setProperty('--detail-employee-top', navbarHeight + 'px');
+        }
+
         function handleScroll() {
-            if ($window.width() > 768) { // Check if viewport width is greater than 768px
-                if ($window.scrollTop() > stickyOffset) {
-                    $stickyElement.addClass('sticky-top');
-                    $stickyElement.addClass('sticky-padding');
-                } else {
-                    $stickyElement.removeClass('sticky-top');
-                    $stickyElement.removeClass('sticky-padding');
-                }
+            if ($window.width() > 768 && $window.scrollTop() > stickyOffset) { // Hanya di layar > 768px
+                $stickyElement.addClass('sticky-top');
             } else {
                 $stickyElement.removeClass('sticky-top');
-                $stickyElement.removeClass('sticky-padding');
             }
         }
 
@@ -553,10 +552,12 @@ document.addEventListener('DOMContentLoaded', function() {
         $window.on('resize', function() {
             // Update the stickyOffset on resize
             stickyOffset = $stickyElement.offset().top;
+            updateStickyTop();
             handleScroll();
         });
 
         // Initial check
+        updateStickyTop();
         handleScroll();
     }
 });

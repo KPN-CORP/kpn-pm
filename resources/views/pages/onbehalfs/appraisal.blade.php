@@ -12,7 +12,7 @@
           </div>
         </div>
         <div class="card-body">
-            <table class="table table-sm table-hover align-middle activate-select dt-responsive nowrap w-100 fs-14" id="onBehalfTable">
+            <table class="table table-sm table-hover align-middle activate-select dt-responsive nowrap w-100 fs-14" id="onBehalfTable" data-order='[[5, "desc"]]'>
                 <thead class="thead-light">
                     <tr class="text-center">
                         <th>Employees</th>
@@ -38,9 +38,9 @@
                           {{ $row->request->appraisal->form_status == 'Draft' ? 'Draft': ($row->request->status == 'Pending' ? __('Pending') : ($row->request->status == 'Sendback' ? 'Waiting For Revision' : $row->request->status)) }}
                         </a>
                       </td>
-                      <td class="text-center">{{ $row->request->formatted_created_at }}</td>
-                      <td>{{ $row->request->initiated->name ? $row->request->initiated->name .' ('. $row->request->initiated->employee_id .')'  : '-' }}</td>
-                      <td class="text-center">{{ $row->request->formatted_updated_at }}</td>
+                      <td class="text-center" data-order="{{ optional($row->request->appraisal->created_at)->timestamp }}">{{ $row->request->formatted_created_at }}</td>
+                      <td>{{ $row->request->initiated?->name ? $row->request->initiated->name .' ('. $row->request->initiated->employee_id .')'  : '-' }}</td>
+                      <td class="text-center" data-order="{{ optional($row->request->appraisal->updated_at)->timestamp }}">{{ $row->request->formatted_updated_at }}</td>
                       <td>{{ $row->request->updatedBy ? $row->request->updatedBy->name.' ('.$row->request->updatedBy->employee_id.')' : '-' }}</td>
 
                       <td class="text-center sorting_1 px-1">

@@ -1462,7 +1462,7 @@ public function getTeamData(Request $request)
 
             // Return a response, such as a redirect or a JSON response
             if ($type === 'onbehalf') {
-                return redirect()->route('onbehalf');
+                return redirect()->route('onbehalf', ['category' => 'Appraisal']);
             }
 
             return redirect('appraisals-task')->with('success', $messages);
@@ -1471,7 +1471,7 @@ public function getTeamData(Request $request)
             DB::rollBack(); // Rollback the transaction in case of an error
             Log::error('Error in storeReview method: ' . $e->getMessage());
             if ($type === 'onbehalf') {
-                return redirect()->route('onbehalf')->with('error', 'An error occurred while submitting the appraisal.');
+                return redirect()->route('onbehalf', ['category' => 'Appraisal'])->with('error', 'An error occurred while submitting the appraisal.');
             }
             return redirect('appraisals-task')->with('error', 'An error occurred while submitting the appraisal.');
         }

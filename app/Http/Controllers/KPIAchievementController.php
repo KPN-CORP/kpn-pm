@@ -787,7 +787,7 @@ class KPIAchievementController extends Controller
             if ($hasInvalidApprover) {
 
                 return redirect()
-                    ->route('onbehalf')
+                    ->route('onbehalf', ['category' => 'Achievement'])
                     ->with(
                         'success',
                         'Achievements approved successfully'

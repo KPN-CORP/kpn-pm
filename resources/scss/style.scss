@@ -54,8 +54,14 @@
     transition: padding-top 0s ease;
   }
   
-.sticky-padding {
-    padding-top: 140px;
+/* Kartu info karyawan yang menempel saat scroll: taruh di bawah topbar, bukan menimpanya.
+   (Dulu pakai padding-top 140px + z-index 1020 -> area transparan menutupi topbar sehingga menu/bahasa tidak bisa diklik.) */
+.detail-employee.sticky-top {
+    top: var(--detail-employee-top, 70px);
+    z-index: 998; /* di bawah .navbar-custom (999) agar dropdown topbar tetap di atas */
+    /* Latar solid (warna halaman) supaya konten yang di-scroll tidak terlihat di celah atas/bawah kartu */
+    padding-top: 10px;
+    background-color: var(--#{$prefix}body-bg);
 }
 
 /* Custom styles to make Select2 elements smaller */

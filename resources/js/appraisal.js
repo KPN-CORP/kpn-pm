@@ -191,6 +191,11 @@ $(function () {
     return res;
   }
 
+  // Form dibuka dari halaman On Behalf (admin) -> setelah submit kembali ke On Behalf
+  function isOnBehalf() {
+    return form?.elements?.namedItem('type')?.value === 'onbehalf';
+  }
+
   function toggleBtn($btn, on) {
     const $sp = $btn.find('.spinner-border');
     $btn.toggleClass('disabled', !!on).prop('disabled', !!on);
@@ -224,7 +229,9 @@ $(function () {
       toggleBtn($btn, true);
       await submitViaAjax(submitType);
       Swal.fire({ title: 'Appraisal submitted successfully!', icon: 'success', timer: 1500, showConfirmButton: false });
-      if (step === 'review') {
+      if (isOnBehalf()) {
+          window.location.href = '/onbehalf?category=Appraisal';
+      } else if (step === 'review') {
           window.location.href = '/appraisals-task';
         
       } else {
@@ -250,7 +257,9 @@ $(function () {
       toggleBtn($btn, true);
       await submitViaAjax(submitType);
       Swal.fire({ title: 'Draft saved successfully.', icon: 'success', timer: 1500, showConfirmButton: false });
-      if (step === 'review') {
+      if (isOnBehalf()) {
+          window.location.href = '/onbehalf?category=Appraisal';
+      } else if (step === 'review') {
           window.location.href = '/appraisals-task';
         
       } else {
