@@ -345,81 +345,8 @@
                                                     <div class="card card-body mb-3 p-2">
                                                         @forelse ($row->formData['formData'] as $form)
                                                             @if ($form['formName'] === 'KPI')
-                                                                <div class="form-group mb-2">
-                                                                    @foreach ($form as $key => $data)
-                                                                        @if (is_array($data))
-                                                                            <div class="row">
-                                                                                <div class="card col-md-12 mb-2 p-0 border border-primary bg-light-subtle">
-                                                                                    <div class="card-header p-md-3 p-2">
-                                                                                        <h4>{{ __('Goal') }} {{ $key + 1 }}</h4>
-                                                                                    </div>
-                                                                                    <div class="card-body p-md-3 p-2">
-                                                                                        <div class="row">
-                                                                                            <div class="col-lg-4 mb-3">
-                                                                                                <div class="form-group">
-                                                                                                    <label class="form-label" for="kpi">KPI</label>
-                                                                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['kpi'] }}</p>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                            <div class="col-lg-2 mb-3">
-                                                                                                <div class="form-group">
-                                                                                                    <label class="form-label"
-                                                                                                        for="weightage">{{ __('Weightage') }}</label>
-                                                                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['weightage'] }}%</p>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                            <div class="col-lg-2 mb-3">
-                                                                                                <div class="form-group">
-                                                                                                    <label class="form-label"
-                                                                                                        for="type">{{ __('Type') }}</label>
-                                                                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['type'] }}</p>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                            <div class="col-lg-2 mb-3">
-                                                                                                <div class="form-group">
-                                                                                                    <label class="form-label"
-                                                                                                        for="target">{{ __('Target In UoM') }}
-                                                                                                        {{ $data['custom_uom'] ?? $data['uom'] }}</label>
-                                                                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['target'] }}</p>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                            <div class="col-lg-2 mb-3">
-                                                                                                <div class="form-group">
-                                                                                                    <label class="form-label"
-                                                                                                        for="achievement">{{ __('Achievement In') }}
-                                                                                                        {{ $data['custom_uom'] ?? $data['uom'] }}</label>
-                                                                                                    <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['achievement'] }}</p>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                        <hr class="mt-0 mb-2">
-                                                                                        <div class="row">
-                                                                                            <div class="col-md mb-2">
-                                                                                                <div class="form-group">
-                                                                                                    <label class="form-label"
-                                                                                                        for="description">Description</label>
-                                                                                                    <div
-                                                                                                        style="max-width: 100%; max-height: 100px; overflow-y: auto;">
-                                                                                                        <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['description'] ?? '-' }}</p>
-                                                                                                    </div>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                            <div class="col-md-2 mb-2">
-                                                                                                <div class="form-group">
-                                                                                                    <label class="form-label"
-                                                                                                        for="percentage">{{ __('Achievement %') }}</label>
-                                                                                                    <p class="mt-1 mb-0 text-muted">
-                                                                                                        {{ isset($data['percentage']) ? round($data['percentage']) . '%' : '0%' }}
-                                                                                                    </p>
-                                                                                                </div>
-                                                                                            </div>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                </div>
-                                                                            </div>
-                                                                        @endif
-                                                                    @endforeach
-                                                                </div>
+                                                                {{-- Kartu KPI sama dengan popup detail appraisal (On Behalf) --}}
+                                                                @include('pages.onbehalfs.partials.kpi-cards', ['form' => $form, 'tracking' => $row->kpiTracking ?? []])
                                                             @endif
                                                         @empty
                                                             <p>No form data available.</p>

@@ -96,7 +96,7 @@
                     </div>
                     {{-- @endif --}}
                     <div class="card-body">
-                        <form id="formAppraisalUser" action="{{ route('appraisal.submit') }}" enctype="multipart/form-data" method="POST">
+                        <form id="formAppraisalUser" action="{{ route('appraisal.submit') }}" enctype="multipart/form-data" method="POST" data-keep-input>
                         @csrf
                         <input type="hidden" id="user_id" value="{{ Auth::user()->employee_id }}">
                         <input type="hidden" id="employee_id" name="employee_id" value="{{ $goal->employee_id }}">

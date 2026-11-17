@@ -120,6 +120,12 @@
                     <div class="read-only-month pb-1">
                         <span class="text-uppercase fw-bold text-secondary d-block mb-1" style="font-size: 0.65rem;">{{ $monthLabel }}</span>
                         <span class="fw-bold text-dark" style="font-size: 1.1rem;">{{ $formatNumber($value) }}</span>
+                        @if (!empty($data['ach_file'][$monthNum]))
+                            <a href="{{ asset('storage/'.$data['ach_file'][$monthNum]) }}" target="_blank"
+                                class="d-block mt-1 rounded border border-primary text-primary text-decoration-none" style="font-size: 0.65rem; padding: 2px 0;">
+                                <i class="ri-file-line"></i> VIEW
+                            </a>
+                        @endif
                     </div>
                 @endforeach
             </div>

@@ -97,7 +97,7 @@
                     </div>
                     @endif
                     <div class="card-body">
-                        <form id="formAppraisalUser" action="{{ route('appraisal.update') }}" enctype="multipart/form-data" method="POST">
+                        <form id="formAppraisalUser" action="{{ route('appraisal.update') }}" enctype="multipart/form-data" method="POST" data-keep-input>
                         @csrf
                         <input type="hidden" id="user_id" value="{{ Auth::user()->employee_id }}">
                         <input type="hidden" class="form-control" name="id" value="{{ $appraisal->id }}">

@@ -232,9 +232,16 @@ class MyAppraisalController extends Controller
                     $dataItem->finalRating = $finalRating;
                     $dataItem->formData = $formData;
                     $dataItem->appraisalData = $appraisalData;
+                    // Tracking achievement bulanan untuk kartu KPI (sama dengan popup detail On Behalf)
+                    $dataItem->kpiTracking = $request->appraisal->goal
+                        ? KPIService::achievementTracking($request->appraisal->goal, $appraisalData['formData'] ?? [])
+                        : [];
                     $data[] = $dataItem;
                 }
             }
+
+            // Urutkan list: appraisal yang terakhir di-update tampil paling atas.
+            usort($data, fn ($a, $b) => strtotime($b->request->appraisal->updated_at ?? 0) <=> strtotime($a->request->appraisal->updated_at ?? 0));
 
             $mergedResults = [];
 
@@ -336,7 +343,7 @@ class MyAppraisalController extends Controller
         if ($goalChecked) {
             $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
             // Achievement tracking default dari goal achievement, bisa diedit di form appraisal
-            $goalData = KPIService::withAchievementTracking($goalData, KPIService::achievementTracking($goal));
+            $goalData = KPIService::withAchievementTracking($goalData, KPIService::achievementTracking($goal), KPIService::achievementFiles($goal));
         } else {
             Session::flash('error', "Your Goal for $period are not found.");
             return redirect()->route('appraisals');
@@ -410,7 +417,8 @@ class MyAppraisalController extends Controller
                 'formData'      => 'required|array',
                 'attachment'    => 'nullable|array',
                 'attachment.*'  => 'file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png|max:10240',
-            ]);
+                ...self::MONTHLY_FILE_RULES,
+            ], self::MONTHLY_FILE_MESSAGES);
 
             $formGroupName = $validatedData['formGroupName'];
             $formData = $validatedData['formData'];
@@ -425,7 +433,9 @@ class MyAppraisalController extends Controller
             }
 
             // Achievement KPI dihitung dari tracking bulanan yang diisi user (default goal achievement)
-            $formData = KPIService::applyAchievementTracking($formData, $goals, KPIService::achievementTracking($goals, $formData));
+            $tracking = KPIService::achievementTracking($goals, $formData);
+            $achFiles = $this->monthlyAchievementFiles($request, $goals, [], $tracking, $validatedData['employee_id'], $period);
+            $formData = KPIService::applyAchievementTracking($formData, $goals, $tracking, $achFiles);
 
             $datas = [
                 'formGroupName' => $formGroupName,
@@ -507,6 +517,63 @@ class MyAppraisalController extends Controller
             // Log::error('General error', ['message' => $e->getMessage()]);
             return back()->with('error', 'Terjadi kesalahan: ' . $e->getMessage())->withInput();
         }
+    }
+
+    // File pendukung achievement per bulan (Achievement Tracking KPI), sama aturannya dengan Update Achievement goal
+    private const MONTHLY_FILE_RULES = [
+        'kpi_attachment'          => 'nullable|array',
+        'kpi_attachment.*'        => 'array',
+        'kpi_attachment.*.*'      => 'nullable|file|mimes:pdf,png,jpg,jpeg,xlsx,xls,csv,docx,pptx|max:2048',
+        'kpi_attachment_remove'   => 'nullable|array',
+        'kpi_attachment_remove.*' => 'array',
+    ];
+
+    private const MONTHLY_FILE_MESSAGES = [
+        'kpi_attachment.*.*.max'   => 'Monthly achievement file max 2MB.',
+        'kpi_attachment.*.*.mimes' => 'Monthly achievement file must be PDF/JPG/PNG/XLSX/XLS/CSV/DOCX/PPTX.',
+    ];
+
+    /**
+     * File achievement bulanan final per KPI: [index => [1..12 => path|null]].
+     *
+     * Dasar: file tersimpan di appraisal ($savedForms), fallback file goal achievement. Lalu diterapkan
+     * kpi_attachment_remove[i][m] (hapus) dan kpi_attachment[i][m] (upload baru). Hanya bulan sesuai
+     * review period. File goal tidak pernah dihapus dari disk karena masih dipakai halaman goal.
+     */
+    private function monthlyAchievementFiles(Request $request, Goal $goal, array $savedForms, array $tracking, string $employeeId, $period): array
+    {
+        $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
+        $files = KPIService::achievementFiles($goal, $savedForms);
+        $removes = $request->input('kpi_attachment_remove', []);
+        $monthNames = [1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'May', 6 => 'Jun', 7 => 'Jul', 8 => 'Aug', 9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dec'];
+
+        foreach ($goalData ?? [] as $index => $kpi) {
+            for ($month = 1; $month <= 12; $month++) {
+                if (!KPIService::isTrackedMonth($month, $kpi['review_period'] ?? null)) {
+                    continue;
+                }
+
+                if (!empty($removes[$index][$month])) {
+                    $files[$index][$month] = null;
+                }
+
+                $upload = $request->file("kpi_attachment.$index.$month");
+                if (!($upload instanceof UploadedFile)) {
+                    continue;
+                }
+
+                $value = $tracking[$index][$month] ?? null;
+                if ($value === null || $value === '') {
+                    throw ValidationException::withMessages([
+                        "kpi_attachment.$index.$month" => 'KPI '.($index + 1).' - '.$monthNames[$month].': achievement value is required when uploading a file.',
+                    ]);
+                }
+
+                $files[$index][$month] = $upload->store("appraisal-achievements/{$employeeId}/{$period}/{$index}", 'public');
+            }
+        }
+
+        return $files;
     }
 
     private function getDataByName($data, $name) {
@@ -612,7 +679,11 @@ class MyAppraisalController extends Controller
 
             
             // Achievement tracking dari appraisal yang tersimpan, fallback ke goal achievement
-            $goalData = KPIService::withAchievementTracking($goalData, KPIService::achievementTracking($goal, $formData['formData'] ?? []));
+            $goalData = KPIService::withAchievementTracking(
+                $goalData,
+                KPIService::achievementTracking($goal, $formData['formData'] ?? []),
+                KPIService::achievementFiles($goal, $formData['formData'] ?? [])
+            );
 
             
             foreach ($formData['formData'] as &$form) {                
@@ -716,7 +787,8 @@ class MyAppraisalController extends Controller
             // daftar file lama yang dipertahankan
             'keep_files'    => 'nullable|array',
             'keep_files.*'  => 'string',
-        ]);
+            ...self::MONTHLY_FILE_RULES,
+        ], self::MONTHLY_FILE_MESSAGES);
 
         // Normalisasi formData (sesuai logic kamu)
         $formData = $validated['formData'];
@@ -748,7 +820,11 @@ class MyAppraisalController extends Controller
         // Achievement KPI dihitung dari tracking bulanan yang diisi user (default goal achievement)
         $goal = Goal::where('employee_id', $appraisal->employee_id)->where('period', $appraisal->period)->first();
         if ($goal) {
-            $formData = KPIService::applyAchievementTracking($formData, $goal, KPIService::achievementTracking($goal, $formData));
+            $tracking = KPIService::achievementTracking($goal, $formData);
+            // File bulanan dasar = yang tersimpan di appraisal ini, lalu terapkan hapus/upload dari request
+            $savedForms = (json_decode($appraisal->form_data ?? '', true) ?: [])['formData'] ?? [];
+            $achFiles = $this->monthlyAchievementFiles($request, $goal, $savedForms, $tracking, $appraisal->employee_id, $appraisal->period);
+            $formData = KPIService::applyAchievementTracking($formData, $goal, $tracking, $achFiles);
         }
 
         $dataPayload = [

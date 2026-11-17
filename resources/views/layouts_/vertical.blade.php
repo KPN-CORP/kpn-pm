@@ -40,6 +40,7 @@
     @include('layouts_.shared/footer-script')
     @yield('script')
     @stack('scripts')
+    @include('layouts_.shared.keep-input-on-language-switch')
 
 </body>
 
