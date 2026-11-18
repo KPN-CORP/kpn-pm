@@ -31,6 +31,7 @@ use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\Session;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use PhpParser\Node\Expr\Empty_;
 use stdClass;
 
@@ -427,6 +428,11 @@ public function getTeamData(Request $request)
             return redirect()->route('appraisals-task');
         }
 
+        if (Appraisal::where('employee_id', $id)->where('period', $period)->exists()) {
+            Session::flash('error', "Appraisal $period for this employee already exists.");
+            return redirect()->route('appraisals-task');
+        }
+
         $achievements = Achievements::where('employee_id', $id)->where('period', $period)->get();
 
         $step = $request->input('step', 1);
@@ -587,12 +593,15 @@ public function getTeamData(Request $request)
         $appraisalId = $contributorCheck->appraisal_id ?? null;
 
         if ($goals) {
-            // Achievement tracking mengikuti self appraisal karyawan, fallback ke goal achievement
+            // Achievement tracking: draft review manager ini (kalau sudah mengubah tracking),
+            // lalu self appraisal karyawan, fallback ke goal achievement
             $employeeForms = json_decode($appraisal->form_data ?? '[]', true)['formData'] ?? [];
+            $reviewerForms = json_decode($appraisalContributor->form_data ?? '[]', true)['formData'] ?? [];
+            $trackingForms = KPIService::hasTrackingInput($reviewerForms) ? $reviewerForms : $employeeForms;
             $goalData = KPIService::withAchievementTracking(
                 json_decode($goals->form_data, true),
-                KPIService::achievementTracking($goals, $employeeForms),
-                KPIService::achievementFiles($goals, $employeeForms)
+                KPIService::achievementTracking($goals, $trackingForms),
+                KPIService::achievementFiles($goals, $trackingForms)
             );
         } else {
             Session::flash('error', "Goals for not found.");
@@ -745,11 +754,14 @@ public function getTeamData(Request $request)
 
         $viewAchievement = $employee->group_company == 'Cement' ? true : false;
 
+        // Manager (termasuk admin on behalf yang bertindak sebagai manager) boleh mengubah achievement tracking
+        $editableAchievement = optional($approval)->layer_type === 'manager';
+
         $parentLink = __('Appraisal');
         $link = 'Review Appraisal';
 
         // Pass the data to the view
-        return view('pages.appraisals-task.review', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'goals', 'approval', 'goalData', 'user', 'achievement', 'appraisalId', 'ratings', 'appraisal', 'type', 'achievements', 'viewAchievement', 'contributorTransaction'));
+        return view('pages.appraisals-task.review', compact('step', 'parentLink', 'link', 'filteredFormDatas', 'formGroupData', 'goal', 'goals', 'approval', 'goalData', 'user', 'achievement', 'appraisalId', 'ratings', 'appraisal', 'type', 'achievements', 'viewAchievement', 'contributorTransaction', 'editableAchievement'));
 
     }
 
@@ -1075,7 +1087,13 @@ public function getTeamData(Request $request)
             'formData' => 'required|array',
             'attachment'    => 'nullable|array',
             'attachment.*'  => 'file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png|max:10240',
-        ]);
+            ...KPIService::MONTHLY_FILE_RULES,
+        ], KPIService::MONTHLY_FILE_MESSAGES);
+
+        // Cegah appraisal ganda: initiate hanya kalau karyawan belum punya appraisal di periode ini
+        if (Appraisal::where('employee_id', $validatedData['employee_id'])->where('period', $period)->exists()) {
+            return redirect('appraisals-task')->with('error', "Appraisal $period for this employee already exists.");
+        }
 
         DB::beginTransaction(); // Start the database transaction
 
@@ -1102,8 +1120,10 @@ public function getTeamData(Request $request)
                 throw new Exception("No goals found for this period ($period).");
             }
 
-            // Achievement KPI + file bulanan dari goal achievement, abaikan nilai dari request
-            $datas['formData'] = KPIService::applyAchievementTracking($datas['formData'], $goals, KPIService::achievementTracking($goals), KPIService::achievementFiles($goals));
+            // Achievement KPI dari tracking bulanan yang diisi manager (default goal achievement), file dasar dari goal achievement
+            $tracking = KPIService::achievementTracking($goals, $formData);
+            $achFiles = KPIService::monthlyAchievementFiles($request, $goals, [], $tracking, $validatedData['employee_id'], $period);
+            $datas['formData'] = KPIService::applyAchievementTracking($datas['formData'], $goals, $tracking, $achFiles);
 
             $goalData = json_decode($goals->form_data, true);
 
@@ -1219,6 +1239,9 @@ public function getTeamData(Request $request)
                 // Return a response, such as a redirect or a JSON response
                 return redirect('appraisals-task')->with('success', $messages);
 
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return back()->withErrors($e->validator)->with('error', $e->validator->errors()->first())->withInput();
         } catch (Exception $e) {
             DB::rollBack(); // Rollback the transaction in case of an error
             return redirect('appraisals-task')->with('error', $e->getMessage());
@@ -1244,7 +1267,8 @@ public function getTeamData(Request $request)
                 'formData' => 'required|array',
                 'attachment'    => 'nullable|array',
                 'attachment.*'  => 'file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png|max:10240',
-            ]);
+                ...KPIService::MONTHLY_FILE_RULES,
+            ], KPIService::MONTHLY_FILE_MESSAGES);
 
             DB::beginTransaction(); // Start the database transaction
 
@@ -1271,15 +1295,27 @@ public function getTeamData(Request $request)
                 'formData' => $formData,
             ];
 
-            // Achievement KPI + file bulanan mengikuti self appraisal karyawan (fallback goal achievement), abaikan nilai dari request.
+            // Achievement KPI + file bulanan. Default mengikuti self appraisal karyawan (fallback goal achievement).
+            // Manager (termasuk on behalf) boleh mengubah tracking: nilai dari request dipakai, file dasar dari
+            // draft manager ini atau self appraisal karyawan.
             // File wajib ikut: form_data appraisal karyawan ditimpa $datas saat masuk kalibrasi.
             $employeeForms = $this->employeeAppraisalForms($validatedData['employee_id'], $period);
-            $datas['formData'] = KPIService::applyAchievementTracking(
-                $datas['formData'],
-                $goals,
-                KPIService::achievementTracking($goals, $employeeForms),
-                KPIService::achievementFiles($goals, $employeeForms)
-            );
+
+            if ($contributorData->layer_type === 'manager' && KPIService::hasTrackingInput($formData)) {
+                $reviewerForms = json_decode(AppraisalContributor::where('employee_id', $validatedData['employee_id'])
+                    ->where('contributor_id', $contributorData->approver_id)
+                    ->where('period', $period)
+                    ->value('form_data') ?? '[]', true)['formData'] ?? [];
+                $savedForms = KPIService::hasTrackingInput($reviewerForms) ? $reviewerForms : $employeeForms;
+
+                $tracking = KPIService::achievementTracking($goals, $formData);
+                $achFiles = KPIService::monthlyAchievementFiles($request, $goals, $savedForms, $tracking, $validatedData['employee_id'], $period);
+            } else {
+                $tracking = KPIService::achievementTracking($goals, $employeeForms);
+                $achFiles = KPIService::achievementFiles($goals, $employeeForms);
+            }
+
+            $datas['formData'] = KPIService::applyAchievementTracking($datas['formData'], $goals, $tracking, $achFiles);
 
             $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee, $period);
 
@@ -1473,6 +1509,9 @@ public function getTeamData(Request $request)
 
             return redirect('appraisals-task')->with('success', $messages);
 
+        } catch (ValidationException $e) {
+            DB::rollBack();
+            return back()->withErrors($e->validator)->with('error', $e->validator->errors()->first())->withInput();
         } catch (Exception $e) {
             DB::rollBack(); // Rollback the transaction in case of an error
             Log::error('Error in storeReview method: ' . $e->getMessage());

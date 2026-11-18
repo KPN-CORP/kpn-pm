@@ -150,7 +150,8 @@
                                 'formIndex' => $index,
                                 'name' => $row['name'],
                                 'data' => $row['data'],
-                                'viewCategory' => $filteredFormDatas['viewCategory']
+                                'viewCategory' => $filteredFormDatas['viewCategory'],
+                                'editableAchievement' => true,
                                 ])
                             </div>
                             @endforeach

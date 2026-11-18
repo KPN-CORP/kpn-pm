@@ -169,7 +169,8 @@
                                 'name' => $row['name'],
                                 'data' => $row['data'],
                                 'isManager' => $approval->layer_type == 'manager',
-                                'viewCategory' => $filteredFormDatas['viewCategory']
+                                'viewCategory' => $filteredFormDatas['viewCategory'],
+                                'editableAchievement' => $editableAchievement ?? false,
                                 ])
                             </div>
                          @endforeach

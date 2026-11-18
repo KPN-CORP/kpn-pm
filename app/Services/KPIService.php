@@ -4,6 +4,9 @@ namespace App\Services;
 use App\Models\ApprovalLayer;
 use App\Models\Goal;
 use App\Models\KPIAchievement;
+use Illuminate\Http\Request;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Validation\ValidationException;
 
 class KPIService
 {
@@ -268,6 +271,73 @@ class KPIService
         }
 
         return $formData;
+    }
+
+    // File pendukung achievement per bulan (Achievement Tracking KPI), sama aturannya dengan Update Achievement goal
+    public const MONTHLY_FILE_RULES = [
+        'kpi_attachment'          => 'nullable|array',
+        'kpi_attachment.*'        => 'array',
+        'kpi_attachment.*.*'      => 'nullable|file|mimes:pdf,png,jpg,jpeg,xlsx,xls,csv,docx,pptx|max:2048',
+        'kpi_attachment_remove'   => 'nullable|array',
+        'kpi_attachment_remove.*' => 'array',
+    ];
+
+    public const MONTHLY_FILE_MESSAGES = [
+        'kpi_attachment.*.*.max'   => 'Monthly achievement file max 2MB.',
+        'kpi_attachment.*.*.mimes' => 'Monthly achievement file must be PDF/JPG/PNG/XLSX/XLS/CSV/DOCX/PPTX.',
+    ];
+
+    /**
+     * True kalau form KPI di request membawa tracking bulanan ('ach'), artinya halaman mengirim input yang bisa diedit.
+     */
+    public static function hasTrackingInput(array $formData): bool
+    {
+        $kpi = collect($formData)->first(fn ($form) => ($form['formName'] ?? null) === 'KPI') ?? [];
+
+        return collect($kpi)->contains(fn ($item) => is_array($item) && is_array($item['ach'] ?? null));
+    }
+
+    /**
+     * File achievement bulanan final per KPI: [index => [1..12 => path|null]].
+     *
+     * Dasar: file tersimpan di appraisal ($savedForms), fallback file goal achievement. Lalu diterapkan
+     * kpi_attachment_remove[i][m] (hapus) dan kpi_attachment[i][m] (upload baru). Hanya bulan sesuai
+     * review period. File goal tidak pernah dihapus dari disk karena masih dipakai halaman goal.
+     */
+    public static function monthlyAchievementFiles(Request $request, Goal $goal, array $savedForms, array $tracking, string $employeeId, $period): array
+    {
+        $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
+        $files = self::achievementFiles($goal, $savedForms);
+        $removes = $request->input('kpi_attachment_remove', []);
+        $monthNames = [1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'May', 6 => 'Jun', 7 => 'Jul', 8 => 'Aug', 9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dec'];
+
+        foreach ($goalData ?? [] as $index => $kpi) {
+            for ($month = 1; $month <= 12; $month++) {
+                if (!self::isTrackedMonth($month, $kpi['review_period'] ?? null)) {
+                    continue;
+                }
+
+                if (!empty($removes[$index][$month])) {
+                    $files[$index][$month] = null;
+                }
+
+                $upload = $request->file("kpi_attachment.$index.$month");
+                if (!($upload instanceof UploadedFile)) {
+                    continue;
+                }
+
+                $value = $tracking[$index][$month] ?? null;
+                if ($value === null || $value === '') {
+                    throw ValidationException::withMessages([
+                        "kpi_attachment.$index.$month" => 'KPI '.($index + 1).' - '.$monthNames[$month].': achievement value is required when uploading a file.',
+                    ]);
+                }
+
+                $files[$index][$month] = $upload->store("appraisal-achievements/{$employeeId}/{$period}/{$index}", 'public');
+            }
+        }
+
+        return $files;
     }
 
     function layerApproval(string $employeeId)
