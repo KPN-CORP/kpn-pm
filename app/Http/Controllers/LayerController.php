@@ -31,6 +31,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\ValidationException;
+use Yajra\DataTables\Facades\DataTables;
 
 class LayerController extends Controller
 {
@@ -45,53 +46,75 @@ class LayerController extends Controller
         $this->category = 'Goals';
     }
 
-    function layer() {
+    function layer(Request $request) {
+        // Baris tabel dimuat lewat layerData (server-side DataTables). Dulu
+        // semua baris (±6.400) di-render ke HTML sehingga halaman ±13 MB.
+        // Halaman pertama ikut dikirim di HTML supaya tabel langsung terisi.
 
+        // The Employee model has no SoftDeletes trait, so deleted employees must be
+        // excluded explicitly or they show up as selectable superiors.
+        // Dipakai dropdown superior di modal Edit (layer.js).
+        $employees = Employee::select('employee_id', 'fullname')
+        // ->whereNotIn('job_level', ['2A', '2B', '2C', '2D', '3A', '3B','4A'])
+        ->whereNull('deleted_at')
+        ->orderBy('fullname', 'asc')
+        ->get();
+
+        return view('pages.layers.layer', [
+            'parentLink' => 'Settings',
+            'link' => 'Layers',
+            'employees' => $employees,
+            'initialData' => $this->dataTableInitialPage($request, self::LAYER_COLUMNS, fn ($sub) => $this->layerData($sub), [[0, 'asc']]),
+        ]);
+    }
+
+    /** Kolom tabel Layer (Goals), sama urutannya dengan layer.js. */
+    private const LAYER_COLUMNS = [
+        ['data' => 'DT_RowIndex', 'name' => 'DT_RowIndex', 'searchable' => 'false', 'orderable' => 'true'],
+        ['data' => 'employee_id', 'name' => 'employee_id', 'searchable' => 'true', 'orderable' => 'true'],
+        ['data' => 'fullname', 'name' => 'fullname', 'searchable' => 'true', 'orderable' => 'true'],
+        ['data' => 'contribution_level_code', 'name' => 'contribution_level_code', 'searchable' => 'true', 'orderable' => 'true'],
+        ['data' => 'office_area', 'name' => 'office_area', 'searchable' => 'true', 'orderable' => 'true'],
+        ['data' => 'group_company', 'name' => 'group_company', 'searchable' => 'true', 'orderable' => 'true'],
+        ['data' => 'superior', 'name' => 'superior', 'searchable' => 'true', 'orderable' => 'true'],
+        ['data' => 'action', 'name' => 'action', 'searchable' => 'false', 'orderable' => 'false'],
+    ];
+
+    /**
+     * Daftar layer (Goals) per karyawan sesuai restriction role user login.
+     */
+    private function layerQuery()
+    {
         $roles = Auth::user()->roles;
 
         $restrictionData = [];
         if(!is_null($roles)){
             $restrictionData = json_decode($roles->first()->restriction, true);
         }
-        
-        $permissionGroupCompanies = $restrictionData['group_company'] ?? [];
-        $permissionCompanies = $restrictionData['contribution_level_code'] ?? [];
-        $permissionLocations = $restrictionData['work_area_code'] ?? [];
 
         $criteria = [
-            'work_area_code' => $permissionLocations,
-            'group_company' => $permissionGroupCompanies,
-            'contribution_level_code' => $permissionCompanies,
+            'work_area_code' => $restrictionData['work_area_code'] ?? [],
+            'group_company' => $restrictionData['group_company'] ?? [],
+            'contribution_level_code' => $restrictionData['contribution_level_code'] ?? [],
         ];
-
-        $parentLink = 'Settings';
-        $link = 'Layers';
 
         foreach ($criteria as $key => $value) {
             if (!is_array($value)) {
                 $criteria[$key] = (array) $value;
             }
         }
-        
-        $approvalLayers = DB::table('approval_layers as al')
-        ->select('al.employee_id', 'emp.fullname', 'emp.job_level', 'emp.contribution_level_code', 'emp.group_company', 'emp.office_area')
-        ->selectRaw("GROUP_CONCAT(al.layer ORDER BY al.layer ASC SEPARATOR '|') AS layers")
-        ->selectRaw("GROUP_CONCAT(al.approver_id ORDER BY al.layer ASC SEPARATOR '|') AS approver_ids")
-        // COALESCE keeps the position of every layer in the list: GROUP_CONCAT drops
-        // NULLs, so an approver that no longer resolves to an active employee would
-        // otherwise shift the remaining names onto the wrong layer.
-        ->selectRaw("GROUP_CONCAT(COALESCE(emp1.fullname, '') ORDER BY al.layer ASC SEPARATOR '|') AS approver_names")
-        ->selectRaw("GROUP_CONCAT(COALESCE(emp1.job_level, '') ORDER BY al.layer ASC SEPARATOR '|') AS approver_job_levels")
+
+        // Satu baris per karyawan yang punya layer. Agregasi superior
+        // (GROUP_CONCAT) TIDAK dilakukan di sini: dulu seluruh ±18 rb baris
+        // approval_layers di-group (±0,5 dtk) untuk setiap count & halaman.
+        // Superior hanya dihitung untuk baris yang tampil (layerSuperiorsFor).
+        // Left join dipertahankan: layer yang karyawannya tidak ada di
+        // employees tetap muncul (nama kosong), sama seperti sebelumnya.
+        return DB::query()
+        ->fromSub(DB::table('approval_layers')->select('employee_id')->distinct(), 'al')
+        ->select('al.employee_id', 'emp.fullname', 'emp.contribution_level_code', 'emp.group_company', 'emp.office_area')
         ->leftJoin('employees as emp', 'emp.employee_id', '=', 'al.employee_id')
-        // Only active approvers are resolved; a soft deleted one is rendered as
-        // "No approver available" instead of showing an inactive employee.
-        ->leftJoin('employees as emp1', function ($join) {
-            $join->on('emp1.employee_id', '=', 'al.approver_id')
-                ->whereNull('emp1.deleted_at');
-        })
         ->whereNull('emp.deleted_at') // Add condition to check if deleted_at is null
-        ->groupBy('al.employee_id', 'emp.fullname', 'emp.job_level', 'emp.contribution_level_code', 'emp.group_company', 'emp.office_area')
-        ->orderBy('emp.fullname')
         ->when(!empty($criteria), function ($query) use ($criteria) {
             $query->where(function ($query) use ($criteria) {
             foreach ($criteria as $key => $values) {
@@ -100,25 +123,174 @@ class LayerController extends Controller
                 }
             }
             });
-        })
-        ->get();
+        });
+    }
 
-        // The Employee model has no SoftDeletes trait, so deleted employees must be
-        // excluded explicitly or they show up as selectable superiors.
-        $employees = Employee::select('employee_id', 'fullname')
-        // ->whereNotIn('job_level', ['2A', '2B', '2C', '2D', '3A', '3B','4A'])
-        ->whereNull('deleted_at')
-        ->orderBy('fullname', 'asc')
-        ->get();
+    /**
+     * Endpoint server-side DataTables untuk tabel Layer (Goals).
+     * Pencarian bebas mencakup semua kolom yang tampil, termasuk nama
+     * superior (L1..Ln), per kata seperti smart search client-side dulu.
+     */
+    public function layerData(Request $request)
+    {
+        // Urutan kolom Superior = teks nama superior per layer (dulu sort
+        // client-side atas teks yang sama). Hanya dihitung saat diminta.
+        $superiorSort = DB::raw("(SELECT GROUP_CONCAT(COALESCE(es.fullname, '') ORDER BY ls.layer ASC SEPARATOR '|')
+            FROM approval_layers ls
+            LEFT JOIN employees es ON es.employee_id = ls.approver_id AND es.deleted_at IS NULL
+            WHERE ls.employee_id = al.employee_id)");
 
-    $employeeCount = $approvalLayers->unique('employee_id')->count();
-        return view('pages.layers.layer', [
-            'parentLink' => $parentLink,
-            'link' => $link,
-            'approvalLayers' => $approvalLayers,
-            'employeeCount' => $employeeCount,
-            'employees' => $employees,
-        ]);
+        $orderable = [
+            0 => 'emp.fullname', // "#" dulu = urutan nama
+            1 => 'al.employee_id',
+            2 => 'emp.fullname',
+            3 => 'emp.contribution_level_code',
+            4 => 'emp.office_area',
+            5 => 'emp.group_company',
+            6 => $superiorSort,
+        ];
+
+        // Superior per karyawan hanya untuk baris yang tampil (maks. 25),
+        // di-cache karena dipakai kolom Superior dan Actions.
+        $superiors = [];
+        $superiorOf = function ($row) use (&$superiors) {
+            $id = (string) $row->employee_id;
+            if (!array_key_exists($id, $superiors)) {
+                $superiors[$id] = $this->layerSuperiorsFor([$id])[$id]
+                    ?? (object) ['layers' => '', 'approver_ids' => '', 'approver_names' => ''];
+            }
+            return $superiors[$id];
+        };
+
+        return DataTables::query($this->layerQuery())
+            ->addIndexColumn()
+            ->filter(function ($q) use ($request) {
+                $words = preg_split('/\s+/', trim((string) $request->input('search.value', '')), -1, PREG_SPLIT_NO_EMPTY);
+                foreach ($words as $word) {
+                    $like = '%' . addcslashes($word, '%_\\') . '%';
+                    $q->where(function ($w) use ($like) {
+                        foreach (['al.employee_id', 'emp.fullname', 'emp.contribution_level_code', 'emp.office_area', 'emp.group_company'] as $col) {
+                            $w->orWhere($col, 'like', $like);
+                        }
+                        // nama superior aktif di salah satu layer
+                        $w->orWhereExists(function ($s) use ($like) {
+                            $s->selectRaw('1')
+                                ->from('approval_layers as al2')
+                                ->join('employees as e2', 'e2.employee_id', '=', 'al2.approver_id')
+                                ->whereColumn('al2.employee_id', 'al.employee_id')
+                                ->whereNull('e2.deleted_at')
+                                ->where('e2.fullname', 'like', $like);
+                        });
+                    });
+                }
+            })
+            ->order(function ($q) use ($request, $orderable) {
+                $col = $orderable[(int) $request->input('order.0.column', 0)] ?? 'emp.fullname';
+                $q->orderBy($col, $request->input('order.0.dir') === 'desc' ? 'desc' : 'asc')
+                    ->orderBy('al.employee_id');
+            })
+            ->addColumn('superior', function ($row) use ($superiorOf) {
+                $sup    = $superiorOf($row);
+                $layers = explode('|', (string) $sup->layers);
+                $names  = explode('|', (string) $sup->approver_names);
+                $lines  = [];
+                foreach ($layers as $i => $layer) {
+                    $name = $names[$i] ?? '';
+                    $lines[] = e('L' . $layer) . ' : ' . ($name !== '' ? e($name) : 'No approver available');
+                }
+
+                return implode('<br>', $lines);
+            })
+            ->addColumn('action', function ($row) use ($superiorOf) {
+                $sup = $superiorOf($row);
+
+                return '<button type="button" class="btn btn-sm btn-outline-warning open-edit-modal mb-1"'
+                    . ' data-bs-employee-id="' . e($row->employee_id) . '"'
+                    . ' data-bs-fullname="' . e($row->fullname) . '"'
+                    . ' data-bs-app="' . e($sup->approver_ids) . '"'
+                    . ' data-bs-layer="' . e($sup->layers) . '"'
+                    . ' data-bs-app-name="' . e($sup->approver_names) . '"'
+                    . ' title="Edit"><i class="ri-edit-box-line"></i></button>'
+                    . ' <button type="button" class="btn btn-sm btn-outline-secondary open-view-modal mb-1" title="History"'
+                    . ' onclick="viewHistory(\'' . e($row->employee_id) . '\')"><i class="ri-history-line"></i></button>';
+            })
+            ->only(['DT_RowIndex', 'employee_id', 'fullname', 'contribution_level_code', 'office_area', 'group_company', 'superior', 'action'])
+            ->rawColumns(['superior', 'action'])
+            ->toJson();
+    }
+
+    /**
+     * Layer (Goals) per karyawan: nomor layer, id & nama superior, urut
+     * per layer, dipisah '|'.
+     *
+     * @return array<string, object>  employee_id => {layers, approver_ids, approver_names}
+     */
+    private function layerSuperiorsFor(array $employeeIds): array
+    {
+        if (empty($employeeIds)) {
+            return [];
+        }
+
+        return DB::table('approval_layers as al')
+            ->select('al.employee_id')
+            ->selectRaw("GROUP_CONCAT(al.layer ORDER BY al.layer ASC SEPARATOR '|') AS layers")
+            ->selectRaw("GROUP_CONCAT(al.approver_id ORDER BY al.layer ASC SEPARATOR '|') AS approver_ids")
+            // COALESCE keeps the position of every layer in the list: GROUP_CONCAT drops
+            // NULLs, so an approver that no longer resolves to an active employee would
+            // otherwise shift the remaining names onto the wrong layer.
+            ->selectRaw("GROUP_CONCAT(COALESCE(emp1.fullname, '') ORDER BY al.layer ASC SEPARATOR '|') AS approver_names")
+            // Only active approvers are resolved; a soft deleted one is rendered as
+            // "No approver available" instead of showing an inactive employee.
+            ->leftJoin('employees as emp1', function ($join) {
+                $join->on('emp1.employee_id', '=', 'al.approver_id')
+                    ->whereNull('emp1.deleted_at');
+            })
+            ->whereIn('al.employee_id', $employeeIds)
+            ->groupBy('al.employee_id')
+            ->get()
+            ->keyBy(fn ($r) => (string) $r->employee_id)
+            ->all();
+    }
+
+    /**
+     * Respons DataTables untuk tampilan awal tabel, dibuat lewat endpoint
+     * yang sama agar hasilnya identik dengan AJAX. yajra membaca
+     * app('request'), jadi request diganti sementara. null = gagal (tabel
+     * tetap bisa memuat lewat AJAX).
+     */
+    private function dataTableInitialPage(Request $request, array $columns, callable $endpoint, array $order = []): ?array
+    {
+        $params = [
+            'draw' => 1,
+            'start' => 0,
+            'length' => 25,
+            'columns' => $columns,
+            'search' => ['value' => '', 'regex' => 'false'],
+        ];
+        foreach ($order as $i => [$column, $dir]) {
+            $params['order'][$i] = ['column' => $column, 'dir' => $dir];
+        }
+
+        $sub = Request::create($request->url(), 'GET', $params);
+        $sub->setUserResolver($request->getUserResolver());
+
+        $previous = app('request');
+        app()->instance('request', $sub);
+        app()->forgetInstance('datatables.request');
+
+        try {
+            $json = $endpoint($sub)->getData(true);
+            // Info debug yajra (SQL, input) tidak perlu ikut ke HTML.
+            unset($json['queries'], $json['input']);
+
+            return $json;
+        } catch (\Throwable $e) {
+            Log::warning('DataTables initial page failed: ' . $e->getMessage());
+            return null;
+        } finally {
+            app()->instance('request', $previous);
+            app()->forgetInstance('datatables.request');
+        }
     }
 
     function updatelayer(Request $req) {
@@ -285,52 +457,112 @@ class LayerController extends Controller
         return response()->json($approvalLayers);
     }
 
-    function layerAppraisal() {
+    function layerAppraisal(Request $request) {
+        // Baris tabel dimuat lewat layerAppraisalData (server-side DataTables).
+        // Dulu seluruh employees_pa (±6.400 baris) di-render ke HTML plus
+        // di-dump lagi sebagai JSON, sehingga halaman ±8 MB.
+        //
+        // Halaman pertama (25 baris, tanpa search/urutan) ikut dikirim di HTML
+        // supaya tabel langsung terisi tanpa menunggu request AJAX kedua.
+        return view('pages.layers.layer-appraisal', [
+            'parentLink' => 'Settings',
+            'link' => 'Layers',
+            'initialData' => $this->dataTableInitialPage($request, self::LAYER_APPRAISAL_COLUMNS, fn ($sub) => $this->layerAppraisalData($sub)),
+        ]);
+    }
 
+    /** Kolom tabel Layer Appraisal, sama urutannya dengan layer-appraisal.js. */
+    private const LAYER_APPRAISAL_COLUMNS = [
+        ['data' => 'DT_RowIndex', 'name' => 'DT_RowIndex', 'searchable' => 'false', 'orderable' => 'false'],
+        ['data' => 'employee', 'name' => 'fullname', 'searchable' => 'true', 'orderable' => 'true'],
+        ['data' => 'company_name', 'name' => 'company_name', 'searchable' => 'true', 'orderable' => 'true'],
+        ['data' => 'office_area', 'name' => 'office_area', 'searchable' => 'true', 'orderable' => 'true'],
+        ['data' => 'group_company', 'name' => 'group_company', 'searchable' => 'true', 'orderable' => 'true'],
+        ['data' => 'action', 'name' => 'action', 'searchable' => 'false', 'orderable' => 'false'],
+    ];
+
+    /**
+     * Daftar karyawan Layer Appraisal sesuai restriction role user login
+     * (group_company / contribution_level_code / work_area_code).
+     */
+    private function layerAppraisalQuery()
+    {
         $roles = Auth::user()->roles;
-
-        $period = $this->appService->appraisalPeriod();
 
         $restrictionData = [];
         if(!is_null($roles)){
             $restrictionData = json_decode($roles->first()->restriction, true);
         }
-        
-        $permissionGroupCompanies = $restrictionData['group_company'] ?? [];
-        $permissionCompanies = $restrictionData['contribution_level_code'] ?? [];
-        $permissionLocations = $restrictionData['work_area_code'] ?? [];
 
         $criteria = [
-            'work_area_code' => $permissionLocations,
-            'group_company' => $permissionGroupCompanies,
-            'contribution_level_code' => $permissionCompanies,
+            'work_area_code' => $restrictionData['work_area_code'] ?? [],
+            'group_company' => $restrictionData['group_company'] ?? [],
+            'contribution_level_code' => $restrictionData['contribution_level_code'] ?? [],
         ];
 
-        $parentLink = 'Settings';
-        $link = 'Layers';
-
-        $query = EmployeeAppraisal::with(['calibration' => function($query) use ($period) {
-            $query->where('status', 'Approved')->where('period', $period); // Filter only 'Approved' calibrations
-        }])
-        ->select('fullname', 'employee_id', 'group_company', 'designation', 'company_name', 'contribution_level_code', 'work_area_code', 'office_area', 'unit');
+        $query = EmployeeAppraisal::query();
 
         $query->where(function ($query) use ($criteria) {
             foreach ($criteria as $key => $value) {
-            if ($value !== null && !empty($value)) {
-                $query->whereIn($key, $value);
-            }
+                if ($value !== null && !empty($value)) {
+                    $query->whereIn($key, $value);
+                }
             }
         });
 
-        $query->whereNull('deleted_at'); // Add condition to check if deleted_at is null
+        return $query->whereNull('deleted_at');
+    }
 
-        $datas = $query->get();
-        
-        return view('pages.layers.layer-appraisal', [
-            'parentLink' => $parentLink,
-            'link' => $link,
-            'datas' => $datas,
-        ]);
+    /**
+     * Endpoint server-side DataTables untuk tabel Layer Appraisal.
+     * Pencarian bebas mencakup semua kolom yang tampil (nama, employee id,
+     * company, office location, business unit), per kata seperti smart
+     * search DataTables client-side sebelumnya.
+     */
+    public function layerAppraisalData(Request $request)
+    {
+        $period = $this->appService->appraisalPeriod();
+
+        $searchable = ['fullname', 'employee_id', 'company_name', 'office_area', 'group_company'];
+        $orderable  = [1 => 'fullname', 2 => 'company_name', 3 => 'office_area', 4 => 'group_company'];
+
+        $query = $this->layerAppraisalQuery()
+            ->select('id', 'fullname', 'employee_id', 'group_company', 'company_name', 'office_area')
+            ->withCount(['calibration as approved_calibration_count' => function ($q) use ($period) {
+                $q->where('status', 'Approved')->where('period', $period);
+            }]);
+
+        return DataTables::eloquent($query)
+            ->addIndexColumn()
+            ->filter(function ($q) use ($request, $searchable) {
+                $words = preg_split('/\s+/', trim((string) $request->input('search.value', '')), -1, PREG_SPLIT_NO_EMPTY);
+                foreach ($words as $word) {
+                    $like = '%' . addcslashes($word, '%_\\') . '%';
+                    $q->where(function ($w) use ($searchable, $like) {
+                        foreach ($searchable as $col) {
+                            $w->orWhere($col, 'like', $like);
+                        }
+                    });
+                }
+            })
+            ->order(function ($q) use ($request, $orderable) {
+                $col = $orderable[(int) $request->input('order.0.column', -1)] ?? null;
+                if ($col) {
+                    $q->orderBy($col, $request->input('order.0.dir') === 'desc' ? 'desc' : 'asc');
+                }
+                $q->orderBy('id');
+            })
+            ->addColumn('employee', fn ($row) => e($row->fullname) . ' <span class="text-muted">' . e($row->employee_id) . '</span>')
+            ->addColumn('action', function ($row) {
+                $edit = $row->approved_calibration_count
+                    ? '<button type="button" onclick="alert(\'Cannot changes layer, This employee already on calibration proccess.\')" class="btn btn-sm rounded btn-light me-1"><i class="ri-edit-box-line fs-16"></i></button>'
+                    : '<a href="' . e(route('layer-appraisal.edit', $row->employee_id)) . '" class="btn btn-sm rounded btn-outline-warning me-1"><i class="ri-edit-box-line fs-16"></i></a>';
+
+                return $edit . '<button type="button" class="btn btn-sm rounded btn-outline-info me-1" data-bs-toggle="modal" data-bs-target="#detailModal" data-bs-id="' . e($row->employee_id) . '"><i class="ri-eye-line fs-16"></i></button>';
+            })
+            ->only(['DT_RowIndex', 'employee', 'company_name', 'office_area', 'group_company', 'action'])
+            ->rawColumns(['employee', 'action'])
+            ->toJson();
     }
 
     function layerAppraisalEdit(Request $request) {

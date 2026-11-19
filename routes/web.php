@@ -333,12 +333,14 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::middleware(['permission:viewlayer'])->group(function () {
         // layer
         Route::get('/layer', [LayerController::class, 'layer'])->name('layer');
+        Route::get('/layer-data', [LayerController::class, 'layerData'])->name('layer.data');
         Route::post('/update-layer', [LayerController::class, 'updatelayer'])->name('update-layer');
         Route::post('/import-layer', [LayerController::class, 'importLayer'])->name('import-layer');
         Route::post('/history-show', [LayerController::class, 'show'])->name('history-show');
 
 
         Route::get('/layer-appraisal', [LayerController::class, 'layerAppraisal'])->name('layer-appraisal');
+        Route::get('/layer-appraisal-data', [LayerController::class, 'layerAppraisalData'])->name('layer-appraisal.data');
         Route::get('/layer-appraisal/edit/{id}', [LayerController::class, 'layerAppraisalEdit'])->name('layer-appraisal.edit');
         Route::post('/layer-appraisal/import', [LayerController::class, 'layerAppraisalImport'])->name('layer-appraisal.import');
         Route::post('/layer-appraisal/update', [LayerController::class, 'layerAppraisalUpdate'])->name('layer-appraisal.update');

@@ -21,7 +21,7 @@
                   <div class="input-group-prepend">
                     <span class="input-group-text bg-white border-dark-subtle"><i class="ri-search-line"></i></span>
                   </div>
-                  <input type="text" name="customsearch" id="customsearch" class="form-control  border-dark-subtle border-left-0" placeholder="search.." aria-label="search" aria-describedby="search">
+                  <input type="text" name="customsearch" id="customsearch" autocomplete="off" class="form-control  border-dark-subtle border-left-0" placeholder="search.." aria-label="search" aria-describedby="search">
                 </div>
               </div>
             </div>
@@ -32,7 +32,8 @@
             <div class="card shadow mb-4">
               <div class="card-body">
                   <div class="table-responsive">
-                      <table class="table table-sm activate-select dt-responsive nowrap w-100" id="layerTable">
+                      {{-- Baris dimuat server-side dari route layer.data (lihat layer.js) --}}
+                      <table class="table table-sm activate-select dt-responsive nowrap w-100" id="layerTable" data-url="{{ route('layer.data') }}">
                           <thead class="thead-light">
                               <tr class="text-center">
                                 <th>#</th>
@@ -45,47 +46,12 @@
                                 <th class="sorting_1">Actions</th>
                               </tr>
                           </thead>
-                          <tbody>
-                            @foreach($approvalLayers as $index => $approvalLayer)
-                                <tr>
-                                    <td>
-                                        {{ $index + 1 }}
-                                    </td>
-                                    <td>{{ $approvalLayer->employee_id }}</td>
-                                    <td>{{ $approvalLayer->fullname }}</td>
-                                    <td>{{ $approvalLayer->contribution_level_code }}</td>
-                                    <td>{{ $approvalLayer->office_area }}</td>
-                                    <td>{{ $approvalLayer->group_company }}</td>
-                                    <td>
-                                        @php
-                                            $layersArray = explode('|', $approvalLayer->layers);
-                                            $approverNamesArray = explode('|', $approvalLayer->approver_names);
-                                        @endphp
-                                        @foreach($layersArray as $index => $layer)
-                                        @if(isset($approverNamesArray[$index]) && !empty($approverNamesArray[$index]))
-                                            {{ "L".$layer }} : {{ $approverNamesArray[$index] }}<br>
-                                        @else
-                                            {{ "L".$layer }} : No approver available<br>
-                                        @endif
-                                    @endforeach
-                                    </td>
-                                    <td class="text-center sorting_1">
-                                        <button type="button" class="btn btn-sm btn-outline-warning open-edit-modal mb-1"
-                                        data-bs-employee-id="{{ $approvalLayer->employee_id }}"
-                                        data-bs-fullname="{{ $approvalLayer->fullname }}"
-                                        data-bs-app="{{ $approvalLayer->approver_ids }}"
-                                        data-bs-layer="{{ $approvalLayer->layers }}"
-                                        data-bs-app-name="{{ $approvalLayer->approver_names }}"
-                                        title="Edit"><i class="ri-edit-box-line"></i></button>
-                                        <button type="button" class="btn btn-sm btn-outline-secondary open-view-modal mb-1" title="History"
-                                            onclick="viewHistory('{{ $approvalLayer->employee_id }}')">
-                                            <i class="ri-history-line"></i>
-                                        </button>
-                                    </td>
-                              </tr>
-                              @endforeach
-                          </tbody>
+                          <tbody></tbody>
                       </table>
+                      @if ($initialData)
+                      {{-- Halaman pertama tabel, dipakai layer.js sebagai respons draw pertama --}}
+                      <script type="application/json" id="layerInitialData">@json($initialData)</script>
+                      @endif
                   </div>
               </div>
             </div>

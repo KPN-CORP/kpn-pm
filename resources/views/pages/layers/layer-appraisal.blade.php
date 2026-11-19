@@ -31,7 +31,7 @@
                   <div class="input-group-prepend">
                     <span class="input-group-text bg-white border-dark-subtle"><i class="ri-search-line"></i></span>
                   </div>
-                  <input type="text" name="customsearch" id="customsearch" class="form-control  border-dark-subtle border-left-0" placeholder="search.." aria-label="search" aria-describedby="search">
+                  <input type="text" name="customsearch" id="customsearch" autocomplete="off" class="form-control  border-dark-subtle border-left-0" placeholder="search.." aria-label="search" aria-describedby="search">
                 </div>
               </div>
             </div>
@@ -41,7 +41,8 @@
           <div class="col-md-12">
             <div class="card shadow mb-4">
               <div class="card-body">
-                <table class="table table-sm activate-select dt-responsive nowrap w-100 fs-14 align-middle" id="layerAppraisalTable">
+                {{-- Baris dimuat server-side dari route layer-appraisal.data (lihat layer-appraisal.js) --}}
+                <table class="table table-sm activate-select dt-responsive nowrap w-100 fs-14 align-middle" id="layerAppraisalTable" data-url="{{ route('layer-appraisal.data') }}">
                     <thead class="thead-light">
                         <tr class="text-center">
                         <th>#</th>
@@ -52,26 +53,12 @@
                         <th class="sorting_1 text-center">Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
-                        @foreach ($datas as $index => $row)   
-                        <tr>
-                            <td>{{ $index + 1 }}</td>
-                            <td>{{ $row->fullname }} <span class="text-muted">{{ $row->employee_id }}</span></td>
-                            <td>{{ $row->company_name }}</td>
-                            <td>{{ $row->office_area }}</td>
-                            <td>{{ $row->group_company }}</td>
-                            <td class="sorting_1 text-center">
-                                @if (!$row->calibration->count())
-                                    <a href="{{ route('layer-appraisal.edit', $row->employee_id) }}" class="btn btn-sm rounded btn-outline-warning me-1"><i class="ri-edit-box-line fs-16"></i></a>
-                                @else
-                                    <button onclick="alert('Cannot changes layer, This employee already on calibration proccess.')" class="btn btn-sm rounded btn-light me-1"><i class="ri-edit-box-line fs-16"></i></button>
-                                @endif
-                                <button class="btn btn-sm rounded btn-outline-info me-1" data-bs-toggle="modal" data-bs-target="#detailModal" data-bs-id="{{ $row->employee_id }}"><i class="ri-eye-line fs-16"></i></button>
-                            </td>
-                        </tr>
-                        @endforeach
-                    </tbody>
+                    <tbody></tbody>
                 </table>
+                @if ($initialData)
+                {{-- Halaman pertama tabel, dipakai layer-appraisal.js sebagai respons draw pertama --}}
+                <script type="application/json" id="layerAppraisalInitialData">@json($initialData)</script>
+                @endif
               </div>
             </div>
           </div>
@@ -233,7 +220,4 @@
 </div>
 @endsection
 @push('scripts')
-<script>
-    var employeesData = {!! json_encode($datas) !!};
-</script>
 @endpush

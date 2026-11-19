@@ -2,22 +2,90 @@ import $ from 'jquery';
 
 document.addEventListener("DOMContentLoaded", function () {
 
-    const layerTable = $("#layerTable").DataTable({
+    // Bundle ini jalan di semua halaman. Tanpa guard ini, di halaman lain
+    // (mis. /layer-appraisal) baris di bawah mengosongkan #customsearch
+    // sementara tabel halaman itu tetap memfilter dengan search tersimpan.
+    if (!document.getElementById("layerTable")) return;
+
+    const $layerTable = $("#layerTable");
+
+    // Halaman pertama dikirim bersama HTML (#layerInitialData).
+    let initialData = null;
+    try {
+        const el = document.getElementById("layerInitialData");
+        if (el) initialData = JSON.parse(el.textContent);
+    } catch (e) {
+        initialData = null;
+    }
+
+    const layerTable = $layerTable.DataTable({
+        processing: true,
+        serverSide: true,
         dom: "lrtip",
-        stateSave: true,
+        // Sengaja tanpa stateSave: setiap kali halaman dibuka, tabel mulai
+        // dari awal (tanpa search/halaman/urutan terakhir).
         fixedColumns: {
             leftColumns: 0,
             rightColumns: 1
         },
         pageLength: 25,
+        order: [[0, "asc"]],
         scrollCollapse: true,
-        scrollX: true
+        scrollX: true,
+        language: { processing: "Loading..." },
+        ajax: function (data, callback) {
+            // Draw pertama (halaman 1, tanpa search, urutan default) memakai
+            // data yang sudah ada di HTML; sisanya lewat AJAX.
+            const isDefaultView = data.start === 0 && data.length === 25
+                && !(data.search && data.search.value)
+                && data.order && data.order.length === 1
+                && data.order[0].column === 0 && data.order[0].dir === "asc";
+            if (initialData && isDefaultView) {
+                const json = initialData;
+                initialData = null;
+                json.draw = data.draw;
+                callback(json);
+                return;
+            }
+            initialData = null;
+
+            $.ajax({ url: $layerTable.data("url"), data: data, dataType: "json" })
+                .done(callback)
+                .fail(function (xhr) {
+                    console.error("Error fetching Layer data:", xhr);
+                    $layerTable.closest(".card").find(".dataTables_processing").hide();
+                    Swal.fire({
+                        icon: "error",
+                        title: "Failed to load data",
+                        text: (xhr.responseJSON && xhr.responseJSON.message) || "Please try again.",
+                    });
+                });
+        },
+        columns: [
+            { data: "DT_RowIndex", name: "DT_RowIndex", searchable: false },
+            { data: "employee_id", name: "employee_id" },
+            { data: "fullname", name: "fullname" },
+            { data: "contribution_level_code", name: "contribution_level_code" },
+            { data: "office_area", name: "office_area" },
+            { data: "group_company", name: "group_company" },
+            { data: "superior", name: "superior" },
+            { data: "action", name: "action", orderable: false, searchable: false, className: "text-center sorting_1" },
+        ],
     });
 
+    // Kosongkan juga kotak search (browser bisa mengisi ulang nilai lama
+    // saat tombol Back) supaya selalu sama dengan tabel.
     $('#customsearch').val(layerTable.search());
 
+    let searchTimer;
     $("#customsearch").on("keyup", function () {
-        layerTable.search($(this).val()).draw();
+        const value = $(this).val();
+        clearTimeout(searchTimer);
+        searchTimer = setTimeout(() => {
+            if (layerTable.search() !== value) {
+                layerTable.search(value).draw();
+            }
+        }, 300);
     });
 
 });
