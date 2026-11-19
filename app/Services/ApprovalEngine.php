@@ -6,6 +6,7 @@ use App\Models\ApprovalFlow;
 use App\Models\ApprovalFlowStep;
 use App\Models\ApprovalRequest;
 use App\Models\EmployeeAppraisal;
+use App\Support\AppraisalManagerResolver;
 use App\Models\Role;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -444,8 +445,12 @@ class ApprovalEngine
         $context  = $settings['approver_context'] ?? 'initiator'; // 'initiator' | 'target'
         $contextEmpId = $context === 'target' ? $targetEmpId : $initiatorEmpId;
 
-        $emp = EmployeeAppraisal::select('employee_id','manager_l1_id','manager_l2_id')
-            ->where('employee_id', $contextEmpId)->first();
+        // manager_l1_id / manager_l2_id mengikuti Layer Setting appraisal
+        // (approval_layer_appraisals), fallback ke employees_pa.
+        $emp = AppraisalManagerResolver::applyTo(
+            EmployeeAppraisal::select('employee_id','manager_l1_id','manager_l2_id')
+                ->where('employee_id', $contextEmpId)->first()
+        );
 
         $roles     = $this->decodeToArray($step->approver_role);
         $delegates = $this->decodeToArray($step->approver_user_id);

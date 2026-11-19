@@ -6,6 +6,7 @@ use App\Models\ApprovalFlow;
 use App\Models\ApprovalLayerAppraisal;
 use App\Models\ApprovalRequest;
 use App\Models\EmployeeAppraisal;
+use App\Support\AppraisalManagerResolver;
 use App\Models\Flow;
 use App\Models\Proposed360;
 use App\Models\Role;
@@ -37,7 +38,11 @@ class Proposed360Service
             
             $target = EmployeeAppraisal::select('employee_id','manager_l1_id','manager_l2_id')
             ->where('employee_id',$targetId)->firstOrFail();
-            
+
+            // Atasan diambil dari Layer Setting appraisal, sama dengan daftar
+            // tim di Proposed360Controller::index.
+            AppraisalManagerResolver::applyTo($target);
+
             $scopeKey = $this->scopeToStateKey($data['scope'] ?? 'self'); // 'self' | 'manager_l1_id'
             $matched  = $this->selectInitiator($initiators, $scopeKey, $target, $actor);
             

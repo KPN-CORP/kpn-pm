@@ -230,14 +230,14 @@
                                                                 $pref = old('peers.0')
                                                                     ?? ($approval ? data_get($row, 'selected_peers.0') : data_get($selectedLayer, 'approver_id'));
                                                             @endphp
-                                                            <select name="peers[]" id="peer1" class="form-select {{ $initiatorClass }}" required {{ $initiator }}>
+                                                            @php $needsPeerData = !empty($needsPeerData) || !empty($initiatorClass); @endphp
+                                                            <select name="peers[]" id="peer1" class="form-select {{ $initiatorClass ? 'select360-peer' : '' }}" data-peer-target="{{ $row->employee_id }}" data-peer-label="paren" required {{ $initiator }}>
                                                                 <option value="">- Please Select -</option>
-                                                                @foreach ($selfPeers as $item)
-                                                                    @continue($item->employee_id == $row->employee_id) {{-- jangan pilih diri sendiri --}}
-                                                                    <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
-                                                                        {{ $item->fullname }} ({{ $item->employee_id }})
+                                                                @if ($isPeerCandidate($row->employee_id, $pref))
+                                                                    <option value="{{ $pref }}" selected>
+                                                                        {{ $allEmployees[(string) $pref]->fullname }} ({{ $pref }})
                                                                     </option>
-                                                                @endforeach
+                                                                @endif
                                                             </select>
                                                             <div class="text-danger error-message fs-14"></div>
                                                         </div>
@@ -250,14 +250,13 @@
                                                                 $pref = old('peers.1')
                                                                     ?? ($approval ? data_get($row, 'selected_peers.1') : data_get($selectedLayer, 'approver_id'));
                                                             @endphp
-                                                            <select name="peers[]" id="peer2" class="form-select {{ $initiatorClass }}" {{ $initiator }}>
+                                                            <select name="peers[]" id="peer2" class="form-select {{ $initiatorClass ? 'select360-peer' : '' }}" data-peer-target="{{ $row->employee_id }}" data-peer-label="paren" {{ $initiator }}>
                                                                 <option value="">- Please Select -</option>
-                                                                @foreach ($selfPeers as $item)
-                                                                    @continue($item->employee_id == $row->employee_id) {{-- jangan pilih diri sendiri --}}
-                                                                    <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
-                                                                        {{ $item->fullname }} ({{ $item->employee_id }})
+                                                                @if ($isPeerCandidate($row->employee_id, $pref))
+                                                                    <option value="{{ $pref }}" selected>
+                                                                        {{ $allEmployees[(string) $pref]->fullname }} ({{ $pref }})
                                                                     </option>
-                                                                @endforeach
+                                                                @endif
                                                             </select>
                                                             <div class="text-danger error-message fs-14"></div>
                                                         </div>
@@ -270,14 +269,13 @@
                                                                 $pref = old('peers.2')
                                                                     ?? ($approval ? data_get($row, 'selected_peers.2') : data_get($selectedLayer, 'approver_id'));
                                                             @endphp
-                                                            <select name="peers[]" id="peer3" class="form-select {{ $initiatorClass }}" {{ $initiator }}>
+                                                            <select name="peers[]" id="peer3" class="form-select {{ $initiatorClass ? 'select360-peer' : '' }}" data-peer-target="{{ $row->employee_id }}" data-peer-label="paren" {{ $initiator }}>
                                                                 <option value="">- Please Select -</option>
-                                                                @foreach ($selfPeers as $item)
-                                                                    @continue($item->employee_id == $row->employee_id) {{-- jangan pilih diri sendiri --}}
-                                                                    <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
-                                                                        {{ $item->fullname }} ({{ $item->employee_id }})
+                                                                @if ($isPeerCandidate($row->employee_id, $pref))
+                                                                    <option value="{{ $pref }}" selected>
+                                                                        {{ $allEmployees[(string) $pref]->fullname }} ({{ $pref }})
                                                                     </option>
-                                                                @endforeach
+                                                                @endif
                                                             </select>
                                                             <div class="text-danger error-message fs-14"></div>
                                                         </div>
@@ -572,14 +570,14 @@
                                                             $pref = old('peers.0')
                                                                     ?? ($approval ? data_get($row, 'selected_peers.0') : data_get($selectedLayer, 'approver_id'));
                                                         @endphp
-                                                        <select name="peers[]" id="peer1_{{ $id }}" class="form-select {{ $initiatorClass }}" required {{ $initiator }}>
+                                                        @php $needsPeerData = !empty($needsPeerData) || !empty($initiatorClass); @endphp
+                                                        <select name="peers[]" id="peer1_{{ $id }}" class="form-select {{ $initiatorClass ? 'select360-peer' : '' }}" data-peer-target="{{ $row->employee_id }}" data-peer-label="plain" required {{ $initiator }}>
                                                             <option value="">- Please Select -</option>
-                                                            @foreach ($row->peer_candidates as $item)
-                                                                @continue($item->employee_id == $row->employee_id)
-                                                                <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
-                                                                    {{ $item->fullname }} {{ $item->employee_id }}
+                                                            @if ($isPeerCandidate($row->employee_id, $pref))
+                                                                <option value="{{ $pref }}" selected>
+                                                                    {{ $allEmployees[(string) $pref]->fullname }} {{ $pref }}
                                                                 </option>
-                                                            @endforeach
+                                                            @endif
                                                         </select>
                                                         <div class="text-danger error-message fs-14"></div>
                                                     </div>
@@ -590,14 +588,13 @@
                                                             $pref = old('peers.1')
                                                                     ?? ($approval ? data_get($row, 'selected_peers.1') : data_get($selectedLayer, 'approver_id'));
                                                         @endphp
-                                                        <select name="peers[]" id="peer2_{{ $id }}" class="form-select {{ $initiatorClass }}" {{ $initiator }}>
+                                                        <select name="peers[]" id="peer2_{{ $id }}" class="form-select {{ $initiatorClass ? 'select360-peer' : '' }}" data-peer-target="{{ $row->employee_id }}" data-peer-label="plain" {{ $initiator }}>
                                                             <option value="">- Please Select -</option>
-                                                            @foreach ($row->peer_candidates as $item)
-                                                                @continue($item->employee_id == $row->employee_id)
-                                                                <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
-                                                                    {{ $item->fullname }} {{ $item->employee_id }}
+                                                            @if ($isPeerCandidate($row->employee_id, $pref))
+                                                                <option value="{{ $pref }}" selected>
+                                                                    {{ $allEmployees[(string) $pref]->fullname }} {{ $pref }}
                                                                 </option>
-                                                            @endforeach
+                                                            @endif
                                                         </select>
 
                                                         <div class="text-danger error-message fs-14"></div>
@@ -609,14 +606,13 @@
                                                             $pref = old('peers.2')
                                                                     ?? ($approval ? data_get($row, 'selected_peers.2') : data_get($selectedLayer, 'approver_id'));
                                                         @endphp
-                                                        <select name="peers[]" id="peer3_{{ $id }}" class="form-select {{ $initiatorClass }}" {{ $initiator }}>
+                                                        <select name="peers[]" id="peer3_{{ $id }}" class="form-select {{ $initiatorClass ? 'select360-peer' : '' }}" data-peer-target="{{ $row->employee_id }}" data-peer-label="plain" {{ $initiator }}>
                                                             <option value="">- Please Select -</option>
-                                                            @foreach ($row->peer_candidates as $item)
-                                                                @continue($item->employee_id == $row->employee_id)
-                                                                <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
-                                                                    {{ $item->fullname }} {{ $item->employee_id }}
+                                                            @if ($isPeerCandidate($row->employee_id, $pref))
+                                                                <option value="{{ $pref }}" selected>
+                                                                    {{ $allEmployees[(string) $pref]->fullname }} {{ $pref }}
                                                                 </option>
-                                                            @endforeach
+                                                            @endif
                                                         </select>
 
                                                         <div class="text-danger error-message fs-14"></div>
@@ -712,4 +708,9 @@
     </div>
     @endif
 </div>
+{{-- Kandidat peers: daftar karyawan + exclude per target, dipakai Select2 di proposed360.js.
+     Hanya dikirim bila ada dropdown peers yang bisa diedit. --}}
+@if (!empty($needsPeerData))
+<script type="application/json" id="proposed360-peer-data">@json($peerData)</script>
+@endif
 @endsection
