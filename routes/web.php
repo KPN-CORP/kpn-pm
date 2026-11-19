@@ -207,6 +207,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
 
     // Reports
     Route::get('/reports', [ReportController::class, 'index'])->name('reports');
+    Route::get('/reports/goal-detail/{id}', [ReportController::class, 'goalDetail'])->name('reports.goal-detail');
 
     Route::get('export/employees', [ExportExcelController::class, 'export'])->name('export.employee');
     Route::get('/get-report-content/{reportType}', [ReportController::class, 'getReportContent']);
@@ -304,6 +305,11 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::delete('/calibrationDestroy/{id}', [CalibrationController::class, 'destroy'])->name('calibrationDestroy');
         Route::post('/CalibrationsUpdate', [CalibrationController::class, 'update'])->name('updatecalibrations');
     });
+
+    // Dipakai modal Edit di DUA layar dengan permission berbeda
+    // (Settings > Employee = employeepa, Report > EmployeePA = viewreport),
+    // jadi permission-nya dicek di dalam controller, bukan di sini.
+    Route::get('/employeepa/edit-data/{employeeId}', [EmployeePAController::class, 'editData'])->name('employeepa.edit-data');
 
     Route::middleware(['permission:employeepa'])->group(function () {
         Route::get('/admemployees', [EmployeePAController::class, 'index'])->name('admemployee');
@@ -441,6 +447,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         // Route::get('/admin/get-report-content/{reportType}', [AdminReportController::class, 'getReportContent']);
         Route::post('/admin/get-report-content', [AdminReportController::class, 'getReportContent']);
         Route::get('/admin/reports/achievement-detail/{id}', [AdminReportController::class, 'achievementDetail'])->name('admin.reports.achievement-detail');
+        Route::get('/admin/reports/goal-detail/{id}', [AdminReportController::class, 'goalDetail'])->name('admin.reports.goal-detail');
         Route::get('/admin/changes-group-company', [AdminReportController::class, 'changesGroupCompany']);
         Route::get('/admin/changes-company', [AdminReportController::class, 'changesCompany']);
         //Employee

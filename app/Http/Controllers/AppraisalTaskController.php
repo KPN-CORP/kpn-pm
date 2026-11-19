@@ -21,6 +21,7 @@ use App\Services\AppService;
 use App\Services\KPIService;
 use Carbon\Carbon;
 use Exception;
+use DomainException;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Auth;
@@ -91,9 +92,7 @@ class AppraisalTaskController extends Controller
                         $query->where('period', $period);
                     });
                 })
-                ->whereDoesntHave('appraisal', function ($query) {
-                    $query->where('form_status', 'Draft');
-                })
+                ->whereDoesntHave('appraisal', fn ($query) => $query->employeeDraftHiddenFrom($user, $period))
                 ->get();
 
             // Filter contributors for 'dataTeams' that are empty
@@ -201,7 +200,7 @@ public function getTeamData(Request $request)
                 $query->where('period', $period);
             });
         })
-        ->whereDoesntHave('appraisal', fn ($q) => $q->where('form_status', 'Draft'))
+        ->whereDoesntHave('appraisal', fn ($q) => $q->employeeDraftHiddenFrom($user, $period))
         ->where('approver_id', $user)
         ->where('layer_type', 'manager')
         ->get();
@@ -249,7 +248,9 @@ public function getTeamData(Request $request)
             $item->calibrationCheck = $calibratedEmployees->has($item->employee_id);
         });
 
-        $data = $datas->map(function ($team, $index) use ($isCurrentPeriod) {
+        $approverLabels = $this->currentApproverLabels($datas, $period);
+
+        $data = $datas->map(function ($team, $index) use ($isCurrentPeriod, $approverLabels) {
             $employee = $team->employee;
             $goal = $team->goal->first();
             $contributor = $team->contributors->first();
@@ -280,6 +281,7 @@ public function getTeamData(Request $request)
                 'kpi' => array_merge(['kpi_status' => (bool) $contributor], $scores),
                 'calibrationCheck' => $team->calibrationCheck ?? false,
                 'contributorStatus' => $contributor->status ?? '-',
+                'currentApprover' => $approverLabels[$employee->employee_id] ?? null,
                 'approval_date' => $contributor
                     ? $this->appService->formatDate($contributor->created_at)
                     : ($approvalReq ? $this->appService->formatDate($approvalReq->created_at) : '-'),
@@ -372,8 +374,10 @@ public function getTeamData(Request $request)
             $item->calibrationCheck = $calibratedEmployees->has($item->employee_id);
         });
 
+        $approverLabels = $this->currentApproverLabels($datas, $period);
+
         // Format data untuk DataTables
-        $data = $datas->map(function ($team, $index) use ($isCurrentPeriod) {
+        $data = $datas->map(function ($team, $index) use ($isCurrentPeriod, $approverLabels) {
             $employee = $team->employee;
             $goal = $team->goal->first();
             $contributor = $team->contributors->first();
@@ -405,6 +409,7 @@ public function getTeamData(Request $request)
                 'kpi' => array_merge(['kpi_status' => (bool) $contributor], $scores),
                 'calibrationCheck' => $team->calibrationCheck ?? false,
                 'contributorStatus' => $contributor->status ?? '-',
+                'currentApprover' => $approverLabels[$employee->employee_id] ?? null,
                 'approval_date' => $contributor
                     ? $this->appService->formatDate($contributor->created_at)
                     : '-',
@@ -1092,7 +1097,7 @@ public function getTeamData(Request $request)
 
         // Cegah appraisal ganda: initiate hanya kalau karyawan belum punya appraisal di periode ini
         if (Appraisal::where('employee_id', $validatedData['employee_id'])->where('period', $period)->exists()) {
-            return redirect('appraisals-task')->with('error', "Appraisal $period for this employee already exists.");
+            return $this->storeResponse($request, url('appraisals-task'), '', new DomainException("Appraisal $period for this employee already exists."));
         }
 
         DB::beginTransaction(); // Start the database transaction
@@ -1101,7 +1106,7 @@ public function getTeamData(Request $request)
             $contributorData = ApprovalLayerAppraisal::select('approver_id', 'layer_type')->where('approver_id', Auth::user()->employee_id)->where('layer_type', 'manager')->where('employee_id', $validatedData['employee_id'])->first();
 
             if (!$contributorData) {
-                throw new Exception('No manager layer found for this employee.');
+                throw new DomainException('No manager layer found for this employee.');
             }
 
             // Extract formGroupName
@@ -1117,7 +1122,7 @@ public function getTeamData(Request $request)
             $goals = Goal::with(['employee'])->where('employee_id', $validatedData['employee_id'])->where('period', $period)->first();
 
             if (!$goals) {
-                throw new Exception("No goals found for this period ($period).");
+                throw new DomainException("No goals found for this period ($period).");
             }
 
             // Achievement KPI dari tracking bulanan yang diisi manager (default goal achievement), file dasar dari goal achievement
@@ -1128,8 +1133,6 @@ public function getTeamData(Request $request)
             $goalData = json_decode($goals->form_data, true);
 
             $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)->where('layer_type', 'calibrator')->where('employee_id', $validatedData['employee_id'])->value('approver_id');
-
-            $masterCalibration = MasterCalibration::where('period', $period)->first();
 
             $timestamp  = Carbon::now()->format('His');
             $baseDir    = 'files/docs_pa';                       // di disk 'public'
@@ -1171,8 +1174,6 @@ public function getTeamData(Request $request)
                 if (!$appraisal->save()) {
                     throw new Exception('Failed to save appraisal data.');
                 }
-
-                $calibrationGroupID = $masterCalibration->id_calibration_group;
 
                 // dd($datas, $goalData, $contributorData->layer_type, $goals->employee, $period);
 
@@ -1222,7 +1223,7 @@ public function getTeamData(Request $request)
 
                 if ($submit_type === 'Approved') {
                     $calibration = new Calibration();
-                    $calibration->id_calibration_group = $calibrationGroupID;
+                    $calibration->id_calibration_group = $this->calibrationGroupId($period);
                     $calibration->appraisal_id = $appraisal->id;
                     $calibration->employee_id = $validatedData['employee_id'];
                     $calibration->approver_id = $firstCalibrator;
@@ -1237,25 +1238,30 @@ public function getTeamData(Request $request)
                 DB::commit(); // Commit the transaction
 
                 // Return a response, such as a redirect or a JSON response
-                return redirect('appraisals-task')->with('success', $messages);
+                return $this->storeResponse($request, url('appraisals-task'), $messages);
 
         } catch (ValidationException $e) {
+            // Dilempar ulang: Laravel otomatis balas 422 JSON (fetch) atau redirect back + errors (form biasa)
             DB::rollBack();
-            return back()->withErrors($e->validator)->with('error', $e->validator->errors()->first())->withInput();
+            throw $e;
         } catch (Exception $e) {
             DB::rollBack(); // Rollback the transaction in case of an error
-            return redirect('appraisals-task')->with('error', $e->getMessage());
+            Log::error('Error in storeInitiate method: ' . $e->getMessage());
+            return $this->storeResponse($request, url('appraisals-task'), 'An error occurred while saving the appraisal.', $e);
         }
     }
 
     public function storeReview(Request $request)
     {
+        $type = $request->type;
+        $redirectUrl = $type === 'onbehalf' ? route('onbehalf', ['category' => 'Appraisal']) : url('appraisals-task');
+        $filesToDelete = [];
+
         try {
 
             $period = $this->appService->appraisalPeriod();
             $submit_status = $request->submit_type == 'submit_draft' ? 'Draft' : 'Approved';
             $messages = $request->submit_type == 'submit_draft' ? 'Draft saved successfully.' : 'Appraisal submitted successfully.';
-            $type = $request->type;
 
             $onbehalfMessages = $type === 'onbehalf' ? 'Approved by admin ' . Auth::user()->id : null;
 
@@ -1366,15 +1372,6 @@ public function getTeamData(Request $request)
                     ->where('employee_id', $validatedData['employee_id'])
                     ->value('approver_id');
 
-                $firstCalibrator = ApprovalLayerAppraisal::where('layer', 1)
-                    ->where('layer_type', 'calibrator')
-                    ->where('employee_id', $validatedData['employee_id'])
-                    ->value('approver_id');
-
-                $masterCalibration = MasterCalibration::where('period', $period)->first();
-
-                $calibrationGroupID = $masterCalibration->id_calibration_group;
-
                 if (!$nextApprover) {
                     $approver = $validatedData['approver_id'];
                     $statusRequest = 'Approved';
@@ -1392,14 +1389,9 @@ public function getTeamData(Request $request)
                 $kept = $request['keep_files'] ?? [];      // bentuk "storage/files/appraisals/xxx.ext"
                 $kept = array_values(array_filter($kept, fn($p) => is_string($p) && $p !== ''));
 
-                // Hapus fisik file yang TIDAK di-keep
-                $toDelete = array_values(array_diff($existingList, $kept));
-                foreach ($toDelete as $webPath) {
-                    $diskPath = Str::after($webPath, 'storage/'); // "files/appraisals/xxx.ext"
-                    if ($diskPath && Storage::disk('public')->exists($diskPath)) {
-                        Storage::disk('public')->delete($diskPath);
-                    }
-                }
+                // File yang TIDAK di-keep; dihapus fisik setelah commit supaya kalau gagal/rollback
+                // record lama tidak menunjuk ke file yang sudah hilang
+                $filesToDelete = array_values(array_diff($existingList, $kept));
 
                 // Lanjutkan proses update file, validasi, dll...
                 $timestamp  = Carbon::now()->format('His');
@@ -1423,7 +1415,7 @@ public function getTeamData(Request $request)
                 }, $kept));
                 $totalBytesNew = array_sum(array_map(fn(UploadedFile $f) => $f->getSize(), $files));
                 if (($totalBytesKept + $totalBytesNew) > 10 * 1024 * 1024) {
-                    return back()->withErrors(['attachment' => 'Total file size exceeds 10MB.'])->withInput();
+                    throw new DomainException('Total file size exceeds 10MB.');
                 }
 
                 $startIdx = count($kept);
@@ -1449,6 +1441,8 @@ public function getTeamData(Request $request)
 
 
                 if ($submit_status === 'Approved') {
+                    $calibrationGroupID = $this->calibrationGroupId($period);
+
                     $calibration = Calibration::updateOrCreate(
                         [
                             'id_calibration_group' => $calibrationGroupID,
@@ -1502,24 +1496,104 @@ public function getTeamData(Request $request)
 
             DB::commit(); // Commit the transaction
 
-            // Return a response, such as a redirect or a JSON response
-            if ($type === 'onbehalf') {
-                return redirect()->route('onbehalf', ['category' => 'Appraisal']);
+            foreach ($filesToDelete as $webPath) {
+                $diskPath = Str::after($webPath, 'storage/'); // "files/appraisals/xxx.ext"
+                if ($diskPath && Storage::disk('public')->exists($diskPath)) {
+                    Storage::disk('public')->delete($diskPath);
+                }
             }
 
-            return redirect('appraisals-task')->with('success', $messages);
+            return $this->storeResponse($request, $redirectUrl, $messages);
 
         } catch (ValidationException $e) {
+            // Dilempar ulang: Laravel otomatis balas 422 JSON (fetch) atau redirect back + errors (form biasa)
             DB::rollBack();
-            return back()->withErrors($e->validator)->with('error', $e->validator->errors()->first())->withInput();
+            throw $e;
         } catch (Exception $e) {
             DB::rollBack(); // Rollback the transaction in case of an error
             Log::error('Error in storeReview method: ' . $e->getMessage());
-            if ($type === 'onbehalf') {
-                return redirect()->route('onbehalf', ['category' => 'Appraisal'])->with('error', 'An error occurred while submitting the appraisal.');
-            }
-            return redirect('appraisals-task')->with('error', 'An error occurred while submitting the appraisal.');
+            return $this->storeResponse($request, $redirectUrl, 'An error occurred while submitting the appraisal.', $e);
         }
+    }
+
+    /**
+     * Label approver saat ini per karyawan untuk popover status Task Box, format sama dengan
+     * On Behalf Appraisal: "Manager L{layer} : Nama (ID)", atau karyawan itu sendiri kalau di-sendback.
+     *
+     * Batch: 3 query untuk seluruh tabel (request, nama approver, layer), bukan per baris.
+     *
+     * @param  \Illuminate\Support\Collection  $teams  baris ApprovalLayerAppraisal dengan relasi employee ter-load
+     * @return array<string, string> employee_id => label
+     */
+    private function currentApproverLabels($teams, $period): array
+    {
+        $employeeNames = $teams->filter(fn ($t) => $t->employee)->pluck('employee.fullname', 'employee_id');
+        if ($employeeNames->isEmpty()) return [];
+
+        $employeeIds = $employeeNames->keys();
+
+        $requests = ApprovalRequest::with('manager:id,employee_id,fullname')
+            ->where('category', 'Appraisal')
+            ->where('period', $period)
+            ->whereIn('employee_id', $employeeIds)
+            ->get(['id', 'employee_id', 'current_approval_id', 'sendback_to']);
+
+        $layers = ApprovalLayerAppraisal::whereIn('employee_id', $employeeIds)
+            ->where('layer_type', 'manager')
+            ->get(['employee_id', 'approver_id', 'layer'])
+            ->mapWithKeys(fn ($l) => [$l->employee_id . '|' . $l->approver_id => $l->layer]);
+
+        $labels = [];
+        foreach ($requests as $req) {
+            $employeeId = $req->employee_id;
+
+            if ($req->sendback_to && $req->sendback_to == $employeeId) {
+                $labels[$employeeId] = "{$employeeNames[$employeeId]} ({$employeeId})";
+                continue;
+            }
+
+            $name = optional($req->manager)->fullname . " ({$req->current_approval_id})";
+            $layer = $layers[$employeeId . '|' . $req->current_approval_id] ?? null;
+            $labels[$employeeId] = $layer ? "Manager L{$layer} : {$name}" : $name;
+        }
+
+        return $labels;
+    }
+
+    /**
+     * Master calibration periode tsb; hanya dibutuhkan saat submit (draft belum masuk kalibrasi).
+     */
+    private function calibrationGroupId($period)
+    {
+        $groupId = MasterCalibration::where('period', $period)->value('id_calibration_group');
+
+        if (!$groupId) {
+            throw new DomainException("Calibration master for period $period is not set, please contact admin.");
+        }
+
+        return $groupId;
+    }
+
+    /**
+     * Response submit form appraisal. Form di-submit via fetch (appraisal.js) dengan Accept JSON,
+     * karena redirect akan di-follow fetch jadi 200 dan error tidak terlihat. Form biasa tetap redirect + flash.
+     *
+     * DomainException = pesan untuk user (422); exception lain = pesan generik (500), detail di log.
+     */
+    private function storeResponse(Request $request, string $redirectUrl, string $message, ?\Throwable $error = null)
+    {
+        if ($error) {
+            $message = $error instanceof DomainException ? $error->getMessage() : $message;
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json(
+                ['status' => $error ? 'error' : 'success', 'message' => $message],
+                $error ? ($error instanceof DomainException ? 422 : 500) : 200
+            );
+        }
+
+        return redirect($redirectUrl)->with($error ? 'error' : 'success', $message);
     }
 
     /**

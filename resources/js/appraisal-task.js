@@ -11,6 +11,23 @@ function yearAppraisalTask(button) {
 
 window.yearAppraisalTask = yearAppraisalTask;
 
+const escapeHtml = (s) => String(s ?? '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+
+// Badge status + popover approver saat ini (sama seperti On Behalf Appraisal).
+// Popover dipasang lewat delegasi di popovers.js, cukup atribut data-bs-*.
+function renderStatusBadge(data, type, row) {
+    if (type !== 'display') return data;
+
+    const val = (data ?? '').toString();
+    const cls = { draft: 'secondary', approved: 'success' }[val.toLowerCase()] ?? 'light text-body';
+
+    if (!row.currentApprover) {
+        return `<span class="badge bg-${cls}">${escapeHtml(val)}</span>`;
+    }
+
+    return `<a href="javascript:void(0)" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="${escapeHtml(row.currentApprover)}" class="badge bg-${cls} text-decoration-none">${escapeHtml(val)}</a>`;
+}
+
 $(document).ready(function() {
     // Initialize DataTable for Team Appraisal
     var tableTeam = $('#tableAppraisalTeam').DataTable({
@@ -106,20 +123,7 @@ $(document).ready(function() {
             {
                 data: 'contributorStatus',
                 className: 'text-center',
-                render: function (data, type) {
-                    if (type !== 'display') return data;
-
-                    const val = (data ?? '').toString();
-                    const cls =
-                    val.toLowerCase() === 'draft'    ? 'secondary' :
-                    val.toLowerCase() === 'approved' ? 'success'   :
-                                                        'light text-body';
-
-                    // escape singkat
-                    const safe = val.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-
-                    return `<span class="badge bg-${cls}">${safe}</span>`;
-                }
+                render: renderStatusBadge
             },
             { data: 'approval_date',  className: 'text-end' },
             { data: 'action', className: 'sorting_1' }
@@ -241,20 +245,7 @@ $(document).ready(function() {
             {
                 data: 'contributorStatus',
                 className: 'text-center',
-                render: function (data, type) {
-                    if (type !== 'display') return data;
-
-                    const val = (data ?? '').toString();
-                    const cls =
-                    val.toLowerCase() === 'draft'    ? 'secondary' :
-                    val.toLowerCase() === 'approved' ? 'success'   :
-                                                        'light text-body';
-
-                    // escape singkat
-                    const safe = val.replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-
-                    return `<span class="badge bg-${cls}">${safe}</span>`;
-                }
+                render: renderStatusBadge
             },
             { data: 'approval_date', className: 'text-end' },
             { data: 'action', className: 'sorting_1' }

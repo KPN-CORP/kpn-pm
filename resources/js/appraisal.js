@@ -180,13 +180,18 @@ $(function () {
 
     const res = await fetch(form.action, {
       method: 'POST',
-      headers: { 'X-CSRF-TOKEN': csrfToken }, // JANGAN set Content-Type manual!
+      // JANGAN set Content-Type manual! Accept JSON supaya error server tidak tertutup redirect (fetch follow redirect = 200)
+      headers: { 'X-CSRF-TOKEN': csrfToken, 'Accept': 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
       body: fd
     });
 
-    if (!res.ok) {
-      const txt = await res.text().catch(()=> '');
-      throw new Error(txt || 'Request failed');
+    const isJson = (res.headers.get('content-type') || '').includes('application/json');
+    const body = isJson ? await res.json().catch(() => null) : null;
+
+    if (!res.ok || body?.status === 'error') {
+      let msg = body?.message || 'Request failed';
+      if (body?.errors) msg = Object.values(body.errors).flat()[0] || msg; // validasi 422
+      throw new Error(msg);
     }
     return res;
   }

@@ -1236,9 +1236,7 @@ class AppService
         $notifTeams = ApprovalLayerAppraisal::where('approver_id', $user)
             ->where('layer_type', 'manager')
             ->whereHas('employee', $hasCreatePaAccess)
-            ->whereDoesntHave('appraisal', function ($query) {
-                $query->where('form_status', 'Draft');
-            })
+            ->whereDoesntHave('appraisal', fn ($query) => $query->employeeDraftHiddenFrom($user, $period))
             ->whereDoesntHave('contributors', function ($query) use ($user, $period) {
                 $query->where('contributor_id', $user)->where('period', $period);
             })
