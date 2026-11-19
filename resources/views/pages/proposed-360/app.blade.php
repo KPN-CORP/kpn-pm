@@ -13,7 +13,7 @@
 
 @section('content')
 <!-- Begin Page Content -->
-<div class="container-fluid mb-3">
+<div class="container-fluid mb-3" id="proposed360-page">
     @if(session('success'))
         <div class="alert alert-success mt-3">
             {{ session('success') }}
@@ -299,7 +299,7 @@
                                                                 $pref = old('subordinates.0')
                                                                     ?? ($approval ? data_get($row, 'selected_subordinates.0') : data_get($selectedLayer, 'approver_id'));
                                                             @endphp
-                                                            <select name="subordinates[]" id="sub1" class="form-select {{ $initiatorClass }}" required {{ $initiator }}>
+                                                            <select name="subordinates[]" id="sub1" class="form-select {{ $initiatorClass ? 'select360-sub' : '' }}" required {{ $initiator }}>
                                                                 <option value="">- Please Select -</option>
                                                                 @foreach ($subordinates as $item)
                                                                     <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
@@ -318,7 +318,7 @@
                                                                 $pref = old('subordinates.1')
                                                                     ?? ($approval ? data_get($row, 'selected_subordinates.1') : data_get($selectedLayer, 'approver_id'));
                                                             @endphp
-                                                            <select name="subordinates[]" id="sub2" class="form-select {{ $initiatorClass }}" {{ $initiator }}>
+                                                            <select name="subordinates[]" id="sub2" class="form-select {{ $initiatorClass ? 'select360-sub' : '' }}" {{ $initiator }}>
                                                                 <option value="">- Please Select -</option>
                                                                 @foreach ($subordinates as $item)
                                                                     <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
@@ -338,7 +338,7 @@
                                                                 $pref = old('subordinates.2')
                                                                     ?? ($approval ? data_get($row, 'selected_subordinates.2') : data_get($selectedLayer, 'approver_id'));
                                                             @endphp
-                                                            <select name="subordinates[]" id="sub3" class="form-select {{ $initiatorClass }}" {{ $initiator }}>
+                                                            <select name="subordinates[]" id="sub3" class="form-select {{ $initiatorClass ? 'select360-sub' : '' }}" {{ $initiator }}>
                                                                 <option value="">- Please Select -</option>
                                                                 @foreach ($subordinates as $item)
                                                                     <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
@@ -635,7 +635,7 @@
                                                             $pref = old('subordinates.0')
                                                                     ?? ($approval ? data_get($row, 'selected_subordinates.0') : data_get($selectedLayer, 'approver_id'));
                                                         @endphp
-                                                        <select name="subordinates[]" id="sub1_{{ $id }}" class="form-select {{ $initiatorClass }}" required {{ $initiator }}>
+                                                        <select name="subordinates[]" id="sub1_{{ $id }}" class="form-select {{ $initiatorClass ? 'select360-sub' : '' }}" required {{ $initiator }}>
                                                             <option value="">- Please Select -</option>
                                                             @foreach ($row->subordinates as $item)
                                                                 <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
@@ -652,7 +652,7 @@
                                                             $pref = old('subordinates.1')
                                                                     ?? ($approval ? data_get($row, 'selected_subordinates.1') : data_get($selectedLayer, 'approver_id'));
                                                         @endphp
-                                                        <select name="subordinates[]" id="sub2_{{ $id }}" class="form-select {{ $initiatorClass }}" {{ $initiator }}>
+                                                        <select name="subordinates[]" id="sub2_{{ $id }}" class="form-select {{ $initiatorClass ? 'select360-sub' : '' }}" {{ $initiator }}>
                                                             <option value="">- Please Select -</option>
                                                             @foreach ($row->subordinates as $item)
                                                                 <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>
@@ -669,7 +669,7 @@
                                                             $pref = old('subordinates.2')
                                                                     ?? ($approval ? data_get($row, 'selected_subordinates.2') : data_get($selectedLayer, 'approver_id'));
                                                         @endphp
-                                                        <select name="subordinates[]" id="sub3_{{ $id }}" class="form-select {{ $initiatorClass }}" {{ $initiator }}>
+                                                        <select name="subordinates[]" id="sub3_{{ $id }}" class="form-select {{ $initiatorClass ? 'select360-sub' : '' }}" {{ $initiator }}>
                                                             <option value="">- Please Select -</option>
                                                             @foreach ($row->subordinates as $item)
                                                                 <option value="{{ $item->employee_id }}" @selected($item->employee_id == $pref)>

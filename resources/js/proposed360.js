@@ -219,12 +219,20 @@ import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
 // Dropdown peers: opsi tidak di-render server (dulu ~semua karyawan per
 // dropdown → halaman puluhan MB). Daftar karyawan dikirim sekali di
 // #proposed360-peer-data; Select2 mencari & memaginasi di memori.
+//
+// Semua Select2 di halaman ini di-init dengan width:'100%'. Default Select2
+// ('resolve') mengukur lebar tiap <select> → reflow paksa per dropdown;
+// dengan ~100 dropdown itu ±1,5 detik JS yang memblokir halaman.
 (function () {
-  const dataEl = document.getElementById('proposed360-peer-data');
-  if (!dataEl) return;
+  if (!document.getElementById('proposed360-page')) return;
 
-  let data;
-  try { data = JSON.parse(dataEl.textContent); } catch (e) { return; }
+  const BASE = { width: '100%', placeholder: 'Please select', allowClear: true, theme: 'bootstrap-5' };
+
+  let data = {};
+  const dataEl = document.getElementById('proposed360-peer-data');
+  if (dataEl) {
+    try { data = JSON.parse(dataEl.textContent) || {}; } catch (e) { data = {}; }
+  }
 
   const employees  = Array.isArray(data.employees) ? data.employees : []; // [[employee_id, fullname], ...]
   const excludeMap = data.exclude || {};
@@ -249,9 +257,7 @@ import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
     const label  = (id, name) => (paren ? `${name} (${id})` : `${name} ${id}`);
 
     $(el).select2({
-      placeholder: 'Please select',
-      allowClear: true,
-      theme: 'bootstrap-5',
+      ...BASE,
       ajax: {
         delay: 150,
         transport: function (params, success) {
@@ -274,7 +280,13 @@ import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
   }
 
   $(function () {
+    document.querySelectorAll('select.select360-sub').forEach((el) => $(el).select2(BASE));
     document.querySelectorAll('select.select360-peer[data-peer-target]').forEach(init);
+
+    // Data sudah tampil; jangan tunggu window.load (gambar, font, dll.)
+    // untuk menutup preloader.
+    if (typeof window.hideLoader === 'function') window.hideLoader();
+    else $('#preloader').hide();
   });
 })();
 
