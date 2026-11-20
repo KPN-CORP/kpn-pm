@@ -1067,7 +1067,13 @@ public function getTeamData(Request $request)
                 return $req;
             });
 
-            return view('pages.appraisals-task.detail', compact('datas', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'goals', 'selectYear', 'appraisalData', 'achievements', 'viewAchievement'));
+            // Tracking achievement bulanan untuk kartu KPI, sama sumbernya dengan
+            // My Appraisal dan popup detail On Behalf (pages.onbehalfs.partials.kpi-cards).
+            $contributorGoal = $datas->first()->goal;
+            $kpiTracking = $contributorGoal ? KPIService::achievementTracking($contributorGoal, $appraisalData['formData'] ?? []) : [];
+            $kpiFiles = $contributorGoal ? KPIService::achievementFiles($contributorGoal, $appraisalData['formData'] ?? []) : [];
+
+            return view('pages.appraisals-task.detail', compact('datas', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'goals', 'selectYear', 'appraisalData', 'achievements', 'viewAchievement', 'kpiTracking', 'kpiFiles'));
 
         } catch (Exception $e) {
             Log::error('Error in index method: ' . $e->getMessage());
