@@ -342,6 +342,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::get('/layer-appraisal', [LayerController::class, 'layerAppraisal'])->name('layer-appraisal');
         Route::get('/layer-appraisal-data', [LayerController::class, 'layerAppraisalData'])->name('layer-appraisal.data');
         Route::get('/layer-appraisal/edit/{id}', [LayerController::class, 'layerAppraisalEdit'])->name('layer-appraisal.edit');
+        Route::get('/layer-appraisal-template', [LayerController::class, 'layerAppraisalTemplate'])->name('layer-appraisal.template');
         Route::post('/layer-appraisal/import', [LayerController::class, 'layerAppraisalImport'])->name('layer-appraisal.import');
         Route::post('/layer-appraisal/update', [LayerController::class, 'layerAppraisalUpdate'])->name('layer-appraisal.update');
         Route::get('/export-invalid-layer-appraisal', [LayerController::class, 'exportInvalidLayerAppraisal'])->name('export.invalid.layer.appraisal');

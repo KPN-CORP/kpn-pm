@@ -83,6 +83,7 @@
                                 <li><strong>Managers</strong> are limited to <strong>1 layer</strong>.</li>
                                 <li><strong>Peers</strong> and <strong>Subordinates</strong> are allowed a maximum of <strong>3 layers</strong> each.</li>
                                 <li><strong>Calibrators</strong> can have up to <strong>10 layers</strong>.</li>
+                                <li><strong>KPI Unit</strong> (optional, last columns, peach): <code>kpi_unit</code> = grade from Master Calibration (e.g. <strong>C</strong>), <code>keterangan</code> = note, <code>periode</code> = year (empty = current appraisal period), <code>status_aktif</code> = <strong>T</strong>/<strong>F</strong> (empty = T for a new KPI Unit). Only filled columns are updated; leave all four empty to keep the current KPI Unit.</li>
                             </ul>
                         </div>
                     </div>
@@ -101,7 +102,7 @@
                         <div class="col">
                             <div class="mb-2">
                                 <label class="form-label" for="fullname">Download Templete here : </label>
-                                <a href="{{ asset('storage/files/template_import_appraisal_layer_v2.xls') }}" class="badge-outline-primary p-1" download><i class="ri-file-text-line me-1"></i>Import_Excel_Template</a>
+                                <a href="{{ route('layer-appraisal.template') }}" class="badge-outline-primary p-1"><i class="ri-file-text-line me-1"></i>Import_Excel_Template</a>
                             </div>
                         </div>
                     </div>

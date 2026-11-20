@@ -928,6 +928,14 @@ class LayerController extends Controller
 
     }
 
+    /**
+     * Download template import Layer Appraisal (termasuk kolom kpi_unit).
+     */
+    public function layerAppraisalTemplate()
+    {
+        return Excel::download(new \App\Exports\LayerAppraisalImportTemplate(), 'template_import_appraisal_layer.xlsx');
+    }
+
     public function exportInvalidLayerAppraisal()
     {
         // Retrieve the invalid employees from the session or another source
