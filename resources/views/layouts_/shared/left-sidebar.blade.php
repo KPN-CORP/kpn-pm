@@ -185,6 +185,38 @@
                                             <a href="{{ route('admin-master360') }}">Master 360</a>
                                         </li>
                                         @endcan
+                                        @can('viewflowsetting')
+                                        {{-- Flow Builder & Assignments dipakai untuk Proposed 360 --}}
+                                        <li class="side-nav-item">
+                                            <a data-bs-toggle="collapse" href="#sidebarProposed360" aria-expanded="false" aria-controls="sidebarProposed360">
+                                                <span> Proposed 360 </span>
+                                                <span class="menu-arrow"></span>
+                                            </a>
+                                            <div class="collapse" id="sidebarProposed360">
+                                                <ul class="side-nav-forth-level">
+                                                    <li class="side-nav-item">
+                                                        <a data-bs-toggle="collapse" href="#sidebarFlow" aria-expanded="false" aria-controls="sidebarFlow">
+                                                            <span> Flow Builder </span>
+                                                            <span class="menu-arrow"></span>
+                                                        </a>
+                                                        <div class="collapse" id="sidebarFlow">
+                                                            <ul class="side-nav-forth-level">
+                                                                <li>
+                                                                    <a href="{{ route('flows.index') }}">Flows</a>
+                                                                </li>
+                                                                <li>
+                                                                    <a href="{{ route('approval-flow.index') }}">Approval Flow</a>
+                                                                </li>
+                                                            </ul>
+                                                        </div>
+                                                    </li>
+                                                    <li>
+                                                        <a href="{{ route('assignments.index') }}">Assignments</a>
+                                                    </li>
+                                                </ul>
+                                            </div>
+                                        </li>
+                                        @endcan
                                     </ul>
                                 </div>
                             </li>
@@ -212,28 +244,6 @@
                             @can('reminderpa')
                             <li>
                                 <a href="{{ route('reminderpaindex') }}">Reminder PA</a>
-                            </li>
-                            @endcan
-                            @can('viewflowsetting')
-                            <li class="side-nav-item">
-                                <a data-bs-toggle="collapse" href="#sidebarFlow" aria-expanded="false" aria-controls="sidebarFlow">
-                                    <span> Flow Builder </span>
-                                    <span class="menu-arrow"></span>
-                                </a>
-                                <div class="collapse" id="sidebarFlow">
-                                    <ul class="side-nav-third-level">
-                                        <li>
-                                            <a href="{{ route('flows.index') }}">Flows</a>
-                                        </li>
-                                        <li>
-                                            <a href="{{ route('approval-flow.index') }}">Approval Flow</a>
-                                        </li>
-                                    </ul>
-                                </div>
-                            </li>
-                            <li class="side-nav-item">
-                                <a href="{{ route('assignments.index') }}">Assignments</a>
-
                             </li>
                             @endcan
                         </ul>

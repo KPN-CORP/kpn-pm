@@ -294,6 +294,19 @@ $(document).ready(() => {
                             .parent();
                         if (!upperLevelParent.is("body"))
                             upperLevelParent.addClass("menuitem-active");
+
+                        // Rantai .parent() di atas hanya menjangkau 3 level menu.
+                        // Menu yang lebih dalam (mis. Admin Settings > Performance
+                        // Appraisal > Proposed 360 > Flow Builder > Flows) juga
+                        // harus membuka semua induknya.
+                        $(this)
+                            .parents(".side-nav .collapse")
+                            .addClass("show")
+                            .siblings('a[data-bs-toggle="collapse"]')
+                            .attr("aria-expanded", "true");
+                        $(this)
+                            .parents(".side-nav li.side-nav-item")
+                            .addClass("menuitem-active");
                     }
                 });
 
