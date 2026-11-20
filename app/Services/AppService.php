@@ -987,7 +987,16 @@ class AppService
         
         // Simpan data yang tidak ada di AppraisalContributor
         $notFoundData = [];
-        
+
+        // Relasi approver hanya mencari di employees_pa. Approver yang dipilih
+        // lewat Layer Setting bisa saja hanya ada di employees (mis. karyawan
+        // baru), sehingga approver = null dan ->fullname membuat seluruh
+        // halaman Rating gagal. Nama diambil dari employees sebagai cadangan.
+        $missingApproverIds = $approvalLayerAppraisals->filter(fn ($l) => ! $l->approver)->pluck('approver_id')->unique()->values();
+        $fallbackNames = $missingApproverIds->isEmpty()
+            ? collect()
+            : Employee::whereIn('employee_id', $missingApproverIds)->pluck('fullname', 'employee_id');
+
         foreach ($approvalLayerAppraisals as $approvalLayer) {
             
             $review360 = json_decode($approvalLayer->employee->access_menu, true);
@@ -1003,7 +1012,9 @@ class AppService
                 $notFoundData[] = [
                     'employee_id'  => $approvalLayer->employee_id,
                     'approver_id'  => $approvalLayer->approver_id,
-                    'approver_name'  => $approvalLayer->approver->fullname,
+                    'approver_name'  => $approvalLayer->approver?->fullname
+                        ?? $fallbackNames[$approvalLayer->approver_id]
+                        ?? $approvalLayer->approver_id,
                     'layer_type'   => $approvalLayer->layer_type,
                 ];
             }

@@ -593,6 +593,14 @@ public function getTeamData(Request $request)
 
         $approval = ApprovalLayerAppraisal::with('approver')->where('employee_id', $id)->where('approver_id', $approverId )->where('layer_type', '!=', 'calibrator')->first();
 
+        // Relasi approver hanya mencari di employees_pa; untuk reviewer yang
+        // hanya ada di employees (mis. karyawan baru) nama untuk judul
+        // "On Behalf as ..." diambil dari employees. Relasinya sendiri tidak
+        // diganti: approver->id (employees_pa.id) dipakai sebagai created_by.
+        if ($approval && ! $approval->approver) {
+            $approval->approver_fallback_name = Employee::where('employee_id', $approval->approver_id)->value('fullname');
+        }
+
         $achievement = [];
         $goal['actual'] = [];
         $appraisalId = $contributorCheck->appraisal_id ?? null;

@@ -663,12 +663,15 @@ class LayerController extends Controller
         $currentManager = $currentLayers->where('layer_type', 'manager')->first();
 
         // Get all peers (already limited by the database to a max of 3)
-        $currentPeers = $currentLayers->where('layer_type', 'peers')->pluck('approver.employee_id')->toArray();
+        // approver_id, bukan approver.employee_id: relasi approver hanya mencari di
+        // employees_pa, sehingga approver di luar employees_pa terbaca null dan
+        // contributor-nya tidak pernah dibersihkan saat dihapus dari layer.
+        $currentPeers = $currentLayers->where('layer_type', 'peers')->pluck('approver_id')->toArray();
 
         $peersToDelete = array_diff($currentPeers, $peers);
         
         // Get all subordinates (already limited by the database to a max of 3)
-        $currentSub = $currentLayers->where('layer_type', 'subordinate')->pluck('approver.employee_id')->toArray();
+        $currentSub = $currentLayers->where('layer_type', 'subordinate')->pluck('approver_id')->toArray();
         $subsToDelete = array_diff($currentSub, $subs);
 
         // return response()->json($peersToDelete);
@@ -683,8 +686,14 @@ class LayerController extends Controller
         // Now reset the filtered array to get the first non-null, non-empty value
         $firstNonNullCalibrator = reset($filteredCalibrator);
 
-        if ($approvalRequest) {
-            $checkCalibration = Calibration::where('appraisal_id', $approvalRequest->form_id)->where('created_by', $currentManager->approver->id)->where('status', 'Pending')->first();
+        // employees_pa.id manager saat ini (dipakai sebagai created_by). null bila
+        // tidak ada manager atau manager tidak ada di employees_pa: semua cek
+        // "dibuat oleh manager" di bawah lalu dilewati. Jangan dibandingkan
+        // dengan null: where('created_by', null) = IS NULL dan bisa salah hapus.
+        $currentManagerPaId = $currentManager?->approver?->id;
+
+        if ($approvalRequest && $currentManagerPaId) {
+            $checkCalibration = Calibration::where('appraisal_id', $approvalRequest->form_id)->where('created_by', $currentManagerPaId)->where('status', 'Pending')->first();
 
             // Check if a record was found, then update `approver_id` and `updated_by` fields
             if ($checkCalibration && $checkCalibration->approver_id != $firstNonNullCalibrator) {
@@ -699,9 +708,11 @@ class LayerController extends Controller
                 // Check if the employee record exists
                 if ($approvalRequest) {
 
-                    $appraisal = Appraisal::where('id', $approvalRequest->form_id)->where('created_by', $currentManager->approver->id)->first();
+                    $appraisal = $currentManagerPaId
+                        ? Appraisal::where('id', $approvalRequest->form_id)->where('created_by', $currentManagerPaId)->first()
+                        : null;
         
-                    if ($approvalRequest->created_by == $currentManager->approver->id) {
+                    if ($currentManagerPaId && $approvalRequest->created_by == $currentManagerPaId) {
                         // Soft delete the record
                         $approvalRequest->delete();
 
@@ -720,7 +731,9 @@ class LayerController extends Controller
                         
                     }
         
-                    $calibration = Calibration::where('appraisal_id', $approvalRequest->form_id)->where('created_by', $currentManager->approver->id)->where('status', 'Pending')->first();
+                    $calibration = $currentManagerPaId
+                        ? Calibration::where('appraisal_id', $approvalRequest->form_id)->where('created_by', $currentManagerPaId)->where('status', 'Pending')->first()
+                        : null;
         
                     if ($calibration) {
                         // Soft delete the record
@@ -741,7 +754,7 @@ class LayerController extends Controller
         }
 
         if ($currentManager && $approvalRequest) {
-            if($approvalRequest->created_by == $currentManager->approver->id){
+            if($currentManagerPaId && $approvalRequest->created_by == $currentManagerPaId){
 
             AppraisalContributor::where('appraisal_id', $approvalRequest->form_id)
                                 ->whereIn('contributor_type', ['peers', 'subordinate'])
@@ -926,6 +939,14 @@ class LayerController extends Controller
             // Fetch history (you can also cache this if necessary)
             $history = ApprovalLayerAppraisal::with(['approver', 'createBy', 'updateBy'])->where('employee_id', $employeeId)->get();
 
+            // Relasi approver hanya mencari di employees_pa; approver yang
+            // hanya ada di employees (mis. karyawan baru) diambil namanya dari
+            // employees supaya modal tidak gagal.
+            $missingApproverIds = $history->filter(fn ($entry) => ! $entry->approver)->pluck('approver_id')->unique()->values();
+            $fallbackNames = $missingApproverIds->isEmpty()
+                ? collect()
+                : Employee::whereIn('employee_id', $missingApproverIds)->pluck('fullname', 'employee_id');
+
             // Build the response data structure
             $data = [
                 'fullname' => $employee->fullname,
@@ -936,12 +957,12 @@ class LayerController extends Controller
                 'unit' => $employee->unit,
                 'designation' => $employee->designation_name,
                 'office_area' => $employee->office_area,
-                'history' => $history->map(function($entry) {
+                'history' => $history->map(function($entry) use ($fallbackNames) {
                     return [
                         'layer_type' => $entry->layer_type,
                         'layer' => $entry->layer,
-                        'fullname' => $entry->approver->fullname,
-                        'employee_id' => $entry->approver->employee_id,
+                        'fullname' => $entry->approver?->fullname ?? $fallbackNames[$entry->approver_id] ?? $entry->approver_id,
+                        'employee_id' => $entry->approver?->employee_id ?? $entry->approver_id,
                         'updated_by' => $entry->createBy ? $entry->createBy->fullname.' ('. $entry->createBy->employee_id .')' : ($entry->updateBy ? $entry->updateBy->fullname.' ('. $entry->updateBy->employee_id .')' : 'System') ,
                         'updated_at' => $entry->updated_at ? $entry->updated_at->format('Y-m-d H:i:s') : null,
                     ];

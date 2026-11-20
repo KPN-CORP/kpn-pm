@@ -1467,7 +1467,7 @@ class OnBehalfController extends Controller
                         ? $this->appService->convertRating($previousRating->rating, $calibrationData->first()->id_calibration_group)
                         : null;
                     $data->previous_rating_name = $previousRating
-                        ? $previousRating->approver->fullname . ' (' . $previousRating->approver->employee_id . ')'
+                        ? ($previousRating->approver?->fullname ?? $previousRating->approver_id) . ' (' . $previousRating->approver_id . ')'
                         : null;
 
                     // Set rating value
@@ -1505,7 +1505,7 @@ class OnBehalfController extends Controller
                         : false;
                     $data->approver_name = $approvedCalibrator && $approvedCalibrator->approver
                         ? $approvedCalibrator->approver->fullname . ' (' . $approvedCalibrator->approver->employee_id . ')'
-                        : ($data->status == 'Pending' ? $data->approval_requests->approver->fullname : false);
+                        : ($data->status == 'Pending' ? ($data->approval_requests?->approver?->fullname ?? false) : false);
 
                     return $data;
                 });

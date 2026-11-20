@@ -23,7 +23,7 @@
         @if ($type == 'onbehalf')
             <div class="row">
                 <div class="col-12">
-                    <h4 class="h4 mb-4 text-gray-800">On Behalf as<span class="text-muted"> {{ $approval->approver->fullname .' ('.$approval->approver_id.')'}}</span></h4>
+                    <h4 class="h4 mb-4 text-gray-800">On Behalf as<span class="text-muted"> {{ ($approval?->approver?->fullname ?? $approval?->approver_fallback_name ?? $approval?->approver_id) .' ('.$approval?->approver_id.')'}}</span></h4>
                 </div>
             </div>
         @endif
@@ -158,7 +158,7 @@
                         <input type="hidden" id="employee_id" name="employee_id" value="{{ $goals->employee_id }}">
                         <input type="hidden" name="form_group_id" value="{{ $formGroupData['data']['id'] }}">
                         <input type="hidden" class="form-control" name="approver_id" value="{{ $approval->approver_id }}">
-                        <input type="hidden" class="form-control" name="userid" value="{{ $approval->approver->id }}">
+                        <input type="hidden" class="form-control" name="userid" value="{{ $approval?->approver?->id }}">
                         <input type="hidden" name="formGroupName" value="{{ $formGroupData['data']['name'] }}">
                         @foreach ($filteredFormDatas['filteredFormData'] as $index => $row)
                             <div class="form-step {{ $step == $index + 1 ? 'active' : '' }}" data-step="{{ $index + 1 }}">

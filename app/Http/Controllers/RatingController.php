@@ -207,7 +207,7 @@ class RatingController extends Controller
                         ? $this->appService->convertRating($previousRating->rating, $calibrationData->first()->id_calibration_group)
                         : null;
                     $data->previous_rating_name = $previousRating
-                        ? $previousRating->approver->fullname . ' (' . $previousRating->approver->employee_id . ')'
+                        ? ($previousRating->approver?->fullname ?? $previousRating->approver_id) . ' (' . $previousRating->approver_id . ')'
                         : null;
 
                     // Set rating value
@@ -244,7 +244,7 @@ class RatingController extends Controller
                         : false;
                     $data->approver_name = $approvedCalibrator && $approvedCalibrator->approver
                         ? $approvedCalibrator->approver->fullname . ' (' . $approvedCalibrator->approver->employee_id . ')'
-                        : ($data->status == 'Pending' ? $data->approval_requests->approver->fullname : false);
+                        : ($data->status == 'Pending' ? ($data->approval_requests?->approver?->fullname ?? false) : false);
 
                     return $data;
                 });
@@ -396,7 +396,10 @@ class RatingController extends Controller
 
             return view('pages.rating.app', compact('ratingDatas', 'calibrations', 'masterRating', 'link', 'parentLink', 'activeLevel', 'id_calibration_group'));
         } catch (Exception $e) {
-            Log::error('Error in index method: ' . $e->getMessage());
+            Log::error('Error in index method: ' . $e->getMessage(), ['exception' => $e]);
+            // Dulu redirect tanpa pesan, sehingga terlihat seperti tidak punya akses.
+            Session::flash('error', 'The Rating page could not be loaded. Please contact HCIS (logged at ' . now()->format('d M Y H:i') . ').');
+            Session::flash('errorTitle', 'Cannot open Rating');
             return redirect()->route('appraisals');
         }
     }
