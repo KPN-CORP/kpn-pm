@@ -309,12 +309,10 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     // Dipakai modal Edit di DUA layar dengan permission berbeda
     // (Settings > Employee = employeepa, Report > EmployeePA = viewreport),
     // jadi permission-nya dicek di dalam controller, bukan di sini.
-    Route::get('/employeepa/edit-data/{employeeId}', [EmployeePAController::class, 'editData'])->name('employeepa.edit-data');
 
     Route::middleware(['permission:employeepa'])->group(function () {
         Route::get('/admemployees', [EmployeePAController::class, 'index'])->name('admemployee');
         Route::delete('/admemployeedestroy', [EmployeePAController::class, 'destroy'])->name('admemployeeDestroy');
-        Route::put('/employeepa/update', [EmployeePAController::class, 'update'])->name('employeepa.update');
         Route::get('/export-employeepa', [EmployeePAController::class, 'exportEmployeepa'])->name('employeepa.export');
     });
 

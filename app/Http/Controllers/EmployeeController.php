@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Employee;
 use App\Models\EmployeeAppraisal;
+use App\Models\EmployeePaProfile;
 use App\Models\User;
 use App\Models\ApprovalLayer;
 use App\Models\Location;
@@ -199,7 +200,7 @@ class EmployeeController extends Controller
                 $updated++;
             }
         }else if($schedule->event_type=='schedulepa'){
-            foreach ($querypa->select('id', 'access_menu')->cursor() as $employee) {
+            foreach ($querypa->select('id', 'employee_id', 'access_menu')->cursor() as $employee) {
 
                 $accessMenuJson = json_decode($employee->access_menu, true) ?? [];
 
@@ -213,12 +214,10 @@ class EmployeeController extends Controller
                 $accessMenuJson['createpa'] = $accessMenu;
                 $accessMenuJson['review360'] = $schedule->review_360;
     
-                DB::table('employees_pa')
-                    ->where('id', $employee->id)
-                    ->update([
-                        'access_menu' => json_encode($accessMenuJson),
-                        'updated_at' => Carbon::now()  // Update the updated_at column
-                    ]);
+                // employees_pa adalah view; access_menu PA disimpan di employee_pa_profiles.
+                EmployeePaProfile::writeFor((string) $employee->employee_id, [
+                    'access_menu' => json_encode($accessMenuJson),
+                ]);
 
                 $updated++;
             }

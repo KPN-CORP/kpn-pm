@@ -483,21 +483,8 @@ class ReportController extends Controller
                 }
             });
 
-            $designations = Designation::select('designation_name', 'job_code')
-            ->orderBy('parent_company_id', 'asc')
-            ->orderBy('designation_name', 'asc')
-            ->orderBy('job_code', 'asc')
-            ->groupBy('job_code', 'designation_name', 'parent_company_id')
-            ->get();
-            $departments = Department::select('department_name')
-            ->orderBy('department_name', 'asc')
-            ->groupBy('department_name')
-            ->get();
-            $companies = Company::orderBy('contribution_level_code', 'asc')->get();
-            $locations = Location::orderBy('area', 'asc')->get();
-
-            $jobLevel = EmployeeAppraisal::select('job_level')->distinct()->orderBy('job_level', 'asc')->get();
-
+            // Lookup untuk modal Edit dihapus: data karyawan tidak diubah dari
+            // PA (employees_pa adalah view atas employees).
             $data = $query->get();
             foreach ($data as $employee) {
                 $employee->access_menu = json_decode($employee->access_menu, true);
@@ -506,7 +493,7 @@ class ReportController extends Controller
 
             $link = __('Report');
 
-            return view($route, compact('data', 'link', 'filters', 'designations','departments','companies','locations', 'jobLevel'));
+            return view($route, compact('data', 'link', 'filters'));
         } elseif ($report_type === 'Achievement') {
             
             $query = Goal::with([

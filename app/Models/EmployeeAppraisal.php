@@ -20,7 +20,61 @@ class EmployeeAppraisal extends Model
         'employee_type', 'unit', 'date_of_joining', 'users_id', 'updated_by', 'deleted_by'
     ];
 
+    // View: employees LEFT JOIN employee_pa_profiles (see migration
+    // 2026_11_20_100000_split_employees_pa_into_profiles). Reads work like a
+    // table; writes are routed to EmployeePaProfile below.
     protected $table = 'employees_pa';
+
+    /**
+     * Save changes into employee_pa_profiles instead of the (read-only) view.
+     * Only access_menu / deleted_at are writable; employee information comes
+     * from employees and is never changed from PA.
+     */
+    protected function performUpdate(\Illuminate\Database\Eloquent\Builder $query)
+    {
+        if ($this->fireModelEvent('updating') === false) {
+            return false;
+        }
+
+        $dirty = $this->getDirtyForUpdate();
+
+        if (count($dirty) > 0) {
+            EmployeePaProfile::writeFor((string) $this->employee_id, $dirty);
+
+            $this->syncChanges();
+
+            $this->fireModelEvent('updated', false);
+        }
+
+        return true;
+    }
+
+    /**
+     * Rows come from employees (HR sync); PA cannot create employees.
+     */
+    protected function performInsert(\Illuminate\Database\Eloquent\Builder $query)
+    {
+        throw new \LogicException('employees_pa is a view over employees; create the employee in employees instead.');
+    }
+
+    /**
+     * PA terminate: mark the profile deleted; the employees row is untouched.
+     */
+    protected function runSoftDelete()
+    {
+        $time = $this->freshTimestamp();
+
+        EmployeePaProfile::writeFor((string) $this->employee_id, [
+            $this->getDeletedAtColumn() => $this->fromDateTime($time),
+            'deleted_by' => \Illuminate\Support\Facades\Auth::id(),
+        ]);
+
+        $this->{$this->getDeletedAtColumn()} = $time;
+
+        $this->syncOriginalAttributes([$this->getDeletedAtColumn()]);
+
+        $this->fireModelEvent('trashed', false);
+    }
 
     public function user()
     {
