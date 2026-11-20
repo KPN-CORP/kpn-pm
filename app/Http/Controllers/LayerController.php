@@ -611,7 +611,26 @@ class LayerController extends Controller
 
         $calibratorCount = isset($groupLayers['calibrator']) ? $groupLayers['calibrator']->count() : 1;
 
-        $employee = EmployeeAppraisal::select('fullname', 'employee_id', 'designation')->get();
+        // Approver tersimpan per jenis & nomor layer (peers[2] = Peers 2),
+        // supaya tiap dropdown menampilkan layer yang benar walau ada yang
+        // kosong di tengah. Manager hanya satu.
+        $selectedLayers = [
+            'manager' => [1 => optional($groupLayers['manager'] ?? collect())->first()?->approver_id],
+        ];
+        foreach (['peers', 'subordinate'] as $type) {
+            foreach ($groupLayers[$type] ?? [] as $layer) {
+                $selectedLayers[$type][(int) $layer->layer] = $layer->approver_id;
+            }
+        }
+
+        // Dropdown memakai Select2 AJAX ke /search-employee (tabel employees),
+        // jadi cukup opsi yang sedang terpilih. Dulu tiap dropdown berisi
+        // semua employees_pa, sehingga approver yang dipilih lewat pencarian
+        // tapi tidak ada di employees_pa (mis. karyawan baru) tampil kosong
+        // saat halaman dibuka lagi, dan hilang bila disimpan ulang.
+        $approverIds = $datas->appraisalLayer->pluck('approver_id')->filter()->map('strval')->unique()->values();
+        $approverNames = Employee::whereIn('employee_id', $approverIds)->pluck('fullname', 'employee_id')->all()
+            + EmployeeAppraisal::withTrashed()->whereIn('employee_id', $approverIds)->pluck('fullname', 'employee_id')->all();
 
         return view('pages.layers.layer-appraisal-edit', [
             'parentLink' => $parentLink,
@@ -619,7 +638,8 @@ class LayerController extends Controller
             'datas' => $datas,
             'calibratorCount' => $calibratorCount,
             'groupLayers' => $groupLayers,
-            'employee' => $employee,
+            'selectedLayers' => $selectedLayers,
+            'approverNames' => $approverNames,
         ]);
     }
 
