@@ -172,10 +172,11 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // Event listener untuk menambah baris baru
     document.addEventListener('click', function (e) {
-        const addStepButton = e.target.closest('#addStepButton');
+        // ID harus sama dengan view approval-flow/create & edit (#add-step, #steps-container)
+        const addStepButton = e.target.closest('#add-step');
         if (!addStepButton) return;
 
-        let stepsContainer = document.getElementById('stepsContainer');
+        let stepsContainer = document.getElementById('steps-container');
 
         // ✅ Guard wajib
         if (!stepsContainer) {
@@ -265,7 +266,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // Event listener untuk menghapus baris dan membuka modal (delegasi event)
-    let stepsContainer = document.getElementById('stepsContainer');
+    let stepsContainer = document.getElementById('steps-container');
 
     if (stepsContainer) {
 
