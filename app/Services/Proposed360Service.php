@@ -28,7 +28,7 @@ class Proposed360Service
                 throw ValidationException::withMessages(['scope' => 'Scope self hanya untuk diri sendiri']);
             }
 
-            $flowRow = Flow::where('module_transaction', 'Propose 360')->first();
+            $flowRow = Flow::forModule('Propose 360');
             if (!$flowRow) throw ValidationException::withMessages(['flow' => 'Flow Propose 360 tidak ditemukan']);
 
             $initiators = json_decode($flowRow->initiator ?? $flowRow->initiators ?? '[]', true);

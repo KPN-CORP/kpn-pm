@@ -45,7 +45,7 @@ class Proposed360Controller extends Controller
         /* ===========================================
         * 1) FLOW & SELF
         * =========================================== */
-        $flowRow       = Flow::where('module_transaction', 'Propose 360')->first();
+        $flowRow       = Flow::forModule('Propose 360');
         $assignmentIds = $this->parseAssignmentIds($flowRow);
         $teamRuleSets  = $this->loadTeamAssignments($assignmentIds);
         $selfEnabled   = $this->flowAllowsSelf($flowRow);

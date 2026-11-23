@@ -19,7 +19,7 @@ class FlowAccessMiddleware
         }
 
         // Ambil flow berdasarkan module_transaction
-        $flow = Flow::where('module_transaction', $moduleTransaction)->first();
+        $flow = Flow::forModule($moduleTransaction);
 
         if (!$flow) {
             abort(403, 'Access denied. Flow not found.');

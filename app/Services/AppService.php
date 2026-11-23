@@ -1093,7 +1093,7 @@ class AppService
             return false;
         }
 
-        $flow = Flow::where('module_transaction', $moduleTransaction)->first();
+        $flow = Flow::forModule($moduleTransaction);
 
         if (!$flow) {
             return false;
