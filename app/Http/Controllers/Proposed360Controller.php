@@ -579,7 +579,8 @@ private function buildPeerExcludeFor(string $targetEmpId, Collection $allEmp, Co
         } catch (Throwable $e) {
             DB::rollBack();
             Log::error('proposed360.store.error', ['trace'=>$trace,'message'=>$e->getMessage(),'code'=>$e->getCode(),'line'=>$e->getLine()]);
-            return back()->withInput()->withErrors(['error'=>'Gagal mengirim pengajuan']);
+            $msg = $this->userErrorMessage($e, 'Gagal mengirim pengajuan');
+            return back()->withInput()->withErrors(['error'=>$msg])->with('error', $msg);
         }
     }
 
@@ -610,8 +611,24 @@ private function buildPeerExcludeFor(string $targetEmpId, Collection $allEmp, Co
         } catch (Throwable $e) {
             DB::rollBack();
             Log::error('proposed360.action.error', ['trace'=>$trace,'form_id'=>$data['form_id'],'action'=>$data['action'],'message'=>$e->getMessage(),'code'=>$e->getCode(),'line'=>$e->getLine()]);
-            return back()->withErrors(['error'=>'Gagal memproses approval']);
+            $msg = $this->userErrorMessage($e, 'Gagal memproses approval');
+            return back()->withErrors(['error'=>$msg])->with('error', $msg);
         }
+    }
+
+    /**
+     * Pesan error untuk user: pesan validasi ditampilkan apa adanya (mis.
+     * karyawan tidak termasuk assignment, atasan tidak ada di Layer Setting),
+     * error lain tetap pesan umum (detailnya di log). Halaman menampilkan
+     * session('error'), bukan $errors, jadi controller mengisi keduanya.
+     */
+    private function userErrorMessage(Throwable $e, string $fallback): string
+    {
+        if ($e instanceof ValidationException) {
+            return $fallback.': '.collect($e->errors())->flatten()->implode(' ');
+        }
+
+        return $fallback;
     }
 
     public function resubmit(Request $request, ApprovalEngine $engine)

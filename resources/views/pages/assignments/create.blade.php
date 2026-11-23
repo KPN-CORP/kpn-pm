@@ -112,9 +112,6 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        document.documentElement.setAttribute('data-sidenav-size', 'condensed');
-    });
     // 1. MENYEDIAKAN DATA DARI PHP KE JAVASCRIPT
     const attributeValueMap = @json($attributeData);
 </script>

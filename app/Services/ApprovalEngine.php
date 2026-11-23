@@ -455,6 +455,8 @@ class ApprovalEngine
         $roles     = $this->decodeToArray($step->approver_role);
         $delegates = $this->decodeToArray($step->approver_user_id);
 
+        $missingHierarchy = [];
+
         foreach ($roles as $raw) {
             $role = $this->normRole($raw);
 
@@ -462,6 +464,13 @@ class ApprovalEngine
             if ($role === 'self' && $emp?->employee_id)   return (string) $emp->employee_id;
             if ($role === 'manager_l1_id' && $emp?->manager_l1_id) return (string) $emp->manager_l1_id;
             if ($role === 'manager_l2_id' && $emp?->manager_l2_id) return (string) $emp->manager_l2_id;
+
+            // Role hirarki tapi datanya kosong: jangan dicari sebagai nama role
+            // sistem (dulu jatuh ke query roles.code yang tidak ada → SQL error).
+            if (in_array($role, ['self', 'manager_l1_id', 'manager_l2_id'], true)) {
+                $missingHierarchy[] = $raw;
+                continue;
+            }
 
             // Proposer → employee_id (string)
             if ($role === 'proposer') return (string) $proposerEmpId;
@@ -478,6 +487,19 @@ class ApprovalEngine
             if ($id !== '') return $id;
         }
 
+        // Step butuh atasan tapi atasan tidak ada di Layer Setting / employees_pa:
+        // tampilkan pesan, jangan diam-diam jatuh ke proposer (approve diri sendiri).
+        if (!empty($missingHierarchy)) {
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'approver' => sprintf(
+                    'Approver "%s" untuk step "%s" tidak ditemukan: karyawan %s belum punya atasan di Layer Setting appraisal.',
+                    implode(', ', $missingHierarchy),
+                    $step->step_name,
+                    $contextEmpId
+                ),
+            ]);
+        }
+
         // Fallback terakhir
         return (string) $proposerEmpId;
     }
@@ -488,8 +510,9 @@ class ApprovalEngine
             $rm = Role::where('name',$role)->orWhere('guard_name',$role)->first();
             if ($rm) return (string) $rm->name;
         }
-        $row = DB::table('roles')->where('name',$role)->orWhere('code',$role)->first();
-        if ($row) return (string) ($row->name ?? $row->code ?? null);
+        // Tabel roles tidak punya kolom `code`; cari by name saja.
+        $row = DB::table('roles')->where('name',$role)->first();
+        if ($row) return (string) $row->name;
         return null;
     }
 
