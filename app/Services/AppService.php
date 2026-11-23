@@ -18,6 +18,7 @@ use App\Models\MasterCalibration;
 use App\Models\MasterRating;
 use App\Models\MasterWeightage;
 use App\Models\Schedule;
+use App\Support\Propose360Assignment;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Auth;
@@ -1086,6 +1087,12 @@ class AppService
 
     private function resolveFlowAccess($user, string $moduleTransaction): bool
     {
+
+        // Propose 360: assignment = karyawan yang perlu di-360 (target), bukan
+        // siapa yang boleh buka menu. Akses = punya pekerjaan di modul ini.
+        if ($moduleTransaction === Propose360Assignment::MODULE) {
+            return Propose360Assignment::canAccess($user->employee_id, $this->appraisalPeriod());
+        }
 
         $employee = $user->employee ?? null;
 

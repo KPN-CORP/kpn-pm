@@ -31,7 +31,12 @@ class Proposed360Service
             $flowRow = Flow::forModule('Propose 360');
             if (!$flowRow) throw ValidationException::withMessages(['flow' => 'Flow Propose 360 tidak ditemukan']);
 
-            $initiators = json_decode($flowRow->initiator ?? $flowRow->initiators ?? '[]', true);
+            // Target harus termasuk assignment flow (karyawan yang perlu di-360).
+            if (!\App\Support\Propose360Assignment::employeeNeeds360((string) $targetId, $flowRow)) {
+                throw ValidationException::withMessages(['employee_id' => 'Karyawan ini tidak termasuk assignment Propose 360 (tidak perlu di-360).']);
+            }
+
+            $initiators = \App\Support\Propose360Assignment::decodeJson($flowRow->getAttributes()['initiator'] ?? null);
             if (!is_array($initiators) || empty($initiators)) {
                 throw ValidationException::withMessages(['initiator' => 'Konfigurasi initiator tidak valid']);
             }

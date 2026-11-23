@@ -14,6 +14,7 @@ use App\Services\ApprovalEngine;
 use App\Services\AppService;
 use App\Services\Proposed360Service;
 use App\Support\AppraisalManagerResolver;
+use App\Support\Propose360Assignment;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -45,16 +46,18 @@ class Proposed360Controller extends Controller
         /* ===========================================
         * 1) FLOW & SELF
         * =========================================== */
-        $flowRow       = Flow::forModule('Propose 360');
-        $assignmentIds = $this->parseAssignmentIds($flowRow);
-        $teamRuleSets  = $this->loadTeamAssignments($assignmentIds);
-        $selfEnabled   = $this->flowAllowsSelf($flowRow);
+        // Assignment = karyawan yang perlu di-360 (target), dipakai untuk
+        // menyaring baris self & tim; bukan untuk akses menu.
+        $flowRow       = Propose360Assignment::flow();
+        $assignmentIds = Propose360Assignment::assignmentIds($flowRow);
+        $teamRuleSets  = Propose360Assignment::ruleSets($assignmentIds);
+        $selfAllowed   = Propose360Assignment::allowsSelf($flowRow);
 
         // Satu-satunya query employees_pa di halaman ini. Semua daftar
         // (self, tim, bawahan, pending, anak, kandidat peers) diambil dari
         // koleksi ini; kolom rule assignment ikut dimuat supaya filter
         // assignment bisa dilakukan di memori.
-        $ruleColumns  = $this->teamRuleColumns();
+        $ruleColumns  = Propose360Assignment::ruleColumns();
         $allEmployees = EmployeeAppraisal::select(array_values(array_unique(array_merge(
                 ['id','employee_id','fullname','designation_name','manager_l1_id','manager_l2_id'],
                 array_values($ruleColumns)
@@ -99,7 +102,7 @@ class Proposed360Controller extends Controller
         if ($selfRow && !empty($teamRuleSets)) {
             $datas = $pick($allEmployees
                 ->filter(fn ($e) => $levelOf($e) === 1
-                    && $this->matchesAnyTeamRule($e, $teamRuleSets, $ruleColumns))
+                    && Propose360Assignment::matches($e, $teamRuleSets, $ruleColumns))
                 ->keys());
 
             $subordinates = $allEmployees
@@ -255,6 +258,14 @@ class Proposed360Controller extends Controller
             $selfRow->my_approval      = $pendingRequests->get((string)$selfRow->employee_id);
         }
 
+        // Baris self hanya kalau flow mengizinkan initiator 'self' DAN user
+        // sendiri termasuk assignment (perlu di-360). Pengajuan self yang
+        // sudah ada tetap ditampilkan supaya statusnya bisa dilihat.
+        $selfEnabled = $selfAllowed && $selfRow && (
+            Propose360Assignment::matches($selfRow, $teamRuleSets, $ruleColumns)
+            || !empty($selfRow->approval_request)
+        );
+
 
         /* ===========================================
         * 7) PREFILL PROPOSED360 (PEERS & SUBORDINATES)
@@ -396,153 +407,6 @@ private function buildPeerExcludeFor(string $targetEmpId, Collection $allEmp, Co
     return array_values(array_unique(array_filter($exclude, fn ($v) => $v !== '')));
 }
 
-
-    private function flowAllowsSelf(?\App\Models\Flow $flow): bool
-    {
-        if (!$flow) return false;
-        $json = $flow->initiator ?? $flow->initiators ?? '[]';
-        $arr  = json_decode($json, true);
-        if (!is_array($arr)) return false;
-
-        return collect($arr)->contains(function ($it) {
-            return strtolower((string)data_get($it, 'type')) === 'state'
-                && strtolower((string)data_get($it, 'state_key')) === 'self';
-        });
-    }
-    /**
-     * Ambil daftar assignment id dari kolom json di table flows.
-     */
-    private function parseAssignmentIds(?Flow $flow): array
-    {
-        if (!$flow) return [];
-        $raw = $flow->assignment_ids ?? $flow->assignments ?? $flow->assignment ?? '[]';
-        $arr = json_decode($raw, true);
-        if (!is_array($arr)) return [];
-        return collect($arr)->map(fn($v)=>(string)$v)->filter()->unique()->values()->all();
-    }
-
-    /**
-     * Load rule-set ONLY untuk TEAM (manager_l1_id scope).
-     * Return: array of rule-set; tiap rule-set akan di-OR pada query.
-     */
-    private function loadTeamAssignments(array $assignmentIds): array
-    {
-        if (empty($assignmentIds)) return [];
-
-        // Ambil hanya kolom yang dipakai + skip soft-deleted
-        $rows = DB::table('assignments')
-            ->whereIn('id', $assignmentIds)
-            ->whereNull('deleted_at')
-            ->get(['id','restriction']);
-
-        $ruleSets = [];
-
-        foreach ($rows as $r) {
-            $json = $r->restriction ?? '{}';
-
-            // Decode aman
-            $arr = json_decode($json, true);
-            if (!is_array($arr)) {
-                // fallback kecil (jika ada string tunggal)
-                $arr = [];
-            }
-
-            // Normalisasi: semua nilai jadi array string unik (trim)
-            $norm = [];
-            foreach ($arr as $key => $val) {
-                if (is_array($val)) {
-                    $norm[$key] = array_values(array_unique(array_map(
-                        fn($v) => (string) trim((string) $v),
-                        $val
-                    )));
-                } elseif ($val !== null && $val !== '') {
-                    $norm[$key] = [(string) trim((string) $val)];
-                }
-            }
-
-            if (!empty($norm)) {
-                $ruleSets[] = $norm;
-            }
-        }
-
-        // Contoh ruleSets: [
-        //   ['group_company'=>['KPN Corporation'], 'job_level'=>['4A','4B','7A',...]],
-        //   ['department_id'=>['10','11']]
-        // ]
-        return $ruleSets;
-    }
-
-
-    /**
-     * Kolom employees_pa yang dipakai rule assignment tim, per grup rule.
-     * Tiap grup: daftar key rule (dicoba berurutan) => kolom pertama yang
-     * benar-benar ada di tabel. Grup tanpa kolom yang ada dilewati.
-     *
-     * @return array<string, string>  rule-key-list ("a|b") => kolom
-     */
-    private function teamRuleColumns(): array
-    {
-        $groups = [
-            'designation_code|designation_name' => ['designation_code','designation_name'],
-            'work_area_code'                    => ['work_area_code'],
-            'group_company|group_company_code'  => ['group_company','group_company_code'],
-            'job_level'                         => ['job_level'],
-        ];
-
-        $existing = Schema::getColumnListing('employees_pa');
-
-        $map = [];
-        foreach ($groups as $keys => $candidateCols) {
-            foreach ($candidateCols as $col) {
-                if (in_array($col, $existing, true)) {
-                    $map[$keys] = $col;
-                    break;
-                }
-            }
-        }
-
-        return $map;
-    }
-
-    /**
-     * Cek satu karyawan terhadap rule-set assignment tim:
-     * OR antar rule-set, AND antar grup di dalam satu rule-set.
-     * Perbandingan mengikuti WHERE IN MySQL (collation *_ci): tidak peka
-     * huruf besar/kecil dan spasi di belakang diabaikan.
-     */
-    private function matchesAnyTeamRule($emp, array $ruleSets, array $ruleColumns): bool
-    {
-        $canon = static fn ($v) => mb_strtolower(rtrim((string) $v));
-
-        foreach ($ruleSets as $rules) {
-            $ok = true;
-
-            foreach ($ruleColumns as $keys => $col) {
-                // nilai dari key rule pertama yang terisi
-                $vals = [];
-                foreach (explode('|', $keys) as $k) {
-                    if (!empty($rules[$k]) && is_array($rules[$k])) {
-                        $vals = array_values(array_filter(
-                            array_map(static fn ($v) => trim((string) $v), $rules[$k]),
-                            static fn ($v) => $v !== ''
-                        ));
-                        if (!empty($vals)) break;
-                    }
-                }
-                if (empty($vals)) continue;
-
-                $value = $emp->{$col};
-                if ($value === null || !in_array($canon($value), array_map($canon, $vals), true)) {
-                    $ok = false;
-                    break;
-                }
-            }
-
-            if ($ok) return true;
-        }
-
-        return false;
-    }
 
 
     /**
