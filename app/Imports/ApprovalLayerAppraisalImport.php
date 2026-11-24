@@ -100,6 +100,14 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
     protected $kpiUnits = [];
 
     /**
+     * Employee yang punya baris layer di file (bukan hanya baris KPI Unit).
+     * Hanya employee ini yang layer-nya ditimpa.
+     *
+     * @var array<int, string>
+     */
+    protected $layerEmployeeIds = [];
+
+    /**
      * Semua header template: header wajib + kolom KPI Unit.
      *
      * @return array<int, string>
@@ -213,13 +221,30 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
         // Baris pertama per employee menentukan layer. Baris berikutnya untuk
         // employee yang sama (mis. KPI Unit periode lain) hanya membawa data
         // KPI Unit: kolom layer-nya diabaikan dan tidak wajib diisi.
+        // Baris "KPI Unit saja" (semua kolom layer kosong, kolom KPI Unit diisi)
+        // tidak dihitung sebagai baris layer: layer employee tsb tidak disentuh.
         $seenEmployees = [];
+        $this->layerEmployeeIds = [];
 
         foreach ($collection as $row) {
             $employeeId = trim((string)($row['employee_id'] ?? ''));
 
             if ($employeeId === '') {
                 // Kalau mau dipaksa error: bisa tambahkan addError di sini
+                continue;
+            }
+
+            if (!isset($seenEmployees[$employeeId]) && $this->isKpiUnitOnlyRow($row)) {
+                // Aturan keberadaan employee sama dengan baris layer di bawah
+                if (strlen($employeeId) !== 11 && !Employee::where('employee_id', $employeeId)->exists()) {
+                    $this->addError($employeeId, '', '', '', "Employee ID {$employeeId} does not exist.");
+                    $this->invalidEmployeeIds[] = $employeeId;
+                    continue;
+                }
+
+                if (!$this->validateKpiUnitColumns($row, $employeeId)) {
+                    $this->invalidEmployeeIds[] = $employeeId;
+                }
                 continue;
             }
 
@@ -230,6 +255,7 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
                 continue;
             }
             $seenEmployees[$employeeId] = true;
+            $this->layerEmployeeIds[] = $employeeId;
 
             $hasError = false;
 
@@ -358,6 +384,28 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
         }
 
         $this->invalidEmployeeIds = array_values(array_unique($this->invalidEmployeeIds));
+    }
+
+    /**
+     * Baris yang semua kolom layer-nya kosong tapi ada kolom KPI Unit terisi:
+     * hanya update KPI Unit, layer employee tidak divalidasi maupun diubah.
+     */
+    protected function isKpiUnitOnlyRow($row): bool
+    {
+        foreach ($row as $header => $value) {
+            if (preg_match('/^(manager|peers|subordinate|calibrator)_id_\d+$/', (string) $header)
+                && trim((string) $value) !== '') {
+                return false;
+            }
+        }
+
+        foreach (self::KPI_UNIT_HEADERS as $header) {
+            if (trim((string) ($row[$header] ?? '')) !== '') {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -521,8 +569,11 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
     {
         DB::transaction(function () use ($collection, $validEmployeeIds) {
 
+            // Employee yang hanya punya baris KPI Unit: layer tidak disentuh
+            $layerEmployeeIds = array_values(array_intersect($validEmployeeIds, $this->layerEmployeeIds));
+
             // 1. Backup & delete semua manager + calibrator untuk employee valid
-            $managerCalibrator = ApprovalLayerAppraisal::whereIn('employee_id', $validEmployeeIds)
+            $managerCalibrator = ApprovalLayerAppraisal::whereIn('employee_id', $layerEmployeeIds)
                 ->whereIn('layer_type', ['manager', 'calibrator'])
                 ->get();
 
@@ -547,8 +598,9 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
 
                 if (
                     $employeeId === '' ||
-                    !in_array($employeeId, $validEmployeeIds, true) ||
-                    isset($layersDone[$employeeId])
+                    !in_array($employeeId, $layerEmployeeIds, true) ||
+                    isset($layersDone[$employeeId]) ||
+                    $this->isKpiUnitOnlyRow($row)
                 ) {
                     continue; // skip employee invalid/kosong atau baris lanjutan
                 }
