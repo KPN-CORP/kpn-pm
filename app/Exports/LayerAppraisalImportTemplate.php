@@ -46,9 +46,17 @@ class LayerAppraisalImportTemplate implements FromArray, WithHeadings, WithEvent
         'kpi_unit' => 10.0, 'keterangan' => 40.0, 'periode' => 9.0, 'status_aktif' => 12.0,
     ];
 
+    /** Sertakan kolom KPI Unit (hanya untuk user yang boleh import KPI Unit). */
+    private bool $withKpiUnit;
+
+    public function __construct(bool $withKpiUnit = true)
+    {
+        $this->withKpiUnit = $withKpiUnit;
+    }
+
     public function headings(): array
     {
-        return ApprovalLayerAppraisalImport::templateHeaders();
+        return ApprovalLayerAppraisalImport::templateHeaders($this->withKpiUnit);
     }
 
     public function array(): array

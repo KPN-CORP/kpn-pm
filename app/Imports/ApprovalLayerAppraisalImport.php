@@ -12,6 +12,7 @@ use App\Models\Employee;
 use App\Models\EmployeeAppraisal;
 use App\Models\MasterCalibration;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Concerns\ToCollection;
@@ -108,19 +109,45 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
     protected $layerEmployeeIds = [];
 
     /**
-     * Semua header template: header wajib + kolom KPI Unit.
+     * Boleh import kolom KPI Unit (lihat config/kpi_unit.php).
+     *
+     * @var bool
+     */
+    protected $allowKpiUnit;
+
+    /**
+     * Header template: header wajib (+ kolom KPI Unit bila diizinkan).
      *
      * @return array<int, string>
      */
-    public static function templateHeaders(): array
+    public static function templateHeaders(bool $withKpiUnit = true): array
     {
-        return array_merge((new static(0, null))->expectedHeaders, self::KPI_UNIT_HEADERS);
+        $headers = (new static(0, null, false))->expectedHeaders;
+
+        return $withKpiUnit ? array_merge($headers, self::KPI_UNIT_HEADERS) : $headers;
     }
 
-    public function __construct($userId, $period)
+    /**
+     * Apakah user boleh import KPI Unit. IMPORT_KPI_UNIT=adminemails membatasi
+     * ke email di IMPORT_KPI_UNIT_ADMIN_EMAILS; selain itu semua user boleh.
+     */
+    public static function canImportKpiUnit($user = null): bool
+    {
+        if (config('kpi_unit.import_mode') !== 'adminemails') {
+            return true;
+        }
+
+        $user = $user ?? Auth::user();
+        $email = strtolower(trim((string) ($user->email ?? '')));
+
+        return $email !== '' && in_array($email, config('kpi_unit.admin_emails', []), true);
+    }
+
+    public function __construct($userId, $period, ?bool $allowKpiUnit = null)
     {
         $this->userId = $userId;
         $this->period = $period;
+        $this->allowKpiUnit = $allowKpiUnit ?? self::canImportKpiUnit();
     }
 
     /**
@@ -421,6 +448,12 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
 
         if ($kpiUnit === '' && $keterangan === '' && $periodeRaw === '' && $status === '') {
             return true; // KPI Unit tidak disentuh
+        }
+
+        if (!$this->allowKpiUnit) {
+            $this->addError($employeeId, '', 'kpi_unit', '', 'You are not allowed to import KPI Unit. Leave kpi_unit, keterangan, periode and status_aktif empty.');
+
+            return false;
         }
 
         $errors = [];

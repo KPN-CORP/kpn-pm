@@ -815,6 +815,40 @@ class LayerController extends Controller
         }
 
         
+        // Backup + audit sebelum menghapus: save manual menghapus SEMUA layer
+        // karyawan lalu menulis ulang dari form. Tanpa jejak ini, peers/
+        // subordinate hasil Proposed 360 yang ikut terhapus (form lama / field
+        // kosong) tidak bisa dilacak siapa dan kapan.
+        $existingLayers = ApprovalLayerAppraisal::where('employee_id', $validated['employee_id'])->get();
+
+        foreach ($existingLayers as $layer) {
+            ApprovalLayerAppraisalBackup::create([
+                'employee_id' => $layer->employee_id,
+                'approver_id' => $layer->approver_id,
+                'layer_type'  => $layer->layer_type,
+                'layer'       => $layer->layer,
+                'created_by'  => $userId ?? 0,
+            ]);
+        }
+
+        $layerSummary = fn ($rows) => collect($rows)
+            ->groupBy('layer_type')
+            ->map(fn ($g) => $g->sortBy('layer')->pluck('approver_id')->values()->all())
+            ->all();
+
+        Log::channel('audit')->info('layer_appraisal.manual_update', [
+            'employee_id' => $validated['employee_id'],
+            'actor_user_id' => $userId,
+            'actor_employee_id' => Auth::user()?->employee_id,
+            'before' => $layerSummary($existingLayers),
+            'after' => [
+                'manager' => array_values(array_filter([$manager])),
+                'peers' => array_values(array_filter($peers)),
+                'subordinate' => array_values(array_filter($subs)),
+                'calibrator' => array_values(array_filter($calibrators)),
+            ],
+        ]);
+
         // Delete existing records for the employee_id
         ApprovalLayerAppraisal::where('employee_id', $validated['employee_id'])->delete();
 
@@ -902,7 +936,7 @@ class LayerController extends Controller
             $userId = Auth::id();
     
             // Initialize the import process with the user ID and period
-            $import = new ApprovalLayerAppraisalImport($userId, $period);
+            $import = new ApprovalLayerAppraisalImport($userId, $period, ApprovalLayerAppraisalImport::canImportKpiUnit());
     
             // Perform the import
             Excel::import($import, $request->file('excelFile'));
@@ -929,11 +963,14 @@ class LayerController extends Controller
     }
 
     /**
-     * Download template import Layer Appraisal (termasuk kolom kpi_unit).
+     * Download template import Layer Appraisal. Kolom KPI Unit hanya untuk
+     * user yang boleh import KPI Unit (config/kpi_unit.php).
      */
     public function layerAppraisalTemplate()
     {
-        return Excel::download(new \App\Exports\LayerAppraisalImportTemplate(), 'template_import_appraisal_layer.xlsx');
+        $withKpiUnit = ApprovalLayerAppraisalImport::canImportKpiUnit();
+
+        return Excel::download(new \App\Exports\LayerAppraisalImportTemplate($withKpiUnit), 'template_import_appraisal_layer.xlsx');
     }
 
     public function exportInvalidLayerAppraisal()

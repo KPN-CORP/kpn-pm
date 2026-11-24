@@ -83,7 +83,9 @@
                                 <li><strong>Managers</strong> are limited to <strong>1 layer</strong>.</li>
                                 <li><strong>Peers</strong> and <strong>Subordinates</strong> are allowed a maximum of <strong>3 layers</strong> each.</li>
                                 <li><strong>Calibrators</strong> can have up to <strong>10 layers</strong>.</li>
+                                @if (\App\Imports\ApprovalLayerAppraisalImport::canImportKpiUnit())
                                 <li><strong>KPI Unit</strong> (optional, last columns, peach): <code>kpi_unit</code> = grade from Master Calibration (e.g. <strong>C</strong>), <code>keterangan</code> = note, <code>periode</code> = year (empty = current appraisal period), <code>status_aktif</code> = <strong>T</strong>/<strong>F</strong> (empty = T for a new KPI Unit). Only filled columns are updated; leave all four empty to keep the current KPI Unit.</li>
+                                @endif
                             </ul>
                         </div>
                     </div>

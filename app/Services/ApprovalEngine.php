@@ -391,8 +391,25 @@ class ApprovalEngine
         try {
             app($cls)->{$method}($req, $actorEmpId);
         } catch (\Throwable $e) {
-            // jangan gagalkan Approved; opsional: catat error ke approval_logs atau laravel.log
-            // \Log::warning("Finalize {$category} gagal: ".$e->getMessage(), ['form_id'=>$req->form_id]);
+            // Jangan gagalkan Approved, tapi WAJIB tercatat: tanpa ini request
+            // tampil Approved sementara data final (mis. Layer PA peers/
+            // subordinate untuk Proposed 360) tidak pernah tertulis.
+            Log::error("approval.finalize.failed: {$category}", [
+                'form_id'             => (string) $req->form_id,
+                'approval_request_id' => $req->id,
+                'employee_id'         => (string) $req->employee_id,
+                'actor_employee_id'   => $actorEmpId,
+                'message'             => $e->getMessage(),
+                'file'                => $e->getFile(),
+                'line'                => $e->getLine(),
+            ]);
+            Log::channel('audit')->error('approval.finalize.failed', [
+                'category'            => $category,
+                'form_id'             => (string) $req->form_id,
+                'approval_request_id' => $req->id,
+                'employee_id'         => (string) $req->employee_id,
+                'message'             => $e->getMessage(),
+            ]);
         }
     }
 
