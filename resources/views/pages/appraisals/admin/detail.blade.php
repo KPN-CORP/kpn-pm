@@ -191,6 +191,11 @@
                                 </li>
                             @endif
                           </ul>
+                        @if (!empty($hide360))
+                            <div class="alert alert-secondary py-1 px-2 mb-2 small">
+                                <i class="ri-lock-line"></i> {{ __('Penilaian 360 (peers & subordinate) untuk diri Anda atau tim Anda bersifat rahasia dan tidak ditampilkan.') }}
+                            </div>
+                        @endif
                     </div>
                     <div class="card-body">
                         <div id="loadingSpinner" class="text-center d-none">

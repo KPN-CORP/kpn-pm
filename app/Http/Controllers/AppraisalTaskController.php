@@ -374,10 +374,14 @@ public function getTeamData(Request $request)
             $item->calibrationCheck = $calibratedEmployees->has($item->employee_id);
         });
 
-        $approverLabels = $this->currentApproverLabels($datas, $period);
+        // Form 360 tidak punya approval flow: status yang tampil "Submitted"
+        // (bukan "Approved") dan tidak ada popover approver.
+        $status360 = fn ($contributor) => !$contributor
+            ? '-'
+            : (strcasecmp((string) $contributor->status, 'Approved') === 0 ? 'Submitted' : $contributor->status);
 
         // Format data untuk DataTables
-        $data = $datas->map(function ($team, $index) use ($isCurrentPeriod, $approverLabels) {
+        $data = $datas->map(function ($team, $index) use ($isCurrentPeriod, $status360) {
             $employee = $team->employee;
             $goal = $team->goal->first();
             $contributor = $team->contributors->first();
@@ -404,12 +408,12 @@ public function getTeamData(Request $request)
                     'office_area'   => $employee->office_area,
                     'group_company' => $employee->group_company,
                     'category'      => $team->layer_type,
-                    'status'        => $contributor->status ?? '-',
+                    'status'        => $status360($contributor),
                 ],
                 'kpi' => array_merge(['kpi_status' => (bool) $contributor], $scores),
                 'calibrationCheck' => $team->calibrationCheck ?? false,
-                'contributorStatus' => $contributor->status ?? '-',
-                'currentApprover' => $approverLabels[$employee->employee_id] ?? null,
+                'contributorStatus' => $status360($contributor),
+                'currentApprover' => null,
                 'approval_date' => $contributor
                     ? $this->appService->formatDate($contributor->created_at)
                     : '-',
@@ -941,6 +945,13 @@ public function getTeamData(Request $request)
             }])->where('id', $contributorId);
 
             $datas = $datasQuery->get();
+
+            // Task Box detail hanya untuk form yang ditulis user ini sendiri.
+            // Form 360 orang lain (termasuk yang diberikan kepada dirinya atau
+            // timnya) tidak boleh dibuka lewat link ini.
+            if ($datas->isEmpty() || (string) $datas->first()->contributor_id !== (string) $user) {
+                return redirect('appraisals-task')->with('error', 'Appraisal not found');
+            }
 
             $formattedData = $datas->map(function($item) {
                 $item->formatted_created_at = $this->appService->formatDate($item->created_at);

@@ -19,7 +19,7 @@ function renderStatusBadge(data, type, row) {
     if (type !== 'display') return data;
 
     const val = (data ?? '').toString();
-    const cls = { draft: 'secondary', approved: 'success' }[val.toLowerCase()] ?? 'light text-body';
+    const cls = { draft: 'secondary', approved: 'success', submitted: 'success' }[val.toLowerCase()] ?? 'light text-body';
 
     if (!row.currentApprover) {
         return `<span class="badge bg-${cls}">${escapeHtml(val)}</span>`;
