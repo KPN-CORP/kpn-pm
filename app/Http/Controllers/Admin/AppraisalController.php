@@ -198,6 +198,8 @@ class AppraisalController extends Controller
         'calibration' => fn ($q) => $q->where('period', $filters['period']),
         'appraisalContributor' => fn ($q) => $q->where('period', $filters['period']),
     ])
+    // Karyawan resign tetap tampil di periode tempat datanya ada.
+    ->inPeriod($filters['period'])
     ->where(function ($query) use ($criteria) {
         foreach ($criteria as $key => $value) {
             if (!empty($value)) {
@@ -331,6 +333,7 @@ class AppraisalController extends Controller
 {
     return EmployeeAppraisal::select($column)
         ->distinct()
+        ->inPeriod($period)
         ->whereHas('appraisal', fn ($q) => $q->where('period', $period))
         ->where(function ($query) use ($criteria) {
             foreach ($criteria as $key => $value) {
@@ -347,6 +350,7 @@ private function getDistinctCompany($column, $criteria, $period)
 {
     return EmployeeAppraisal::select('contribution_level_code', $column)
         ->distinct()
+        ->inPeriod($period)
         ->whereHas('appraisal', fn ($q) => $q->where('period', $period))
         ->where(function ($query) use ($criteria) {
             foreach ($criteria as $key => $value) {
@@ -401,7 +405,7 @@ private function getGroupCompanies()
             $query->where('layer_type', '!=', 'calibrator');
         }, 'appraisal' => function ($query) use ($period) {
             $query->where('period', $period);
-        }])->where('employee_id', $id)->get();
+        }])->inPeriod($period)->where('employee_id', $id)->get();
 
 
         try {

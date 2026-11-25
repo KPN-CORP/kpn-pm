@@ -81,7 +81,8 @@ class AppraisalTaskController extends Controller
                 ])
                 ->where('approver_id', $user)
                 ->where('layer_type', 'manager')
-                ->whereHas('employee', function ($query) use ($isCurrentPeriod) {
+                ->whereHas('employee', function ($query) use ($isCurrentPeriod, $period) {
+                    $query->inPeriod($period);
                     if ($isCurrentPeriod) {
                         $query->whereRaw('json_valid(access_menu)')
                             ->whereJsonContains('access_menu', ['createpa' => 1]);
@@ -114,8 +115,8 @@ class AppraisalTaskController extends Controller
             }])
             ->where('approver_id', $user)
             ->whereNotIn('layer_type', ['manager', 'calibrator'])
-            ->whereHas('employee', function ($query) {
-                $query->where(function($q) {
+            ->whereHas('employee', function ($query) use ($period) {
+                $query->inPeriod($period)->where(function($q) {
                     $q->whereRaw('json_valid(access_menu)')
                       ->whereJsonContains('access_menu', ['createpa' => 1]);
                 });
@@ -168,7 +169,8 @@ public function getTeamData(Request $request)
         $isCurrentPeriod = !$filterYear || $filterYear == $this->appService->appraisalPeriod();
 
         $datas = ApprovalLayerAppraisal::with([
-            'employee' => function ($query) use ($isCurrentPeriod) {
+            'employee' => function ($query) use ($isCurrentPeriod, $period) {
+                $query->inPeriod($period);
                 if ($isCurrentPeriod) {
                     $query->whereRaw('json_valid(access_menu)')
                         ->whereJsonContains('access_menu', ['createpa' => 1]);
@@ -189,9 +191,9 @@ public function getTeamData(Request $request)
             },
             'appraisal'
         ])
-        ->when($isCurrentPeriod, function ($query) {
-            $query->whereHas('employee', function ($query) {
-                $query->whereRaw('json_valid(access_menu)')
+        ->when($isCurrentPeriod, function ($query) use ($period) {
+            $query->whereHas('employee', function ($query) use ($period) {
+                $query->inPeriod($period)->whereRaw('json_valid(access_menu)')
                     ->whereJsonContains('access_menu', ['createpa' => 1]);
             });
         })
@@ -304,8 +306,8 @@ public function getTeamData(Request $request)
         }
 
         $datas = ApprovalLayerAppraisal::with([
-            'employee' => function ($query) {
-                $query->whereRaw('json_valid(access_menu)')
+            'employee' => function ($query) use ($period) {
+                $query->inPeriod($period)->whereRaw('json_valid(access_menu)')
                       ->whereJsonContains('access_menu', ['accesspa' => 1]);
             },
             'approver',
@@ -321,8 +323,8 @@ public function getTeamData(Request $request)
                       ->where('period', $period);
             }
         ])
-        ->whereHas('employee', function ($query) {
-            $query->whereRaw('json_valid(access_menu)')
+        ->whereHas('employee', function ($query) use ($period) {
+            $query->inPeriod($period)->whereRaw('json_valid(access_menu)')
                   ->whereJsonContains('access_menu', ['accesspa' => 1]);
         })
         ->where('approver_id', $user)
@@ -448,7 +450,7 @@ public function getTeamData(Request $request)
 
         $approval = ApprovalLayerAppraisal::select('approver_id')->where('employee_id', $id)->where('layer_type', 'manager')->where('layer', 1)->first();
 
-        $employee = EmployeeAppraisal::where('employee_id', $id)->first();
+        $employee = EmployeeAppraisal::withTrashed()->where('employee_id', $id)->first();
 
         $goal = Goal::with(['employee'])->where('employee_id', $id)->where('period', $period)->first();
 
@@ -767,7 +769,7 @@ public function getTeamData(Request $request)
 
         $ratings = $formGroupData['data']['rating'];
 
-        $employee = EmployeeAppraisal::where('employee_id', $id)->first();
+        $employee = EmployeeAppraisal::withTrashed()->where('employee_id', $id)->first();
 
         $viewAchievement = $employee->group_company == 'Cement' ? true : false;
 
@@ -789,7 +791,7 @@ public function getTeamData(Request $request)
         $empId   = decrypt($request->id);
         $reason  = $request->input('reason') ?? '-';
 
-        $employee = EmployeeAppraisal::where('employee_id', $empId)->first();
+        $employee = EmployeeAppraisal::withTrashed()->where('employee_id', $empId)->first();
         if (! $employee) {
             return $request->ajax()
                 ? response()->json(['ok'=>false,'message'=>'Employee tidak ditemukan.'], 404)

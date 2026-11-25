@@ -37,6 +37,9 @@ class AppraisalContributor extends Model
     }
     public function employee()
     {
-        return $this->belongsTo(EmployeeAppraisal::class, 'employee_id', 'employee_id');
+        return $this->belongsTo(EmployeeAppraisal::class, 'employee_id', 'employee_id')
+            // Data ini sudah milik satu periode: karyawan yang resign sesudahnya
+            // tetap harus termuat.
+            ->withTrashed();
     }
 }

@@ -1242,8 +1242,8 @@ class AppService
         // di PHP (->get()->filter()->count()). Filternya diterjemahkan apa
         // adanya ke whereHas / whereDoesntHave, jadi hasilnya sama tapi yang
         // kembali dari database cuma angka.
-        $hasCreatePaAccess = function ($query) {
-            $query->where(function ($q) {
+        $hasCreatePaAccess = function ($query) use ($period) {
+            $query->inPeriod($period)->where(function ($q) {
                 $q->whereRaw('json_valid(access_menu)')
                     ->whereJsonContains('access_menu', ['createpa' => 1]);
             });

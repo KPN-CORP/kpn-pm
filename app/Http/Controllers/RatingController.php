@@ -72,9 +72,10 @@ class RatingController extends Controller
             Log::info('Fetched master ratings.', ['masterRatingCount' => $masterRating->count()]);
 
             // Query for all ApprovalLayerAppraisal data
-            $allData = ApprovalLayerAppraisal::with(['employee'])
+            $allData = ApprovalLayerAppraisal::with(['employee' => fn ($q) => $q->inPeriod($period)])
                 ->where('approver_id', $user)
-                ->whereHas('employee', function ($query) {
+                ->whereHas('employee', function ($query) use ($period) {
+                    $query->inPeriod($period);
                     // Ensure the employee's access_menu has accesspa = 1
                     $query->where(function($q) {
                         $q->whereRaw('json_valid(access_menu)')
@@ -511,9 +512,10 @@ class RatingController extends Controller
                 ->get();
 
             // Query for ApprovalLayerAppraisal data
-            $allData = ApprovalLayerAppraisal::with(['employee'])
+            $allData = ApprovalLayerAppraisal::with(['employee' => fn ($q) => $q->inPeriod($period)])
                 ->where('approver_id', $user)
-                ->whereHas('employee', function ($query) {
+                ->whereHas('employee', function ($query) use ($period) {
+                    $query->inPeriod($period);
                     $query->where(function ($q) {
                         $q->whereRaw('json_valid(access_menu)')
                         ->whereJsonContains('access_menu', ['accesspa' => 1]);
@@ -723,9 +725,10 @@ class RatingController extends Controller
                 ->get();
 
             // Query for ApprovalLayerAppraisal data
-            $allData = ApprovalLayerAppraisal::with(['employee'])
+            $allData = ApprovalLayerAppraisal::with(['employee' => fn ($q) => $q->inPeriod($period)])
                 ->where('approver_id', $user)
-                ->whereHas('employee', function ($query) {
+                ->whereHas('employee', function ($query) use ($period) {
+                    $query->inPeriod($period);
                     $query->where(function ($q) {
                         $q->whereRaw('json_valid(access_menu)')
                         ->whereJsonContains('access_menu', ['accesspa' => 1]);

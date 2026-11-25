@@ -1330,9 +1330,10 @@ class OnBehalfController extends Controller
             Log::info('Fetched master ratings.', ['masterRatingCount' => $masterRating->count()]);
 
             // Query for all ApprovalLayerAppraisal data
-            $allData = ApprovalLayerAppraisal::with(['employee'])
+            $allData = ApprovalLayerAppraisal::with(['employee' => fn ($q) => $q->inPeriod($period)])
                 ->where('approver_id', $id)
-                ->whereHas('employee', function ($query) {
+                ->whereHas('employee', function ($query) use ($period) {
+                    $query->inPeriod($period);
                     // Ensure the employee's access_menu has accesspa = 1
                     $query->where(function($q) {
                         $q->whereRaw('json_valid(access_menu)')

@@ -76,6 +76,30 @@ class EmployeeAppraisal extends Model
         $this->fireModelEvent('trashed', false);
     }
 
+    /**
+     * Karyawan yang ikut periode $period: masih aktif, ATAU sudah resign /
+     * di-terminate tapi punya goal atau appraisal di periode itu. Karyawan
+     * resign tetap tampil di periode tempat datanya ada, dan baru hilang di
+     * periode berikutnya (yang tidak punya datanya).
+     */
+    public function scopeInPeriod(\Illuminate\Database\Eloquent\Builder $query, $period)
+    {
+        $period = (int) $period;
+        $table = $this->getTable();
+
+        return $query->withTrashed()->where(function ($q) use ($period, $table) {
+            $q->whereNull("$table.deleted_at")
+                ->orWhereExists(fn ($s) => $s->selectRaw('1')->from('appraisals')
+                    ->whereColumn('appraisals.employee_id', "$table.employee_id")
+                    ->where('appraisals.period', $period)
+                    ->whereNull('appraisals.deleted_at'))
+                ->orWhereExists(fn ($s) => $s->selectRaw('1')->from('goals')
+                    ->whereColumn('goals.employee_id', "$table.employee_id")
+                    ->where('goals.period', $period)
+                    ->whereNull('goals.deleted_at'));
+        });
+    }
+
     public function user()
     {
         return $this->belongsTo(User::class, 'users_id', 'id');
