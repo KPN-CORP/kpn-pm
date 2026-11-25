@@ -29,7 +29,6 @@ use Illuminate\Support\Facades\Queue;
 use Illuminate\Support\Facades\Storage;
 use Maatwebsite\Excel\Facades\Excel;
 use stdClass;
-use App\Support\Review360Visibility;
 
 use function Pest\Laravel\json;
 
@@ -456,13 +455,6 @@ private function getGroupCompanies()
                 });
             });            
 
-            // Kerahasiaan 360: admin tidak boleh melihat form peers/subordinate
-            // untuk dirinya sendiri atau timnya (dia manager karyawan ini).
-            $hide360 = Review360Visibility::isRestrictedTarget(Auth::user()->employee_id, $datas->employee_id);
-            if ($hide360) {
-                $groupedData->forget(['peers', 'subordinate']);
-            }
-
             $parentLink = __('Reports');
             $link = __('Appraisal');
 
@@ -480,7 +472,7 @@ private function getGroupCompanies()
                 $final_rating = $ratings[$datas->appraisal->first()->rating];
             }
 
-            return view('pages.appraisals.admin.detail', compact('datas', 'groupedData', 'parentLink', 'link', 'final_rating', 'hide360'));
+            return view('pages.appraisals.admin.detail', compact('datas', 'groupedData', 'parentLink', 'link', 'final_rating'));
 
         } catch (Exception $e) {
             Log::error('Error in index method: ' . $e->getMessage());
@@ -783,12 +775,7 @@ private function getGroupCompanies()
                 $datasQuery = AppraisalContributor::with(['employee'])->where('id', $id);
 
                 $datas = $datasQuery->get();
-
-                // Kerahasiaan 360 (lihat Review360Visibility).
-                if (!Review360Visibility::canViewContribution($user, $datas->first())) {
-                    return response()->json(['error' => 'Penilaian 360 ini bersifat rahasia.'], 403);
-                }
-
+                
                 $formattedData = $datas->map(function($item) {
                     $item->formatted_created_at = $this->appService->formatDate($item->created_at);
     

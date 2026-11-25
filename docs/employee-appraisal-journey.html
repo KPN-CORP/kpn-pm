@@ -1,0 +1,581 @@
+<title>Perjalanan Appraisal Karyawan</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: dokumen teknis satu kolom, diagram lebar boleh scroll sendiri. */
+:root{
+  --bg:#f6f6f4; --surface:#ffffff; --fg:#1d2126; --muted:#5d6570; --line:#d5d8dc;
+  --accent:#ab2f2b; --accent-soft:#f6e4e2;
+  --lane-p:#eef3fa; --lane-s:#f3f3f1; --lane-a1:#fbf3e6; --lane-a2:#e9f5f2;
+  --stroke-p:#3b6db3; --stroke-a1:#b07417; --stroke-a2:#1f8a78; --stroke-s:#7a828c;
+  --edge:#4a525c; --bad:#c0392b; --tag:#fff7d6;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15181c; --surface:#1d2127; --fg:#e7e9ec; --muted:#9aa2ad; --line:#353b44;
+  --accent:#e2766f; --accent-soft:#3a2221;
+  --lane-p:#18212d; --lane-s:#1a1d21; --lane-a1:#2a2216; --lane-a2:#142622;
+  --stroke-p:#7ea6e0; --stroke-a1:#e0a64a; --stroke-a2:#4cc3ac; --stroke-s:#8d96a1;
+  --edge:#aab2bc; --bad:#ef6b5d; --tag:#3a3418; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15181c; --surface:#1d2127; --fg:#e7e9ec; --muted:#9aa2ad; --line:#353b44;
+  --accent:#e2766f; --accent-soft:#3a2221;
+  --lane-p:#18212d; --lane-s:#1a1d21; --lane-a1:#2a2216; --lane-a2:#142622;
+  --stroke-p:#7ea6e0; --stroke-a1:#e0a64a; --stroke-a2:#4cc3ac; --stroke-s:#8d96a1;
+  --edge:#aab2bc; --bad:#ef6b5d; --tag:#3a3418; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1140px;margin:0 auto;padding-block:40px 64px;display:flex;flex-direction:column;gap:44px}
+header{display:flex;flex-direction:column;gap:10px;max-width:760px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:34px;line-height:1.15;margin:0;font-weight:700;text-wrap:balance}
+h2{font-size:22px;margin:0;font-weight:600;text-wrap:balance}
+h3{font-size:16px;margin:0;font-weight:600}
+p{margin:0}
+.lead{color:var(--muted);font-size:16px}
+section{display:flex;flex-direction:column;gap:16px;min-width:0}
+section>p,section>ul,section>ol{max-width:780px}
+code,.mono{font-family:var(--font-mono);font-size:.88em}
+code{background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+ul,ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.kv div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.kv dt{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.kv dd{margin:0;font-weight:500;overflow-wrap:anywhere}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+figure{margin:0;display:flex;flex-direction:column;gap:10px}
+figcaption{color:var(--muted);font-size:14px;max-width:780px}
+svg.flow{display:block;width:100%;min-width:900px;height:auto;color:var(--edge);font-family:var(--font-body)}
+svg.state{display:block;width:100%;min-width:760px;height:auto;color:var(--edge);font-family:var(--font-body)}
+.lane{stroke:none}.lp{fill:var(--lane-p)}.ls{fill:var(--lane-s)}.la1{fill:var(--lane-a1)}.la2{fill:var(--lane-a2)}
+.lh{font-size:13px;font-weight:600;fill:var(--fg);text-anchor:middle;letter-spacing:.02em}
+.lhs{font-size:11px;fill:var(--muted);text-anchor:middle}
+.box{fill:var(--surface);stroke-width:1.5}
+.p{stroke:var(--stroke-p)}.s{stroke:var(--stroke-s)}.a1{stroke:var(--stroke-a1)}.a2{stroke:var(--stroke-a2)}
+.bad{fill:var(--surface);stroke:var(--bad);stroke-width:1.5}
+.tagbox{fill:var(--tag);stroke:var(--stroke-a1);stroke-dasharray:4 3}
+.endbox{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+.t{font-size:13px;font-weight:600;fill:var(--fg);text-anchor:middle}
+.st{font-size:11px;fill:var(--muted);text-anchor:middle}
+.e{fill:none;stroke:var(--edge);stroke-width:1.4}
+.ov{fill:none;stroke:var(--accent);stroke-width:1.5;stroke-dasharray:6 4}
+.el{font-size:11px;fill:var(--muted)}
+.elr{font-size:11px;fill:var(--accent);font-weight:500}
+.mid{text-anchor:middle}.end{text-anchor:end}
+.arrowhead{fill:var(--edge)}.arrowhead-r{fill:var(--accent)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+th,td{text-align:left;vertical-align:top;padding:10px 14px;border-bottom:1px solid var(--line)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;background:var(--lane-s)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:500;white-space:nowrap}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.pill{display:inline-block;font-family:var(--font-mono);font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.pill.warn{border-color:var(--stroke-a1);color:var(--stroke-a1)}
+.pill.ok{border-color:var(--stroke-a2);color:var(--stroke-a2)}
+.pill.sec{color:var(--muted)}
+.notes{display:flex;flex-direction:column;gap:12px;max-width:860px}
+.note{border-left:3px solid var(--line);padding:4px 0 4px 14px;display:flex;flex-direction:column;gap:4px}
+.note.risk{border-left-color:var(--accent)}
+.note h3{font-size:15px}
+.cast{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.cast div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.cast b{font-weight:600}.cast span{font-size:13px;color:var(--muted)}
+.role{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.role.p{color:var(--stroke-p)}.role.a1{color:var(--stroke-a1)}.role.a2{color:var(--stroke-a2)}.role.t{color:var(--accent)}.role.o{color:var(--muted)}
+.steps{display:flex;flex-direction:column;gap:28px}
+.step{display:grid;grid-template-columns:56px minmax(0,1fr);gap:14px}
+.step-no{font-family:var(--font-mono);font-size:13px;color:var(--accent);border:1px solid var(--accent);border-radius:999px;height:30px;display:flex;align-items:center;justify-content:center}
+.step-body{display:flex;flex-direction:column;gap:12px;min-width:0}
+.step-body h3{font-size:17px}
+.step-body .who{font-size:13px;color:var(--muted)}
+pre.json{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:var(--font-mono);font-size:12.5px;line-height:1.55}
+.jk{color:var(--stroke-p)}.jv{color:var(--stroke-a2)}.jc{color:var(--muted)}
+.mock{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.mock-head{display:flex;flex-wrap:wrap;gap:12px 32px;align-items:flex-start}
+.mock-kv{display:grid;grid-template-columns:96px 10px minmax(0,1fr);font-size:13.5px;row-gap:2px}
+.mock-kv span:nth-child(3n+1){color:var(--muted)}
+.mock-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{font-size:12.5px;padding:4px 10px;border-radius:5px;border:1px solid var(--accent);color:var(--accent);background:transparent;white-space:nowrap}
+.btn.solid{background:var(--accent);color:var(--surface)}
+.btn.warn{border-color:var(--stroke-a1);color:var(--stroke-a1)}
+.mock-sel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;background:var(--lane-s);border-radius:6px;padding:10px}
+.mock-sel div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.mock-sel b{font-size:12.5px}
+.sel{font-size:12.5px;border:1px solid var(--line);border-radius:5px;padding:5px 8px;background:var(--surface);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sel.off{color:var(--muted);background:var(--lane-s)}
+.rev{border:1px solid var(--stroke-a1);background:var(--lane-a1);border-radius:6px;padding:8px 12px;font-size:13.5px}
+.tip{font-size:12.5px;color:var(--muted)}
+.real{border:1px dashed var(--accent);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;max-width:860px}
+@media (max-width:600px){.mock-sel{grid-template-columns:minmax(0,1fr)}.step{grid-template-columns:minmax(0,1fr)}.step-no{width:56px}}
+footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+@media (max-width:600px){h1{font-size:27px}.wrap{padding-block:24px 48px;gap:36px}}
+.gl{paint-order:stroke;stroke:var(--lane-s);stroke-width:5px;stroke-linejoin:round}
+.grid{stroke:var(--line);stroke-width:1;stroke-dasharray:2 4}
+</style>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">kpn-pm · Performance Management</span>
+  <h1>Perjalanan Appraisal Karyawan</h1>
+  <p class="lead">Alur Performance Appraisal dari sisi karyawan, dari menyusun Goals sampai rating akhir, lengkap dengan approval di setiap tahap. Contohnya Metta Saputra dengan data asli di DB stage per 25 Nov 2026. Detail 360 dan rating ada di halaman Alur Propose 360, Alur Appraisal 360, dan Alur Rating Kalibrasi.</p>
+</header>
+
+<section>
+  <h2>Profil Metta dan orang-orang di sekitarnya</h2>
+  <div class="cast">
+    <div><span class="role t">Karyawan</span><b>Metta Saputra</b><span>01124040023 · Product Specialist · 5A · HC Information System · KPN Corporation · bergabung 8 Jul 2024</span></div>
+    <div><span class="role a1">Atasan langsung</span><b>Rolles Herwin Sihombing</b><span>01123070004 · HC Information System Department Head</span></div>
+    <div><span class="role a2">Atasan kedua</span><b>Budi Setiono</b><span>01122100006 · Corporate HC Division Head</span></div>
+    <div><span class="role o">Rekan (peers 360)</span><b>Alif, Fredian, Dali</b><span>01126010018 / 01126010024 / 01126010010</span></div>
+  </div>
+  <div class="scroll"><table>
+    <thead><tr><th>Peran untuk Metta</th><th>Sumber data</th><th>Layer 1</th><th>Layer 2</th></tr></thead>
+    <tbody>
+      <tr><td>Approver Goals &amp; Achievement</td><td><code>approval_layers</code></td><td>Rolles</td><td>Budi</td></tr>
+      <tr><td>Reviewer appraisal (manager)</td><td><code>approval_layer_appraisals</code> manager</td><td>Rolles</td><td>–</td></tr>
+      <tr><td>Rater 360 (peers)</td><td><code>approval_layer_appraisals</code> peers</td><td>Alif</td><td>Fredian, lalu Dali (layer 3)</td></tr>
+      <tr><td>Calibrator rating</td><td><code>approval_layer_appraisals</code> calibrator</td><td>Rolles</td><td>Budi</td></tr>
+    </tbody>
+  </table></div>
+  <p>Hak akses Metta saat ini (<code>access_menu</code>): <span class="mono">goals 0 · doj 0 · accesspa 1 · createpa 1 · review360 0</span>. Flag ini dinyalakan dan dimatikan otomatis setiap menit oleh perintah <code>update:employee-access-menu</code> mengikuti jadwal.</p>
+</section>
+
+<section>
+  <h2>Jadwal membuka akses</h2>
+  <p>Tombol "Create Goal" dan "Initiate Appraisal" tidak membaca tanggal jadwal secara langsung. Yang dibaca adalah flag <code>access_menu</code>, yang diubah oleh jadwal:</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Jadwal (<code>schedules</code>)</th><th>Saat start_date</th><th>Sehari setelah end_date</th><th>Jadwal 2026 yang mengenai Metta</th></tr></thead>
+    <tbody>
+      <tr><td>goals</td><td>goals = 1, doj = 1</td><td>goals = 0</td><td>Goals Mid-Year Review 2026 - Corp, 14–28 Agu 2026</td></tr>
+      <tr><td>schedulepa</td><td>accesspa = 1, createpa = 1, review360 = sesuai jadwal</td><td>createpa = 0 (accesspa tetap 1)</td><td>PA Schedule, 2–30 Nov 2026</td></tr>
+    </tbody>
+  </table></div>
+  <p>Filter jadwal: tipe karyawan, business unit, perusahaan, lokasi, dan tanggal bergabung maksimal. Periode appraisal (2026) diambil dari jadwal <code>masterschedulepa</code> terbaru.</p>
+</section>
+
+<section>
+  <h2>Linimasa Metta 2026</h2>
+  <figure>
+    <div class="scroll">
+    <svg class="flow" viewBox="0 0 1100 430" role="img" aria-label="Linimasa Metta 2026: Goals diajukan Maret dan direvisi Agustus, masih menunggu Budi; achievement belum bisa diisi; self appraisal tidak diisi; Rolles melakukan initiate 19 dan 20 November; Propose 360 menunggu Budi; Appraisal 360 belum diisi; rating menunggu Rolles.">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrowhead" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <!-- month grid -->
+      <g>
+        <rect class="lane ls" x="180" y="58" width="900" height="330"/>
+        <line class="grid" x1="249.2" y1="58" x2="249.2" y2="388"/>
+        <line class="grid" x1="318.5" y1="58" x2="318.5" y2="388"/>
+        <line class="grid" x1="387.7" y1="58" x2="387.7" y2="388"/>
+        <line class="grid" x1="456.9" y1="58" x2="456.9" y2="388"/>
+        <line class="grid" x1="526.2" y1="58" x2="526.2" y2="388"/>
+        <line class="grid" x1="595.4" y1="58" x2="595.4" y2="388"/>
+        <line class="grid" x1="664.6" y1="58" x2="664.6" y2="388"/>
+        <line class="grid" x1="733.8" y1="58" x2="733.8" y2="388"/>
+        <line class="grid" x1="803.1" y1="58" x2="803.1" y2="388"/>
+        <line class="grid" x1="872.3" y1="58" x2="872.3" y2="388"/>
+        <line class="grid" x1="941.5" y1="58" x2="941.5" y2="388"/>
+        <line class="grid" x1="1010.8" y1="58" x2="1010.8" y2="388"/>
+      </g>
+      <g class="lhs">
+        <text x="214.6" y="48">Jan</text><text x="283.8" y="48">Feb</text><text x="353.1" y="48">Mar</text><text x="422.3" y="48">Apr</text>
+        <text x="491.5" y="48">Mei</text><text x="560.8" y="48">Jun</text><text x="630" y="48">Jul</text><text x="699.2" y="48">Agu</text>
+        <text x="768.4" y="48">Sep</text><text x="837.7" y="48">Okt</text><text x="906.9" y="48">Nov</text><text x="976.1" y="48">Des</text><text x="1045.4" y="48">Jan '27</text>
+      </g>
+      <!-- row labels -->
+      <g>
+        <text class="t" x="170" y="96" text-anchor="end">Goals</text>
+        <text class="t" x="170" y="140" text-anchor="end">KPI Achievement</text>
+        <text class="t" x="170" y="184" text-anchor="end">Self appraisal</text>
+        <text class="t" x="170" y="228" text-anchor="end">Review manager</text>
+        <text class="t" x="170" y="272" text-anchor="end">Propose 360</text>
+        <text class="t" x="170" y="316" text-anchor="end">Appraisal 360</text>
+        <text class="t" x="170" y="360" text-anchor="end">Rating</text>
+      </g>
+      <!-- windows -->
+      <rect class="box p" x="694.6" y="80" width="32.3" height="24" rx="4"/>
+      <rect class="tagbox" x="941.5" y="124" width="69.3" height="24" rx="4"/>
+      <rect class="box p" x="874.6" y="168" width="64.6" height="24" rx="4"/>
+      <rect class="box a2" x="916.1" y="300" width="23.1" height="24" rx="4"/>
+      <!-- events -->
+      <circle class="arrowhead-r" cx="325.4" cy="92" r="5"/>
+      <circle class="arrowhead-r" cx="355.4" cy="92" r="5"/>
+      <circle class="arrowhead-r" cx="726.9" cy="92" r="5"/>
+      <text class="el gl" x="340" y="76" text-anchor="middle">4 &amp; 17 Mar diajukan</text>
+      <text class="el gl" x="735" y="76">28 Agu revisi → menunggu Budi</text>
+      <text class="el gl" x="935" y="140" text-anchor="end">Des: satu-satunya bulan input</text>
+      <text class="el gl" x="868" y="184" text-anchor="end">jendela PA 2–30 Nov, tidak diisi</text>
+      <circle class="arrowhead-r" cx="913.8" cy="224" r="5"/>
+      <circle class="arrowhead-r" cx="916.1" cy="224" r="5"/>
+      <text class="el gl" x="905" y="228" text-anchor="end">Rolles Initiate 19 Nov (revoke) &amp; 20 Nov → Approved</text>
+      <circle class="arrowhead-r" cx="916.1" cy="268" r="5"/>
+      <text class="el gl" x="905" y="272" text-anchor="end">20 Nov diajukan, sendback, revisi → menunggu Budi</text>
+      <text class="el gl" x="905" y="316" text-anchor="end">terbuka sejak 20 Nov, belum ada peers mengisi</text>
+      <circle class="arrowhead-r" cx="916.1" cy="356" r="5"/>
+      <path class="e" d="M921,356 H1040" marker-end="url(#ah)"/>
+      <text class="el gl" x="905" y="360" text-anchor="end">kalibrasi Pending di Rolles (Pending 360)</text>
+      <!-- today -->
+      <line x1="927.7" y1="58" x2="927.7" y2="388" class="ov"/>
+      <text class="elr" x="927.7" y="405" text-anchor="middle">hari ini · 25 Nov</text>
+    </svg>
+    </div>
+    <figcaption>Kotak biru: jendela jadwal. Kotak kuning putus-putus: bulan input achievement (review period Annual). Titik merah: kejadian nyata di DB stage. Hampir semua aktivitas appraisal terjadi di bulan November.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>Peta proses dan approval</h2>
+  <figure>
+    <div class="scroll">
+    <svg class="flow" viewBox="0 0 1110 1010" role="img" aria-label="Peta proses: karyawan membuat goals, approval Goals layer 1 dan 2 dengan sendback; input achievement dengan approval satu layer; self appraisal atau initiate manager; review manager per layer; Propose 360 dan Appraisal 360; kalibrasi berlapis; rating akhir.">
+      <defs>
+        <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrowhead" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <rect class="lane lp" x="20" y="20" width="250" height="975"/>
+      <rect class="lane ls" x="270" y="20" width="300" height="975"/>
+      <rect class="lane la1" x="570" y="20" width="270" height="975"/>
+      <rect class="lane la2" x="840" y="20" width="250" height="975"/>
+      <text class="lh" x="145" y="40">KARYAWAN</text><text class="lhs" x="145" y="55">Metta</text>
+      <text class="lh" x="420" y="40">SISTEM</text><text class="lhs" x="420" y="55">status yang ditulis</text>
+      <text class="lh" x="705" y="40">ATASAN</text><text class="lhs" x="705" y="55">Rolles (L1) · Budi (L2)</text>
+      <text class="lh" x="965" y="40">REKAN &amp; HC</text><text class="lhs" x="965" y="55">peers · role HC · calibrator</text>
+
+      <!-- phase 1 goals -->
+      <text class="elr" x="30" y="82">1 · GOALS</text>
+      <rect class="box p" x="40" y="92" width="210" height="56" rx="6"/>
+      <text class="t" x="145" y="115">Susun Goals</text>
+      <text class="st" x="145" y="132">maks 10 KPI · total bobot 100%</text>
+      <path class="e" d="M250,120 H290" marker-end="url(#ah2)"/>
+      <rect class="box s" x="290" y="92" width="260" height="56" rx="6"/>
+      <text class="t" x="420" y="115">goals: Submitted</text>
+      <text class="st" x="420" y="132">approval_requests Goals: Pending → L1</text>
+      <path class="e" d="M550,120 H590" marker-end="url(#ah2)"/>
+      <rect class="box a1" x="590" y="92" width="230" height="56" rx="6"/>
+      <text class="t" x="705" y="115">L1 lalu L2 approve</text>
+      <text class="st" x="705" y="132">boleh mengubah KPI saat approve</text>
+      <path class="e" d="M705,148 V178 H420 V198" marker-end="url(#ah2)"/>
+      <text class="el" x="560" y="172" text-anchor="middle">layer terakhir</text>
+      <path class="e" d="M590,140 H570 V230 H250" marker-end="url(#ah2)"/>
+      <text class="el" x="330" y="246" text-anchor="middle">sendback + catatan</text>
+      <rect class="box s" x="290" y="198" width="260" height="20" rx="4"/>
+      <text class="st" x="420" y="212">goals &amp; request: Approved</text>
+      <rect class="box p" x="40" y="212" width="210" height="44" rx="6"/>
+      <text class="t" x="145" y="231">Waiting Your Revision</text>
+      <text class="st" x="145" y="247">revisi → mulai lagi dari L1</text>
+
+      <!-- phase 2 achievement -->
+      <text class="elr" x="30" y="292">2 · KPI ACHIEVEMENT (sepanjang tahun)</text>
+      <rect class="box p" x="40" y="302" width="210" height="56" rx="6"/>
+      <text class="t" x="145" y="325">Isi achievement</text>
+      <text class="st" x="145" y="342">bulan sesuai review period</text>
+      <path class="e" d="M250,330 H290" marker-end="url(#ah2)"/>
+      <rect class="box s" x="290" y="302" width="260" height="56" rx="6"/>
+      <text class="t" x="420" y="325">kpi_achievements: Pending</text>
+      <text class="st" x="420" y="342">approver = L1 Goals · syarat goal Approved</text>
+      <path class="e" d="M550,330 H590" marker-end="url(#ah2)"/>
+      <rect class="box a1" x="590" y="302" width="230" height="56" rx="6"/>
+      <text class="t" x="705" y="325">L1 approve / sendback</text>
+      <text class="st" x="705" y="342">Approved · atau Draft + catatan</text>
+      <path class="e" d="M705,358 V380 H145 V358" marker-end="url(#ah2)"/>
+      <text class="el" x="420" y="374" text-anchor="middle">sendback: "Revise Achievement"</text>
+
+      <!-- phase 3 self appraisal -->
+      <text class="elr" x="30" y="420">3 · APPRAISAL (jendela PA)</text>
+      <rect class="box p" x="40" y="430" width="210" height="64" rx="6"/>
+      <text class="t" x="145" y="452">Self appraisal</text>
+      <text class="st" x="145" y="469">KPI per bulan + skor Culture</text>
+      <text class="st" x="145" y="484">&amp; Leadership 1–5</text>
+      <path class="e" d="M250,462 H290" marker-end="url(#ah2)"/>
+      <rect class="box s" x="290" y="430" width="260" height="64" rx="6"/>
+      <text class="t" x="420" y="452">appraisals: Submitted</text>
+      <text class="st" x="420" y="469">approval_requests Appraisal: Pending</text>
+      <text class="st" x="420" y="484">current approver = manager L1</text>
+      <path class="e" d="M550,462 H590" marker-end="url(#ah2)"/>
+      <rect class="box a1" x="590" y="430" width="230" height="64" rx="6"/>
+      <text class="t" x="705" y="452">Review manager per layer</text>
+      <text class="st" x="705" y="469">atau Initiate jika karyawan</text>
+      <text class="st" x="705" y="484">tidak mengisi (langsung Approved)</text>
+      <path class="e" d="M705,494 V524 H420 V540" marker-end="url(#ah2)"/>
+      <rect class="box s" x="290" y="540" width="260" height="56" rx="6"/>
+      <text class="t" x="420" y="563">Appraisal Approved</text>
+      <text class="st" x="420" y="580">calibrations: Pending → calibrator L1</text>
+
+      <!-- phase 4 360 -->
+      <text class="elr" x="30" y="636">4 · 360</text>
+      <rect class="box a1" x="590" y="646" width="230" height="56" rx="6"/>
+      <text class="t" x="705" y="669">Propose 360</text>
+      <text class="st" x="705" y="686">L1 pilih peers &amp; subordinate</text>
+      <path class="e" d="M820,674 H865" marker-end="url(#ah2)"/>
+      <rect class="box a2" x="865" y="646" width="205" height="56" rx="6"/>
+      <text class="t" x="967" y="669">Approve step 1 &amp; 2</text>
+      <text class="st" x="967" y="686">atasan pengusul · role HC</text>
+      <path class="e" d="M967,702 V730" marker-end="url(#ah2)"/>
+      <rect class="box a2" x="865" y="730" width="205" height="56" rx="6"/>
+      <text class="t" x="967" y="753">Appraisal 360</text>
+      <text class="st" x="967" y="770">peers/subordinate isi form</text>
+      <path class="e" d="M865,758 H550" marker-end="url(#ah2)"/>
+      <rect class="box s" x="290" y="730" width="260" height="56" rx="6"/>
+      <text class="t" x="420" y="753">appraisal_contributors</text>
+      <text class="st" x="420" y="770">tanpa approval</text>
+
+      <!-- phase 5 rating -->
+      <text class="elr" x="30" y="826">5 · RATING</text>
+      <path class="e" d="M420,596 V620 H260 V880 H290" marker-end="url(#ah2)"/>
+      <path class="e" d="M420,786 V836" marker-end="url(#ah2)"/>
+      <rect class="box s" x="290" y="836" width="260" height="70" rx="6"/>
+      <text class="t" x="420" y="858">Score To Rating</text>
+      <text class="st" x="420" y="875">suggestedRating(): self + manager + 360</text>
+      <text class="st" x="420" y="891">syarat: 360 lengkap atau review360 = 1</text>
+      <path class="e" d="M550,870 H865" marker-end="url(#ah2)"/>
+      <rect class="box a2" x="865" y="836" width="205" height="70" rx="6"/>
+      <text class="t" x="967" y="858">Calibrator L1 → Ln</text>
+      <text class="st" x="967" y="875">pilih rating sesuai kuota</text>
+      <text class="st" x="967" y="891">per tab job level</text>
+      <path class="e" d="M967,906 V940 H560" marker-end="url(#ah2)"/>
+      <rect class="endbox" x="290" y="920" width="270" height="40" rx="20"/>
+      <text class="t" x="425" y="945">appraisals.rating terisi</text>
+      <rect class="tagbox" x="40" y="900" width="210" height="60" rx="6"/>
+      <text class="st" x="145" y="922">Karyawan tidak melihat</text>
+      <text class="st" x="145" y="937">rating akhir maupun skor 360</text>
+      <text class="st" x="145" y="952">di My Appraisal</text>
+    </svg>
+    </div>
+    <figcaption>Lima tahap dalam satu periode. Approval Goals dan Achievement memakai layer di <code>approval_layers</code>; review appraisal, 360, dan kalibrasi memakai <code>approval_layer_appraisals</code>; Propose 360 memakai flow engine yang dikonfigurasi.</figcaption>
+  </figure>
+</section>
+
+<section id="goals">
+  <h2>Tahap 1 · Menyusun dan menyetujui Goals</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Syarat membuat Goals</h3>
+      <ul>
+        <li><code>access_menu.goals</code> dan <code>doj</code> = 1 (jadwal goals sedang terbuka)</li>
+        <li>Belum ada goal untuk periode itu</li>
+        <li>Ada approver layer 1 di <code>approval_layers</code></li>
+      </ul>
+      <p class="tip">Pesan jika gagal: "You are not granted access…", "You already initiated Goals…", "There is no direct manager assigned in your position!"</p>
+    </div>
+    <div class="panel">
+      <h3>Isi form per KPI</h3>
+      <p>KPI, deskripsi, target, UoM, tipe (Higher Better / Lower Better / Exact Value), bobot (5–100%), review period (Monthly s.d. Annual), calculation method (average, sum, last, max, min). Maksimal 10 KPI, total bobot 100% (dicek di browser). Tombol: Save as Draft, Submit, dan "Get My Last Year's Goal".</p>
+    </div>
+  </div>
+  <div class="scroll"><table>
+    <thead><tr><th>Langkah</th><th>goals.form_status</th><th>approval_requests (Goals)</th><th>Yang dilihat Metta di My Goals</th></tr></thead>
+    <tbody>
+      <tr><td>Save as Draft</td><td>Draft</td><td>Pending, current approver L1 (tetap dibuat walau draft)</td><td><span class="pill sec">Draft</span>, tombol Edit</td></tr>
+      <tr><td>Submit</td><td>Submitted</td><td>Pending → Rolles</td><td><span class="pill warn">Pending</span> "Manager L1 : Rolles"; Edit masih bisa sampai L1 approve</td></tr>
+      <tr><td>L1 approve</td><td>Submitted</td><td>Pending → Budi; <code>approvals</code> Rolles Approved</td><td><span class="pill warn">Pending</span> "Manager L2 : Budi"</td></tr>
+      <tr><td>L2 approve (terakhir)</td><td>Approved</td><td>Approved</td><td><span class="pill ok">Approved</span>, tombol Update Achievement</td></tr>
+      <tr><td>Sendback ke karyawan</td><td>tetap Submitted</td><td>Sendback, sendback_to = Metta, approvals dihapus</td><td><span class="pill sec">Waiting Your Revision</span> + "Goal Revision Notes"</td></tr>
+      <tr><td>Revisi setelah sendback</td><td>Submitted</td><td>Pending → kembali ke L1</td><td>Pending</td></tr>
+      <tr><td>Appraisal sudah dibuat</td><td>apa pun</td><td>apa pun</td><td><span class="pill warn">Auto Approved</span> "(Goals were auto-approved after you submitted PA)"</td></tr>
+    </tbody>
+  </table></div>
+  <p>Approver bisa mengubah KPI saat approve dan wajib mengisi Messages. Sendback bisa ditujukan ke karyawan atau ke approver sebelumnya. Revisi di luar sendback ("Revise Goals") hanya bisa saat jadwal goals terbuka, dan selalu memulai approval dari layer 1 lagi. Tidak ada email untuk submit, approve, atau sendback goals; yang ada hanya badge di Task Box atasan dan email pengingat jadwal untuk yang belum membuat goal.</p>
+
+  <h3>Data Metta 2026</h3>
+<pre class="json"><span class="jc">// goals a8729ca0-… (aktif)</span>
+{ "period": 2026, "form_status": "Submitted", "created_at": "2026-03-17 23:02", "updated_at": "2026-08-28 23:48" }
+
+<span class="jc">// approval_requests #39489 (Goals)</span>
+{ "status": "Pending", "current_approval_id": "01122100006",   <span class="jc">// menunggu Budi sejak 28 Agu</span>
+  "messages": "import by admin", "created_by": 72113 }
+
+<span class="jc">// approvals</span>
+[ { "approver_id": "01122100006", "status": "Approved", "created_at": "2026-03-17 23:02" },
+  { "approver_id": "01123070004", "status": "Approved", "messages": "import by admin", "created_at": "2026-08-18 21:57" } ]</pre>
+  <div class="scroll"><table>
+    <thead><tr><th>KPI Metta 2026</th><th>Target</th><th>UoM</th><th>Bobot</th><th>Tipe</th><th>Review period</th></tr></thead>
+    <tbody>
+      <tr><td>Scale AI &amp; Chatbot into a Powerful HC Assistant</td><td>2</td><td>Number</td><td>30%</td><td>Higher Better</td><td>Annual</td></tr>
+      <tr><td>Develop Next-Gen HC System with Multi-Industry Adaptability</td><td>100</td><td>Percent</td><td>30%</td><td>Higher Better</td><td>Annual</td></tr>
+      <tr><td>New Project &amp; Enhancement</td><td>4</td><td>Number</td><td>20%</td><td>Higher Better</td><td>Annual</td></tr>
+      <tr><td>Automate HC Processes to Minimize Manual Intervention</td><td>3</td><td>Number</td><td>10%</td><td>Higher Better</td><td>Annual</td></tr>
+      <tr><td>Manage Daily Operation Darwinbox &amp; HC System</td><td>1</td><td>Year</td><td>10%</td><td>Exact Value</td><td>Annual</td></tr>
+    </tbody>
+  </table></div>
+  <p>Metta mengajukan goals 4 Mar 2026; pada 17 Mar goal dibuat ulang beberapa kali (versi lama terhapus). Revisi terakhir 28 Agu, hari terakhir jadwal Mid-Year Review. Status saat ini masih Pending di Budi, tetapi di My Goals Metta badge-nya sudah <span class="pill warn">Auto Approved</span> karena appraisal 2026 sudah dibuat.</p>
+</section>
+
+<section id="achievement">
+  <h2>Tahap 2 · Mengisi KPI Achievement</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Aturan pengisian</h3>
+      <ul>
+        <li>Hanya untuk goal berstatus <strong>Approved</strong>; selain itu muncul "Cannot update Achievements"</li>
+        <li>Bulan yang bisa diisi: bulan yang habis dibagi review period (Monthly tiap bulan, Quarterly Mar/Jun/Sep/Des, Annual hanya Des), dan tidak melewati bulan berjalan</li>
+        <li>Bisa melampirkan file (maks 2 MB)</li>
+        <li>Tombol hilang setelah appraisal dibuat</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Approval satu layer</h3>
+      <ul>
+        <li>Submit oleh karyawan → <code>kpi_achievements.approval_status = Pending</code>, approver = L1 di <code>approval_layers</code></li>
+        <li>L1 approve → <span class="pill ok">Approved</span>; L1 sendback → kembali <span class="pill sec">Draft</span> dengan catatan, tombol "Revise Achievement"</li>
+        <li>Diisi atasan/admin → langsung Approved</li>
+        <li>Email pengingat tanggal 1 setiap bulan untuk KPI yang jatuh tempo</li>
+      </ul>
+    </div>
+  </div>
+  <p>Saat appraisal, nilai bulanan ini menjadi isian awal kolom KPI. Nilai akhir per KPI dihitung dari calculation method, lalu persentase capaian dikonversi ke skor 1–5 (&lt;60% = 1, 60–94% = 2, 95–100% = 3, 101–120% = 4, &gt;120% = 5) dan dikalikan bobot KPI.</p>
+  <p><strong>Metta 2026:</strong> tidak ada satu pun baris achievement. Goal Metta belum Approved (masih Pending di Budi), dan semua KPI berreview period Annual sehingga hanya bisa diisi untuk Desember. Achievement KPI Metta akhirnya diisi langsung di form appraisal oleh Rolles.</p>
+</section>
+
+<section id="appraisal">
+  <h2>Tahap 3 · Self appraisal dan review manager</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Syarat Initiate Appraisal</h3>
+      <ul>
+        <li>Goal periode itu ada (status goal tidak dicek)</li>
+        <li><code>createpa</code> atau <code>accesspa</code> = 1</li>
+        <li>Belum ada appraisal periode itu</li>
+        <li>Ada reviewer manager layer 1 dan calibrator layer 1 di Layer Setting appraisal</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Isi form "Appraisal Form"</h3>
+      <ul>
+        <li>KPI: achievement per bulan yang dilacak + lampiran; nilai capaian dihitung sistem</li>
+        <li>Culture (5 indikator × 3 item) dan Leadership (4 × 3), skor 1–5</li>
+        <li>Dokumen pendukung, total maks 10 MB</li>
+        <li>Save as Draft atau Submit</li>
+      </ul>
+    </div>
+  </div>
+  <div class="scroll"><table>
+    <thead><tr><th>Langkah</th><th>appraisals.form_status</th><th>approval_requests (Appraisal)</th><th>Lainnya</th></tr></thead>
+    <tbody>
+      <tr><td>Karyawan Save as Draft</td><td>Draft</td><td>Pending → manager L1</td><td>disembunyikan dari Task Box manager</td></tr>
+      <tr><td>Karyawan Submit</td><td>Submitted</td><td>Pending → manager L1</td><td>approval_snapshots (salinan isian karyawan)</td></tr>
+      <tr><td>Manager review, masih ada layer</td><td>Submitted</td><td>Pending → manager berikutnya</td><td>appraisal_contributors manager; form_data ditimpa isian manager</td></tr>
+      <tr><td>Manager terakhir submit</td><td>Approved</td><td>Approved</td><td>calibrations Pending untuk calibrator L1</td></tr>
+      <tr><td>Manager Initiate (karyawan tidak mengisi)</td><td>Approved</td><td>Approved</td><td>langsung calibrations; layer manager di atasnya dilewati</td></tr>
+      <tr><td>Revoke oleh admin</td><td>dihapus</td><td>dihapus</td><td>kontributor (termasuk 360) ikut dihapus; bisa Initiate ulang</td></tr>
+    </tbody>
+  </table></div>
+  <p>Karyawan bisa mengedit self appraisal sampai manager L1 menyetujui. Tidak ada sendback untuk appraisal; jalan kembalinya hanya Revoke oleh admin.</p>
+  <h3>Data Metta</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>Periode</th><th>Self appraisal</th><th>Review manager</th><th>Status</th></tr></thead>
+    <tbody>
+      <tr><td>2025</td><td>Diisi Metta 4 Des 2025</td><td>Rolles 20 Des 2025, rating kontributor 4.26</td><td><span class="pill ok">Approved</span></td></tr>
+      <tr><td>2026</td><td>Tidak diisi selama jendela 2–30 Nov</td><td>Rolles Initiate 19 Nov (di-revoke hari itu), Initiate ulang 20 Nov, rating kontributor 3.14</td><td><span class="pill ok">Approved</span></td></tr>
+    </tbody>
+  </table></div>
+  <p>Appraisal 2026 Metta dibuat walaupun goal-nya belum Approved, karena pemeriksaan hanya memastikan goal ada.</p>
+</section>
+
+<section id="tiga-enam-puluh">
+  <h2>Tahap 4 · Penilaian 360</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Propose 360</h3>
+      <p>Atasan L1 mengusulkan maksimal 3 peers dan 3 subordinate. Approval lewat flow engine: step 1 atasan pengusul, step 2 role HC (Admin Tasks). Hasilnya ditulis ke Layer Setting sebagai rater.</p>
+      <p><strong>Metta:</strong> Rolles mengusulkan Janice, Fredian, Dali (#41647, 20 Nov). Budi mengembalikan, Rolles merevisi; sekarang Pending di Budi.</p>
+    </div>
+    <div class="panel">
+      <h3>Appraisal 360</h3>
+      <p>Rater mengisi Culture dan Leadership di Task Box tab Appraisal 360, tanpa approval. Bisa mulai begitu appraisal karyawan ada.</p>
+      <p><strong>Metta:</strong> rater aktif saat ini Alif, Fredian, Dali (Layer Setting lama). Belum ada yang mengisi.</p>
+    </div>
+  </div>
+</section>
+
+<section id="rating">
+  <h2>Tahap 5 · Rating dan hasil akhir</h2>
+  <p>Calibrator membuka menu Rating, melihat Score To Rating (gabungan self, manager, dan 360), lalu memberi rating sesuai kuota per tab job level. Setiap calibrator berikutnya melihat rating calibrator sebelumnya. Calibrator terakhir menulis <code>appraisals.rating</code>.</p>
+  <div class="scroll"><table>
+    <thead><tr><th>Periode</th><th>Calibrator L1 (Rolles)</th><th>Calibrator L2 (Budi)</th><th>appraisals.rating</th></tr></thead>
+    <tbody>
+      <tr><td>2025</td><td><span class="pill ok">Approved</span> rating 4 (Exceed Expectation), 1 Jan 2026</td><td><span class="pill warn">Pending</span> sejak 1 Jan 2026</td><td>kosong</td></tr>
+      <tr><td>2026</td><td><span class="pill warn">Pending</span>, dropdown terkunci karena Pending 360</td><td>belum dibuat</td><td>kosong</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section id="dilihat">
+  <h2>Yang dilihat Metta sendiri</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>My Goals</h3>
+      <ul>
+        <li>Kartu per tahun: Initiated By, Initiated Date, Last Updated On, Adjusted By, Goal Status, Achievement Status, tabel KPI</li>
+        <li>2026: Goal Status <span class="pill warn">Auto Approved</span>; tombol Update Achievement tidak muncul</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>My Appraisal</h3>
+      <ul>
+        <li>Initiated By, Initiated Date, Last Updated On, Final Rating, Status</li>
+        <li><strong>Final Rating selalu "-"</strong>; nilai aslinya dimatikan di tampilan</li>
+        <li>Skor (Total, KPI, Culture, Leadership) hanya tampil jika appraisal dibuat karyawan sendiri, dan yang tampil adalah isian karyawan, bukan isian manager</li>
+        <li>Skor manager dan skor 360 tidak pernah ditampilkan</li>
+        <li>2026: status Approved tanpa bagian skor (dibuat lewat Initiate Rolles)</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Ringkasan status per objek</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Objek</th><th>Tabel</th><th>Status yang mungkin</th><th>Approval</th></tr></thead>
+    <tbody>
+      <tr><td>Goals</td><td>goals · approval_requests (Goals) · approvals</td><td>Draft, Submitted, Approved · Pending, Sendback, Approved</td><td>approval_layers L1 → Ln</td></tr>
+      <tr><td>KPI Achievement</td><td>kpi_achievements · kpi_achievement_snapshots</td><td>Draft, Pending, Approved</td><td>L1 approval_layers saja</td></tr>
+      <tr><td>Appraisal</td><td>appraisals · approval_requests (Appraisal) · approvals · appraisal_contributors</td><td>Draft, Submitted, Approved · Pending, Approved</td><td>approval_layer_appraisals manager L1 → Ln</td></tr>
+      <tr><td>Propose 360</td><td>proposed_360_transactions · approval_requests (Proposed360) · approval_logs</td><td>PENDING, APPROVED · Pending, Sendback, Approved</td><td>flow engine (approval_flows)</td></tr>
+      <tr><td>Appraisal 360</td><td>appraisal_contributors (peers/subordinate)</td><td>Draft, Approved (tampil "Submitted")</td><td>tidak ada</td></tr>
+      <tr><td>Rating</td><td>calibrations · appraisals.rating</td><td>Pending, Approved</td><td>calibrator L1 → Ln</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Catatan penting</h2>
+  <div class="notes">
+    <div class="note risk">
+      <h3>Approval Goals dan Achievement tidak dicek di server</h3>
+      <p><code>ApprovalController::store</code> memakai approver dari field tersembunyi di form, <code>SendbackController</code> tidak memeriksa hak sama sekali, dan approve/sendback achievement bisa dilakukan oleh user login mana pun. Pembatasnya hanya tombol di tampilan.</p>
+    </div>
+    <div class="note risk">
+      <h3>Self appraisal bisa ditimpa setelah disetujui</h3>
+      <p><code>/appraisals/update</code> tidak memeriksa pemilik maupun status. Kiriman langsung ke route ini setelah manager approve akan menimpa isian dan mengembalikan status ke Submitted.</p>
+    </div>
+    <div class="note risk">
+      <h3>Karyawan tidak pernah melihat rating akhirnya</h3>
+      <p>Kolom Final Rating di My Appraisal selalu "-", dan skor manager maupun 360 tidak ditampilkan. Pada appraisal hasil Initiate, karyawan bahkan tidak melihat skor apa pun.</p>
+    </div>
+    <div class="note">
+      <h3>Appraisal tidak menunggu Goals disetujui</h3>
+      <p>Initiate appraisal hanya memastikan goal ada. Kasus Metta 2026: goal masih Pending di Budi, appraisal sudah Approved.</p>
+    </div>
+    <div class="note">
+      <h3>Initiate manager melewati layer manager di atasnya</h3>
+      <p>Appraisal yang di-Initiate langsung Approved tanpa melewati manager layer 2 dan seterusnya. Untuk Metta tidak berpengaruh karena manager appraisal-nya hanya satu layer.</p>
+    </div>
+    <div class="note">
+      <h3>Aturan Goals hanya di browser</h3>
+      <p>Total bobot 100% dan maksimal 10 KPI dicek di JavaScript. Server hanya memeriksa setiap bobot 5–100. Draft goal juga sudah membuat approval request berstatus Pending.</p>
+    </div>
+    <div class="note">
+      <h3>Email pengingat approval achievement tidak sampai ke manager</h3>
+      <p>Job pengingat approval achievement mengirim ke alamat developer yang ditulis di kode, bukan ke manager. Dua job pengingat lainnya juga menyertakan alamat itu sebagai BCC.</p>
+    </div>
+    <div class="note">
+      <h3>Kalibrasi tertahan di layer berikutnya</h3>
+      <p>Metta 2025 sudah dirating Rolles sejak 1 Jan 2026 tapi baris Budi masih Pending, sehingga rating akhir 2025 kosong. Di stage ada 415 baris kalibrasi 2025 dengan pola yang sama.</p>
+    </div>
+  </div>
+</section>
+
+<footer>Sumber: MyGoalController, TeamGoalController, ApprovalController, SendbackController, KPIAchievementController, KPIService, MyAppraisalController, AppraisalTaskController, Proposed360Controller, RatingController, AppService, EmployeeController::updateEmployeeAccessMenu, ScheduleServiceProvider, view di resources/views/pages, dan DB stage (hcispanel_hc_stage).</footer>
+</div>

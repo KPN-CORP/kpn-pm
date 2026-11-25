@@ -1,0 +1,420 @@
+<title>Alur Rating Kalibrasi</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: dokumen teknis satu kolom, diagram lebar boleh scroll sendiri. */
+:root{
+  --bg:#f6f6f4; --surface:#ffffff; --fg:#1d2126; --muted:#5d6570; --line:#d5d8dc;
+  --accent:#ab2f2b; --accent-soft:#f6e4e2;
+  --lane-p:#eef3fa; --lane-s:#f3f3f1; --lane-a1:#fbf3e6; --lane-a2:#e9f5f2;
+  --stroke-p:#3b6db3; --stroke-a1:#b07417; --stroke-a2:#1f8a78; --stroke-s:#7a828c;
+  --edge:#4a525c; --bad:#c0392b; --tag:#fff7d6;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15181c; --surface:#1d2127; --fg:#e7e9ec; --muted:#9aa2ad; --line:#353b44;
+  --accent:#e2766f; --accent-soft:#3a2221;
+  --lane-p:#18212d; --lane-s:#1a1d21; --lane-a1:#2a2216; --lane-a2:#142622;
+  --stroke-p:#7ea6e0; --stroke-a1:#e0a64a; --stroke-a2:#4cc3ac; --stroke-s:#8d96a1;
+  --edge:#aab2bc; --bad:#ef6b5d; --tag:#3a3418; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15181c; --surface:#1d2127; --fg:#e7e9ec; --muted:#9aa2ad; --line:#353b44;
+  --accent:#e2766f; --accent-soft:#3a2221;
+  --lane-p:#18212d; --lane-s:#1a1d21; --lane-a1:#2a2216; --lane-a2:#142622;
+  --stroke-p:#7ea6e0; --stroke-a1:#e0a64a; --stroke-a2:#4cc3ac; --stroke-s:#8d96a1;
+  --edge:#aab2bc; --bad:#ef6b5d; --tag:#3a3418; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1140px;margin:0 auto;padding-block:40px 64px;display:flex;flex-direction:column;gap:44px}
+header{display:flex;flex-direction:column;gap:10px;max-width:760px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:34px;line-height:1.15;margin:0;font-weight:700;text-wrap:balance}
+h2{font-size:22px;margin:0;font-weight:600;text-wrap:balance}
+h3{font-size:16px;margin:0;font-weight:600}
+p{margin:0}
+.lead{color:var(--muted);font-size:16px}
+section{display:flex;flex-direction:column;gap:16px;min-width:0}
+section>p,section>ul,section>ol{max-width:780px}
+code,.mono{font-family:var(--font-mono);font-size:.88em}
+code{background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+ul,ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.kv div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.kv dt{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.kv dd{margin:0;font-weight:500;overflow-wrap:anywhere}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+figure{margin:0;display:flex;flex-direction:column;gap:10px}
+figcaption{color:var(--muted);font-size:14px;max-width:780px}
+svg.flow{display:block;width:100%;min-width:900px;height:auto;color:var(--edge);font-family:var(--font-body)}
+svg.state{display:block;width:100%;min-width:760px;height:auto;color:var(--edge);font-family:var(--font-body)}
+.lane{stroke:none}.lp{fill:var(--lane-p)}.ls{fill:var(--lane-s)}.la1{fill:var(--lane-a1)}.la2{fill:var(--lane-a2)}
+.lh{font-size:13px;font-weight:600;fill:var(--fg);text-anchor:middle;letter-spacing:.02em}
+.lhs{font-size:11px;fill:var(--muted);text-anchor:middle}
+.box{fill:var(--surface);stroke-width:1.5}
+.p{stroke:var(--stroke-p)}.s{stroke:var(--stroke-s)}.a1{stroke:var(--stroke-a1)}.a2{stroke:var(--stroke-a2)}
+.bad{fill:var(--surface);stroke:var(--bad);stroke-width:1.5}
+.tagbox{fill:var(--tag);stroke:var(--stroke-a1);stroke-dasharray:4 3}
+.endbox{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+.t{font-size:13px;font-weight:600;fill:var(--fg);text-anchor:middle}
+.st{font-size:11px;fill:var(--muted);text-anchor:middle}
+.e{fill:none;stroke:var(--edge);stroke-width:1.4}
+.ov{fill:none;stroke:var(--accent);stroke-width:1.5;stroke-dasharray:6 4}
+.el{font-size:11px;fill:var(--muted)}
+.elr{font-size:11px;fill:var(--accent);font-weight:500}
+.mid{text-anchor:middle}.end{text-anchor:end}
+.arrowhead{fill:var(--edge)}.arrowhead-r{fill:var(--accent)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+th,td{text-align:left;vertical-align:top;padding:10px 14px;border-bottom:1px solid var(--line)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;background:var(--lane-s)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:500;white-space:nowrap}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.pill{display:inline-block;font-family:var(--font-mono);font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.pill.warn{border-color:var(--stroke-a1);color:var(--stroke-a1)}
+.pill.ok{border-color:var(--stroke-a2);color:var(--stroke-a2)}
+.pill.sec{color:var(--muted)}
+.notes{display:flex;flex-direction:column;gap:12px;max-width:860px}
+.note{border-left:3px solid var(--line);padding:4px 0 4px 14px;display:flex;flex-direction:column;gap:4px}
+.note.risk{border-left-color:var(--accent)}
+.note h3{font-size:15px}
+.cast{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.cast div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.cast b{font-weight:600}.cast span{font-size:13px;color:var(--muted)}
+.role{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.role.p{color:var(--stroke-p)}.role.a1{color:var(--stroke-a1)}.role.a2{color:var(--stroke-a2)}.role.t{color:var(--accent)}.role.o{color:var(--muted)}
+.steps{display:flex;flex-direction:column;gap:28px}
+.step{display:grid;grid-template-columns:56px minmax(0,1fr);gap:14px}
+.step-no{font-family:var(--font-mono);font-size:13px;color:var(--accent);border:1px solid var(--accent);border-radius:999px;height:30px;display:flex;align-items:center;justify-content:center}
+.step-body{display:flex;flex-direction:column;gap:12px;min-width:0}
+.step-body h3{font-size:17px}
+.step-body .who{font-size:13px;color:var(--muted)}
+pre.json{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:var(--font-mono);font-size:12.5px;line-height:1.55}
+.jk{color:var(--stroke-p)}.jv{color:var(--stroke-a2)}.jc{color:var(--muted)}
+.mock{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.mock-head{display:flex;flex-wrap:wrap;gap:12px 32px;align-items:flex-start}
+.mock-kv{display:grid;grid-template-columns:96px 10px minmax(0,1fr);font-size:13.5px;row-gap:2px}
+.mock-kv span:nth-child(3n+1){color:var(--muted)}
+.mock-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{font-size:12.5px;padding:4px 10px;border-radius:5px;border:1px solid var(--accent);color:var(--accent);background:transparent;white-space:nowrap}
+.btn.solid{background:var(--accent);color:var(--surface)}
+.btn.warn{border-color:var(--stroke-a1);color:var(--stroke-a1)}
+.mock-sel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;background:var(--lane-s);border-radius:6px;padding:10px}
+.mock-sel div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.mock-sel b{font-size:12.5px}
+.sel{font-size:12.5px;border:1px solid var(--line);border-radius:5px;padding:5px 8px;background:var(--surface);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sel.off{color:var(--muted);background:var(--lane-s)}
+.rev{border:1px solid var(--stroke-a1);background:var(--lane-a1);border-radius:6px;padding:8px 12px;font-size:13.5px}
+.tip{font-size:12.5px;color:var(--muted)}
+.real{border:1px dashed var(--accent);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;max-width:860px}
+@media (max-width:600px){.mock-sel{grid-template-columns:minmax(0,1fr)}.step{grid-template-columns:minmax(0,1fr)}.step-no{width:56px}}
+footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+@media (max-width:600px){h1{font-size:27px}.wrap{padding-block:24px 48px;gap:36px}}
+</style>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">kpn-pm · Performance Management</span>
+  <h1>Alur Rating</h1>
+  <p class="lead">Tahap kalibrasi setelah appraisal selesai: calibrator memberi rating akhir untuk setiap karyawan, mengikuti kuota distribusi dari master calibration, berlapis dari calibrator layer 1 sampai layer terakhir. Disusun dari kode di branch <code>development</code> dan data DB stage per 25 Nov 2026.</p>
+</header>
+
+<section>
+  <h2>Konfigurasi yang dipakai</h2>
+  <dl class="kv">
+    <div><dt>Calibrator</dt><dd>Baris <code>approval_layer_appraisals</code> dengan layer_type <code>calibrator</code>, layer 1 sampai n per karyawan</dd></div>
+    <div><dt>KPI Unit calibrator</dt><dd><code>kpi_units</code> aktif periode 2026, misalnya Rolles = C. Menentukan master calibration yang dipakai.</dd></div>
+    <div><dt>Master calibration (grade C)</dt><dd>"Test Calibration": Excellent 30% · Good 10% · Fair 15% · Poor 5% · Very Poor 40% (data uji di stage)</dd></div>
+    <div><dt>Skala rating</dt><dd>Exceptional 5 (4.76–5) · Exceed Expectation 4 (4–4.75) · Meet Expectation 3 (3–3.99) · Need Improvement 2 (2–2.99) · Poor 1 (0–1.99)</dd></div>
+    <div><dt>Tab per job level</dt><dd>Level23 (2A–3B) · Level45 (4A–5B) · Level67 (6A–7B) · Level89 (8A–9B)</dd></div>
+    <div><dt>Data di stage</dt><dd>2025: 593 kalibrasi Approved, 2.269 Pending. 2026: 1 Pending (Metta).</dd></div>
+  </dl>
+</section>
+
+<section>
+  <h2>Siapa membuka Rating dan siapa yang muncul</h2>
+  <p>Menu <strong>Calibration → Rating</strong> (<code>/rating</code>, <code>RatingController::index</code>) dibuka oleh calibrator. Yang tampil adalah semua karyawan yang punya baris calibrator dengan <code>approver_id</code> = user dan <code>access_menu.accesspa = 1</code>, dikelompokkan per tab job level. Karyawan yang belum punya appraisal periode ini tetap tampil, dengan status Empty Appraisal.</p>
+  <p>Halaman gagal dibuka jika calibrator belum punya KPI Unit aktif untuk periode berjalan, karena kuota dan skala rating diambil dari sana.</p>
+</section>
+
+<section>
+  <h2>Flowchart end-to-end</h2>
+  <figure>
+    <div class="scroll">
+    <svg class="flow" viewBox="0 0 1110 965" role="img" aria-label="Flowchart Rating: setelah appraisal Approved sistem membuat baris kalibrasi untuk calibrator layer 1; calibrator membuka Rating, sistem memeriksa KPI unit dan kesiapan semua karyawan; calibrator memilih rating sesuai distribusi lalu submit; jika ada calibrator berikutnya dibuat baris kalibrasi baru, jika tidak rating ditulis ke appraisal.">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrowhead" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <rect class="lane lp" x="20" y="20" width="210" height="930"/>
+      <rect class="lane ls" x="230" y="20" width="360" height="930"/>
+      <rect class="lane la1" x="590" y="20" width="250" height="930"/>
+      <rect class="lane la2" x="840" y="20" width="250" height="930"/>
+      <text class="lh" x="125" y="40">SEBELUMNYA</text><text class="lhs" x="125" y="55">manager · rater 360</text>
+      <text class="lh" x="410" y="40">SISTEM</text><text class="lhs" x="410" y="55">RatingController · AppService</text>
+      <text class="lh" x="715" y="40">CALIBRATOR LAYER 1</text><text class="lhs" x="715" y="55">menu Rating</text>
+      <text class="lh" x="965" y="40">CALIBRATOR BERIKUTNYA</text><text class="lhs" x="965" y="55">layer 2 … n</text>
+
+      <rect class="box p" x="35" y="78" width="180" height="44" rx="22"/>
+      <text class="t" x="125" y="98">Review manager</text>
+      <text class="st" x="125" y="113">layer terakhir selesai</text>
+      <path class="e" d="M215,100 H260" marker-end="url(#ah)"/>
+      <rect class="box s" x="260" y="70" width="300" height="60" rx="6"/>
+      <text class="t" x="410" y="95">Appraisal Approved</text>
+      <text class="st" x="410" y="113">calibrations: Pending untuk calibrator layer 1</text>
+      <path class="e" d="M560,100 H615" marker-end="url(#ah)"/>
+      <rect class="box a1" x="615" y="78" width="200" height="44" rx="22"/>
+      <text class="t" x="715" y="104">Buka menu Rating</text>
+
+      <path class="e" d="M715,122 V150 H410 V180" marker-end="url(#ah)"/>
+      <polygon class="box s" points="410,180 495,215 410,250 325,215"/>
+      <text class="t" x="410" y="212">KPI Unit</text><text class="t" x="410" y="227">ada?</text>
+      <path class="e" d="M325,215 H215" marker-end="url(#ah)"/>
+      <text class="el" x="270" y="207" text-anchor="middle">tidak</text>
+      <rect class="bad" x="35" y="195" width="180" height="40" rx="20"/>
+      <text class="t" x="125" y="220">Halaman gagal dibuka</text>
+      <path class="e" d="M410,250 V290" marker-end="url(#ah)"/>
+      <text class="el" x="420" y="273">ya</text>
+
+      <rect class="box s" x="260" y="290" width="300" height="72" rx="6"/>
+      <text class="t" x="410" y="312">Susun tab per job level</text>
+      <text class="st" x="410" y="330">target = jumlah karyawan × % kuota</text>
+      <text class="st" x="410" y="346">Score To Rating dari suggestedRating()</text>
+      <path class="e" d="M410,362 V385" marker-end="url(#ah)"/>
+      <polygon class="box s" points="410,385 505,425 410,465 315,425"/>
+      <text class="t" x="410" y="421">Semua karyawan</text><text class="t" x="410" y="436">di tab siap?</text>
+      <path class="e" d="M315,425 H215" marker-end="url(#ah)"/>
+      <text class="el" x="265" y="417" text-anchor="middle">tidak</text>
+      <rect class="tagbox" x="35" y="395" width="180" height="62" rx="6"/>
+      <text class="st" x="125" y="415">Submit Not Allowed:</text>
+      <text class="st" x="125" y="430">tunggu appraisal, 360,</text>
+      <text class="st" x="125" y="445">atau calibrator sebelumnya</text>
+      <path class="e" d="M505,425 H615" marker-end="url(#ah)"/>
+      <text class="el" x="560" y="417" text-anchor="middle">ya</text>
+
+      <rect class="box a1" x="615" y="395" width="200" height="60" rx="6"/>
+      <text class="t" x="715" y="420">Pilih rating</text>
+      <text class="st" x="715" y="438">terisi awal dari Score To Rating</text>
+      <path class="e" d="M715,455 V485" marker-end="url(#ah)"/>
+      <polygon class="box a1" points="715,485 805,525 715,565 625,525"/>
+      <text class="t" x="715" y="521">Distribusi</text><text class="t" x="715" y="536">sesuai target?</text>
+      <path class="e" d="M805,525 H828 V425 H815" marker-end="url(#ah)"/>
+      <text class="el" x="822" y="548" text-anchor="middle">tidak</text>
+      <path class="e" d="M715,565 V600" marker-end="url(#ah)"/>
+      <text class="el" x="725" y="586">ya</text>
+      <rect class="box a1" x="615" y="600" width="200" height="50" rx="6"/>
+      <text class="t" x="715" y="621">Submit Rating</text>
+      <text class="st" x="715" y="638">atau Upload Rating (Excel)</text>
+      <path class="e" d="M615,625 H560" marker-end="url(#ah)"/>
+      <rect class="box s" x="260" y="595" width="300" height="60" rx="6"/>
+      <text class="t" x="410" y="620">Simpan rating calibrator</text>
+      <text class="st" x="410" y="638">calibrations: rating = nilai, status Approved</text>
+      <path class="e" d="M410,655 V680" marker-end="url(#ah)"/>
+      <polygon class="box s" points="410,680 505,720 410,760 315,720"/>
+      <text class="t" x="410" y="716">Ada calibrator</text><text class="t" x="410" y="731">layer berikutnya?</text>
+      <path class="e" d="M505,720 H865" marker-end="url(#ah)"/>
+      <text class="el" x="685" y="712" text-anchor="middle">ya: calibrations Pending baru</text>
+      <rect class="box a2" x="865" y="685" width="200" height="72" rx="6"/>
+      <text class="t" x="965" y="707">Calibrator berikutnya</text>
+      <text class="st" x="965" y="725">Previous Rating terisi</text>
+      <text class="st" x="965" y="741">ulangi: buka Rating → submit</text>
+      <path class="e" d="M410,760 V805" marker-end="url(#ah)"/>
+      <text class="el" x="420" y="788">tidak</text>
+      <rect class="box s" x="260" y="805" width="300" height="60" rx="6"/>
+      <text class="t" x="410" y="830">Rating akhir ke appraisal</text>
+      <text class="st" x="410" y="848">appraisals.rating = nilai · form_status Approved</text>
+      <path class="e" d="M410,865 V895" marker-end="url(#ah)"/>
+      <rect class="endbox" x="300" y="895" width="220" height="40" rx="20"/>
+      <text class="t" x="410" y="920">Rating final</text>
+    </svg>
+    </div>
+    <figcaption>Setiap calibrator mengulang siklus yang sama untuk karyawan yang menjadi gilirannya. Baris kalibrasi untuk layer berikutnya baru dibuat saat layer sebelumnya submit, jadi calibrator layer 2 tidak bisa memberi rating sebelum layer 1 selesai.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>Isi halaman Rating</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Tabel distribusi per tab</h3>
+      <p>Satu baris per tingkat rating dari master calibration. <strong>Targeted Ratings</strong>: jumlah orang dan persen kuota. <strong>Your Ratings</strong>: jumlah orang dan persen dari pilihan calibrator, diperbarui langsung saat dropdown diubah.</p>
+    </div>
+    <div class="panel">
+      <h3>Kartu per karyawan</h3>
+      <ul>
+        <li>Employee Name (ID), Designation, Unit</li>
+        <li>Review Status (badge, lihat tabel)</li>
+        <li>Score To Rating: suggested rating hasil Appraisal 360 yang dikonversi ke skala rating</li>
+        <li>Previous Rating: rating calibrator layer sebelumnya, dengan nama calibrator-nya</li>
+        <li>Your Rating: dropdown skala rating</li>
+      </ul>
+    </div>
+  </div>
+  <div class="scroll"><table>
+    <thead><tr><th>Badge Review Status</th><th>Arti</th></tr></thead>
+    <tbody>
+      <tr><td><span class="pill warn">Empty Appraisal</span></td><td>Karyawan belum punya appraisal periode ini ("No Appraisal Initiated")</td></tr>
+      <tr><td><span class="pill warn">On Manager Review</span></td><td>Appraisal masih Pending di manager; popover menyebut manager yang sedang review</td></tr>
+      <tr><td><span class="pill warn">Pending 360</span></td><td>Ada manager/peers/subordinate di Layer Setting yang belum menyimpan penilaian, dan karyawan berflag <code>review360 = 0</code></td></tr>
+      <tr><td><span class="pill warn">Pending Calibration</span></td><td>Menunggu calibrator lain; popover menyebut calibrator yang sedang memegang</td></tr>
+      <tr><td><span class="pill ok">Approved</span></td><td>Rating sudah diberikan; popover menyebut calibrator dan tanggalnya</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Aturan memberi rating</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Dropdown bisa dipilih jika</h3>
+      <ul>
+        <li>Ada baris <code>calibrations</code> Pending untuk calibrator ini (gilirannya)</li>
+        <li>Penilaian 360 lengkap, atau karyawan berflag <code>review360 = 1</code></li>
+        <li>Approval request appraisal sudah Approved</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Submit diterima jika</h3>
+      <ul>
+        <li>Tidak ada satu pun dropdown yang terkunci di tab itu. Satu karyawan yang belum siap menahan seluruh tab.</li>
+        <li>Semua dropdown terisi</li>
+        <li>Jumlah per rating sama dengan Targeted Ratings. Pengecualian: tab berisi 1 orang hanya dicek di rating tertinggi; tab berisi 2 orang hanya dilarang dua orang di rating yang sama.</li>
+      </ul>
+    </div>
+  </div>
+  <p>Ketiga pemeriksaan Submit berjalan di browser (<code>rating.js</code>). Server (<code>RatingController::store</code>) tidak memeriksa ulang distribusi maupun kesiapan karyawan.</p>
+</section>
+
+<section>
+  <h2>Cara kuota dihitung</h2>
+  <ol>
+    <li>Untuk setiap tingkat rating: target = <code>round(jumlah karyawan di tab × persen)</code>.</li>
+    <li>Jika total target kurang dari jumlah karyawan, selisihnya dibagi proporsional (dibulatkan ke bawah), sisanya ditambahkan ke tingkat dengan persen terbesar.</li>
+    <li>Jika total target lebih dari jumlah karyawan, kelebihannya dikurangi satu per satu dari tingkat dengan persen terkecil yang masih punya kuota.</li>
+    <li>Jumlah karyawan termasuk yang belum punya appraisal.</li>
+  </ol>
+  <p>Kolom "Your Ratings" menghitung pilihan berdasarkan nama tingkat rating. Nama kunci di persentase master calibration harus sama persis dengan nama di master rating, kalau tidak target tidak akan pernah cocok.</p>
+</section>
+
+<section>
+  <h2>Data yang ditulis saat Submit</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Tabel</th><th>Perubahan</th></tr></thead>
+    <tbody>
+      <tr><td>calibrations (baris milik calibrator ini)</td><td>rating = nilai (1–5), status <code>Approved</code>, updated_by</td></tr>
+      <tr><td>calibrations (baris baru)</td><td>Jika ada calibrator layer berikutnya: id_calibration_group, appraisal_id, employee_id, approver_id = calibrator berikutnya, period, status Pending</td></tr>
+      <tr><td>appraisals</td><td>Jika ini calibrator terakhir: rating = nilai, form_status <code>Approved</code></td></tr>
+    </tbody>
+  </table></div>
+  <p>Baris kalibrasi pertama dibuat saat appraisal menjadi Approved di review manager terakhir (atau langsung saat Initiate jika manager hanya satu layer), memakai calibrator layer 1 dan <code>id_calibration_group</code> master calibration periode berjalan.</p>
+</section>
+
+<section id="contoh">
+  <h2>Contoh kasus: rating Metta Saputra</h2>
+  <p>Melanjutkan contoh Propose 360 dan Appraisal 360. Tahap 1–2 adalah kondisi asli di DB stage; tahap 3–4 belum terjadi dan ditandai.</p>
+  <div class="cast">
+    <div><span class="role t">Dinilai</span><b>Metta Saputra</b><span>01124040023 · 5A → tab Level45 · review360 = 0</span></div>
+    <div><span class="role a1">Calibrator layer 1</span><b>Rolles Herwin Sihombing</b><span>01123070004 · KPI Unit C</span></div>
+    <div><span class="role a2">Calibrator layer 2</span><b>Budi Setiono</b><span>01122100006 · KPI Unit hanya untuk 2024–2025</span></div>
+    <div><span class="role o">Tim kalibrasi Rolles</span><b>4 orang</b><span>Metta, Eriton Latti Dewa (5B), Alfian Nur Fatah Azis (5A), Haiman Saputra (6B)</span></div>
+  </div>
+
+  <div class="steps">
+    <div class="step"><div class="step-no">1</div><div class="step-body">
+      <h3>Baris kalibrasi dibuat saat Initiate</h3>
+      <p class="who">20 Nov 2026 02:51 · bersamaan dengan Initiate appraisal oleh Rolles</p>
+<pre class="json"><span class="jc">// calibrations #11591</span>
+{ "appraisal_id": "6cba3693-…", "employee_id": "01124040023", "approver_id": "01123070004",
+  "id_calibration_group": "8c668c4e-…", "period": 2026, "status": "Pending", "rating": null }</pre>
+    </div></div>
+
+    <div class="step"><div class="step-no">2</div><div class="step-body">
+      <h3>Rolles membuka Rating (kondisi sekarang)</h3>
+      <p>KPI Unit Rolles = C, jadi kuota diambil dari master calibration grade C. Ada dua tab: Level45 (Metta, Eriton, Alfian) dan Level67 (Haiman). Tab Level45:</p>
+      <div class="scroll"><table>
+        <thead><tr><th>Tingkat</th><th>Targeted (3 orang)</th><th>%</th><th>Your Ratings</th></tr></thead>
+        <tbody>
+          <tr><td>Excellent</td><td>1</td><td>30%</td><td>0</td></tr>
+          <tr><td>Good</td><td>0</td><td>10%</td><td>0</td></tr>
+          <tr><td>Fair</td><td>0</td><td>15%</td><td>0</td></tr>
+          <tr><td>Poor</td><td>0</td><td>5%</td><td>0</td></tr>
+          <tr><td>Very Poor</td><td>2</td><td>40%</td><td>0</td></tr>
+        </tbody>
+      </table></div>
+      <p>Pembulatan awal menghasilkan 1 + 0 + 0 + 0 + 1 = 2 dari 3 orang; sisa 1 ditambahkan ke Very Poor (persen terbesar). Nama tingkat di data uji ini (Excellent, Good, …) berbeda dengan skala rating (Exceptional, Exceed Expectation, …), sehingga kuota ini tidak akan pernah terpenuhi.</p>
+      <div class="scroll"><table>
+        <thead><tr><th>Karyawan</th><th>Review Status</th><th>Score To Rating</th><th>Previous Rating</th><th>Your Rating</th></tr></thead>
+        <tbody>
+          <tr><td>Metta Saputra (01124040023)</td><td><span class="pill warn">Pending 360</span></td><td>- <span class="tip">(nilai di belakang: 3.13 = Meet Expectation)</span></td><td>-</td><td><span class="sel off">terkunci</span></td></tr>
+          <tr><td>Eriton Latti Dewa (01119060003)</td><td><span class="pill warn">Empty Appraisal</span></td><td>-</td><td>-</td><td><span class="sel off">terkunci</span></td></tr>
+          <tr><td>Alfian Nur Fatah Azis (01120040011)</td><td><span class="pill warn">Empty Appraisal</span></td><td>-</td><td>-</td><td><span class="sel off">terkunci</span></td></tr>
+        </tbody>
+      </table></div>
+      <p>Score To Rating Metta disembunyikan ("-") selama 360 belum lengkap. Metta berstatus Pending 360 karena flag <code>review360 = 0</code> dan Alif, Fredian, Dali belum menyimpan penilaian. Eriton dan Alfian belum punya appraisal 2026. Jika Rolles menekan Submit Rating, muncul "Submit Not Allowed".</p>
+    </div></div>
+
+    <div class="step"><div class="step-no">3</div><div class="step-body">
+      <h3>Rolles memberi rating <span class="pill sec">belum terjadi</span></h3>
+      <p>Setelah ketiga peers mengisi dan Eriton serta Alfian selesai appraisal, dropdown terbuka. Score To Rating Metta ikut berubah oleh skor peers. Dengan angka simulasi di halaman Appraisal 360 (peers 3, 4, 5), skornya menjadi 2.99 dan masuk <strong>Need Improvement</strong> (2–2.99), padahal dengan rata-rata peers yang benar skornya 3.11 dan masuk <strong>Meet Expectation</strong>. Misalkan Rolles memilih Meet Expectation:</p>
+<pre class="json"><span class="jc">// POST /rating-submit</span>
+id_calibration_group=8c668c4e-…  approver_id=01123070004
+employee_id[]=01124040023  appraisal_id[]=6cba3693-…  rating[]=3   <span class="jc">// … ditambah Eriton dan Alfian</span>
+
+<span class="jc">// calibrations #11591 (berubah)</span>
+{ "approver_id": "01123070004", "rating": 3, "status": "Approved" }
+
+<span class="jc">// calibrations (baris baru, karena ada calibrator layer 2)</span>
+{ "appraisal_id": "6cba3693-…", "employee_id": "01124040023", "approver_id": "01122100006",
+  "period": 2026, "status": "Pending", "rating": null }</pre>
+    </div></div>
+
+    <div class="step"><div class="step-no">4</div><div class="step-body">
+      <h3>Giliran Budi <span class="pill sec">belum terjadi</span></h3>
+      <p>Budi belum punya KPI Unit 2026, jadi halaman Rating-nya gagal dibuka dengan pesan "The Rating page could not be loaded". Setelah KPI Unit Budi diisi, kartu Metta menampilkan Previous Rating "Meet Expectation" dari Rolles dan dropdown terisi nilai itu. Saat Budi submit, karena Budi calibrator terakhir:</p>
+<pre class="json"><span class="jc">// calibrations (baris Budi)</span>
+{ "approver_id": "01122100006", "rating": 3, "status": "Approved" }
+
+<span class="jc">// appraisals 6cba3693-…</span>
+{ "rating": 3, "form_status": "Approved" }</pre>
+    </div></div>
+  </div>
+
+  <div class="real">
+    <h3>Contoh nyata periode 2025: berhenti di layer 2</h3>
+    <p>Rating Metta 2025 diberikan Rolles pada 1 Jan 2026: <span class="mono">rating 4 (Exceed Expectation), Approved</span>. Baris untuk Budi dibuat saat itu juga dan masih <span class="mono">Pending</span> sampai sekarang, sehingga <span class="mono">appraisals.rating</span> Metta 2025 tetap kosong. Di stage ada 415 baris kalibrasi 2025 yang tertahan dengan pola sama: layer sebelumnya sudah Approved, layer berikutnya belum.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Catatan penting</h2>
+  <div class="notes">
+    <div class="note risk">
+      <h3>Distribusi hanya dicek di browser</h3>
+      <p>Kuota, isian kosong, dan kesiapan karyawan divalidasi di <code>rating.js</code>. <code>RatingController::store</code> menerima rating apa pun yang dikirim, termasuk lewat Upload Rating jika validasi Excel-nya lolos.</p>
+    </div>
+    <div class="note risk">
+      <h3>Bug 360 bisa menggeser kategori rating</h3>
+      <p>Pada contoh Metta, bug rata-rata peers di <code>averageScores()</code> mengubah Score To Rating dari Meet Expectation menjadi Need Improvement. Score To Rating menjadi nilai awal dropdown dan dasar tabel Your Ratings.</p>
+    </div>
+    <div class="note">
+      <h3>Satu karyawan menahan satu tab</h3>
+      <p>Tombol Submit ditolak jika ada satu dropdown saja yang terkunci. Calibrator dengan tim besar harus menunggu semua karyawan di tab itu siap, termasuk yang belum mulai appraisal.</p>
+    </div>
+    <div class="note">
+      <h3>Setiap calibrator wajib punya KPI Unit periode berjalan</h3>
+      <p>Tanpa KPI Unit aktif, halaman Rating gagal dibuka. Ini berlaku juga untuk calibrator layer 2 dan seterusnya, misalnya Budi untuk periode 2026.</p>
+    </div>
+    <div class="note">
+      <h3>Draft 360 dianggap sudah mengisi</h3>
+      <p>Pemeriksaan "Pending 360" hanya melihat ada atau tidaknya baris kontributor, tanpa melihat status. Form 360 yang masih Draft sudah membuka dropdown rating.</p>
+    </div>
+    <div class="note">
+      <h3>Submit tanpa transaksi</h3>
+      <p>Rating disimpan per karyawan dalam satu loop tanpa transaksi database. Jika satu karyawan gagal ditemukan, karyawan sebelumnya sudah tersimpan dan sisanya tidak.</p>
+    </div>
+  </div>
+</section>
+
+<footer>Sumber: RatingController (index, store), AppService (suggestedRating, convertRating, ratingAllowedCheck, processApproval, ratingValue), AppraisalTaskController::storeReview dan storeInitiate, resources/views/pages/rating/app.blade.php, resources/js/rating.js, model KpiUnits, dan DB stage (hcispanel_hc_stage).</footer>
+</div>

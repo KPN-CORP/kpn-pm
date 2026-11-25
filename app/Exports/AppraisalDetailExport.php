@@ -18,7 +18,6 @@ use Maatwebsite\Excel\Concerns\WithChunkReading;
 use Generator;
 use Maatwebsite\Excel\Facades\Excel;
 use stdClass;
-use App\Support\Review360Visibility;
 
 class AppraisalDetailExport implements FromGenerator, WithHeadings, WithMapping, WithChunkReading
 {
@@ -47,9 +46,6 @@ class AppraisalDetailExport implements FromGenerator, WithHeadings, WithMapping,
     // contributor.
     protected ?Collection $contributorsByAppraisal = null;
     protected ?Collection $snapshotsByForm = null;
-
-    // employee_id => true: target yang form 360-nya tidak boleh dilihat pengekspor.
-    protected array $restricted360 = [];
 
     /** @var callable|null fn(string $phase, int $done, int $total) — phase: 'expand' | 'write' */
     protected $onProgress;
@@ -121,10 +117,6 @@ class AppraisalDetailExport implements FromGenerator, WithHeadings, WithMapping,
         $this->appraisalById = $employeeAppraisalById;
 
         $this->preloadSummaryData($contributorsGroupedByEmployee);
-
-        // Kerahasiaan 360: baris form peers/subordinate untuk diri si pengekspor
-        // atau timnya tidak ikut diekspor (lihat Review360Visibility).
-        $this->restricted360 = Review360Visibility::restrictedTargets($this->user?->employee_id, $employeeIds);
 
         $expandedData = collect();
 
@@ -284,12 +276,6 @@ class AppraisalDetailExport implements FromGenerator, WithHeadings, WithMapping,
     private function expandRowForContributors(Collection $expandedData, array $row, Collection $contributors): void
     {
         foreach ($contributors as $contributor) {
-            if (Review360Visibility::is360($contributor->contributor_type)
-                && isset($this->restricted360[(string) $contributor->employee_id])
-                && (string) $contributor->contributor_id !== (string) ($this->user?->employee_id)) {
-                continue;
-            }
-
             $contributorRow = $row;
             $formData = $this->getFormDataForContributor($contributor);
             $contributorRow['Contributor ID'] = ['dataId' => $contributor->contributor_id];
