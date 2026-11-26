@@ -445,11 +445,6 @@ class MyAppraisalController extends Controller
                 'formData' => $formData,
             ];
 
-            $contributorCheck = AppraisalContributor::select('appraisal_id')
-                ->where('employee_id', $validatedData['employee_id'])
-                ->where('period', $period)
-                ->first();
-
             $employeeId = $validatedData['employee_id'];
             $timestamp  = Carbon::now()->format('His');
             $baseDir    = 'files/docs_pa';                       // di disk 'public'
@@ -477,7 +472,10 @@ class MyAppraisalController extends Controller
 
             // Simpan appraisal
             $appraisal = new Appraisal;
-            $appraisal->id = $contributorCheck->appraisal_id ?? Str::uuid();
+            // Selalu UUID baru: id milik contributor bisa menunjuk appraisal yang sudah dihapus
+            // (soft delete) sehingga insert bentrok primary key. Review 360 yang sudah ada
+            // ditautkan lewat relinkOrphans setelah save.
+            $appraisal->id = Str::uuid();
             $appraisal->goals_id = $goals->id;
             $appraisal->employee_id = $validatedData['employee_id'];
             $appraisal->form_group_id = $validatedData['form_group_id'];
@@ -488,6 +486,8 @@ class MyAppraisalController extends Controller
             $appraisal->created_by = Auth::user()->id;
             $appraisal->file = empty($paths) ? null : json_encode($paths);
             $appraisal->save();
+
+            AppraisalContributor::relinkOrphans($validatedData['employee_id'], $period, $appraisal->id);
 
             // Simpan snapshot
             $snapshot = new ApprovalSnapshots;

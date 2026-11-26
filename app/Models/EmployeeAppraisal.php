@@ -84,20 +84,59 @@ class EmployeeAppraisal extends Model
      */
     public function scopeInPeriod(\Illuminate\Database\Eloquent\Builder $query, $period)
     {
+        return $query->withTrashed()->periodMember($period);
+    }
+
+    /**
+     * Kondisi inPeriod tanpa withTrashed(), supaya bisa dipakai di dalam
+     * where(fn ...) bersarang (mis. gabungan beberapa periode). Pemanggil
+     * wajib withTrashed() di query luar.
+     */
+    public function scopePeriodMember(\Illuminate\Database\Eloquent\Builder $query, $period)
+    {
         $period = (int) $period;
         $table = $this->getTable();
 
-        return $query->withTrashed()->where(function ($q) use ($period, $table) {
-            $q->whereNull("$table.deleted_at")
-                ->orWhereExists(fn ($s) => $s->selectRaw('1')->from('appraisals')
-                    ->whereColumn('appraisals.employee_id', "$table.employee_id")
-                    ->where('appraisals.period', $period)
-                    ->whereNull('appraisals.deleted_at'))
-                ->orWhereExists(fn ($s) => $s->selectRaw('1')->from('goals')
-                    ->whereColumn('goals.employee_id', "$table.employee_id")
-                    ->where('goals.period', $period)
-                    ->whereNull('goals.deleted_at'));
-        });
+        return $query
+            ->notPaTerminated()
+            // Dikeluarkan hanya dari periode ini (Terminate > "hanya periode
+            // ini"); periode lain tetap menampilkan karyawan tersebut.
+            ->whereNotExists(fn ($s) => $s->selectRaw('1')->from('employee_pa_period_exclusions as pa_excl')
+                ->whereColumn('pa_excl.employee_id', "$table.employee_id")
+                ->where('pa_excl.period', $period))
+            ->where(function ($q) use ($period, $table) {
+                $q->whereNull("$table.deleted_at")
+                    ->orWhereExists(fn ($s) => $s->selectRaw('1')->from('appraisals')
+                        ->whereColumn('appraisals.employee_id', "$table.employee_id")
+                        ->where('appraisals.period', $period)
+                        ->whereNull('appraisals.deleted_at'))
+                    ->orWhereExists(fn ($s) => $s->selectRaw('1')->from('goals')
+                        ->whereColumn('goals.employee_id', "$table.employee_id")
+                        ->where('goals.period', $period)
+                        ->whereNull('goals.deleted_at'));
+            });
+    }
+
+    /**
+     * Bukan karyawan yang di-terminate dari PA untuk semua periode
+     * (Settings > Employee > Terminate > "semua periode"): mereka tersembunyi
+     * di semua periode dan tidak ikut kuota Rating.
+     *
+     * Profil lama (dari tabel employees_pa sebelum jadi view) banyak yang
+     * deleted_at-nya cuma salinan tanggal resign HR, tanpa deleted_by. Itu
+     * bukan terminate: terminate = deleted_by terisi (selalu diisi oleh tombol
+     * Terminate), atau karyawannya masih aktif di HR.
+     */
+    public function scopeNotPaTerminated(\Illuminate\Database\Eloquent\Builder $query)
+    {
+        $table = $this->getTable();
+
+        return $query->whereNotExists(fn ($s) => $s->selectRaw('1')->from('employee_pa_profiles as pa_term')
+            ->join('employees as pa_term_e', 'pa_term_e.employee_id', '=', 'pa_term.employee_id')
+            ->whereColumn('pa_term.employee_id', "$table.employee_id")
+            ->whereNotNull('pa_term.deleted_at')
+            ->where(fn ($w) => $w->whereNotNull('pa_term.deleted_by')
+                ->orWhereNull('pa_term_e.deleted_at')));
     }
 
     public function user()

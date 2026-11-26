@@ -976,7 +976,16 @@ class AppService
     public function ratingAllowedCheck($employeeId)
     {
         // Cari data pada ApprovalLayerAppraisal berdasarkan employee_id
-        $approvalLayerAppraisals = ApprovalLayerAppraisal::with(['approver', 'employee'])->where('employee_id', $employeeId)->where('layer_type', '!=', 'calibrator')->get();
+        $approvalLayerAppraisals = ApprovalLayerAppraisal::with(['approver'])->where('employee_id', $employeeId)->where('layer_type', '!=', 'calibrator')->get();
+
+        // access_menu milik karyawan yang dinilai (sama untuk semua layer). Relasi
+        // ApprovalLayerAppraisal->employee tidak menyertakan karyawan soft-deleted
+        // (resign/terminate), padahal karyawan itu tetap tampil di Rating periodenya;
+        // dulu ->employee->access_menu di sini membuat seluruh halaman Rating gagal.
+        $accessMenu = \App\Models\EmployeeAppraisal::withTrashed()
+            ->where('employee_id', $employeeId)
+            ->value('access_menu');
+        $review360 = json_decode($accessMenu ?? '', true) ?: [];
 
         // Dulu satu query AppraisalContributor per layer; sekarang sekali
         // untuk semua approver karyawan ini.
@@ -999,8 +1008,6 @@ class AppService
             : Employee::whereIn('employee_id', $missingApproverIds)->pluck('fullname', 'employee_id');
 
         foreach ($approvalLayerAppraisals as $approvalLayer) {
-            
-            $review360 = json_decode($approvalLayer->employee->access_menu, true);
 
             // if (!array_key_exists('review360', $review360)) {
             //     $review360['review360'] = 0;
@@ -1034,7 +1041,7 @@ class AppService
         return [
             'status' => true,
             'message' => '360 Review completed',
-            'data' => $review360['review360'],
+            'data' => $review360['review360'] ?? null,
         ];
     }
 

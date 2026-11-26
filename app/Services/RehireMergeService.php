@@ -46,6 +46,7 @@ class RehireMergeService
         'achievements' => 'period',
         'kpi_units' => 'periode',
         'proposed_360_transactions' => 'appraisal_year',
+        'employee_pa_period_exclusions' => 'period',
     ];
 
     // Kolom di mana id karyawan dipakai sebagai approver / kontributor / manager.

@@ -191,11 +191,14 @@ public function getTeamData(Request $request)
             },
             'appraisal'
         ])
-        ->when($isCurrentPeriod, function ($query) use ($period) {
-            $query->whereHas('employee', function ($query) use ($period) {
-                $query->inPeriod($period)->whereRaw('json_valid(access_menu)')
+        // Semua periode: karyawan harus ikut periode itu (resign tetap, terminate
+        // dari PA keluar). Akses createpa hanya dicek untuk periode berjalan.
+        ->whereHas('employee', function ($query) use ($period, $isCurrentPeriod) {
+            $query->inPeriod($period);
+            if ($isCurrentPeriod) {
+                $query->whereRaw('json_valid(access_menu)')
                     ->whereJsonContains('access_menu', ['createpa' => 1]);
-            });
+            }
         })
         ->when(!$isCurrentPeriod, function ($query) use ($period, $user) {
             $query->whereHas('appraisal', function ($query) use ($period) {
@@ -1202,6 +1205,9 @@ public function getTeamData(Request $request)
                     throw new Exception('Failed to save appraisal data.');
                 }
 
+                // Review 360 yang sudah diisi sebelum appraisal ini dibuat ikut ditautkan
+                AppraisalContributor::relinkOrphans($validatedData['employee_id'], $period, $appraisal->id);
+
                 // dd($datas, $goalData, $contributorData->layer_type, $goals->employee, $period);
 
                 $formDatas = $this->appService->combineFormData($datas, $goalData, $contributorData->layer_type, $goals->employee, $period);
@@ -1357,19 +1363,28 @@ public function getTeamData(Request $request)
                 ->where('employee_id', $validatedData['employee_id'])
                 ->value('approver_id');
 
-            // Ambil appraisal_id dari request atau generate baru
-            $appraisalId = $request->appraisal_id ?? Str::uuid();
+            // appraisal_id selalu dari appraisal aktif karyawan, bukan dari request: form review bisa
+            // membawa id kosong/lama (appraisal dihapus lalu di-initiate ulang). Dulu id kosong diganti
+            // UUID acak sehingga review 360 tidak tertaut ke appraisal mana pun dan tidak muncul di report.
+            $appraisalId = Appraisal::where('employee_id', $validatedData['employee_id'])
+                ->where('period', $period)
+                ->value('id');
+
+            if (!$appraisalId) {
+                throw new DomainException("Appraisal for this employee has not been initiated for period $period yet.");
+            }
+
+            AppraisalContributor::relinkOrphans($validatedData['employee_id'], $period, $appraisalId);
 
             // Simpan atau update AppraisalContributor
             AppraisalContributor::updateOrCreate(
                 [
-                    'appraisal_id' => $request->appraisal_id, // tetap pakai original request untuk pencarian
+                    'appraisal_id' => $appraisalId,
                     'employee_id' => $validatedData['employee_id'],
                     'contributor_id' => $contributorData->approver_id,
                     'period' => $period,
                 ],
                 [
-                    'appraisal_id' => $appraisalId, // yang disimpan, bisa UUID baru
                     'contributor_type' => $contributorData->layer_type,
                     'form_data' => json_encode($datas),
                     'rating' => $formDatas['contributorRating'],

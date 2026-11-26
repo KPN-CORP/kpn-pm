@@ -1,6 +1,8 @@
 @extends('layouts_.vertical', ['page_title' => 'Ratings'])
 
 @section('css')
+{{-- Tombol Terminate (handleDeleteEmployeePA di resources/js/report.js) membaca token dari sini --}}
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <style>
     .table {
             border-collapse: separate;
@@ -105,6 +107,7 @@
                                   <th>Designation</th>
                                   <th>Job Level</th>
                                   <th>Office Location</th>
+                                  <th>Status</th>
                                   <th class="sticky-col-header" style="background-color: white">Action</th>
                               </tr>
                           </thead>
@@ -121,8 +124,27 @@
                                     <td>{{ $employee->designation_name }}</td>
                                     <td>{{ $employee->job_level }}</td>
                                     <td>{{ $employee->office_area }}</td>
+                                    @php
+                                        $isExcluded = isset($excludedIds[$employee->employee_id]);
+                                    @endphp
+                                    <td>
+                                        @if ($employee->deleted_at)
+                                            {{-- Sudah resign di HR, tapi masih punya goal/appraisal di periode berjalan --}}
+                                            <span class="badge bg-warning text-dark" title="Masih ikut periode {{ implode(' / ', $periods) }} karena punya goal/appraisal">Resigned {{ \Carbon\Carbon::parse($employee->deleted_at)->format('d M Y') }}</span>
+                                        @else
+                                            <span class="badge bg-success">Active</span>
+                                        @endif
+                                        @if ($isExcluded)
+                                            <span class="badge bg-secondary" title="Tidak tampil di appraisal periode {{ $excludePeriod }}; periode lain tetap tampil">Removed from {{ $excludePeriod }}</span>
+                                        @endif
+                                    </td>
                                     <td class="text-center" style="background-color: white;" class="sticky-col">
-                                        <a class="btn btn-sm btn-danger" title="Delete" onclick="handleDeleteEmployeePA(this)" data-id="{{ $employee->employee_id }}"><i class="ri-delete-bin-line"></i></a>
+                                        @if ($isExcluded)
+                                            <a class="btn btn-sm btn-success" title="Restore to period {{ $excludePeriod }}" onclick="restoreEmployeePA(this)" data-id="{{ $employee->employee_id }}" data-name="{{ $employee->fullname }}"><i class="ri-arrow-go-back-line"></i></a>
+                                        @else
+                                            {{-- Bukan handleDeleteEmployeePA: nama itu ditimpa resources/js/report.js (terminate semua periode) --}}
+                                            <a class="btn btn-sm btn-danger" title="Terminate" onclick="terminateEmployeePA(this)" data-id="{{ $employee->employee_id }}" data-name="{{ $employee->fullname }}"><i class="ri-delete-bin-line"></i></a>
+                                        @endif
                                     </td>
                               </tr>
                               @endforeach
@@ -138,33 +160,73 @@
 
 @push('scripts')
 <script>
-    function handleDeleteEmployeePA(element) {
-        var id = element.getAttribute('data-id');
-        var deleteUrl = "{{ route('admemployeeDestroy', ':id') }}";
-        deleteUrl = deleteUrl.replace(':id', id);
-        
+    // Dipanggil saat klik (setelah app.js memuat Swal), jadi aman di inline script.
+    function postEmployeePA(url, data) {
+        var body = new FormData();
+        Object.keys(data).forEach(function (k) { body.append(k, data[k]); });
+        return fetch(url, {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
+            },
+            body: body
+        }).then(function (res) { return res.json(); });
+    }
+
+    function showEmployeePAResult(data) {
         Swal.fire({
-            title: 'Are you sure?',
-            text: "This Employee will deleted!",
+            icon: data.success ? 'success' : 'error',
+            title: data.success ? 'Done' : 'Failed',
+            text: data.message
+        }).then(function () { if (data.success) window.location.reload(); });
+    }
+
+    function terminateEmployeePA(element) {
+        var id = element.getAttribute('data-id');
+        var name = element.getAttribute('data-name') || id;
+        var period = @json($excludePeriod);
+
+        Swal.fire({
+            title: 'Terminate ' + name + '?',
             icon: 'warning',
+            text: 'Only period ' + period + ': earlier periods still show this employee. All periods: removed from every period and report.',
+            input: 'select',
+            inputOptions: {
+                period: 'Only period ' + period,
+                all: 'All periods'
+            },
+            inputValue: 'period',
+            inputValidator: function (value) { if (!value) return 'Choose one option'; },
             showCancelButton: true,
-            confirmButtonColor: '#3085d6',
-            cancelButtonColor: '#d33',
-            confirmButtonText: 'Yes, delete it!',
+            confirmButtonColor: '#AB2F2B',
+            confirmButtonText: 'Terminate',
             reverseButtons: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                // Jika dikonfirmasi, buat form dan submit ke server
-                var form = document.createElement('form');
-                form.action = deleteUrl;
-                form.method = 'POST';
-                form.innerHTML = `
-                    @csrf
-                    @method('DELETE')
-                `;
-                document.body.appendChild(form);
-                form.submit();
-            }
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+            postEmployeePA(@json(route('admemployeeDestroy')), { _method: 'DELETE', id: id, scope: result.value })
+                .then(showEmployeePAResult)
+                .catch(function () { Swal.fire('Failed', 'Failed to terminate Employee.', 'error'); });
+        });
+    }
+
+    function restoreEmployeePA(element) {
+        var id = element.getAttribute('data-id');
+        var name = element.getAttribute('data-name') || id;
+        var period = @json($excludePeriod);
+
+        Swal.fire({
+            title: 'Restore ' + name + '?',
+            text: 'This employee will show again in appraisal period ' + period + '.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Restore',
+            reverseButtons: true
+        }).then(function (result) {
+            if (!result.isConfirmed) return;
+            postEmployeePA(@json(route('admemployeeRestore')), { id: id })
+                .then(showEmployeePAResult)
+                .catch(function () { Swal.fire('Failed', 'Failed to restore Employee.', 'error'); });
         });
     }
 </script>

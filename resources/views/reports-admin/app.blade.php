@@ -1,6 +1,8 @@
 @extends('layouts_.vertical', ['page_title' => 'Reports'])
 
 @section('css')
+{{-- Tombol Terminate (handleDeleteEmployeePA di resources/js/report.js) membaca token dari sini --}}
+<meta name="csrf-token" content="{{ csrf_token() }}">
 <style>
 
   :root {
