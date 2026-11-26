@@ -95,7 +95,7 @@
                     <h3 class="card-title"></h3>
                 </div>
                   <div class="table-responsive">
-                      <table class="table table-hover dt-responsive nowrap" id="scheduleTable" width="100%" cellspacing="0">
+                      <table class="table table-hover nowrap" id="employeePaTable" data-url="{{ route('admemployee.data') }}" width="100%" cellspacing="0">
                           <thead class="thead-light">
                               <tr class="text-center">
                                   <th>No</th>
@@ -111,44 +111,8 @@
                                   <th class="sticky-col-header" style="background-color: white">Action</th>
                               </tr>
                           </thead>
-                          <tbody>
-
-                            @foreach($employees as $employee)
-                              <tr>
-                                    <td>{{ $loop->index + 1 }}</td>
-                                    <td>{{ $employee->employee_id }}</td>
-                                    <td>{{ $employee->fullname }}</td>
-                                    <td>{{ $employee->date_of_joining }}</td>
-                                    <td>{{ $employee->contribution_level_code }}</td>
-                                    <td>{{ $employee->unit }}</td>
-                                    <td>{{ $employee->designation_name }}</td>
-                                    <td>{{ $employee->job_level }}</td>
-                                    <td>{{ $employee->office_area }}</td>
-                                    @php
-                                        $isExcluded = isset($excludedIds[$employee->employee_id]);
-                                    @endphp
-                                    <td>
-                                        @if ($employee->deleted_at)
-                                            {{-- Sudah resign di HR, tapi masih punya goal/appraisal di periode berjalan --}}
-                                            <span class="badge bg-warning text-dark" title="Masih ikut periode {{ implode(' / ', $periods) }} karena punya goal/appraisal">Resigned {{ \Carbon\Carbon::parse($employee->deleted_at)->format('d M Y') }}</span>
-                                        @else
-                                            <span class="badge bg-success">Active</span>
-                                        @endif
-                                        @if ($isExcluded)
-                                            <span class="badge bg-secondary" title="Tidak tampil di appraisal periode {{ $excludePeriod }}; periode lain tetap tampil">Removed from {{ $excludePeriod }}</span>
-                                        @endif
-                                    </td>
-                                    <td class="text-center" style="background-color: white;" class="sticky-col">
-                                        @if ($isExcluded)
-                                            <a class="btn btn-sm btn-success" title="Restore to period {{ $excludePeriod }}" onclick="restoreEmployeePA(this)" data-id="{{ $employee->employee_id }}" data-name="{{ $employee->fullname }}"><i class="ri-arrow-go-back-line"></i></a>
-                                        @else
-                                            {{-- Bukan handleDeleteEmployeePA: nama itu ditimpa resources/js/report.js (terminate semua periode) --}}
-                                            <a class="btn btn-sm btn-danger" title="Terminate" onclick="terminateEmployeePA(this)" data-id="{{ $employee->employee_id }}" data-name="{{ $employee->fullname }}"><i class="ri-delete-bin-line"></i></a>
-                                        @endif
-                                    </td>
-                              </tr>
-                              @endforeach
-                          </tbody>
+                          {{-- Diisi server-side oleh resources/js/employee-pa.js dari admemployee.data --}}
+                          <tbody></tbody>
                       </table>
                   </div>
               </div>
@@ -179,7 +143,15 @@
             icon: data.success ? 'success' : 'error',
             title: data.success ? 'Done' : 'Failed',
             text: data.message
-        }).then(function () { if (data.success) window.location.reload(); });
+        }).then(function () {
+            if (!data.success) return;
+            // Refresh tabel server-side saja (search & halaman tetap); lihat resources/js/employee-pa.js
+            if (window.employeePaTable) {
+                window.employeePaTable.ajax.reload(null, false);
+            } else {
+                window.location.reload();
+            }
+        });
     }
 
     function terminateEmployeePA(element) {

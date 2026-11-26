@@ -312,6 +312,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
 
     Route::middleware(['permission:employeepa'])->group(function () {
         Route::get('/admemployees', [EmployeePAController::class, 'index'])->name('admemployee');
+        Route::get('/admemployees-data', [EmployeePAController::class, 'data'])->name('admemployee.data');
         Route::delete('/admemployeedestroy', [EmployeePAController::class, 'destroy'])->name('admemployeeDestroy');
         Route::post('/admemployeerestore', [EmployeePAController::class, 'restorePeriod'])->name('admemployeeRestore');
         Route::get('/export-employeepa', [EmployeePAController::class, 'exportEmployeepa'])->name('employeepa.export');

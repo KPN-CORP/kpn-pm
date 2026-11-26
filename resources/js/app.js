@@ -47,6 +47,7 @@ import './layer-appraisal.js';
 import './rating.js';
 import './report.js';
 import './schedule.js';
+import './employee-pa.js';
 import './role.js';
 import './layer.js';
 import './admin-appraisal.js';
