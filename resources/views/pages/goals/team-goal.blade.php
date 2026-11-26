@@ -114,7 +114,7 @@
             </select>
             <div class="input-group input-group-sm shadow-sm" style="max-width: 300px;">
                 <span class="input-group-text bg-white border-end-0"><i class="ri-search-line text-muted"></i></span>
-                <input type="text" name="customsearch" id="customsearch" class="form-control border-start-0 shadow-none bg-white" placeholder="Search employee...">
+                <input type="text" name="customsearch" id="customsearch" value="{{ request('customsearch') }}" autocomplete="off" class="form-control border-start-0 shadow-none bg-white" placeholder="Search employee...">
             </div>
         </form>
     </div>
@@ -254,7 +254,7 @@
                                 $popover = $status === 'Sendback' ? $employeeName : __($status);
                             }
                         @endphp
-                        <div class="task-row goal-item" data-status="{{ $rowStatus }}">
+                        <div class="task-row goal-item" data-status="{{ $rowStatus }}" data-search="{{ \Illuminate\Support\Str::lower(($task->employee->fullname ?? '').' '.($task->employee->employee_id ?? '')) }}">
                             <div class="row align-items-start mx-0 w-100">
                                 <div class="col-md-3 mb-2 mb-md-0 px-1 pt-1">
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">Employee</span>
@@ -341,7 +341,7 @@
                             $accessMenu = json_decode($notask->employee->access_menu ?? '{}', true);
                             $goals = $accessMenu['goals'] ?? null;
                         @endphp
-                        <div class="task-row goal-item" data-status="not-initiated">
+                        <div class="task-row goal-item" data-status="not-initiated" data-search="{{ \Illuminate\Support\Str::lower(($notask->employee->fullname ?? '').' '.($notask->employee->employee_id ?? '')) }}">
                             <div class="row align-items-start mx-0 w-100">
                                 <div class="col-md-3 mb-2 mb-md-0 px-1 pt-1">
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">Employee</span>
@@ -498,7 +498,7 @@
                                 $goalLabel = __($status);
                             }
                         @endphp
-                        <div class="task-row ach-item" data-status="{{ $achRowStatus }}">
+                        <div class="task-row ach-item" data-status="{{ $achRowStatus }}" data-search="{{ \Illuminate\Support\Str::lower(($task->employee->fullname ?? '').' '.($task->employee->employee_id ?? '')) }}">
                             <div class="row align-items-start w-100 mx-0">
                                 <div class="col-md-3 mb-2 mb-md-0 px-1 pt-1">
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">Employee</span>
@@ -575,7 +575,7 @@
                                 $popover = 'Approved';
                             }
                         @endphp
-                        <div class="task-row ach-item" data-status="not-initiated">
+                        <div class="task-row ach-item" data-status="not-initiated" data-search="{{ \Illuminate\Support\Str::lower(($achievementList?->employee?->fullname ?? '').' '.($achievementList?->employee?->employee_id ?? '')) }}">
                             <div class="row align-items-start w-100 mx-0">
                                 <div class="col-md-3 mb-2 mb-md-0 px-1 pt-1">
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">Employee</span>
@@ -623,7 +623,7 @@
                             if (!$notask->isManager) continue;
                             $employeeId = $notask->employee_id;
                         @endphp
-                        <div class="task-row ach-item" data-status="not-initiated">
+                        <div class="task-row ach-item" data-status="not-initiated" data-search="{{ \Illuminate\Support\Str::lower(($notask->employee->fullname ?? '').' '.($notask->employee->employee_id ?? '')) }}">
                             <div class="row align-items-start w-100 mx-0">
                                 <div class="col-md-3 mb-2 mb-md-0 px-1 pt-1">
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">Employee</span>
@@ -982,58 +982,80 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     }
 
-    function calculateAndRenderCounts(containerId, filterButtonsId, itemClass, emptyStateId) {
+    // Filter tab status + kotak search digabung di satu tempat. Search hanya
+    // mencocokkan nama & employee ID (data-search), bukan seluruh teks baris
+    // (mis. "by <updater>" atau popover approver). Badge tiap tab dihitung
+    // dari baris yang lolos search, jadi angkanya selalu sama dengan isi tab.
+    // Catatan: handler search lama di resources/js/team-goal.js mengincar
+    // .task-card yang sudah tidak ada di view ini, sehingga tidak berefek.
+    const searchInput = document.getElementById('customsearch');
+    const getSearchTerm = () => (searchInput ? searchInput.value : '').toLowerCase().trim();
+    const listControllers = [];
+
+    function setupFilterableList(containerId, filterButtonsId, itemClass, emptyStateId) {
         const container = document.getElementById(containerId);
-        if (!container) return;
-        
-        const allItems = container.querySelectorAll('.' + itemClass);
-        const counts = { 'all': allItems.length, 'draft': 0, 'revision': 0, 'pending': 0, 'approved': 0, 'not-initiated': 0 };
-
-        allItems.forEach(item => {
-            const status = item.getAttribute('data-status');
-            if (counts[status] !== undefined) counts[status]++;
-        });
-
         const filterWrapper = document.getElementById(filterButtonsId);
-        if (filterWrapper) {
+        if (!container || !filterWrapper) return;
+
+        const allItems = Array.from(container.querySelectorAll('.' + itemClass));
+        const filterBtns = filterWrapper.querySelectorAll('.sub-tab-btn');
+        const emptyState = document.getElementById(emptyStateId);
+        let activeFilter = 'all';
+
+        function render() {
+            const term = getSearchTerm();
+            const counts = { 'all': 0, 'draft': 0, 'revision': 0, 'pending': 0, 'approved': 0, 'not-initiated': 0 };
+            let visibleCount = 0;
+
+            allItems.forEach(item => {
+                const status = item.getAttribute('data-status');
+                const matchesSearch = term === '' || (item.getAttribute('data-search') || '').includes(term);
+
+                if (matchesSearch) {
+                    counts.all++;
+                    if (counts[status] !== undefined) counts[status]++;
+                }
+
+                const visible = matchesSearch && (activeFilter === 'all' || status === activeFilter);
+                item.style.display = visible ? 'flex' : 'none';
+                if (visible) visibleCount++;
+            });
+
             Object.keys(counts).forEach(key => {
                 const badge = filterWrapper.querySelector(`.count-${key}`);
                 if (badge) badge.innerText = counts[key];
             });
+
+            if (emptyState) {
+                emptyState.classList.toggle('d-none', visibleCount > 0);
+            }
         }
 
-        const filterBtns = filterWrapper.querySelectorAll('.sub-tab-btn');
         filterBtns.forEach(btn => {
-            btn.addEventListener('click', function(e) {
+            btn.addEventListener('click', function (e) {
                 e.preventDefault();
-                filterBtns.forEach(b => {
-                    b.classList.remove('active');
-                });
-                
+                filterBtns.forEach(b => b.classList.remove('active'));
                 this.classList.add('active');
-
-                const targetFilter = this.getAttribute('data-filter');
-                let visibleCount = 0;
-
-                allItems.forEach(item => {
-                    if (targetFilter === 'all' || item.getAttribute('data-status') === targetFilter) {
-                        item.style.display = 'flex';
-                        visibleCount++;
-                    } else {
-                        item.style.display = 'none';
-                    }
-                });
-
-                const emptyState = document.getElementById(emptyStateId);
-                if (emptyState) {
-                    emptyState.classList.toggle('d-none', visibleCount > 0);
-                }
+                activeFilter = this.getAttribute('data-filter');
+                render();
             });
         });
+
+        listControllers.push(render);
+        render();
     }
 
-    calculateAndRenderCounts('goal-container', 'goal-filters', 'goal-item', 'goal-empty-state');
-    calculateAndRenderCounts('ach-container', 'ach-filters', 'ach-item', 'ach-empty-state');
+    setupFilterableList('goal-container', 'goal-filters', 'goal-item', 'goal-empty-state');
+    setupFilterableList('ach-container', 'ach-filters', 'ach-item', 'ach-empty-state');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', () => listControllers.forEach(render => render()));
+        // Enter di input ini men-submit form tahun (GET) dan me-reload halaman;
+        // search cukup di client, jadi cegah reload-nya.
+        searchInput.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter') e.preventDefault();
+        });
+    }
 
     document.querySelectorAll('.mini-progress-bar').forEach(function (el) {
         setTimeout(() => {
