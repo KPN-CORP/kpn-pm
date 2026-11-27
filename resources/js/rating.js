@@ -129,13 +129,35 @@ document.addEventListener('DOMContentLoaded', function() {
             const totalRatingCell = parseInt(table.querySelector(`td.rating-total-count-${level}`).textContent);
             const firstKey = table.querySelector(`td.key-${level}`).textContent.trim();
             
-            rows.forEach(row => {
+            // Rating Submission Validation Formula (urutan baris = rating tertinggi -> terendah):
+            //   baris 1 (E)  : 0 <= aktual <= target E
+            //   baris 2 (EE) : 0 <= aktual <= target EE
+            //   baris 3 (ME) : aktual <= sisa target E + sisa target EE + target ME
+            //   baris 4 (NI) : aktual >= target NI (boleh lebih dari kuota)
+            //   baris 5 (P)  : min. 0 (bebas)
+            // Kasus 1 dan 2 karyawan tetap memakai aturan khusus di bawah.
+            const parsedRows = Array.from(rows).map(row => {
                 const key = row.querySelector(`td.key-${level}`).textContent.trim().replace(/\s+/g, '');
-                const ratingCell = row.querySelector('td.rating');
-                const suggestedRatingCell = row.querySelector(`td.suggested-rating-count-${key}-${level}`);
-                const ratingCount = parseInt(ratingCell.textContent);
-                const suggestedRatingCount = parseInt(suggestedRatingCell.textContent);
-                        
+                return {
+                    key,
+                    target: parseInt(row.querySelector('td.rating').textContent) || 0,
+                    actual: parseInt(row.querySelector(`td.suggested-rating-count-${key}-${level}`).textContent) || 0,
+                    cell: row.querySelector(`td.suggested-rating-count-${key}-${level}`),
+                };
+            });
+
+            const flagMismatch = (item, message) => {
+                tableIsValid = false;
+                mismatchedRatings.push(`${item.key}: ${message}, Got ${item.actual}`);
+                item.cell.classList.add('table-danger');
+            };
+
+            parsedRows.forEach((item, index) => {
+                const key = item.key;
+                const ratingCount = item.target;
+                const suggestedRatingCount = item.actual;
+                const suggestedRatingCell = item.cell;
+
                 if (totalRatingCell === 1) {
                     // Allow mismatch only if key is not 'A'
                     if (key === firstKey && ratingCount !== suggestedRatingCount) {
@@ -150,12 +172,26 @@ document.addEventListener('DOMContentLoaded', function() {
                         mismatchedRatings.push(`${key}: Maximum Expected 1, Got ${suggestedRatingCount}`);
                         suggestedRatingCell.classList.add('table-danger');
                     }
-                } else if (ratingCount !== suggestedRatingCount) {
-                    // General case: Handle any other mismatch
-                    tableIsValid = false;
-                    mismatchedRatings.push(`${key}: Expected ${ratingCount}, Got ${suggestedRatingCount}`);
-                    suggestedRatingCell.classList.add('table-danger');
+                } else if (index <= 1) {
+                    // E / EE: min 0, max target
+                    if (suggestedRatingCount > ratingCount) {
+                        flagMismatch(item, `Maximum ${ratingCount}`);
+                    }
+                } else if (index === 2) {
+                    // ME: kuota E/EE yang tidak terpakai boleh dialihkan ke ME
+                    const unusedUpper = parsedRows.slice(0, 2)
+                        .reduce((sum, r) => sum + Math.max(r.target - r.actual, 0), 0);
+                    const maxMe = ratingCount + unusedUpper;
+                    if (suggestedRatingCount > maxMe) {
+                        flagMismatch(item, `Maximum ${maxMe}`);
+                    }
+                } else if (index === 3) {
+                    // NI: minimal sebesar target, boleh lebih
+                    if (suggestedRatingCount < ratingCount) {
+                        flagMismatch(item, `Minimum ${ratingCount}`);
+                    }
                 }
+                // P (dan baris setelahnya): min 0, tidak dibatasi
             });
         
             if (!isValid) {
