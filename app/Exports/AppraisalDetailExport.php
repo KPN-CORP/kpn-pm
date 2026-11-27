@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Models\Appraisal;
 use App\Models\AppraisalContributor;
+use App\Support\Propose360Assignment;
 use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
 use App\Models\MasterWeightage;
@@ -11,15 +12,15 @@ use App\Services\AppService;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Maatwebsite\Excel\Concerns\FromCollection;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
+use Maatwebsite\Excel\Concerns\FromGenerator;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithChunkReading;
+use Generator;
 use Maatwebsite\Excel\Facades\Excel;
 use stdClass;
 
-class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping, ShouldAutoSize, WithChunkReading
+class AppraisalDetailExport implements FromGenerator, WithHeadings, WithMapping, WithChunkReading
 {
     protected Collection $data;
     protected array $headers;
@@ -40,7 +41,17 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
     // Preloaded Appraisal models (with goal + employee) keyed by Appraisal id.
     protected $appraisalById = null;
 
-    public function __construct(AppService $appService, array $data, array $headers, $user, $period)
+    // Preload untuk baris summary: semua contributor per appraisal_id (dengan
+    // employee + appraisal.goal) dan snapshot per form_id. Dulu keduanya
+    // di-query ulang untuk setiap baris summary, ditambah lazy load goal per
+    // contributor.
+    protected ?Collection $contributorsByAppraisal = null;
+    protected ?Collection $snapshotsByForm = null;
+
+    /** @var callable|null fn(string $phase, int $done, int $total) — phase: 'expand' | 'write' */
+    protected $onProgress;
+
+    public function __construct(AppService $appService, array $data, array $headers, $user, $period, ?callable $onProgress = null)
     {
         $this->data = collect($data); // Convert array data to a collection
         $this->headers = $headers;
@@ -48,6 +59,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
         $this->user = $user;
         $this->period = $period;
         $this->isSuperadmin = $user ? $user->hasRole('superadmin') : false;
+        $this->onProgress = $onProgress;
     }
 
     public function collection(): Collection
@@ -60,31 +72,62 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
         $this->dynamicHeaders = []; // Reset dynamic headers for each export
 
+        // Only this batch's rows are ever looked up below, so scope the lookup
+        // maps to the batch instead of loading the whole period on every batch.
+        $employeeIds = $this->data
+            ->map(fn($row) => $row['Employee ID']['dataId'] ?? null)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        $formIds = $this->data
+            ->map(fn($row) => $row['Form ID']['dataId'] ?? null)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
         $contributorsGroupedByEmployee = AppraisalContributor::with([
             'employee' => function ($query) {
                 $query->select('employee_id', 'fullname', 'gender', 'email', 'job_level', 'group_company', 'designation_name', 'company_name', 'contribution_level_code'); // Adjust fields as needed
             }
         ])
         ->where('period', $this->period)
-        ->get()
-        ->groupBy('employee_id');
+        ->whereIn('employee_id', $employeeIds)
+        ->get();
+        // Penilaian 360 periode berjalan untuk karyawan di luar assignment
+        // tidak diexport dan tidak ikut summary.
+        $contributorsGroupedByEmployee = Propose360Assignment::dropIneligible360($contributorsGroupedByEmployee)
+            ->groupBy('employee_id');
 
+        // Baris "self" dulu meng-query ulang appraisal ini (dengan employee
+        // lengkap + snapshot) per baris. Sekarang ikut di-preload di sini,
+        // dengan constraint snapshot yang sama persis seperti query lamanya.
         $employeeAppraisalById = Appraisal::with([
-            'employee' => function ($query) {
-                $query->select('employee_id', 'fullname', 'gender', 'email', 'job_level', 'group_company', 'designation_name', 'company_name', 'contribution_level_code'); // Adjust fields as needed
+            'employee',
+            'approvalSnapshots' => function ($query) {
+                $query->latest()
+                    ->where('form_data->formGroupName', '!=', 'Appraisal Form 360');
             },
             'goal', // preloaded so per-contributor/summary lookups don't re-query
         ])
         ->where('period', $this->period)
+        ->whereIn('id', $formIds)
         ->get()
         ->groupBy('id');
 
         // Keyed map (Appraisal id => model) reused by contributor/summary methods.
         $this->appraisalById = $employeeAppraisalById;
 
+        $this->preloadSummaryData($contributorsGroupedByEmployee);
+
         $expandedData = collect();
 
-        $this->data->chunk(100)->each(function ($chunk) use ($expandedData, $contributorsGroupedByEmployee, $employeeAppraisalById) {
+        $totalRows = $this->data->count();
+        $processedRows = 0;
+
+        $this->data->chunk(100)->each(function ($chunk) use ($expandedData, $contributorsGroupedByEmployee, $employeeAppraisalById, &$processedRows, $totalRows) {
             foreach ($chunk as $row) {
                 $employeeId = $row['Employee ID']['dataId'] ?? null;
                 $formId = $row['Form ID']['dataId'] ?? null;
@@ -102,15 +145,104 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
     
                     }
                 } else {
-                    $expandedData->push($this->createDefaultContributorRow($row));
+                    $expandedData->push($this->compactRow($this->createDefaultContributorRow($row)));
                 }
 
+            }
+
+            $processedRows += $chunk->count();
+
+            if ($this->onProgress) {
+                ($this->onProgress)('expand', $processedRows, $totalRows);
             }
         });
 
         $this->expandedCache = $expandedData;
 
+        // Preload hanya dibutuhkan selama ekspansi; lepaskan supaya memorinya
+        // bisa dipakai PhpSpreadsheet saat menulis file.
+        $this->appraisalById = null;
+        $this->contributorsByAppraisal = null;
+        $this->snapshotsByForm = null;
+
         return $expandedData;
+    }
+
+    /**
+     * Baris dikirim satu per satu ke writer. Dengan FromCollection, Laravel
+     * Excel membuat salinan penuh semua baris hasil map() sebelum menulis;
+     * di sini tiap baris dilepas dari memori begitu sudah diserahkan.
+     */
+    public function generator(): Generator
+    {
+        $rows = $this->collection()->all();
+
+        // Kosongkan cache supaya $rows jadi satu-satunya pemilik array-nya
+        // (unset di bawah tidak memicu salinan). headings() sudah dipanggil
+        // sebelum generator, dan hasilnya di-cache.
+        $this->expandedCache = collect();
+
+        $total = count($rows);
+
+        for ($i = 0; $i < $total; $i++) {
+            $row = $rows[$i];
+            unset($rows[$i]);
+
+            yield $row;
+
+            if ($this->onProgress && (($i + 1) % 500 === 0 || $i + 1 === $total)) {
+                ($this->onProgress)('write', $i + 1, $total);
+            }
+        }
+    }
+
+    /**
+     * Simpan baris dalam bentuk datar (header => nilai) alih-alih
+     * header => ['dataId' => nilai]: satu array kecil per sel memakan
+     * memori paling besar untuk report dengan ~150 kolom.
+     */
+    private function compactRow(array $row): array
+    {
+        foreach ($row as $header => $cell) {
+            $row[$header] = is_array($cell) ? ($cell['dataId'] ?? null) : null;
+        }
+
+        return $row;
+    }
+
+    /**
+     * Baris summary memakai contributor pertama tiap karyawan; preload semua
+     * contributor untuk appraisal_id tersebut beserta snapshot form-nya.
+     */
+    private function preloadSummaryData(Collection $contributorsGroupedByEmployee): void
+    {
+        $appraisalIds = $contributorsGroupedByEmployee
+            ->map(fn ($contributors) => optional($contributors->first())->appraisal_id)
+            ->filter()
+            ->unique()
+            ->values()
+            ->all();
+
+        if (empty($appraisalIds)) {
+            $this->contributorsByAppraisal = collect();
+            $this->snapshotsByForm = collect();
+
+            return;
+        }
+
+        // orderBy('id') = urutan yang sama dengan query lama per appraisal_id.
+        $this->contributorsByAppraisal = AppraisalContributor::with(['employee', 'appraisal.goal'])
+            ->whereIn('appraisal_id', $appraisalIds)
+            ->orderBy('id')
+            ->get();
+        $this->contributorsByAppraisal = Propose360Assignment::dropIneligible360($this->contributorsByAppraisal)
+            ->groupBy('appraisal_id');
+
+        $this->snapshotsByForm = ApprovalSnapshots::with('employee')
+            ->whereIn('form_id', $appraisalIds)
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->groupBy('form_id');
     }
 
     private function expandRowForSummary(Collection $expandedData, array $row, Collection $contributors): void
@@ -125,7 +257,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             $this->addFormDataToRow($contributorRow, $formData);
 
             // Add the processed row to expandedData
-            $expandedData->push($contributorRow);
+            $expandedData->push($this->compactRow($contributorRow));
         }
     }
 
@@ -142,7 +274,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             $this->addFormDataToRow($contributorRow, $formData);
 
             // Add the processed row to expandedData
-            $expandedData->push($contributorRow);
+            $expandedData->push($this->compactRow($contributorRow));
         }
     }
 
@@ -154,7 +286,7 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             $contributorRow['Contributor ID'] = ['dataId' => $contributor->contributor_id];
             $contributorRow['Contributor Type'] = ['dataId' => $contributor->contributor_type];
             $this->addFormDataToRow($contributorRow, $formData);
-            $expandedData->push($contributorRow);
+            $expandedData->push($this->compactRow($contributorRow));
         }
     }
     private function addFormDataToRow(array &$contributorRow, array $formData): void
@@ -379,13 +511,9 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
     private function getFormDataSelf(Appraisal $contributor): array
     {
-        $datas = Appraisal::with([
-            'employee',
-            'approvalSnapshots' => function ($query) {
-                $query->latest()
-                    ->where('form_data->formGroupName', '!=', 'Appraisal Form 360');
-            }
-        ])->where('id', $contributor->id)->get();
+        // $contributor adalah Appraisal hasil preload di collection() (employee,
+        // approvalSnapshots, goal sudah ter-load) — tidak perlu query ulang.
+        $datas = collect([$contributor]);
 
         // If appraisal is Draft, return empty structure to avoid calculations
         if ($datas->isNotEmpty() && (($datas->first()->form_status ?? null) === 'Draft')) {
@@ -468,8 +596,8 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
     private function getFormDataSummary(AppraisalContributor $contributor): array
     {
-        $datasQuery = AppraisalContributor::with(['employee'])->where('appraisal_id', $contributor->appraisal_id);
-        $datas = $datasQuery->get();
+        $datas = $this->contributorsByAppraisal?->get($contributor->appraisal_id)
+            ?? Propose360Assignment::dropIneligible360(AppraisalContributor::with(['employee', 'appraisal.goal'])->where('appraisal_id', $contributor->appraisal_id)->orderBy('id')->get());
 
         // If the appraisal itself is Draft, skip and return empty structure
         $appraisalModel = $this->resolveAppraisal($contributor->appraisal_id);
@@ -483,18 +611,19 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
             ];
         }
 
-        $checkSnapshot = ApprovalSnapshots::where('form_id', $contributor->appraisal_id)->where('created_by', $datas->first()->employee->id)
-            ->orderBy('created_at', 'desc');
+        // Snapshot terbaru milik karyawan untuk form ini (dulu satu query per
+        // baris; sekarang dari preload). Catatan: cabang fallback "asc" di
+        // kode lama tidak pernah jalan karena query builder selalu truthy.
+        $createdBy = $datas->first()->employee->id;
 
-        // Check if `datas->first()->employee->id` exists
-        if ($checkSnapshot) {
-            $query = $checkSnapshot;
+        if ($this->snapshotsByForm !== null) {
+            $employeeForm = $this->snapshotsByForm->get($contributor->appraisal_id, collect())
+                ->first(fn ($snapshot) => $snapshot->created_by == $createdBy);
         } else {
-            $query = ApprovalSnapshots::where('form_id', $contributor->appraisal_id)
-                ->orderBy('created_at', 'asc');
+            $employeeForm = ApprovalSnapshots::where('form_id', $contributor->appraisal_id)->where('created_by', $createdBy)
+                ->orderBy('created_at', 'desc')
+                ->first();
         }
-
-        $employeeForm = $query->first();
 
         $data = [];
         $appraisalDataCollection = [];
@@ -691,9 +820,10 @@ class AppraisalDetailExport implements FromCollection, WithHeadings, WithMapping
 
     public function map($row): array
     {
+        // $row sudah datar, lihat compactRow().
         $data = [];
         foreach ($this->headings() as $header) {
-            $data[] = $row[$header]['dataId'] ?? '';
+            $data[] = $row[$header] ?? '';
         }
         return $data;
     }

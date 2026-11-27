@@ -46,6 +46,7 @@ class SendPaReminders extends Command
                 ->whereIn('employee_id', function ($q) {
                     $q->select('approver_id')
                     ->from('approval_layer_appraisals')
+                    ->where('period', \App\Support\AppraisalLayerPeriod::active())
                     ->whereIn('layer_type', ['manager', 'calibrator']);
                 })
                 ->get();

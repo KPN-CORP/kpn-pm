@@ -7,7 +7,7 @@
       <div class="col-md-4">
         <div>
             <label  for="role_name">Select Permission Role</label>
-            <select name="" id="roleName" onchange="getPermissionData(this.value)" class="form-select">
+            <select name="" id="roleName" onchange="getPermissionData(this.value)" class="form-select select2-searchable" data-placeholder="Select Permission Role">
               <option value="">Select</option>
               @foreach ($roles as $role)
                 <option value="{{ $role->id }}">{{ $role->name }}</option>

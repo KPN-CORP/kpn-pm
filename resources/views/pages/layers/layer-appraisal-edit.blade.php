@@ -6,6 +6,17 @@
 @section('content')
     <!-- Begin Page Content -->
     <div class="container-fluid">
+        @if ($errors->any())
+            {{-- Dulu error validasi tidak ditampilkan, sehingga simpan yang gagal terlihat seperti "tidak tersimpan". --}}
+            <div class="alert alert-danger mt-3">
+                <strong>Layer not saved.</strong>
+                <ul class="mb-0">
+                    @foreach ($errors->all() as $message)
+                        <li>{{ $message }}</li>
+                    @endforeach
+                </ul>
+            </div>
+        @endif
         <!-- Page Heading -->
         <div class="detail-employee">
             <div class="row">
@@ -101,11 +112,12 @@
                                             <h5>Manager</h5>
                                             <select name="manager" id="manager" class="form-select selection2" required>
                                                 <option value="">- Please Select -</option>
-                                                @foreach ($employee as $item)
-                                                    <option value="{{ $item->employee_id }}" {{ isset($groupLayers['manager']) ? ($item->employee_id == $groupLayers['manager']->first()->approver_id ? 'selected' : '') : '' }}>{{ $item->fullname }} {{ $item->employee_id }}</option>
-                                                @endforeach
+                                                @include('pages.layers.partials.selected-employee-option', ['id' => $selectedLayers['manager'][1] ?? null])
                                             </select>
                                             <div class="text-danger error-message fs-14"></div>
+                                            @if (!empty($managerFromEmployee))
+                                                <div class="form-text">Pre-filled from employee data (Manager L1). Save to set it as the appraisal layer.</div>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -120,13 +132,7 @@
                                                         <h5>Peers 1</h5>
                                                         <select name="peers[]" id="peer1" class="form-select selection2">
                                                             <option value="">- Please Select -</option>
-                                                            @foreach ($employee as $item)
-                                                                <option value="{{ $item->employee_id }}"
-                                                                @if (!empty($groupLayers['peers']) && !empty($groupLayers['peers'][0]) && $item->employee_id == $groupLayers['peers'][0]->approver_id)
-                                                                    selected
-                                                                @endif
-                                                                >{{ $item->fullname }} {{ $item->employee_id }}</option>
-                                                            @endforeach
+                                                            @include('pages.layers.partials.selected-employee-option', ['id' => $selectedLayers['peers'][1] ?? null])
                                                         </select>
                                                         <div class="text-danger error-message fs-14"></div>
                                                     </div>
@@ -136,13 +142,7 @@
                                                         <h5>Peers 2</h5>
                                                         <select name="peers[]" id="peer2" class="form-select selection2">
                                                             <option value="">- Please Select -</option>
-                                                            @foreach ($employee as $item)
-                                                                <option value="{{ $item->employee_id }}"
-                                                                @if (!empty($groupLayers['peers']) && !empty($groupLayers['peers'][1]) && $item->employee_id == $groupLayers['peers'][1]->approver_id)
-                                                                    selected
-                                                                @endif
-                                                                >{{ $item->fullname }} {{ $item->employee_id }}</option>
-                                                            @endforeach
+                                                            @include('pages.layers.partials.selected-employee-option', ['id' => $selectedLayers['peers'][2] ?? null])
                                                         </select>
                                                         <div class="text-danger error-message fs-14"></div>
                                                     </div>
@@ -152,13 +152,7 @@
                                                         <h5>Peers 3</h5>
                                                         <select name="peers[]" id="peer3" class="form-select selection2">
                                                             <option value="">- Please Select -</option>
-                                                            @foreach ($employee as $item)
-                                                                <option value="{{ $item->employee_id }}"
-                                                                @if (!empty($groupLayers['peers']) && !empty($groupLayers['peers'][2]) && $item->employee_id == $groupLayers['peers'][2]->approver_id)
-                                                                    selected
-                                                                @endif
-                                                                >{{ $item->fullname }} {{ $item->employee_id }}</option>
-                                                            @endforeach
+                                                            @include('pages.layers.partials.selected-employee-option', ['id' => $selectedLayers['peers'][3] ?? null])
                                                         </select>
                                                         <div class="text-danger error-message fs-14"></div>
                                                     </div>
@@ -178,13 +172,7 @@
                                                         <h5>Subordinate 1</h5>
                                                         <select name="subs[]" id="sub1" class="form-select selection2">
                                                             <option value="">- Please Select -</option>
-                                                            @foreach ($employee as $item)
-                                                                <option value="{{ $item->employee_id }}" 
-                                                                @if (!empty($groupLayers['subordinate']) && !empty($groupLayers['subordinate'][0]) && $item->employee_id == $groupLayers['subordinate'][0]->approver_id)
-                                                                    selected
-                                                                @endif
-                                                                >{{ $item->fullname }} {{ $item->employee_id }}</option>
-                                                            @endforeach
+                                                            @include('pages.layers.partials.selected-employee-option', ['id' => $selectedLayers['subordinate'][1] ?? null])
                                                         </select>
                                                         <div class="text-danger error-message fs-14"></div>
                                                     </div>
@@ -194,13 +182,7 @@
                                                         <h5>Subordinate 2</h5>
                                                         <select name="subs[]" id="sub2" class="form-select selection2">
                                                             <option value="">- Please Select -</option>
-                                                            @foreach ($employee as $item)
-                                                                <option value="{{ $item->employee_id }}" 
-                                                                @if (!empty($groupLayers['subordinate']) && !empty($groupLayers['subordinate'][1]) && $item->employee_id == $groupLayers['subordinate'][1]->approver_id)
-                                                                    selected
-                                                                @endif
-                                                                >{{ $item->fullname }} {{ $item->employee_id }}</option>
-                                                            @endforeach
+                                                            @include('pages.layers.partials.selected-employee-option', ['id' => $selectedLayers['subordinate'][2] ?? null])
                                                         </select>
                                                         <div class="text-danger error-message fs-14"></div>
                                                     </div>
@@ -210,13 +192,7 @@
                                                         <h5>Subordinate 3</h5>
                                                         <select name="subs[]" id="sub3" class="form-select selection2">
                                                             <option value="">- Please Select -</option>
-                                                            @foreach ($employee as $item)
-                                                                <option value="{{ $item->employee_id }}" 
-                                                                @if (!empty($groupLayers['subordinate']) && !empty($groupLayers['subordinate'][2]) && $item->employee_id == $groupLayers['subordinate'][2]->approver_id)
-                                                                    selected
-                                                                @endif
-                                                                >{{ $item->fullname }} {{ $item->employee_id }}</option>
-                                                            @endforeach
+                                                            @include('pages.layers.partials.selected-employee-option', ['id' => $selectedLayers['subordinate'][3] ?? null])
                                                         </select>
                                                         <div class="text-danger error-message fs-14"></div>
                                                     </div>
@@ -238,9 +214,7 @@
                                                                 <h5>Calibrator {{ $index + 1 }}</h5>
                                                                 <select name="calibrators[]" id="calibrator{{ $index + 1 }}" class="form-select selection2">
                                                                     <option value="">- Please Select -</option>
-                                                                    @foreach ($employee as $item)
-                                                                        <option value="{{ $item->employee_id }}" {{ $item->employee_id == $layerCalibrator->approver_id ? 'selected' : '' }}>{{ $item->fullname }} {{ $item->employee_id }}</option>
-                                                                    @endforeach
+                                                                    @include('pages.layers.partials.selected-employee-option', ['id' => $layerCalibrator->approver_id])
                                                                 </select>
                                                                 <div class="text-danger error-message fs-14"></div>
                                                             </div>
@@ -263,9 +237,6 @@
                                                                 <h5>Calibrator 1</h5>
                                                                 <select name="calibrators[]" id="calibrator1" class="form-select selection2">
                                                                     <option value="">- Please Select -</option>
-                                                                    @foreach ($employee as $item)
-                                                                        <option value="{{ $item->employee_id }}">{{ $item->fullname }} {{ $item->employee_id }}</option>
-                                                                    @endforeach
                                                                 </select>
                                                                 <div class="text-danger error-message fs-14"></div>
                                                             </div>

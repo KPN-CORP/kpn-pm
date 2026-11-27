@@ -18,22 +18,125 @@ use App\Models\MasterCalibration;
 use App\Models\MasterRating;
 use App\Models\MasterWeightage;
 use App\Models\Schedule;
+use App\Support\Propose360Assignment;
 use Carbon\Carbon;
 use Exception;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
 use stdClass;
 
 class AppService
 {
+    /**
+     * Cache periode per request.
+     *
+     * Method periode di bawah dipanggil berkali-kali dalam satu request:
+     * AppServiceProvider::boot() (setiap request, termasuk yang tidak butuh),
+     * NotificationMiddleware, lalu lagi di controller. Semuanya menanyakan
+     * baris 'schedules' yang sama. Cache statis di sini membuatnya cukup
+     * sekali query per request.
+     *
+     * @var array<string, mixed>
+     */
+    private static array $periodCache = [];
+
+    /**
+     * Hasil checkFlowAccess / checkKpiUnit per request. Sidebar memanggilnya
+     * di setiap render halaman; key-nya memuat employee_id supaya aman di
+     * worker yang hidup lama.
+     *
+     * @var array<string, bool>
+     */
+    private static array $accessCache = [];
+
+    /**
+     * Data master yang dibaca berulang kali per baris di layar rating,
+     * kalibrasi dan export (convertRating, formGroupAppraisal). Isinya jarang
+     * berubah, jadi cukup sekali query per request.
+     *
+     * @var array<string, mixed>
+     */
+    private static array $masterCache = [];
+
+    /**
+     * Lama (detik) badge notifikasi di sidebar di-cache per user. Aksi milik
+     * user itu sendiri (POST/PUT/DELETE) langsung menghapus cache-nya, lihat
+     * NotificationMiddleware; perubahan dari user lain terlihat paling lambat
+     * setelah TTL ini.
+     */
+    public const NOTIFICATION_CACHE_TTL = 60;
+
+    /**
+     * Kosongkan cache periode. Dipakai di test dan di queue worker yang
+     * hidup lama, supaya perubahan schedule tetap terbaca.
+     */
+    public static function flushPeriodCache(): void
+    {
+        self::$periodCache = [];
+        self::$weightageCache = [];
+        self::$accessCache = [];
+        self::$masterCache = [];
+    }
+
+    private function rememberPeriod(string $key, callable $resolver)
+    {
+        if (! array_key_exists($key, self::$periodCache)) {
+            self::$periodCache[$key] = $resolver();
+        }
+
+        return self::$periodCache[$key];
+    }
+
+    /**
+     * Cache MasterWeightage per (group_company, period).
+     *
+     * @var array<string, \App\Models\MasterWeightage|null>
+     */
+    private static array $weightageCache = [];
+
+    /**
+     * Baris MasterWeightage untuk satu group company + periode.
+     *
+     * Dulu di-query ulang untuk SETIAP karyawan yang diproses
+     * (combineFormData dipanggil per baris di layar appraisal task), padahal
+     * hasilnya sama dan baris di tabel ini cuma sedikit. LIKE '%..%' juga
+     * tidak bisa pakai index, jadi mengulanginya mahal.
+     */
+    public function masterWeightageFor(?string $groupCompany, $period)
+    {
+        $key = $groupCompany.'|'.$period;
+
+        if (! array_key_exists($key, self::$weightageCache)) {
+            self::$weightageCache[$key] = MasterWeightage::where('group_company', 'LIKE', '%'.$groupCompany.'%')
+                ->where('period', $period)
+                ->first();
+        }
+
+        return self::$weightageCache[$key];
+    }
+
+    private function rememberMaster(string $key, callable $resolver)
+    {
+        if (! array_key_exists($key, self::$masterCache)) {
+            self::$masterCache[$key] = $resolver();
+        }
+
+        return self::$masterCache[$key];
+    }
+
     public function formGroupAppraisal($employee_id, $form_name)
     {
         $employee = EmployeeAppraisal::select('employee_id', 'group_company', 'job_level', 'company_name', 'work_area_code')->where('employee_id', $employee_id)->first();
-        
-        $datas = FormGroupAppraisal::with(['formAppraisals', 'rating'])->where('name', $form_name)->get();
 
-        $data = json_decode($datas, true);
+        // Dipanggil per karyawan di layar rating/kalibrasi dan export; daftar
+        // form group-nya sama untuk semua karyawan, jadi cukup diambil sekali
+        // (3 query: form group + formAppraisals + rating) per request.
+        $data = $this->rememberMaster('form_group:'.$form_name, fn () => json_decode(
+            FormGroupAppraisal::with(['formAppraisals', 'rating'])->where('name', $form_name)->get(),
+            true
+        ));
 
         $criteria = [
             "job_level" => $employee->job_level,
@@ -159,7 +262,7 @@ class AppService
 
     public function combineFormData($appraisalData, $goalData, $typeWeightage360, $employeeData, $period) {
         
-        $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $period)->first();
+        $weightageData = $this->masterWeightageFor($employeeData->group_company, $period);
 
         if (!$weightageData) {
             throw new Exception('Weightage data not found for the specified group company and period.');
@@ -206,11 +309,9 @@ class AppService
                 } elseif ($form['formName'] === "Culture") {
                     // Calculate average score for Culture form
                     $cultureAverageScore = $this->averageScore($form);
-                    Log::info('Form setelah normalisasi | Culture:', $form);
                     } elseif ($form['formName'] === "Leadership") {
                         // Calculate average score for Culture form
                         $leadershipAverageScore = $this->averageScore($form);
-                        Log::info('Form setelah normalisasi | Leadership:', $form);
                 } elseif ($form['formName'] === "Technical") {
                     // Calculate average score for Culture form
                     $technicalAverageScore = $this->averageScore($form);
@@ -316,9 +417,7 @@ class AppService
 
         $jobLevel = $employeeData->job_level;
 
-        $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')
-                ->where('period', $period)
-                ->first();
+        $weightageData = $this->masterWeightageFor($employeeData->group_company, $period);
 
         if (!$weightageData) {
             throw new Exception('Weightage data not found for the specified group company and period.');
@@ -606,7 +705,8 @@ class AppService
         try {
 
             $datasQuery = AppraisalContributor::with(['employee'])->where('appraisal_id', $formId);
-                $datas = $datasQuery->get();
+                // Penilaian 360 karyawan di luar assignment tidak ikut skor.
+                $datas = \App\Support\Propose360Assignment::dropIneligible360($datasQuery->get());
 
                 $checkSnapshot = ApprovalSnapshots::where('form_id', $formId)->where('created_by', $datas->first()->employee->id)
                     ->orderBy('created_at', 'desc');
@@ -704,7 +804,7 @@ class AppService
 
                 $jobLevel = $employeeData->job_level;
 
-                $weightageData = MasterWeightage::where('group_company', 'LIKE', '%' . $employeeData->group_company . '%')->where('period', $request->period)->first();
+                $weightageData = $this->masterWeightageFor($employeeData->group_company, $request->period);
                             
                 $weightageContent = json_decode($weightageData->form_data, true);
                 
@@ -777,31 +877,36 @@ class AppService
 
     public function convertRating(float $value, $formID): ?string
     {
-        $formGroup = MasterCalibration::where('id_calibration_group', $formID)->first();
-        
-        $condition = null;
-        
-        $roundedValue = (int) round($value);
-
+        // Dipanggil sampai dua kali per baris di layar rating dan export-nya.
+        // Dulu 2 query per panggilan; sekarang master calibration & master
+        // rating per group diambil sekali per request lalu dicocokkan di PHP
+        // dengan aturan yang sama persis dengan query lamanya.
         if ($value == 0) {
             // If value is 0, get the record with the smallest value
-            $condition = MasterRating::orderBy('value', 'asc')->first();
-        } else {
-            // Otherwise, proceed with the original query logic
-            $condition = MasterRating::where(function ($query) use ($formGroup, $value) {
-                $query->where('id_rating_group', $formGroup->id_rating_group)
-                      ->where('min_range', '<=', $value)
-                      ->where('max_range', '>=', $value);
-            })
-            ->orWhere(function ($query) use ($formGroup, $roundedValue) {
-                        $query->where('id_rating_group', $formGroup->id_rating_group)
-                              ->where('min_range', 0)
-                              ->where('max_range', 0)
-                              ->where('value', $roundedValue); // Use rounded value here
-                    })
-                    ->orderBy('min_range', 'desc')
-                    ->first();
+            $condition = $this->rememberMaster('rating:lowest', fn () => MasterRating::orderBy('value', 'asc')->first());
+
+            return $condition ? $condition->parameter : null;
         }
+
+        $formGroup = $this->rememberMaster('calibration:'.$formID, fn () => MasterCalibration::where('id_calibration_group', $formID)->first());
+
+        $ratingGroupId = $formGroup->id_rating_group;
+
+        $ratings = $this->rememberMaster('rating_group:'.$ratingGroupId, fn () => MasterRating::where('id_rating_group', $ratingGroupId)->get());
+
+        $roundedValue = (int) round($value);
+
+        $condition = $ratings
+            ->filter(function ($rating) use ($value, $roundedValue) {
+                $min = (float) $rating->min_range;
+                $max = (float) $rating->max_range;
+
+                return ($min <= $value && $max >= $value)
+                    // Use rounded value here
+                    || ($min == 0 && $max == 0 && (int) $rating->value === $roundedValue);
+            })
+            ->sortByDesc(fn ($rating) => (float) $rating->min_range)
+            ->first();
 
         return $condition ? $condition->parameter : null;
     }
@@ -872,30 +977,61 @@ class AppService
     public function ratingAllowedCheck($employeeId)
     {
         // Cari data pada ApprovalLayerAppraisal berdasarkan employee_id
-        $approvalLayerAppraisals = ApprovalLayerAppraisal::with(['approver', 'employee'])->where('employee_id', $employeeId)->where('layer_type', '!=', 'calibrator')->get();
+        $approvalLayerAppraisals = ApprovalLayerAppraisal::with(['approver'])->where('employee_id', $employeeId)->where('layer_type', '!=', 'calibrator')->get();
+
+        // Karyawan di luar assignment Propose 360 (mis. job level di luar range)
+        // tidak ikut 360: peers/subordinate yang terlanjur diisi admin di Layer
+        // Setting tidak boleh membuat statusnya "Pending 360". Hanya penilaian
+        // manager yang tetap ditunggu.
+        if (\App\Support\Propose360Assignment::excludedFrom360((string) $employeeId)) {
+            $approvalLayerAppraisals = $approvalLayerAppraisals->where('layer_type', 'manager')->values();
+        }
+
+        // access_menu milik karyawan yang dinilai (sama untuk semua layer). Relasi
+        // ApprovalLayerAppraisal->employee tidak menyertakan karyawan soft-deleted
+        // (resign/terminate), padahal karyawan itu tetap tampil di Rating periodenya;
+        // dulu ->employee->access_menu di sini membuat seluruh halaman Rating gagal.
+        $accessMenu = \App\Models\EmployeeAppraisal::withTrashed()
+            ->where('employee_id', $employeeId)
+            ->value('access_menu');
+        $review360 = json_decode($accessMenu ?? '', true) ?: [];
+
+        // Dulu satu query AppraisalContributor per layer; sekarang sekali
+        // untuk semua approver karyawan ini.
+        $existingContributors = AppraisalContributor::where('employee_id', $employeeId)
+            ->whereIn('contributor_id', $approvalLayerAppraisals->pluck('approver_id')->unique()->values())
+            ->where('period', $this->appraisalPeriod())
+            ->pluck('contributor_id')
+            ->flip();
         
         // Simpan data yang tidak ada di AppraisalContributor
         $notFoundData = [];
-        
+
+        // Relasi approver hanya mencari di employees_pa. Approver yang dipilih
+        // lewat Layer Setting bisa saja hanya ada di employees (mis. karyawan
+        // baru), sehingga approver = null dan ->fullname membuat seluruh
+        // halaman Rating gagal. Nama diambil dari employees sebagai cadangan.
+        $missingApproverIds = $approvalLayerAppraisals->filter(fn ($l) => ! $l->approver)->pluck('approver_id')->unique()->values();
+        $fallbackNames = $missingApproverIds->isEmpty()
+            ? collect()
+            : Employee::whereIn('employee_id', $missingApproverIds)->pluck('fullname', 'employee_id');
+
         foreach ($approvalLayerAppraisals as $approvalLayer) {
-            
-            $review360 = json_decode($approvalLayer->employee->access_menu, true);
 
             // if (!array_key_exists('review360', $review360)) {
             //     $review360['review360'] = 0;
             // }
             
             // Cek apakah kombinasi employee_id dan approver_id tidak ada di AppraisalContributor
-            $appraisalContributor = AppraisalContributor::where('employee_id', $approvalLayer->employee_id)
-                                                        ->where('contributor_id', $approvalLayer->approver_id)
-                                                        ->where('period', $this->appraisalPeriod())
-                                                        ->first();
+            $hasContributed = $existingContributors->has($approvalLayer->approver_id);
             // Jika tidak ditemukan, tambahkan ke notFoundData
-            if (is_null($appraisalContributor) && isset($review360['review360']) && $review360['review360'] == 0) {
+            if (! $hasContributed && isset($review360['review360']) && $review360['review360'] == 0) {
                 $notFoundData[] = [
                     'employee_id'  => $approvalLayer->employee_id,
                     'approver_id'  => $approvalLayer->approver_id,
-                    'approver_name'  => $approvalLayer->approver->fullname,
+                    'approver_name'  => $approvalLayer->approver?->fullname
+                        ?? $fallbackNames[$approvalLayer->approver_id]
+                        ?? $approvalLayer->approver_id,
                     'layer_type'   => $approvalLayer->layer_type,
                 ];
             }
@@ -914,41 +1050,33 @@ class AppService
         return [
             'status' => true,
             'message' => '360 Review completed',
-            'data' => $review360['review360'],
+            'data' => $review360['review360'] ?? null,
         ];
     }
 
     public function goalPeriod()
     {
-        $today = Carbon::today()->toDateString();
-
-        $period = Schedule::where('event_type', 'goals')
-                        ->orderBy('id', 'desc')
-                        ->value('schedule_periode');
-
-        return $period;
+        return $this->rememberPeriod('goals:latest', fn () => Schedule::where('event_type', 'goals')
+            ->orderBy('id', 'desc')
+            ->value('schedule_periode'));
     }
 
     public function goalActivePeriod()
     {
         $today = Carbon::today()->toDateString();
 
-        $period = Schedule::where('event_type', 'goals')
-                        ->where('start_date', '<=', $today)
-                        ->where('end_date', '>=', $today)
-                        ->orderBy('id', 'desc')
-                        ->value('schedule_periode');
-        return $period;
+        return $this->rememberPeriod('goals:active:'.$today, fn () => Schedule::where('event_type', 'goals')
+            ->where('start_date', '<=', $today)
+            ->where('end_date', '>=', $today)
+            ->orderBy('id', 'desc')
+            ->value('schedule_periode'));
     }
 
     public function appraisalPeriod()
     {
-        $today = Carbon::today()->toDateString();
-
-        $period = Schedule::where('event_type', 'masterschedulepa')
-                        ->orderBy('id', 'desc')
-                        ->value('schedule_periode');
-        return $period;
+        return $this->rememberPeriod('pa:latest', fn () => Schedule::where('event_type', 'masterschedulepa')
+            ->orderBy('id', 'desc')
+            ->value('schedule_periode'));
     }
 
     public function proposed360()
@@ -960,13 +1088,35 @@ class AppService
     {
         $user = Auth::user();
 
+        if (! $user) {
+            return false;
+        }
+
+        $key = 'flow:'.$user->employee_id.':'.$moduleTransaction;
+
+        if (! array_key_exists($key, self::$accessCache)) {
+            self::$accessCache[$key] = $this->resolveFlowAccess($user, $moduleTransaction);
+        }
+
+        return self::$accessCache[$key];
+    }
+
+    private function resolveFlowAccess($user, string $moduleTransaction): bool
+    {
+
+        // Propose 360: assignment = karyawan yang perlu di-360 (target), bukan
+        // siapa yang boleh buka menu. Akses = punya pekerjaan di modul ini.
+        if ($moduleTransaction === Propose360Assignment::MODULE) {
+            return Propose360Assignment::canAccess($user->employee_id, $this->appraisalPeriod());
+        }
+
         $employee = $user->employee ?? null;
 
         if (!$employee) {
             return false;
         }
 
-        $flow = Flow::where('module_transaction', $moduleTransaction)->first();
+        $flow = Flow::forModule($moduleTransaction);
 
         if (!$flow) {
             return false;
@@ -994,28 +1144,33 @@ class AppService
         return false;
     }
 
-    public function checkKpiUnit(): bool 
+    public function checkKpiUnit(): bool
     {
-        $user = KpiUnits::with(['masterCalibration' => function($query) {
-                $query->where('period', $this->appraisalPeriod());
-            }])->where('employee_id', Auth::user()->employee_id)->where('status_aktif', 'T')->where('periode', $this->appraisalPeriod())->first();
+        $employeeId = Auth::user()?->employee_id;
 
-        if (!$user) return false;
+        if (! $employeeId) {
+            return false;
+        }
 
-        // rule Anda di sini
-        return true; // contoh
+        $key = 'kpi_unit:'.$employeeId;
+
+        // Dulu ->with('masterCalibration')->first(): relasinya di-load tapi
+        // tidak pernah dipakai, yang dibutuhkan cuma ada/tidaknya baris.
+        return self::$accessCache[$key] ??= KpiUnits::where('employee_id', $employeeId)
+            ->where('status_aktif', 'T')
+            ->where('periode', $this->appraisalPeriod())
+            ->exists();
     }
 
     public function appraisalActivePeriod()
     {
         $today = Carbon::today()->toDateString();
 
-        $period = Schedule::where('event_type', 'masterschedulepa')
-                        ->where('start_date', '<=', $today)
-                        ->where('end_date', '>=', $today)
-                        ->orderBy('id', 'desc')
-                        ->value('schedule_periode');
-        return $period;
+        return $this->rememberPeriod('pa:active:'.$today, fn () => Schedule::where('event_type', 'masterschedulepa')
+            ->where('start_date', '<=', $today)
+            ->where('end_date', '>=', $today)
+            ->orderBy('id', 'desc')
+            ->value('schedule_periode'));
     }
 
     public function getDataByName($data, $name) {
@@ -1027,13 +1182,46 @@ class AppService
         return null;
     }
 
+    public static function notificationCacheKey(string $type, $employeeId, $filterYear): string
+    {
+        return 'notif:'.$type.':'.$employeeId.':'.($filterYear ?? 'current');
+    }
+
+    public static function forgetNotificationCounts($employeeId, $filterYear = null): void
+    {
+        foreach (['goal', 'appraisal'] as $type) {
+            Cache::forget(self::notificationCacheKey($type, $employeeId, null));
+
+            if ($filterYear) {
+                Cache::forget(self::notificationCacheKey($type, $employeeId, $filterYear));
+            }
+        }
+    }
+
     public function getNotificationCountsGoal($user, $filterYear)
     {
         $period = $filterYear && $this->goalPeriod() != $filterYear ? null : $this->goalPeriod();
-        
+
+        // Filter tahun selain periode berjalan: dulu tetap menjalankan query
+        // dengan "period IS NULL" yang hasilnya selalu 0.
+        if ($period === null) {
+            return 0;
+        }
+
+        return Cache::remember(
+            self::notificationCacheKey('goal', $user, $filterYear),
+            self::NOTIFICATION_CACHE_TTL,
+            fn () => $this->countGoalNotifications($user, $period)
+        );
+    }
+
+    private function countGoalNotifications($user, $period): int
+    {
         $category = 'Goals';
 
-        $tasks = ApprovalRequest::where([
+        // Dulu ->get() lalu ->count(): meng-hydrate seluruh model hanya untuk
+        // menghasilkan satu angka. Sekarang dihitung di SQL.
+        return ApprovalRequest::where([
             ['current_approval_id', $user],
             ['period', $period],
             ['category', $category],
@@ -1045,65 +1233,70 @@ class AppService
         ->whereHas('employee', function ($query) {
             $query->whereNull('deleted_at');
         })
-        ->get();
-        
-        $isApprover = $tasks->count();
-        
-        // Output the result
-        return $isApprover;
+        ->count();
     }
 
     public function getNotificationCountsAppraisal($user, $filterYear)
     {
         $period = $filterYear && $this->appraisalPeriod() != $filterYear ? null : $this->appraisalPeriod();
 
-        // Count for teams notifications
-        $dataTeams = ApprovalLayerAppraisal::with(['approver', 'contributors' => function($query) use ($user, $period) {
-            $query->where('contributor_id', $user)->where('period', $period);
-        }, 'goal' => function($query) use ($period) {
-            $query->where('period', $period);
-        }])
-        ->where('approver_id', $user)
-        ->where('layer_type', 'manager')
-        ->whereHas('employee', function ($query) {
-            $query->where(function($q) {
+        if ($period === null) {
+            return 0;
+        }
+
+        return Cache::remember(
+            self::notificationCacheKey('appraisal', $user, $filterYear),
+            self::NOTIFICATION_CACHE_TTL,
+            fn () => $this->countAppraisalNotifications($user, $period)
+        );
+    }
+
+    private function countAppraisalNotifications($user, $period): int
+    {
+
+        // Kedua hitungan di bawah dulu meng-eager-load relasi lalu memfilter
+        // di PHP (->get()->filter()->count()). Filternya diterjemahkan apa
+        // adanya ke whereHas / whereDoesntHave, jadi hasilnya sama tapi yang
+        // kembali dari database cuma angka.
+        $hasCreatePaAccess = function ($query) use ($period) {
+            $query->inPeriod($period)->where(function ($q) {
                 $q->whereRaw('json_valid(access_menu)')
-                  ->whereJsonContains('access_menu', ['createpa' => 1]);
+                    ->whereJsonContains('access_menu', ['createpa' => 1]);
             });
-        })
-        ->whereDoesntHave('appraisal', function ($query) {
-            $query->where('form_status', 'Draft');
-        })
-        ->get();
+        };
 
-        $notifTeams = $dataTeams->filter(function ($item) {
-            return $item->contributors->isEmpty() && $item->goal->isNotEmpty();
-        })->count();
-        
-        // Count for 360 appraisal notifications
-        $data360 = ApprovalLayerAppraisal::with(['approver', 'contributors' => function($query) use ($user, $period) {
-            $query->where('contributor_id', $user)->where('period', $period);
-        }, 'appraisal' => function($query) use ($period) {
-            $query->where('period', $period);
-        }])
-        ->where('approver_id', $user)
-            ->whereNotIn('layer_type', ['manager', 'calibrator'])
-            ->whereHas('employee', function ($query) {
-                $query->where(function($q) {
-                    $q->whereRaw('json_valid(access_menu)')
-                      ->whereJsonContains('access_menu', ['createpa' => 1]);
-                });
+        // Count for teams notifications
+        // (dulu: contributors->isEmpty() && goal->isNotEmpty())
+        $notifTeams = ApprovalLayerAppraisal::where('approver_id', $user)
+            ->where('layer_type', 'manager')
+            ->whereHas('employee', $hasCreatePaAccess)
+            ->whereDoesntHave('appraisal', fn ($query) => $query->employeeDraftHiddenFrom($user, $period))
+            ->whereDoesntHave('contributors', function ($query) use ($user, $period) {
+                $query->where('contributor_id', $user)->where('period', $period);
             })
-            ->get()
-            ->filter(function ($item) {
-                return $item->appraisal != null && $item->contributors->isEmpty();
-            });
-        
-        $notif360 = $data360->count();
+            ->whereHas('goal', function ($query) use ($period) {
+                $query->where('period', $period);
+            })
+            ->count();
 
-        $notifData = $notifTeams + $notif360;
-        
-        return $notifData;
+        // Count for 360 appraisal notifications
+        // (dulu: appraisal != null && contributors->isEmpty())
+        $notif360 = ApprovalLayerAppraisal::where('approver_id', $user)
+            ->whereNotIn('layer_type', ['manager', 'calibrator'])
+            ->whereHas('employee', $hasCreatePaAccess)
+            ->whereHas('appraisal', function ($query) use ($period) {
+                $query->where('period', $period);
+            })
+            ->whereDoesntHave('contributors', function ($query) use ($user, $period) {
+                $query->where('contributor_id', $user)->where('period', $period);
+            })
+            ->pluck('employee_id');
+
+        // Karyawan di luar assignment Propose 360 tidak dihitung sebagai tugas 360.
+        $excluded360 = \App\Support\Propose360Assignment::excludedFrom360Ids($notif360);
+        $notif360 = $notif360->reject(fn ($id) => in_array((string) $id, $excluded360, true))->count();
+
+        return $notifTeams + $notif360;
     }
 
     function appraisalSummary($weightages, $formData, $employeeID, $jobLevel) {

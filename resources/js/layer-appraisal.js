@@ -3,23 +3,142 @@ import $ from 'jquery';
 
 document.addEventListener("DOMContentLoaded", function () {
 
-    const layerAppraisalTable = $("#layerAppraisalTable").DataTable({
-        dom: "lrtip",
-        stateSave: true,
-        fixedColumns: {
-            leftColumns: 0,
-            rightColumns: 1
-        },
-        pageLength: 25,
-        scrollCollapse: true,
-        scrollX: true
-    });
+    const $layerAppraisalTable = $("#layerAppraisalTable");
 
-    $('#customsearch').val(layerAppraisalTable.search());
-    
-    $("#customsearch").on("keyup", function () {
-        layerAppraisalTable.search($(this).val()).draw();
-    });
+    // Bundle ini jalan di semua halaman: jangan sentuh #customsearch milik
+    // halaman lain bila tabel ini tidak ada.
+    if ($layerAppraisalTable.length) {
+        let initialData = null;
+        try {
+            const el = document.getElementById("layerAppraisalInitialData");
+            if (el) initialData = JSON.parse(el.textContent);
+        } catch (e) {
+            initialData = null;
+        }
+
+        const layerAppraisalTable = $layerAppraisalTable.DataTable({
+            processing: true,
+            serverSide: true,
+            dom: "lrtip",
+            // Sengaja tanpa stateSave: setiap kali halaman dibuka, tabel
+            // mulai dari awal (tanpa search/halaman/urutan terakhir).
+            fixedColumns: {
+                leftColumns: 0,
+                rightColumns: 1
+            },
+            pageLength: 25,
+            order: [],
+            scrollCollapse: true,
+            scrollX: true,
+            language: { processing: "Loading..." },
+            ajax: function (data, callback) {
+                // Draw pertama (halaman 1, tanpa search/urutan) memakai data
+                // yang sudah dikirim bersama HTML; sisanya lewat AJAX.
+                const isDefaultView = data.start === 0 && data.length === 25
+                    && !(data.search && data.search.value)
+                    && !(data.order && data.order.length);
+                if (initialData && isDefaultView) {
+                    const json = initialData;
+                    initialData = null;
+                    json.draw = data.draw;
+                    callback(json);
+                    return;
+                }
+                initialData = null;
+
+                // Periode layer yang dilihat (filter Layer Period).
+                data.period = $layerAppraisalTable.data("period");
+                $.ajax({ url: $layerAppraisalTable.data("url"), data: data, dataType: "json" })
+                    .done(callback)
+                    .fail(function (xhr) {
+                        console.error("Error fetching Layer Appraisal data:", xhr);
+                        $layerAppraisalTable.closest(".card").find(".dataTables_processing").hide();
+                        Swal.fire({
+                            icon: "error",
+                            title: "Failed to load data",
+                            text: (xhr.responseJSON && xhr.responseJSON.message) || "Please try again.",
+                        });
+                    });
+            },
+            columns: [
+                { data: "select", name: "select", orderable: false, searchable: false, className: "text-center" },
+                { data: "DT_RowIndex", name: "DT_RowIndex", orderable: false, searchable: false },
+                { data: "employee", name: "fullname" },
+                { data: "company_name", name: "company_name" },
+                { data: "office_area", name: "office_area" },
+                { data: "group_company", name: "group_company" },
+                { data: "action", name: "action", orderable: false, searchable: false, className: "sorting_1 text-center" },
+            ],
+        });
+
+        // ---- Pilihan karyawan untuk "Duplicate from Previous Period" ----
+        // Disimpan di Set supaya tetap terpilih saat pindah halaman / search
+        // (tabel server-side merender ulang checkbox tiap draw).
+        const selectedIds = new Set();
+
+        const refreshSelection = () => {
+            $(".js-selected-count").text(selectedIds.size);
+            $("#duplicateSelectedButton").prop("disabled", selectedIds.size === 0);
+
+            const $rowBoxes = $layerAppraisalTable.find("input.layer-select");
+            const checkedOnPage = $rowBoxes.filter(":checked").length;
+            $(".layer-select-page")
+                .prop("checked", $rowBoxes.length > 0 && checkedOnPage === $rowBoxes.length)
+                .prop("indeterminate", checkedOnPage > 0 && checkedOnPage < $rowBoxes.length);
+        };
+
+        layerAppraisalTable.on("draw", function () {
+            $layerAppraisalTable.find("input.layer-select").each(function () {
+                this.checked = selectedIds.has(this.value);
+            });
+            refreshSelection();
+        });
+
+        $layerAppraisalTable.on("change", "input.layer-select", function () {
+            this.checked ? selectedIds.add(this.value) : selectedIds.delete(this.value);
+            refreshSelection();
+        });
+
+        // Header checkbox ada di header hasil clone scrollX, jadi pakai delegasi.
+        $(document).on("change", ".layer-select-page", function () {
+            const checked = this.checked;
+            $layerAppraisalTable.find("input.layer-select").each(function () {
+                this.checked = checked;
+                checked ? selectedIds.add(this.value) : selectedIds.delete(this.value);
+            });
+            refreshSelection();
+        });
+
+        // Kirim employee_ids[] terpilih bersama form duplicate.
+        // Event Bootstrap 5 berupa event native, bukan event jQuery.
+        document.getElementById("duplicateModal")?.addEventListener("show.bs.modal", function (e) {
+            if (selectedIds.size === 0) {
+                e.preventDefault();
+                return;
+            }
+            const $holder = $("#duplicateEmployeeInputs").empty();
+            selectedIds.forEach((id) => {
+                $("<input>", { type: "hidden", name: "employee_ids[]", value: id }).appendTo($holder);
+            });
+        });
+
+        refreshSelection();
+
+        // Kosongkan juga kotak search (browser bisa mengisi ulang nilai lama
+        // saat tombol Back) supaya selalu sama dengan tabel.
+        $('#customsearch').val(layerAppraisalTable.search());
+
+        let searchTimer;
+        $("#customsearch").on("keyup", function () {
+            const value = $(this).val();
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => {
+                if (layerAppraisalTable.search() !== value) {
+                    layerAppraisalTable.search(value).draw();
+                }
+            }, 300);
+        });
+    }
 
     let previousValue = $('#manager').val();
 
@@ -374,13 +493,14 @@ document.addEventListener('DOMContentLoaded', function () {
         detailModal.addEventListener('show.bs.modal', async function (event) {
             const button = event.relatedTarget;
             const employeeId = button.getAttribute('data-bs-id');
+            const period = button.getAttribute('data-period') || '';
             
             // Show loading state before fetching data
             showLoadingState();
     
             try {
                 // Fetch the employee details using async/await
-                const data = await fetchEmployeeDetails(employeeId);
+                const data = await fetchEmployeeDetails(employeeId, period);
                 
                 // Populate the modal with the retrieved data
                 populateModal(data);
@@ -398,8 +518,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Function to fetch employee details from the backend
-    async function fetchEmployeeDetails(employeeId) {
-        const response = await fetch(`/employee-layer-appraisal/details/${employeeId}`);
+    async function fetchEmployeeDetails(employeeId, period) {
+        const response = await fetch(`/employee-layer-appraisal/details/${employeeId}?period=${encodeURIComponent(period)}`);
                 
         if (!response.ok) {
             throw new Error('Network response was not ok');

@@ -9,6 +9,37 @@ class HomeController extends Controller
     function index() {
         return redirect('home');
     }
+
+    /**
+     * Root URL. Dulu closure di routes/web.php — dipindah ke controller
+     * supaya route bisa di-cache (route:cache tidak bisa serialize closure).
+     */
+    public function landing()
+    {
+        return redirect('goals');
+    }
+
+    /**
+     * Fallback 404. Dulu closure di routes/web.php.
+     */
+    public function notFound()
+    {
+        // Catatan: sengaja tetap balas HTTP 200 seperti closure aslinya.
+        // Ini semestinya 404 — tapi diperbaiki terpisah, bukan di perubahan
+        // performa ini.
+        return view('errors.404');
+    }
+
+    /**
+     * Preview template email reminder schedule. Dulu closure di routes/web.php.
+     */
+    public function testEmail()
+    {
+        $messages = '<p>This is a test message with <strong>bold</strong> text.</p>';
+        $name = 'John Doe';
+
+        return view('email.reminderschedule', compact('messages', 'name'));
+    }
     function home() {
         $link = 'home';
         // $data = Employee::orderBy("name")->get();

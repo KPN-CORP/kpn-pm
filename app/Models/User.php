@@ -91,9 +91,23 @@ class User extends Authenticatable implements JWTSubject
         return $this->hasMany(ApprovalRequest::class, 'employee_id', 'employee_id');
     }
 
+    /**
+     * Hasil cek role (isApprover, isCalibrator, ...) per instance user.
+     * Sidebar memanggil isApprover() dua kali per render, ditambah export
+     * dan view lain — tanpa memo masing-masing jadi satu query EXISTS.
+     *
+     * @var array<string, bool>
+     */
+    protected array $roleCheckCache = [];
+
+    protected function rememberRoleCheck(string $key, callable $resolver): bool
+    {
+        return $this->roleCheckCache[$key] ??= (bool) $resolver();
+    }
+
     public function isApprover()
     {
-        return $this->approver_layers()->exists();
+        return $this->rememberRoleCheck('approver', fn () => $this->approver_layers()->exists());
     }
     
     public function approver_layers()
@@ -103,7 +117,7 @@ class User extends Authenticatable implements JWTSubject
 
     public function isCalibrator()
     {
-        return $this->appraisals_calibrator()->exists();
+        return $this->rememberRoleCheck('calibrator', fn () => $this->appraisals_calibrator()->exists());
     }
 
     public function appraisals_calibrator()
@@ -113,7 +127,7 @@ class User extends Authenticatable implements JWTSubject
 
     public function kpiUnits()
     {
-        return $this->check_kpi_units()->exists();
+        return $this->rememberRoleCheck('kpi_units', fn () => $this->check_kpi_units()->exists());
     }
 
     public function check_kpi_units()
@@ -128,6 +142,6 @@ class User extends Authenticatable implements JWTSubject
 
     public function isCement()
     {
-        return $this->cekBUCement()->exists();
+        return $this->rememberRoleCheck('cement', fn () => $this->cekBUCement()->exists());
     }
 }

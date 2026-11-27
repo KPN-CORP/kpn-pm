@@ -378,14 +378,35 @@ function checkFileAvailability(status) {
 }
 
 // Live progress modal for report generation
-let exportProgressInterval = null;
+let exportProgressInterval = null; // backend polling (2s)
+let exportAnimFrame = null;        // smooth fill animation
+let exportDisplayedPercent = 0;    // what the bar currently shows
+let exportTargetPercent = 0;       // where the bar is heading
+let exportDone = false;            // true once backend reports completed
+let exportQueued = true;           // true until a queue worker picks the job up
+
+const EXPORT_TEXT_PROCESSING = "The reports are being processed. Please keep this page open.";
+const EXPORT_TEXT_QUEUED = "Waiting for the report job to start...";
+const EXPORT_TEXT_STUCK =
+    "The report job has not started yet. The background worker may not be running; please contact the administrator if this continues.";
+const EXPORT_STUCK_AFTER_SECONDS = 60;
+
+function setExportText(text) {
+    const el = document.getElementById("exportProgressText");
+    if (el && el.textContent !== text) el.textContent = text;
+}
 
 function showExportProgress() {
+    exportDisplayedPercent = 0;
+    exportTargetPercent = 0;
+    exportDone = false;
+    exportQueued = true;
+
     Swal.fire({
         title: "Generating Report Details",
         html: `
-            <div class="text-start mb-2" style="font-size: 0.9rem;">
-                The reports are being processed. Please keep this page open.
+            <div id="exportProgressText" class="text-start mb-2" style="font-size: 0.9rem;">
+                ${EXPORT_TEXT_QUEUED}
             </div>
             <div class="progress" style="height: 22px;">
                 <div id="exportProgressBar"
@@ -398,24 +419,67 @@ function showExportProgress() {
         allowEscapeKey: false,
         showConfirmButton: false,
         didOpen: () => {
+            startExportAnim();
             pollExportProgress();
         },
         willClose: () => {
-            if (exportProgressInterval) {
-                clearInterval(exportProgressInterval);
-                exportProgressInterval = null;
-            }
+            stopExportProgress();
         },
     });
 }
 
-function updateExportProgressBar(percent) {
+function renderExportBar(percent) {
     const bar = document.getElementById("exportProgressBar");
     if (!bar) return;
-    const value = Math.max(0, Math.min(100, Math.round(percent || 0)));
-    bar.style.width = value + "%";
-    bar.setAttribute("aria-valuenow", value);
-    bar.textContent = value + "%";
+    const clamped = Math.max(0, Math.min(100, percent));
+    const shown = Math.round(clamped);
+    bar.style.width = clamped + "%";
+    bar.setAttribute("aria-valuenow", shown);
+    bar.textContent = shown + "%";
+}
+
+// Continuously eases the bar toward its target and, while waiting for the next
+// backend update, trickles the target upward (decelerating, capped) so it keeps
+// visibly moving instead of jumping straight from 0 to 100.
+function startExportAnim() {
+    stopExportAnim();
+
+    const tick = () => {
+        // Only creep while the job is actually running: while it is still
+        // queued the bar must stay put, otherwise it fakes progress for a job
+        // that has not started (e.g. no queue worker running).
+        if (!exportDone && !exportQueued && exportTargetPercent < 90) {
+            // gentle decelerating creep toward a soft 90% ceiling
+            exportTargetPercent += (90 - exportTargetPercent) * 0.012;
+        }
+
+        // ease the displayed value toward the target
+        exportDisplayedPercent += (exportTargetPercent - exportDisplayedPercent) * 0.12;
+
+        if (exportDone && exportDisplayedPercent > 99.4) {
+            exportDisplayedPercent = 100;
+        }
+
+        renderExportBar(exportDisplayedPercent);
+        exportAnimFrame = requestAnimationFrame(tick);
+    };
+
+    exportAnimFrame = requestAnimationFrame(tick);
+}
+
+function stopExportAnim() {
+    if (exportAnimFrame) {
+        cancelAnimationFrame(exportAnimFrame);
+        exportAnimFrame = null;
+    }
+}
+
+function stopExportProgress() {
+    if (exportProgressInterval) {
+        clearInterval(exportProgressInterval);
+        exportProgressInterval = null;
+    }
+    stopExportAnim();
 }
 
 function pollExportProgress() {
@@ -429,22 +493,29 @@ function pollExportProgress() {
         })
             .then((response) => response.json())
             .then((data) => {
-                updateExportProgressBar(data.percent);
+                const real = Math.round(data.percent || 0);
 
                 if (data.status === "completed") {
-                    clearInterval(exportProgressInterval);
-                    exportProgressInterval = null;
-                    updateExportProgressBar(100);
-                    Swal.fire({
-                        icon: "success",
-                        title: "Report Ready",
-                        text: "Your report has been generated.",
-                        timer: 1500,
-                        showConfirmButton: false,
-                    }).then(() => location.reload());
+                    exportDone = true;
+                    exportTargetPercent = 100;
+                    if (exportProgressInterval) {
+                        clearInterval(exportProgressInterval);
+                        exportProgressInterval = null;
+                    }
+                    // let the bar finish filling before the success dialog
+                    setTimeout(() => {
+                        stopExportAnim();
+                        renderExportBar(100);
+                        Swal.fire({
+                            icon: "success",
+                            title: "Report Ready",
+                            text: "Your report has been generated.",
+                            timer: 1500,
+                            showConfirmButton: false,
+                        }).then(() => location.reload());
+                    }, 800);
                 } else if (data.status === "failed") {
-                    clearInterval(exportProgressInterval);
-                    exportProgressInterval = null;
+                    stopExportProgress();
                     Swal.fire({
                         icon: "error",
                         title: "Generation Failed",
@@ -452,6 +523,19 @@ function pollExportProgress() {
                             data.message ||
                             "Report generation failed. Please try again.",
                     });
+                } else if (data.status === "queued") {
+                    exportQueued = true;
+                    const waited = data.waiting_seconds || 0;
+                    setExportText(
+                        waited > EXPORT_STUCK_AFTER_SECONDS
+                            ? EXPORT_TEXT_STUCK
+                            : EXPORT_TEXT_QUEUED
+                    );
+                } else {
+                    exportQueued = false;
+                    setExportText(EXPORT_TEXT_PROCESSING);
+                    // never move backward — keep the fill monotonic
+                    exportTargetPercent = Math.max(exportTargetPercent, real);
                 }
             })
             .catch((error) =>

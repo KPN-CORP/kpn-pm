@@ -375,9 +375,6 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        document.documentElement.setAttribute('data-sidenav-size', 'condensed');
-    });
     window.oldSteps = {!! json_encode(old('steps', $flow->steps)) !!};
     window.approverData = {!! json_encode($approverRoles) !!};
     window.employeeData = {!! json_encode($employees) !!};

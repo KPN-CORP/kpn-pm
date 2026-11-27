@@ -20,6 +20,17 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 class ExportExcelController extends Controller
 {
+    /**
+     * Cek apakah file hasil export sudah tersedia di disk 'public'.
+     * Dulu closure di routes/web.php — dipindah supaya route bisa di-cache.
+     */
+    public function checkFile(Request $request)
+    {
+        return response()->json([
+            'exists' => Storage::disk('public')->exists($request->file),
+        ]);
+    }
+
     protected $permissionGroupCompanies;
     protected $permissionCompanies;
     protected $permissionLocations;

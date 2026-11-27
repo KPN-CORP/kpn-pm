@@ -3,18 +3,23 @@
 namespace App\Http\Controllers;
 
 use App\Models\EmployeeAppraisal;
+use App\Models\EmployeePaPeriodExclusion;
+use App\Services\AppService;
 use App\Models\Company;
 use App\Models\Department;
 use App\Models\Designation;
 use App\Models\Location;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use RealRashid\SweetAlert\Facades\Alert;
 use App\Exports\EmployeepaExport;
 use Maatwebsite\Excel\Facades\Excel;
+use Yajra\DataTables\Facades\DataTables;
 
 
 class EmployeePAController extends Controller
@@ -76,139 +81,214 @@ class EmployeePAController extends Controller
     
     public function index()
     {
-        $userId = Auth::id();
-        $parentLink = 'Settings';
-        $link = 'Employee';
-
-        $designations = Designation::select('designation_name','job_code')
-        ->orderBy('parent_company_id', 'asc')
-        ->orderBy('designation_name', 'asc')
-        ->orderBy('job_code', 'asc')
-        ->groupBy('job_code','designation_name')
-        ->get();
-        $departments = Department::select('department_name')
-        ->orderBy('department_name', 'asc')
-        ->groupBy('department_name')
-        ->get();
-        $companies = Company::orderBy('contribution_level_code', 'asc')->get();
-        $locations = Location::orderBy('area', 'asc')->get();
-        $query = EmployeeAppraisal::whereNull('deleted_at')
-        ->orderBy('office_area', 'asc')
-        ->orderBy('fullname', 'asc')
-        ->orderBy('contribution_level_code', 'asc');
-
-        $permissionLocations = $this->permissionLocations;
-        $permissionCompanies = $this->permissionCompanies;
-        $permissionGroupCompanies = $this->permissionGroupCompanies;
-
-        if (!empty($permissionLocations)) {
-            $query->whereIn('work_area_code', $permissionLocations);
-        }
-
-        if (!empty($permissionCompanies)) {
-            $query->whereIn('contribution_level_code', $permissionCompanies);
-        }
-
-        if (!empty($permissionGroupCompanies)) {
-            $query->whereIn('group_company', $permissionGroupCompanies);
-        }
-
-        $employees = $query->get();
-        
+        // Tabel diisi lewat data() (server-side DataTables): dulu seluruh
+        // ~6.400 baris dirender di sini (HTML ~9 MB, halaman ~7 detik).
         return view('pages.employeepa.app', [
-            'link' => $link,
-            'parentLink' => $parentLink,
-            'userId' => $userId,
-            'employees' => $employees,
-            'companies' => $companies,
-            'locations' => $locations,
-            'userId' => $userId,
-            'departments' => $departments,
-            'designations' => $designations,
+            'link' => 'Employee',
+            'parentLink' => 'Settings',
+            'userId' => Auth::id(),
+            'excludePeriod' => (int) app(AppService::class)->appraisalPeriod(),
         ]);
     }
+
+    /**
+     * Endpoint server-side DataTables untuk Settings > Employee.
+     */
+    public function data(Request $request)
+    {
+        ['query' => $query, 'periods' => $periods, 'excludePeriod' => $excludePeriod, 'excludedIds' => $excludedIds]
+            = $this->employeeListQuery();
+
+        $excludedMap = $excludedIds->flip();
+        $removedLabel = "Removed from $excludePeriod";
+        $resignedTitle = 'Masih ikut periode '.implode(' / ', $periods).' karena punya goal/appraisal';
+
+        return DataTables::of($query)
+            ->addIndexColumn()
+            ->addColumn('status', function ($row) use ($excludedMap, $removedLabel, $excludePeriod, $resignedTitle) {
+                $html = $row->deleted_at
+                    ? '<span class="badge bg-warning text-dark" title="'.e($resignedTitle).'">Resigned '.e(Carbon::parse($row->deleted_at)->format('d M Y')).'</span>'
+                    : '<span class="badge bg-success">Active</span>';
+
+                if (isset($excludedMap[$row->employee_id])) {
+                    $html .= ' <span class="badge bg-secondary" title="Tidak tampil di appraisal periode '.$excludePeriod.'; periode lain tetap tampil">'.e($removedLabel).'</span>';
+                }
+
+                return $html;
+            })
+            ->addColumn('action', function ($row) use ($excludedMap, $excludePeriod) {
+                $attrs = 'data-id="'.e($row->employee_id).'" data-name="'.e($row->fullname).'"';
+
+                // Bukan handleDeleteEmployeePA: nama itu ditimpa resources/js/report.js
+                // (terminate semua periode).
+                return isset($excludedMap[$row->employee_id])
+                    ? '<a class="btn btn-sm btn-success" title="Restore to period '.$excludePeriod.'" onclick="restoreEmployeePA(this)" '.$attrs.'><i class="ri-arrow-go-back-line"></i></a>'
+                    : '<a class="btn btn-sm btn-danger" title="Terminate" onclick="terminateEmployeePA(this)" '.$attrs.'><i class="ri-delete-bin-line"></i></a>';
+            })
+            // Pencarian bebas mencakup semua kolom yang tampil, termasuk teks
+            // status ("Active", "Resigned 14 Oct 2026", "Removed from 2026"),
+            // sama seperti pencarian client-side sebelumnya.
+            ->filter(function ($query) use ($request, $excludedIds, $removedLabel) {
+                $keyword = trim((string) $request->input('search.value', ''));
+                if ($keyword === '') {
+                    return;
+                }
+
+                $like = '%'.$keyword.'%';
+                $query->where(function ($w) use ($like, $keyword, $excludedIds, $removedLabel) {
+                    foreach (self::LIST_COLUMNS as $column) {
+                        $w->orWhere("employees_pa.$column", 'like', $like);
+                    }
+
+                    $w->orWhereRaw(
+                        "CASE WHEN employees_pa.deleted_at IS NULL THEN 'Active' ELSE CONCAT('Resigned ', DATE_FORMAT(employees_pa.deleted_at, '%d %b %Y')) END LIKE ?",
+                        [$like]
+                    );
+
+                    if ($excludedIds->isNotEmpty() && stripos($removedLabel, $keyword) !== false) {
+                        $w->orWhereIn('employees_pa.employee_id', $excludedIds);
+                    }
+                });
+            })
+            ->rawColumns(['status', 'action'])
+            ->make(true);
+    }
+
+    /** Kolom data yang tampil di tabel (urutan sama dengan header di view). */
+    private const LIST_COLUMNS = [
+        'employee_id', 'fullname', 'date_of_joining', 'contribution_level_code',
+        'unit', 'designation_name', 'job_level', 'office_area',
+    ];
+
+    /**
+     * Query daftar Settings > Employee untuk data().
+     *
+     * Isinya: karyawan aktif + karyawan yang sudah resign di HR tapi masih
+     * ikut periode goal/appraisal berjalan (punya data di periode itu), supaya
+     * admin bisa men-terminate mereka dari appraisal (dan kuota Rating). Data
+     * karyawan tidak diubah dari PA (employees_pa adalah view atas employees).
+     */
+    private function employeeListQuery(): array
+    {
+        $appService = app(AppService::class);
+        $periods = array_values(array_unique(array_filter([
+            (int) $appService->appraisalPeriod(),
+            (int) $appService->goalPeriod(),
+        ])));
+
+        $excludePeriod = (int) $appService->appraisalPeriod();
+
+        // Karyawan yang dikeluarkan dari periode appraisal berjalan tetap
+        // tampil (dengan tombol Restore), kecuali yang di-terminate semua periode.
+        $excludedIds = EmployeePaPeriodExclusion::where('period', $excludePeriod)->pluck('employee_id');
+
+        $query = EmployeeAppraisal::withTrashed()
+            ->select(array_merge(
+                array_map(fn ($c) => "employees_pa.$c", self::LIST_COLUMNS),
+                ['employees_pa.deleted_at']
+            ))
+            ->where(function ($q) use ($periods, $excludedIds) {
+                foreach ($periods as $period) {
+                    $q->orWhere(fn ($w) => $w->periodMember($period));
+                }
+                if ($excludedIds->isNotEmpty()) {
+                    $q->orWhere(fn ($w) => $w->whereIn('employee_id', $excludedIds)->notPaTerminated());
+                }
+            });
+
+        // Urutan default hanya bila user belum mengklik header kolom;
+        // kalau tidak, urutan DataTables tertimpa urutan default ini.
+        if (! request()->filled('order')) {
+            $query->orderBy('office_area', 'asc')
+                ->orderBy('fullname', 'asc')
+                ->orderBy('contribution_level_code', 'asc');
+        }
+
+        if (!empty($this->permissionLocations)) {
+            $query->whereIn('work_area_code', $this->permissionLocations);
+        }
+
+        if (!empty($this->permissionCompanies)) {
+            $query->whereIn('contribution_level_code', $this->permissionCompanies);
+        }
+
+        if (!empty($this->permissionGroupCompanies)) {
+            $query->whereIn('group_company', $this->permissionGroupCompanies);
+        }
+
+        return compact('query', 'periods', 'excludePeriod', 'excludedIds');
+    }
+
+    /**
+     * Terminate dari appraisal.
+     *  - scope=period : hanya periode appraisal berjalan; periode lain tetap
+     *                   menampilkan karyawan ini (employee_pa_period_exclusions).
+     *  - scope=all    : semua periode (default, dipakai juga oleh tombol di
+     *                   Report > EmployeePA lewat resources/js/report.js).
+     */
     public function destroy(Request $request)
     {
         $id = $request->input('id');
-        $userId = Auth::id();
-        $employees = EmployeeAppraisal::where('employee_id', $id);
-        // dd($calibrations);
-        try{
-
-        if ($employees->exists()) {
-            $employees->delete();
+        $scope = $request->input('scope', 'all');
+        // withTrashed: karyawan yang sudah resign di HR juga bisa di-terminate
+        // dari appraisal (lihat index()).
+        $employees = $id ? EmployeeAppraisal::withTrashed()->where('employee_id', $id)->get() : collect();
+        if ($employees->isEmpty()) {
+            return response()->json(['success' => false, 'message' => 'Employee not found.'], 404);
         }
+
+        try {
+            if ($scope === 'period') {
+                $period = (int) app(AppService::class)->appraisalPeriod();
+
+                EmployeePaPeriodExclusion::updateOrCreate(
+                    ['employee_id' => $id, 'period' => $period],
+                    ['reason' => $request->input('reason'), 'created_by' => Auth::id()]
+                );
+
+                Log::channel('audit')->info('PA period exclusion added', [
+                    'employee_id' => $id, 'period' => $period, 'by' => Auth::id(),
+                ]);
+
+                return response()->json(['success' => true, 'message' => "Employee removed from appraisal period $period."]);
+            }
+
+            // Per model (bukan query builder delete): employees_pa adalah view,
+            // soft delete-nya ditulis ke employee_pa_profiles oleh model.
+            foreach ($employees as $employee) {
+                $employee->delete();
+            }
+
+            Log::channel('audit')->info('PA terminate (all periods)', ['employee_id' => $id, 'by' => Auth::id()]);
+
             return response()->json(['success' => true, 'message' => 'Employee terminated successfully.']);
         } catch (\Exception $e) {
+            Log::error('Terminate employee PA failed: '.$e->getMessage(), ['employee_id' => $id, 'scope' => $scope]);
+
             return response()->json(['success' => false, 'message' => 'Failed to terminate Employee.']);
         }
-
     }
-    public function update(Request $request)
+
+    /**
+     * Batalkan "hanya periode ini": karyawan kembali tampil di periode itu.
+     */
+    public function restorePeriod(Request $request)
     {
-        $userId = Auth::id();
-        $employee = EmployeeAppraisal::where('employee_id',$request->employee_id)->first();
-        $companies = Company::where('contribution_level_code',$request->contribution_level_code)->first();
-        $locations = Location::where('work_area',$request->office_area)->first();
-        $designations = Designation::where('job_code',$request->designation_name)->first();
-        $value_desg = $designations->designation_name." (".$designations->job_code.")";
+        $id = $request->input('id');
+        $period = (int) app(AppService::class)->appraisalPeriod();
 
-        // Data before and after update as JSON
-        $beforeData = [
-            'fullname' => $employee->fullname,
-            'date_of_joining' => $employee->date_of_joining,
-            'company_name' => $employee->company_name,
-            'contribution_level_code' => $employee->contribution_level_code,
-            'unit' => $employee->unit,
-            'designation' => $employee->designation,
-            'designation_code' => $employee->designation_code,
-            'designation_name' => $employee->designation_name,
-            'job_level' => $employee->job_level,
-            'work_area_code' => $employee->work_area_code,
-            'office_area' => $employee->office_area,
-        ];
+        $deleted = $id ? EmployeePaPeriodExclusion::where('employee_id', $id)->where('period', $period)->delete() : 0;
+        if (! $deleted) {
+            return response()->json(['success' => false, 'message' => 'Employee is not excluded from this period.'], 404);
+        }
 
-        $afterData = [
-            'fullname' => $request->fullname,
-            'date_of_joining' => $request->date_of_joining,
-            'company_name' => $companies->contribution_level,
-            'contribution_level_code' => $request->contribution_level_code,
-            'unit' => $request->unit,
-            'designation' => $value_desg,
-            'designation_code' => $designations->job_code,
-            'designation_name' => $designations->designation_name,
-            'job_level' => $request->job_level,
-            'work_area_code' => $locations->work_area,
-            'office_area' => $locations->area,
-        ];
-
-        // Insert data before and after as JSON in employee_pa_histories
-        DB::table('employee_pa_histories')->insert([
-            'employee_id' => $employee->employee_id,
-            'before' => json_encode($beforeData),
-            'after' => json_encode($afterData),
-            'updated_by' => $userId,
-            'updated_at' => now(),
+        Log::channel('audit')->info('PA period exclusion removed', [
+            'employee_id' => $id, 'period' => $period, 'by' => Auth::id(),
         ]);
 
-        $employee->update([
-            'fullname' => $request->fullname,
-            'date_of_joining' => $request->date_of_joining,
-            'company_name' => $companies->contribution_level,
-            'contribution_level_code' => $request->contribution_level_code,
-            'unit' => $request->unit,
-            'designation' => $value_desg,
-            'designation_code' => $designations->job_code,
-            'designation_name' => $designations->designation_name,
-            'job_level' => $request->job_level,
-            'work_area_code' => $locations->work_area,
-            'office_area' => $locations->area,
-            'updated_by' => $userId,
-        ]);
-
-        // return redirect()->back()->with('success', 'Employee updated successfully');
-        return redirect()->back()->with('success', 'Employee deleted successfully.')->with('triggerFunction', 'EmployeePA');
+        return response()->json(['success' => true, 'message' => "Employee restored to appraisal period $period."]);
     }
+
     public function exportEmployeepa()
     {
         $permissionLocations = $this->permissionLocations;

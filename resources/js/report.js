@@ -5,6 +5,7 @@ function hideLoader() {
 }
 
 import bootstrap from "bootstrap/dist/js/bootstrap.bundle.min.js";
+import { initializePopovers } from "./popovers";
 
 function adminReportType(val) {
     $("#report_type").val(val);
@@ -14,8 +15,10 @@ function adminReportType(val) {
     const customsearch = $("#customsearch");
     const formData = reportForm.serialize();
 
-    initializePopovers();
-
+    // initializePopovers() dulu dipanggil di sini — sebelum AJAX — sehingga
+    // memasang popover pada konten report SEBELUMNYA yang sebentar lagi
+    // dibuang. Sekarang popover memakai delegasi di <body>, jadi tidak perlu
+    // dipasang ulang sama sekali.
     showLoader();
     if (val) {
         exportButton.removeClass("disabled"); // Enable export button
@@ -194,13 +197,6 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 });
 
-function initializePopovers() {
-    var popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-    var popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-        return new bootstrap.Popover(popoverTriggerEl);
-    });
-
-}
 
 function reportType(val) {
     $("#report_type").val(val);
@@ -475,21 +471,4 @@ function handleDeleteEmployeePA(element) {
 window.handleDeleteEmployeePA = handleDeleteEmployeePA;
 
 
-function showEditModal(employee) {
-    // Isi data dari karyawan yang akan diedit ke dalam modal
-    document.getElementById('editEmployeeId').value = employee.employee_id;
-    document.getElementById('editFullname').value = employee.fullname;
-    document.getElementById('editDateOfJoining').value = employee.date_of_joining;
-    document.getElementById('editContributionLevelCode').value = employee.contribution_level_code;
-    document.getElementById('editUnit').value = employee.unit;
-    document.getElementById('editDesignationName').value = employee.designation_code;
-    document.getElementById('editJobLevel').value = employee.job_level;
-    document.getElementById('editOfficeArea').value = employee.work_area_code;
-
-    // Tampilkan modal
-    var editModal = new bootstrap.Modal(document.getElementById('editEmployeeModal'));
-    editModal.show();
-}   
-
-window.showEditModal = showEditModal;
 

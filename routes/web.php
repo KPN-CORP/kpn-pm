@@ -207,6 +207,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
 
     // Reports
     Route::get('/reports', [ReportController::class, 'index'])->name('reports');
+    Route::get('/reports/goal-detail/{id}', [ReportController::class, 'goalDetail'])->name('reports.goal-detail');
 
     Route::get('export/employees', [ExportExcelController::class, 'export'])->name('export.employee');
     Route::get('/get-report-content/{reportType}', [ReportController::class, 'getReportContent']);
@@ -305,10 +306,15 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::post('/CalibrationsUpdate', [CalibrationController::class, 'update'])->name('updatecalibrations');
     });
 
+    // Dipakai modal Edit di DUA layar dengan permission berbeda
+    // (Settings > Employee = employeepa, Report > EmployeePA = viewreport),
+    // jadi permission-nya dicek di dalam controller, bukan di sini.
+
     Route::middleware(['permission:employeepa'])->group(function () {
         Route::get('/admemployees', [EmployeePAController::class, 'index'])->name('admemployee');
+        Route::get('/admemployees-data', [EmployeePAController::class, 'data'])->name('admemployee.data');
         Route::delete('/admemployeedestroy', [EmployeePAController::class, 'destroy'])->name('admemployeeDestroy');
-        Route::put('/employeepa/update', [EmployeePAController::class, 'update'])->name('employeepa.update');
+        Route::post('/admemployeerestore', [EmployeePAController::class, 'restorePeriod'])->name('admemployeeRestore');
         Route::get('/export-employeepa', [EmployeePAController::class, 'exportEmployeepa'])->name('employeepa.export');
     });
 
@@ -327,14 +333,18 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
     Route::middleware(['permission:viewlayer'])->group(function () {
         // layer
         Route::get('/layer', [LayerController::class, 'layer'])->name('layer');
+        Route::get('/layer-data', [LayerController::class, 'layerData'])->name('layer.data');
         Route::post('/update-layer', [LayerController::class, 'updatelayer'])->name('update-layer');
         Route::post('/import-layer', [LayerController::class, 'importLayer'])->name('import-layer');
         Route::post('/history-show', [LayerController::class, 'show'])->name('history-show');
 
 
         Route::get('/layer-appraisal', [LayerController::class, 'layerAppraisal'])->name('layer-appraisal');
+        Route::get('/layer-appraisal-data', [LayerController::class, 'layerAppraisalData'])->name('layer-appraisal.data');
         Route::get('/layer-appraisal/edit/{id}', [LayerController::class, 'layerAppraisalEdit'])->name('layer-appraisal.edit');
+        Route::get('/layer-appraisal-template', [LayerController::class, 'layerAppraisalTemplate'])->name('layer-appraisal.template');
         Route::post('/layer-appraisal/import', [LayerController::class, 'layerAppraisalImport'])->name('layer-appraisal.import');
+        Route::post('/layer-appraisal/duplicate', [LayerController::class, 'layerAppraisalDuplicate'])->name('layer-appraisal.duplicate');
         Route::post('/layer-appraisal/update', [LayerController::class, 'layerAppraisalUpdate'])->name('layer-appraisal.update');
         Route::get('/export-invalid-layer-appraisal', [LayerController::class, 'exportInvalidLayerAppraisal'])->name('export.invalid.layer.appraisal');
         Route::get('/employee-layer-appraisal/details/{employeeId}', [LayerController::class, 'getEmployeeLayerDetails']);
@@ -441,6 +451,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         // Route::get('/admin/get-report-content/{reportType}', [AdminReportController::class, 'getReportContent']);
         Route::post('/admin/get-report-content', [AdminReportController::class, 'getReportContent']);
         Route::get('/admin/reports/achievement-detail/{id}', [AdminReportController::class, 'achievementDetail'])->name('admin.reports.achievement-detail');
+        Route::get('/admin/reports/goal-detail/{id}', [AdminReportController::class, 'goalDetail'])->name('admin.reports.goal-detail');
         Route::get('/admin/changes-group-company', [AdminReportController::class, 'changesGroupCompany']);
         Route::get('/admin/changes-company', [AdminReportController::class, 'changesCompany']);
         //Employee

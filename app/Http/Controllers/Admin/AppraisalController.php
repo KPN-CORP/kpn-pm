@@ -58,7 +58,7 @@ class AppraisalController extends Controller
     $criteria = $this->buildCriteria($restrictionData);
     
     $period = $filterInputs['period'] ?? $this->appService->appraisalPeriod();
-
+    \App\Support\AppraisalLayerPeriod::view($period); // layer ikut periode yang dilihat
 
     /** ================================
      * PRELOAD MASTER RATING (1 QUERY)
@@ -198,6 +198,8 @@ class AppraisalController extends Controller
         'calibration' => fn ($q) => $q->where('period', $filters['period']),
         'appraisalContributor' => fn ($q) => $q->where('period', $filters['period']),
     ])
+    // Karyawan resign tetap tampil di periode tempat datanya ada.
+    ->inPeriod($filters['period'])
     ->where(function ($query) use ($criteria) {
         foreach ($criteria as $key => $value) {
             if (!empty($value)) {
@@ -331,6 +333,7 @@ class AppraisalController extends Controller
 {
     return EmployeeAppraisal::select($column)
         ->distinct()
+        ->inPeriod($period)
         ->whereHas('appraisal', fn ($q) => $q->where('period', $period))
         ->where(function ($query) use ($criteria) {
             foreach ($criteria as $key => $value) {
@@ -347,6 +350,7 @@ private function getDistinctCompany($column, $criteria, $period)
 {
     return EmployeeAppraisal::select('contribution_level_code', $column)
         ->distinct()
+        ->inPeriod($period)
         ->whereHas('appraisal', fn ($q) => $q->where('period', $period))
         ->where(function ($query) use ($criteria) {
             foreach ($criteria as $key => $value) {
@@ -396,12 +400,23 @@ private function getGroupCompanies()
     {
         $id = explode('_', decrypt($request->id))[0];
         $period = explode('_', decrypt($request->id))[1] ? explode('_', decrypt($request->id))[1] : $this->appService->appraisalPeriod();
+        \App\Support\AppraisalLayerPeriod::view($period); // layer ikut periode yang dilihat
 
         $data = EmployeeAppraisal::with(['appraisalLayer' => function ($query) {
             $query->where('layer_type', '!=', 'calibrator');
         }, 'appraisal' => function ($query) use ($period) {
             $query->where('period', $period);
-        }])->where('employee_id', $id)->get();
+        }])->inPeriod($period)->where('employee_id', $id)->get();
+
+        // Periode berjalan: kolom peers/subordinate tidak ditampilkan untuk
+        // karyawan di luar assignment 360 (penilaiannya juga tidak ikut skor).
+        if ((string) $period === (string) $this->appService->appraisalPeriod()
+            && \App\Support\Propose360Assignment::excludedFrom360((string) $id)) {
+            $data->each(fn ($item) => $item->setRelation(
+                'appraisalLayer',
+                $item->appraisalLayer->reject(fn ($l) => in_array($l->layer_type, ['peers', 'subordinate'], true))->values()
+            ));
+        }
 
 
         try {
@@ -496,7 +511,8 @@ private function getGroupCompanies()
 
             if ($id == 'summary') {
                 $datasQuery = AppraisalContributor::with(['employee'])->where('appraisal_id', $formId);
-                $datas = $datasQuery->get();
+                // Penilaian 360 karyawan di luar assignment tidak ikut summary.
+                $datas = \App\Support\Propose360Assignment::dropIneligible360($datasQuery->get());
 
                 $checkSnapshot = ApprovalSnapshots::where('form_id', $formId)->where('created_by', $datas->first()->employee->id)
                     ->orderBy('created_at', 'desc');
@@ -928,10 +944,15 @@ private function getGroupCompanies()
 
         $isZip = count($data) > $batchSize;
 
-        // Seed progress so the UI shows 0% immediately instead of "idle".
+        // Seed progress so the UI shows the request immediately instead of
+        // "idle". Status 'queued' (bukan 'processing') sampai queue worker
+        // benar-benar mengambil job-nya — job sendiri yang mengubahnya ke
+        // 'processing'. Dengan begitu UI bisa membedakan "sedang diproses"
+        // dari "belum diambil worker" (mis. worker tidak jalan).
         Cache::put('export_appraisal_progress_' . $userID, [
-            'status'  => 'processing',
-            'percent' => 0,
+            'status'    => 'queued',
+            'percent'   => 0,
+            'queued_at' => now()->timestamp,
         ], now()->addHour());
 
         $job = ExportAppraisalDetails::dispatch($this->appService, $data, $headers, $userID, $batchSize, Auth::user(), $period);
@@ -1005,6 +1026,12 @@ private function getGroupCompanies()
 
         if (!$progress) {
             return response()->json(['status' => 'idle', 'percent' => 0]);
+        }
+
+        // Lama menunggu dihitung di server supaya tidak bergantung pada jam
+        // di browser user.
+        if (($progress['status'] ?? null) === 'queued' && isset($progress['queued_at'])) {
+            $progress['waiting_seconds'] = max(0, now()->timestamp - $progress['queued_at']);
         }
 
         return response()->json($progress);

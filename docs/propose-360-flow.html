@@ -1,0 +1,715 @@
+<title>Alur Propose 360</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: dokumen teknis satu kolom, diagram lebar boleh scroll sendiri. */
+:root{
+  --bg:#f6f6f4; --surface:#ffffff; --fg:#1d2126; --muted:#5d6570; --line:#d5d8dc;
+  --accent:#ab2f2b; --accent-soft:#f6e4e2;
+  --lane-p:#eef3fa; --lane-s:#f3f3f1; --lane-a1:#fbf3e6; --lane-a2:#e9f5f2;
+  --stroke-p:#3b6db3; --stroke-a1:#b07417; --stroke-a2:#1f8a78; --stroke-s:#7a828c;
+  --edge:#4a525c; --bad:#c0392b; --tag:#fff7d6;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15181c; --surface:#1d2127; --fg:#e7e9ec; --muted:#9aa2ad; --line:#353b44;
+  --accent:#e2766f; --accent-soft:#3a2221;
+  --lane-p:#18212d; --lane-s:#1a1d21; --lane-a1:#2a2216; --lane-a2:#142622;
+  --stroke-p:#7ea6e0; --stroke-a1:#e0a64a; --stroke-a2:#4cc3ac; --stroke-s:#8d96a1;
+  --edge:#aab2bc; --bad:#ef6b5d; --tag:#3a3418; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15181c; --surface:#1d2127; --fg:#e7e9ec; --muted:#9aa2ad; --line:#353b44;
+  --accent:#e2766f; --accent-soft:#3a2221;
+  --lane-p:#18212d; --lane-s:#1a1d21; --lane-a1:#2a2216; --lane-a2:#142622;
+  --stroke-p:#7ea6e0; --stroke-a1:#e0a64a; --stroke-a2:#4cc3ac; --stroke-s:#8d96a1;
+  --edge:#aab2bc; --bad:#ef6b5d; --tag:#3a3418; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1140px;margin:0 auto;padding-block:40px 64px;display:flex;flex-direction:column;gap:44px}
+header{display:flex;flex-direction:column;gap:10px;max-width:760px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:34px;line-height:1.15;margin:0;font-weight:700;text-wrap:balance}
+h2{font-size:22px;margin:0;font-weight:600;text-wrap:balance}
+h3{font-size:16px;margin:0;font-weight:600}
+p{margin:0}
+.lead{color:var(--muted);font-size:16px}
+section{display:flex;flex-direction:column;gap:16px;min-width:0}
+section>p,section>ul,section>ol{max-width:780px}
+code,.mono{font-family:var(--font-mono);font-size:.88em}
+code{background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+ul,ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.kv div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.kv dt{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.kv dd{margin:0;font-weight:500;overflow-wrap:anywhere}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+figure{margin:0;display:flex;flex-direction:column;gap:10px}
+figcaption{color:var(--muted);font-size:14px;max-width:780px}
+svg.flow{display:block;width:100%;min-width:900px;height:auto;color:var(--edge);font-family:var(--font-body)}
+svg.state{display:block;width:100%;min-width:760px;height:auto;color:var(--edge);font-family:var(--font-body)}
+.lane{stroke:none}.lp{fill:var(--lane-p)}.ls{fill:var(--lane-s)}.la1{fill:var(--lane-a1)}.la2{fill:var(--lane-a2)}
+.lh{font-size:13px;font-weight:600;fill:var(--fg);text-anchor:middle;letter-spacing:.02em}
+.lhs{font-size:11px;fill:var(--muted);text-anchor:middle}
+.box{fill:var(--surface);stroke-width:1.5}
+.p{stroke:var(--stroke-p)}.s{stroke:var(--stroke-s)}.a1{stroke:var(--stroke-a1)}.a2{stroke:var(--stroke-a2)}
+.bad{fill:var(--surface);stroke:var(--bad);stroke-width:1.5}
+.tagbox{fill:var(--tag);stroke:var(--stroke-a1);stroke-dasharray:4 3}
+.endbox{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+.t{font-size:13px;font-weight:600;fill:var(--fg);text-anchor:middle}
+.st{font-size:11px;fill:var(--muted);text-anchor:middle}
+.e{fill:none;stroke:var(--edge);stroke-width:1.4}
+.ov{fill:none;stroke:var(--accent);stroke-width:1.5;stroke-dasharray:6 4}
+.el{font-size:11px;fill:var(--muted)}
+.elr{font-size:11px;fill:var(--accent);font-weight:500}
+.mid{text-anchor:middle}.end{text-anchor:end}
+.arrowhead{fill:var(--edge)}.arrowhead-r{fill:var(--accent)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+th,td{text-align:left;vertical-align:top;padding:10px 14px;border-bottom:1px solid var(--line)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;background:var(--lane-s)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:500;white-space:nowrap}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.pill{display:inline-block;font-family:var(--font-mono);font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.pill.warn{border-color:var(--stroke-a1);color:var(--stroke-a1)}
+.pill.ok{border-color:var(--stroke-a2);color:var(--stroke-a2)}
+.pill.sec{color:var(--muted)}
+.notes{display:flex;flex-direction:column;gap:12px;max-width:860px}
+.note{border-left:3px solid var(--line);padding:4px 0 4px 14px;display:flex;flex-direction:column;gap:4px}
+.note.risk{border-left-color:var(--accent)}
+.note h3{font-size:15px}
+.cast{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.cast div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.cast b{font-weight:600}.cast span{font-size:13px;color:var(--muted)}
+.role{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.role.p{color:var(--stroke-p)}.role.a1{color:var(--stroke-a1)}.role.a2{color:var(--stroke-a2)}.role.t{color:var(--accent)}.role.o{color:var(--muted)}
+.steps{display:flex;flex-direction:column;gap:28px}
+.step{display:grid;grid-template-columns:56px minmax(0,1fr);gap:14px}
+.step-no{font-family:var(--font-mono);font-size:13px;color:var(--accent);border:1px solid var(--accent);border-radius:999px;height:30px;display:flex;align-items:center;justify-content:center}
+.step-body{display:flex;flex-direction:column;gap:12px;min-width:0}
+.step-body h3{font-size:17px}
+.step-body .who{font-size:13px;color:var(--muted)}
+pre.json{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:var(--font-mono);font-size:12.5px;line-height:1.55}
+.jk{color:var(--stroke-p)}.jv{color:var(--stroke-a2)}.jc{color:var(--muted)}
+.mock{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.mock-head{display:flex;flex-wrap:wrap;gap:12px 32px;align-items:flex-start}
+.mock-kv{display:grid;grid-template-columns:96px 10px minmax(0,1fr);font-size:13.5px;row-gap:2px}
+.mock-kv span:nth-child(3n+1){color:var(--muted)}
+.mock-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{font-size:12.5px;padding:4px 10px;border-radius:5px;border:1px solid var(--accent);color:var(--accent);background:transparent;white-space:nowrap}
+.btn.solid{background:var(--accent);color:var(--surface)}
+.btn.warn{border-color:var(--stroke-a1);color:var(--stroke-a1)}
+.mock-sel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;background:var(--lane-s);border-radius:6px;padding:10px}
+.mock-sel div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.mock-sel b{font-size:12.5px}
+.sel{font-size:12.5px;border:1px solid var(--line);border-radius:5px;padding:5px 8px;background:var(--surface);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sel.off{color:var(--muted);background:var(--lane-s)}
+.rev{border:1px solid var(--stroke-a1);background:var(--lane-a1);border-radius:6px;padding:8px 12px;font-size:13.5px}
+.tip{font-size:12.5px;color:var(--muted)}
+.real{border:1px dashed var(--accent);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;max-width:860px}
+@media (max-width:600px){.mock-sel{grid-template-columns:minmax(0,1fr)}.step{grid-template-columns:minmax(0,1fr)}.step-no{width:56px}}
+footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+@media (max-width:600px){h1{font-size:27px}.wrap{padding-block:24px 48px;gap:36px}}
+</style>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">kpn-pm · Performance Management</span>
+  <h1>Alur Propose 360</h1>
+  <p class="lead">Dari atasan mengusulkan rater 360 (peers dan subordinate) untuk timnya, lewat approval berlapis di <code>ApprovalEngine</code>, sampai rater tertulis ke Layer Setting appraisal dan dipakai saat Appraisal 360. Disusun dari kode di branch <code>development</code> dan konfigurasi di DB stage per 25 Nov 2026.</p>
+</header>
+
+<section>
+  <h2>Konfigurasi yang sedang aktif</h2>
+  <dl class="kv">
+    <div><dt>Flow modul</dt><dd>Propose 360_2026 <span class="mono">(flows.id 7)</span></dd></div>
+    <div><dt>Assignment (target 360)</dt><dd>Proposed_360_2026: job_level 4A, 4B, 5A, 5B, 6A, 6B, 7A, 7B</dd></div>
+    <div><dt>Initiator</dt><dd>Hanya <code>manager_l1_id</code> (scope team). Self tidak diizinkan.</dd></div>
+    <div><dt>Approval flow</dt><dd>Approval Flow 360_CORP_2026 <span class="mono">(id 23)</span>, 2 step</dd></div>
+    <div><dt>Step 1</dt><dd>L1 Manager</dd></div>
+    <div><dt>Step 2</dt><dd>Role: Admin HC Corp, HCIS - HR Corporate (HO), Admin Corp - OD</dd></div>
+  </dl>
+  <p class="lead" style="font-size:14px">Data request di stage: periode 2025 ada 10 Pending di step 1 dan 1 Approved; periode 2026 ada 4 Pending di step 1.</p>
+</section>
+
+<section>
+  <h2>Siapa bisa membuka menu</h2>
+  <p>Menu dan route <code>/proposed360</code> dijaga middleware <code>flow_access:Propose 360</code> yang memanggil <code>Propose360Assignment::canAccess()</code>. Assignment menentukan <em>karyawan yang perlu di-360</em>, bukan siapa yang boleh membuka menu. User lolos jika salah satu terpenuhi:</p>
+  <ol>
+    <li>Ada request Proposed360 periode ini yang <code>current_approval_id</code>-nya = employee_id user (dia sedang ditunggu sebagai approver).</li>
+    <li>Flow mengizinkan initiator <code>self</code> dan user sendiri cocok dengan assignment.</li>
+    <li>User adalah atasan L1 (Layer Setting appraisal, layer_type <code>manager</code> layer 1, fallback <code>employees_pa.manager_l1_id</code>) dari minimal satu karyawan yang cocok dengan assignment.</li>
+  </ol>
+  <p>Pencocokan assignment: OR antar assignment, AND antar field (<code>designation</code>, <code>work_area_code</code>, <code>group_company</code>, <code>job_level</code>), tidak peka huruf besar/kecil. Jika tidak lolos, halaman mengembalikan 403.</p>
+</section>
+
+<section>
+  <h2>Flowchart end-to-end</h2>
+  <figure>
+    <div class="scroll">
+    <svg class="flow" viewBox="0 0 1110 1365" role="img" aria-label="Flowchart Propose 360: pengusul mengisi peers dan subordinate, sistem membuat request, L1 Manager menyetujui di step 1, role HC menyetujui di step 2 lewat Admin Tasks, lalu sistem menulis rater ke Layer Setting appraisal. Sendback mengembalikan ke pengusul; approver yang punya role apa pun langsung menyelesaikan approval.">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrowhead" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="ahr" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrowhead-r" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <!-- lanes -->
+      <rect class="lane lp" x="20" y="20" width="230" height="1325"/>
+      <rect class="lane ls" x="250" y="20" width="360" height="1325"/>
+      <rect class="lane la1" x="610" y="20" width="240" height="1325"/>
+      <rect class="lane la2" x="850" y="20" width="240" height="1325"/>
+      <text class="lh" x="135" y="40">PENGUSUL</text><text class="lhs" x="135" y="55">L1 karyawan / self</text>
+      <text class="lh" x="430" y="40">SISTEM</text><text class="lhs" x="430" y="55">Controller · Service · ApprovalEngine</text>
+      <text class="lh" x="730" y="40">APPROVER STEP 1</text><text class="lhs" x="730" y="55">menu Propose 360</text>
+      <text class="lh" x="970" y="40">APPROVER STEP 2</text><text class="lhs" x="970" y="55">menu Admin Tasks</text>
+
+      <!-- R1 -->
+      <rect class="box p" x="40" y="78" width="190" height="44" rx="22"/>
+      <text class="t" x="135" y="104">Buka menu Propose 360</text>
+      <path class="e" d="M230,100 H345" marker-end="url(#ah)"/>
+      <polygon class="box s" points="430,62 515,100 430,138 345,100"/>
+      <text class="t" x="430" y="97">Lolos</text><text class="t" x="430" y="112">flow_access?</text>
+      <path class="e" d="M515,100 H545" marker-end="url(#ah)"/>
+      <text class="el" x="530" y="92" text-anchor="middle">tidak</text>
+      <rect class="bad" x="545" y="84" width="58" height="32" rx="16"/>
+      <text class="t" x="574" y="105">403</text>
+      <path class="e" d="M430,138 V180" marker-end="url(#ah)"/>
+      <text class="el" x="440" y="163">ya</text>
+
+      <!-- R2 -->
+      <rect class="box s" x="280" y="180" width="300" height="60" rx="6"/>
+      <text class="t" x="430" y="205">index(): susun kartu Self &amp; Team</text>
+      <text class="st" x="430" y="223">assignment · Layer Setting · request aktif</text>
+      <path class="e" d="M280,210 H135 V285" marker-end="url(#ah)"/>
+      <text class="el" x="208" y="202" text-anchor="middle">form + status</text>
+
+      <!-- R3 -->
+      <rect class="box p" x="40" y="285" width="190" height="70" rx="6"/>
+      <text class="t" x="135" y="308">Pilih Peers 1–3</text>
+      <text class="t" x="135" y="325">&amp; Subordinate 1–3</text>
+      <text class="st" x="135" y="343">klik Propose → konfirmasi</text>
+      <path class="e" d="M230,320 H280" marker-end="url(#ah)"/>
+      <rect class="box s" x="280" y="290" width="300" height="60" rx="6"/>
+      <text class="t" x="430" y="315">POST /proposed360 → store()</text>
+      <text class="st" x="430" y="333">validasi form &amp; konfigurasi flow</text>
+      <path class="e" d="M430,350 V398" marker-end="url(#ah)"/>
+
+      <!-- R4 -->
+      <polygon class="box s" points="430,398 515,430 430,462 345,430"/>
+      <text class="t" x="430" y="435">Valid?</text>
+      <path class="e" d="M345,430 H135 V355" marker-end="url(#ah)"/>
+      <text class="el" x="240" y="422" text-anchor="middle">tidak: pesan error</text>
+      <path class="e" d="M430,462 V505" marker-end="url(#ah)"/>
+      <text class="el" x="440" y="488">ya</text>
+
+      <!-- R5 -->
+      <rect class="box s" x="280" y="505" width="300" height="70" rx="6"/>
+      <text class="t" x="430" y="528">Simpan transaksi + openForm()</text>
+      <text class="st" x="430" y="546">proposed_360_transactions: PENDING</text>
+      <text class="st" x="430" y="562">approval_requests: Pending · step 1</text>
+      <path class="e" d="M580,540 H630" marker-end="url(#ah)"/>
+      <rect class="box a1" x="630" y="510" width="200" height="60" rx="6"/>
+      <text class="t" x="730" y="534">Step 1 · L1 Manager</text>
+      <text class="st" x="730" y="552">kartu Team: Approve / Sendback</text>
+      <path class="e" d="M730,570 V620" marker-end="url(#ah)"/>
+
+      <!-- R6 -->
+      <polygon class="box a1" points="730,620 820,660 730,700 640,660"/>
+      <text class="t" x="730" y="665">Keputusan</text>
+      <path class="e" d="M640,660 H580" marker-end="url(#ah)"/>
+      <text class="el" x="610" y="652" text-anchor="middle">sendback</text>
+      <rect class="box s" x="280" y="630" width="300" height="60" rx="6"/>
+      <text class="t" x="430" y="655">Status Sendback + catatan revisi</text>
+      <text class="st" x="430" y="673">tetap di step yang sama · SEND_BACK</text>
+      <path class="e" d="M280,660 H230" marker-end="url(#ah)"/>
+      <rect class="box p" x="40" y="630" width="190" height="60" rx="6"/>
+      <text class="t" x="135" y="655">Revise</text>
+      <text class="st" x="135" y="673">ubah pilihan → kirim ulang</text>
+
+      <!-- R7 resubmit -->
+      <path class="e" d="M135,690 V770 H280" marker-end="url(#ah)"/>
+      <rect class="box s" x="280" y="740" width="300" height="60" rx="6"/>
+      <text class="t" x="430" y="765">resubmit(): kembali Pending</text>
+      <text class="st" x="430" y="783">approver dihitung ulang · RESUBMIT</text>
+      <path class="e" d="M580,770 H598 V560 H630" marker-end="url(#ah)"/>
+
+      <!-- approve step 1 -->
+      <path class="e" d="M730,700 V880 H530" marker-end="url(#ah)"/>
+      <text class="el" x="740" y="760">approve</text>
+      <polygon class="box s" points="430,840 530,880 430,920 330,880"/>
+      <text class="t" x="430" y="877">Approver punya</text><text class="t" x="430" y="893">role apa pun?</text>
+      <path class="ov" d="M330,880 H265 V1220 H280" marker-end="url(#ahr)"/>
+      <text class="elr end" x="258" y="1000">ya: langsung</text>
+      <text class="elr end" x="258" y="1015">Approved, step 2</text>
+      <text class="elr end" x="258" y="1030">dilewati</text>
+      <text class="elr end" x="258" y="1045">(APPROVE_OVERRIDE)</text>
+      <path class="e" d="M430,920 V960" marker-end="url(#ah)"/>
+      <text class="el" x="440" y="944">tidak</text>
+
+      <!-- step 2 -->
+      <rect class="box s" x="280" y="960" width="300" height="60" rx="6"/>
+      <text class="t" x="430" y="985">Naik ke step 2</text>
+      <text class="st" x="430" y="1003">current_approval_id = nama role · APPROVE</text>
+      <path class="e" d="M580,990 H870" marker-end="url(#ah)"/>
+      <rect class="box a2" x="870" y="960" width="200" height="60" rx="6"/>
+      <text class="t" x="970" y="984">Step 2 · Role HC</text>
+      <text class="st" x="970" y="1002">Admin Tasks: Approve / Sendback</text>
+      <path class="e" d="M970,1020 V1070" marker-end="url(#ah)"/>
+      <polygon class="box a2" points="970,1070 1060,1110 970,1150 880,1110"/>
+      <text class="t" x="970" y="1115">Keputusan</text>
+      <path class="e" d="M880,1110 H822" marker-end="url(#ah)"/>
+      <rect class="tagbox" x="640" y="1090" width="180" height="40" rx="6"/>
+      <text class="st" x="730" y="1107">Sendback: jalur sama</text>
+      <text class="st" x="730" y="1122">seperti step 1</text>
+      <path class="e" d="M970,1150 V1220 H580" marker-end="url(#ah)"/>
+      <text class="el" x="980" y="1190">approve</text>
+
+      <!-- finalize -->
+      <rect class="box s" x="280" y="1185" width="300" height="70" rx="6"/>
+      <text class="t" x="430" y="1208">Approved + finalize()</text>
+      <text class="st" x="430" y="1226">tulis approval_layer_appraisals</text>
+      <text class="st" x="430" y="1242">peers &amp; subordinate layer 1–3</text>
+      <path class="e" d="M430,1255 V1298" marker-end="url(#ah)"/>
+      <rect class="endbox" x="300" y="1298" width="260" height="40" rx="20"/>
+      <text class="t" x="430" y="1323">Rater Appraisal 360 terbentuk</text>
+    </svg>
+    </div>
+    <figcaption>Empat jalur: pengusul, sistem, approver step 1 (dari halaman Propose 360), approver step 2 (dari Admin Tasks). Garis merah putus-putus adalah jalur override: approver yang punya role Spatie apa pun menyelesaikan seluruh approval sekaligus.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>Siklus status request</h2>
+  <figure>
+    <div class="scroll">
+    <svg class="state" viewBox="0 0 920 280" role="img" aria-label="Status request: Draft, Pending step 1, Pending step 2, Approved. Dari Pending bisa Sendback, lalu Resubmit kembali ke Pending di step yang sama. Override langsung ke Approved.">
+      <defs>
+        <marker id="ah2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrowhead" d="M0,0 L10,5 L0,10 z"/></marker>
+        <marker id="ahr2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrowhead-r" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <rect class="box s" x="20" y="85" width="150" height="50" rx="8"/>
+      <text class="t" x="95" y="107">Draft</text><text class="st" x="95" y="124">belum ada request</text>
+      <rect class="box a1" x="240" y="85" width="170" height="50" rx="8"/>
+      <text class="t" x="325" y="107">Pending</text><text class="st" x="325" y="124">step 1 · L1 Manager</text>
+      <rect class="box a2" x="490" y="85" width="170" height="50" rx="8"/>
+      <text class="t" x="575" y="107">Pending</text><text class="st" x="575" y="124">step 2 · role HC</text>
+      <rect class="endbox" x="740" y="85" width="160" height="50" rx="8"/>
+      <text class="t" x="820" y="107">Approved</text><text class="st" x="820" y="124">rater ditulis</text>
+      <path class="e" d="M170,110 H240" marker-end="url(#ah2)"/><text class="el mid" x="205" y="102">Propose</text>
+      <path class="e" d="M410,110 H490" marker-end="url(#ah2)"/><text class="el mid" x="450" y="102">approve</text>
+      <path class="e" d="M660,110 H740" marker-end="url(#ah2)"/><text class="el mid" x="700" y="102">approve</text>
+      <rect class="box s" x="300" y="215" width="300" height="46" rx="8"/>
+      <text class="t" x="450" y="235">Sendback</text><text class="st" x="450" y="251">menunggu Revise dari pengusul</text>
+      <path class="e" d="M300,135 V215" marker-end="url(#ah2)"/><text class="el end" x="293" y="180">sendback</text>
+      <path class="e" d="M370,215 V135" marker-end="url(#ah2)"/><text class="el" x="377" y="180">resubmit</text>
+      <path class="e" d="M520,135 V215" marker-end="url(#ah2)"/><text class="el end" x="513" y="180">sendback</text>
+      <path class="e" d="M590,215 V135" marker-end="url(#ah2)"/><text class="el" x="597" y="180">resubmit</text>
+      <path class="ov" d="M325,85 C325,25 820,25 820,82" marker-end="url(#ahr2)"/>
+      <text class="elr mid" x="572" y="40">override: approver ber-role → langsung Approved</text>
+    </svg>
+    </div>
+    <figcaption>Tidak ada status Rejected: aksi "reject" di engine selalu menjadi Sendback. Resubmit kembali ke step tempat Sendback terjadi, bukan ke step 1. Status di <code>approval_requests</code> ditulis <span class="mono">Pending / Sendback / Approved</span>; di <code>proposed_360_transactions</code> ditulis <span class="mono">PENDING / APPROVED</span>.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>Data yang tampil di halaman Propose 360</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Kartu Self</h3>
+      <p>Muncul jika flow mengizinkan initiator <code>self</code> dan user cocok dengan assignment, atau user sudah punya request self. Dengan konfigurasi sekarang kartu ini tidak muncul.</p>
+    </div>
+    <div class="panel">
+      <h3>Kartu Team</h3>
+      <p>Satu kartu per karyawan yang L1-nya (Layer Setting appraisal) adalah user dan cocok dengan assignment, ditambah setiap karyawan yang request-nya sedang menunggu approval user, walaupun bukan timnya.</p>
+    </div>
+  </div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Field</th><th>Isi</th><th>Sumber</th></tr></thead>
+    <tbody>
+      <tr><td>Employee</td><td>Nama lengkap (employee_id)</td><td><code>employees_pa</code></td></tr>
+      <tr><td>Designation</td><td>Jabatan</td><td><code>employees_pa.designation_name</code></td></tr>
+      <tr><td>Submitted At</td><td>Tanggal request dibuat (d M Y), "-" jika belum ada</td><td><code>approval_requests.created_at</code></td></tr>
+      <tr><td>Status</td><td>Badge <span class="pill sec">draft</span> <span class="pill warn">pending</span> <span class="pill sec">sendback</span> <span class="pill ok">approved</span></td><td><code>approval_requests.status</code></td></tr>
+      <tr><td>Tooltip status</td><td>Pending: nama approver, atau "role: kandidat1, kandidat2" bila step berupa role. Approved: "Approved — diajukan …". Sendback: "Waiting for Revision - pengusul".</td><td><code>current_approval_id</code>, step role, pemegang role</td></tr>
+      <tr><td>Revision Notes</td><td>Catatan sendback, hanya untuk pengusul saat status Sendback</td><td><code>approval_requests.sendback_messages</code></td></tr>
+      <tr><td>Peers 1–3</td><td>Select2 dengan pencarian. Peers 1 wajib.</td><td>Terisi dari transaksi jika request ada, kalau belum dari layer <code>peers</code> yang sudah ada</td></tr>
+      <tr><td>Subordinate 1–3</td><td>Hanya muncul jika karyawan punya bawahan. Subordinate 1 wajib.</td><td>Sama seperti Peers, layer <code>subordinate</code></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Tombol</th><th>Muncul jika</th><th>Aksi</th></tr></thead>
+    <tbody>
+      <tr><td>Propose</td><td>Belum ada request periode ini untuk karyawan itu</td><td><code>POST /proposed360</code> → <code>store()</code></td></tr>
+      <tr><td>Revise</td><td>Status Sendback dan user adalah pembuat request</td><td><code>POST /proposed360/resubmit</code></td></tr>
+      <tr><td>Approve</td><td>Status Pending dan <code>current_approval_id</code> = employee_id user</td><td><code>POST /proposed360/action</code> APPROVE, membawa pilihan peers/subordinate di form</td></tr>
+      <tr><td>Sendback</td><td>Sama dengan Approve; wajib isi alasan (maks 500 karakter di popup)</td><td><code>POST /proposed360/action</code> REJECT via AJAX</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p>Dropdown hanya bisa diubah oleh pengusul saat draft atau sendback. Approver melihatnya dalam keadaan disabled, jadi approve mengirim ulang pilihan yang sudah ada.</p>
+</section>
+
+<section>
+  <h2>Aturan dropdown dan validasi</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Kandidat Peers</h3>
+      <p>Semua karyawan di <code>employees_pa</code>, dikurangi:</p>
+      <ul>
+        <li>karyawan itu sendiri, L1 dan L2-nya</li>
+        <li>L1 dan L2 dari atasan L1-nya</li>
+        <li>bawahan langsung (karyawan sebagai L1)</li>
+        <li>karyawan yang L2-nya adalah dia, beserta L1 dan L2 mereka</li>
+      </ul>
+      <p>Daftar dikirim sekali ke browser, Select2 mencari dan memaginasi 50 per halaman.</p>
+    </div>
+    <div class="panel">
+      <h3>Opsi Subordinate</h3>
+      <p>Karyawan yang L1 atau L2-nya adalah karyawan target (Layer Setting appraisal). Jika kosong, bagian Subordinate tidak tampil dan tidak wajib.</p>
+      <h3>Validasi di browser</h3>
+      <ul><li>Peers 1 wajib, Subordinate 1 wajib jika ada</li><li>Konfirmasi "Are you sure?" sebelum kirim</li></ul>
+    </div>
+  </div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Cek di server</th><th>Pesan jika gagal</th></tr></thead>
+    <tbody>
+      <tr><td>Maks 3 peers dan 3 subordinate, tanpa duplikat</td><td>Validasi Laravel</td></tr>
+      <tr><td>Scope self hanya untuk diri sendiri</td><td>Scope self hanya untuk diri sendiri</td></tr>
+      <tr><td>Flow "Propose 360" ada</td><td>Flow Propose 360 tidak ditemukan</td></tr>
+      <tr><td>Target cocok dengan assignment</td><td>Karyawan ini tidak termasuk assignment Propose 360</td></tr>
+      <tr><td>Initiator cocok dengan scope (team: user harus L1 target)</td><td>Akses inisiasi tidak diizinkan untuk scope ini</td></tr>
+      <tr><td>Approval flow punya step</td><td>Approval flow belum memiliki step</td></tr>
+      <tr><td>Approver step 1 bisa ditemukan</td><td>Approver "L1 Manager" untuk step "1" tidak ditemukan: karyawan … belum punya atasan di Layer Setting appraisal</td></tr>
+      <tr><td>Saat approve: Peers 1 ada, Subordinate 1 ada jika karyawan punya bawahan</td><td>Peers layer 1 wajib diisi / Subordinate layer 1 wajib diisi</td></tr>
+    </tbody>
+  </table>
+  </div>
+</section>
+
+<section>
+  <h2>Siapa approver di tiap step</h2>
+  <p><code>ApprovalEngine::resolveApprover()</code> membaca <code>approver_role</code> step dan, secara default, menghitungnya dari sudut pandang <strong>pengusul</strong> (<code>approver_context = initiator</code>).</p>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Step 1 · L1 Manager</h3>
+      <p>Menjadi employee_id atasan L1 <em>pengusul</em>. Karena pengusul adalah L1 karyawan, yang menyetujui adalah L2 karyawan. Request tampil di kartu Team milik approver itu. Perilaku ini sengaja dipertahankan.</p>
+      <p>Jika pengusul tidak punya atasan di Layer Setting, submit ditolak dengan pesan error.</p>
+    </div>
+    <div class="panel">
+      <h3>Step 2 · Role HC</h3>
+      <p><code>current_approval_id</code> diisi nama role pertama yang ada di tabel roles (urutan: Admin HC Corp, HCIS - HR Corporate (HO), Admin Corp - OD). Hanya pemegang role itu yang bisa bertindak, lewat menu <strong>Admin Tasks</strong>.</p>
+      <p>Admin Tasks butuh permission <code>viewlayer</code> (route) dan <code>adminmenu</code> (sidebar). Daftar berisi request Pending kategori Proposed360 yang karyawannya masuk restriction role user (group_company, contribution_level_code, work_area_code). Detail menampilkan target, initiator, scope, peers, subordinate, notes, step dan kandidat approver.</p>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>Data yang ditulis per aksi</h2>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Aksi</th><th>proposed_360_transactions</th><th>approval_requests</th><th>approval_logs</th></tr></thead>
+    <tbody>
+      <tr><td>Propose</td><td>Insert: id (uuid), employee_id, proposer_employee_id, scope, peers[], subordinates[], status PENDING, approval_flow_id, current_step 1, appraisal_year</td><td>Insert: form_id, category Proposed360, employee_id, period, approval_flow_id, total_steps, current_step 1, current_approval_id, status Pending, created_by</td><td>OPEN_FORM</td></tr>
+      <tr><td>Approve (bukan step terakhir)</td><td>peers dan subordinates ditimpa dengan nilai dari form</td><td>current_step + 1, current_approval_id = approver berikutnya</td><td>APPROVE</td></tr>
+      <tr><td>Approve (step terakhir)</td><td>status APPROVED (lewat finalize)</td><td>status Approved</td><td>APPROVE. Dari Admin Tasks hampir selalu tercatat APPROVE_OVERRIDE, karena pemegang role step 2 pasti punya role.</td></tr>
+      <tr><td>Override</td><td>status APPROVED (lewat finalize)</td><td>status Approved, current_step = total, current_approval_id = nama role user</td><td>APPROVE_OVERRIDE</td></tr>
+      <tr><td>Sendback</td><td>Tidak berubah (tetap PENDING)</td><td>status Sendback, sendback_messages, step dan approver tetap</td><td>SEND_BACK / SEND_BACK_OVERRIDE</td></tr>
+      <tr><td>Revise</td><td>peers, subordinates diperbarui, status PENDING</td><td>status Pending, approver dihitung ulang di step yang sama</td><td>RESUBMIT</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p><strong>finalize()</strong> menulis ke <code>approval_layer_appraisals</code> per karyawan: baris <code>layer_type</code> = <code>peers</code> dan <code>subordinate</code>, layer 1–3, <code>approver_id</code> = rater terpilih. Layer yang kosong dihapus, layer di atas 3 dihapus. Layer <code>manager</code> tidak disentuh. Setiap aksi juga tercatat sebagai JSON di <code>storage/logs/audit.log</code>. Jika finalize gagal, request tetap Approved dan error dicatat sebagai <code>approval.finalize.failed</code>.</p>
+</section>
+
+<section id="contoh">
+  <h2>Contoh kasus: Rolles mengusulkan rater untuk Metta</h2>
+  <p>Contoh ini memakai pengajuan asli di DB stage, <span class="mono">request #41647</span>: Rolles Herwin Sihombing mengusulkan rater 360 untuk Metta Saputra, periode 2026. Tahap 1–6 sudah terjadi dan datanya ditampilkan apa adanya. Tahap 7–8 belum terjadi; isinya adalah data yang akan ditulis sistem jika approval dilanjutkan, dihitung dari kode dan konfigurasi saat ini.</p>
+  <p>Request ini dibuat 20 Nov 2026, sebelum flow 23 dibuat (23 Nov). Flow disimpan per request, jadi request ini tetap mengikuti <strong>Approval Flow 360_CORP_2025 (id 19)</strong>: step 1 L1 Manager, step 2 role Admin HC Corp, HC Corp, OD, superadmin.</p>
+  <div class="cast">
+    <div><span class="role t">Target</span><b>Metta Saputra</b><span>01124040023 · Product Specialist · 5A · KPN Corporation</span></div>
+    <div><span class="role p">Pengusul (L1 Metta)</span><b>Rolles Herwin Sihombing</b><span>01123070004 · HC Information System Department Head · user id 23915</span></div>
+    <div><span class="role a1">Step 1 (L1 Rolles = L2 Metta)</span><b>Budi Setiono</b><span>01122100006 · Corporate HC Division Head · tidak punya role Spatie</span></div>
+    <div><span class="role a2">Step 2 (role Admin HC Corp)</span><b>Naomi Octaviana, Nasya Zuniga</b><span>01125050019 / 01126010022 · restriction group_company KPN Corporation</span></div>
+    <div><span class="role o">L2 Rolles</span><b>Jacqueline Sitorus</b><span>01112010004 · CEO KPN Downstream &amp; Group HC</span></div>
+    <div><span class="role o">Peers yang diusulkan</span><b>Janice, Fredian, Dali</b><span>01124090037 / 01126010024 / 01126010010</span></div>
+    <div><span class="role o">Bawahan Metta</span><b>Tidak ada</b><span>bagian Subordinate tidak tampil</span></div>
+  </div>
+
+  <div class="steps">
+
+    <div class="step"><div class="step-no">1</div><div class="step-body">
+      <h3>Kondisi awal di Layer Setting</h3>
+      <p>Metta berjob_level 5A, jadi cocok dengan assignment Proposed_360_2026. Rolles tercatat sebagai L1 Metta, sehingga menu Propose 360 terbuka untuk Rolles dan Metta muncul di bagian Team-nya bersama anggota tim lain. Metta sudah punya baris peers dari data sebelumnya.</p>
+      <div class="scroll"><table>
+        <thead><tr><th>approval_layer_appraisals</th><th>layer_type</th><th>layer</th><th>approver_id</th></tr></thead>
+        <tbody>
+          <tr><td>01124040023 (Metta)</td><td>manager</td><td>1</td><td>01123070004 (Rolles)</td></tr>
+          <tr><td>01124040023 (Metta)</td><td>peers</td><td>1</td><td>01126010018 (Muhammad Alif Afrizal)</td></tr>
+          <tr><td>01124040023 (Metta)</td><td>peers</td><td>2</td><td>01126010024 (Fredian Simanjuntak)</td></tr>
+          <tr><td>01124040023 (Metta)</td><td>peers</td><td>3</td><td>01126010010 (Dali Kewara)</td></tr>
+          <tr><td>01124040023 (Metta)</td><td>calibrator</td><td>1</td><td>01123070004 (Rolles)</td></tr>
+          <tr><td>01124040023 (Metta)</td><td>calibrator</td><td>2</td><td>01122100006 (Budi)</td></tr>
+          <tr><td>01123070004 (Rolles)</td><td>manager</td><td>1</td><td>01122100006 (Budi)</td></tr>
+        </tbody>
+      </table></div>
+      <p>L2 dihitung sebagai L1 dari si L1: L2 Metta = L1 Rolles = Budi. L2 Rolles = L1 Budi = Jacqueline.</p>
+    </div></div>
+
+    <div class="step"><div class="step-no">2</div><div class="step-body">
+      <h3>Rolles membuka Propose 360</h3>
+      <p class="who">Tampilan Rolles sebelum mengajukan: kartu Metta, status draft. Peers sudah terisi dari baris peers yang ada di Layer Setting.</p>
+      <div class="mock">
+        <div class="mock-head">
+          <div class="mock-kv"><span>Employee</span><span>:</span><span>Metta Saputra (01124040023)</span><span>Designation</span><span>:</span><span>Product Specialist</span></div>
+          <div class="mock-kv"><span>Submitted At</span><span>:</span><span>-</span><span>Status</span><span>:</span><span><span class="pill sec">draft</span></span></div>
+          <div class="mock-actions"><span class="btn solid">Propose</span></div>
+        </div>
+        <div class="mock-sel">
+          <div><b>Peers 1</b><span class="sel">Muhammad Alif Afrizal 01126010018</span></div>
+          <div><b>Peers 2</b><span class="sel">Fredian Simanjuntak 01126010024</span></div>
+          <div><b>Peers 3</b><span class="sel">Dali Kewara 01126010010</span></div>
+        </div>
+      </div>
+      <p>Metta tidak punya bawahan, jadi bagian Subordinate tidak muncul dan tidak wajib. Untuk Peers, browser menerima daftar semua karyawan dan daftar yang dikecualikan untuk Metta:</p>
+<pre class="json">"exclude": {
+  "01124040023": [
+    "01124040023",  <span class="jc">// Metta sendiri</span>
+    "01123070004",  <span class="jc">// L1 Metta (Rolles)</span>
+    "01122100006",  <span class="jc">// L2 Metta, juga L1 Rolles (Budi)</span>
+    "01112010004"   <span class="jc">// L2 Rolles (Jacqueline)</span>
+  ]
+}</pre>
+    </div></div>
+
+    <div class="step"><div class="step-no">3</div><div class="step-body">
+      <h3>Rolles mengajukan (Propose)</h3>
+      <p class="who">20 Nov 2026 03:42:26 · <code>POST /proposed360</code></p>
+      <p>Step 1 "L1 Manager" dihitung dari pengusul, jadi hasilnya L1 Rolles, yaitu Budi Setiono. Isi peers pengajuan pertama tidak tersimpan, karena Revise di tahap 6 menimpa transaksi yang sama. Di bawah ini isi transaksi saat ini.</p>
+<pre class="json"><span class="jc">// proposed_360_transactions</span>
+{
+  "id": "265414e5-183e-4741-8088-60c81dbf9683",
+  "employee_id": "01124040023",
+  "proposer_employee_id": "01123070004",
+  "scope": "team",
+  "peers": ["01124090037", "01126010024", "01126010010"],
+  "subordinates": [],
+  "managers": [],
+  "status": "PENDING",
+  "approval_flow_id": 19,
+  "current_step": 1,
+  "appraisal_year": 2026,
+  "created_by": 23915,
+  "created_at": "2026-11-20 03:42:26"
+}
+
+<span class="jc">// approval_requests saat dibuat</span>
+{
+  "id": 41647,
+  "form_id": "265414e5-183e-4741-8088-60c81dbf9683",
+  "category": "Proposed360",
+  "employee_id": "01124040023",
+  "period": 2026,
+  "approval_flow_id": 19,
+  "total_steps": 2,
+  "current_step": 1,
+  "current_approval_id": "01122100006",   <span class="jc">// Budi Setiono</span>
+  "status": "Pending",
+  "created_by": 23915                     <span class="jc">// users.id Rolles</span>
+}
+
+<span class="jc">// approval_logs #47</span>
+{ "action": "OPEN_FORM", "actor_employee_id": "01123070004", "step_from": null, "step_to": 1,
+  "status_from": "Draft", "status_to": "Pending", "approver_to": "01122100006",
+  "comments": "Approval request created",
+  "meta_json": { "period": 2026, "form_id": "265414e5-…", "employee_id": "01124040023",
+                 "initiator_id": "01123070004", "total_steps": 2, "current_approval_id": "01122100006" } }</pre>
+    </div></div>
+
+    <div class="step"><div class="step-no">4</div><div class="step-body">
+      <h3>Budi melihat pengajuan</h3>
+      <p>Budi bukan L1 Metta, tapi menu terbuka karena ada request yang menunggunya, dan kartu Metta tampil di bagian Team-nya. Dropdown terkunci.</p>
+      <p class="who">Tampilan Budi:</p>
+      <div class="mock">
+        <div class="mock-head">
+          <div class="mock-kv"><span>Employee</span><span>:</span><span>Metta Saputra (01124040023)</span><span>Designation</span><span>:</span><span>Product Specialist</span></div>
+          <div class="mock-kv"><span>Submitted At</span><span>:</span><span>20 Nov 2026</span><span>Status</span><span>:</span><span><span class="pill warn">pending</span> <span class="tip">tooltip: Budi Setiono (01122100006)</span></span></div>
+          <div class="mock-actions"><span class="btn warn">Sendback</span><span class="btn solid">Approve</span></div>
+        </div>
+        <div class="mock-sel">
+          <div><b>Peers 1</b><span class="sel off">Janice Olivia Limawan 01124090037</span></div>
+          <div><b>Peers 2</b><span class="sel off">Fredian Simanjuntak 01126010024</span></div>
+          <div><b>Peers 3</b><span class="sel off">Dali Kewara 01126010010</span></div>
+        </div>
+      </div>
+      <p>Rolles melihat kartu yang sama dengan status pending dan tooltip yang sama, tanpa tombol.</p>
+    </div></div>
+
+    <div class="step"><div class="step-no">5</div><div class="step-body">
+      <h3>Budi mengembalikan (Sendback)</h3>
+      <p class="who">20 Nov 2026 03:59:06 · popup alasan → <code>POST /proposed360/action</code></p>
+<pre class="json"><span class="jc">// payload</span>
+form_id=265414e5-…  action=REJECT  sendback_message="..."
+
+<span class="jc">// approval_requests (berubah)</span>
+{ "status": "Sendback", "current_step": 1, "current_approval_id": "01122100006",
+  "sendback_messages": "...", "sendback_to": null }
+
+<span class="jc">// proposed_360_transactions: tidak berubah, status tetap "PENDING"</span>
+
+<span class="jc">// approval_logs #49</span>
+{ "action": "SEND_BACK", "actor_employee_id": "01122100006", "actor_role": "01122100006",
+  "step_from": 1, "step_to": 1, "status_from": "Pending", "status_to": "Sendback", "comments": "...",
+  "meta_json": { "override": false, "sendback_to": null, … } }</pre>
+      <p>Tercatat SEND_BACK biasa (bukan override) karena Budi tidak punya role Spatie.</p>
+    </div></div>
+
+    <div class="step"><div class="step-no">6</div><div class="step-body">
+      <h3>Rolles merevisi (Revise)</h3>
+      <p class="who">Tampilan Rolles setelah sendback:</p>
+      <div class="mock">
+        <div class="rev"><b>Revision Notes :</b><br>...</div>
+        <div class="mock-head">
+          <div class="mock-kv"><span>Employee</span><span>:</span><span>Metta Saputra (01124040023)</span><span>Designation</span><span>:</span><span>Product Specialist</span></div>
+          <div class="mock-kv"><span>Submitted At</span><span>:</span><span>20 Nov 2026</span><span>Status</span><span>:</span><span><span class="pill sec">sendback</span> <span class="tip">tooltip: Waiting for Revision - Rolles Herwin Sihombing (01123070004)</span></span></div>
+          <div class="mock-actions"><span class="btn warn">Revise</span></div>
+        </div>
+        <div class="mock-sel">
+          <div><b>Peers 1</b><span class="sel">Janice Olivia Limawan 01124090037</span></div>
+          <div><b>Peers 2</b><span class="sel">Fredian Simanjuntak 01126010024</span></div>
+          <div><b>Peers 3</b><span class="sel">Dali Kewara 01126010010</span></div>
+        </div>
+      </div>
+<pre class="json"><span class="jc">// POST /proposed360/resubmit · 20 Nov 2026 08:00:15</span>
+form_id=265414e5-…  mode=RESUBMIT  scope=team  employee_id=01124040023  appraisal_year=2026
+peers[]=01124090037  peers[]=01126010024  peers[]=01126010010
+
+<span class="jc">// approval_requests sekarang (data asli, belum berubah sejak resubmit)</span>
+{ "id": 41647, "status": "Pending", "current_step": 1, "current_approval_id": "01122100006",
+  "sendback_messages": "...", "sendback_to": null, "updated_by": 23915, "updated_at": "2026-11-20 08:00:15" }
+
+<span class="jc">// approval_logs #50</span>
+{ "action": "RESUBMIT", "actor_employee_id": "01123070004", "loggable_type": "Proposed360",
+  "step_from": 1, "step_to": 1, "status_from": "Sendback", "status_to": "PENDING",
+  "approver_from": "01122100006", "approver_to": "01122100006", "meta_json": { "reason": "sendback_revision" } }</pre>
+      <p><strong>Posisi saat ini:</strong> request menunggu Budi Setiono di step 1. Catatan sendback lama ("...") masih tersimpan di <code>sendback_messages</code> sampai ada approve.</p>
+    </div></div>
+
+    <div class="step"><div class="step-no">7</div><div class="step-body">
+      <h3>Jika Budi menyetujui step 1 <span class="pill sec">belum terjadi</span></h3>
+<pre class="json"><span class="jc">// POST /proposed360/action</span>
+form_id=265414e5-…  action=APPROVE  having_subs=   <span class="jc">// kosong: Metta tidak punya bawahan</span>
+peers[]=01124090037  peers[]=01126010024  peers[]=01126010010
+
+<span class="jc">// approval_requests (akan berubah)</span>
+{ "status": "Pending", "current_step": 2,
+  "current_approval_id": "Admin HC Corp",   <span class="jc">// role pertama step 2 flow 19 yang ada di tabel roles</span>
+  "sendback_messages": null }
+
+<span class="jc">// approval_logs</span>
+{ "action": "APPROVE", "actor_employee_id": "01122100006", "step_from": 1, "step_to": 2,
+  "status_from": "Pending", "status_to": "Pending",
+  "approver_from": "01122100006", "approver_to": "Admin HC Corp", "meta_json": { "next_step_name": "2", … } }</pre>
+      <p>Budi tidak punya role, jadi jalurnya normal ke step 2. Tooltip status di halaman Rolles akan berisi semua pemegang role step 2: Admin HC Corp (Naomi Octaviana, Nasya Zuniga), HC Corp (1 orang), OD (4 orang), superadmin (Dali Kewara).</p>
+    </div></div>
+
+    <div class="step"><div class="step-no">8</div><div class="step-body">
+      <h3>Jika admin HC menyetujui di Admin Tasks <span class="pill sec">belum terjadi</span></h3>
+      <p class="who">Baris di daftar Admin Tasks Naomi atau Nasya (Metta masuk restriction group_company KPN Corporation):</p>
+      <div class="mock">
+        <div class="mock-head">
+          <div style="display:flex;flex-direction:column;gap:2px;font-size:13.5px;min-width:0">
+            <b>Proposed360 — Period 2026</b>
+            <span class="tip">Employee: Metta Saputra (01124040023)</span>
+            <span class="tip">Step 2 / 2</span>
+            <span>Waiting for (Role): <b>Admin HC Corp, HC Corp, OD, superadmin</b></span>
+            <span class="tip">Approver: Naomi Octaviana (01125050019), Nasya Zuniga (01126010022), …</span>
+          </div>
+          <div class="mock-actions" style="flex-direction:column;align-items:flex-end;gap:4px"><span class="pill warn">pending</span><span class="tip">20 Nov 2026 03:42</span></div>
+        </div>
+      </div>
+      <p>Pemegang role selalu lolos <code>hasOverridePrivilege()</code>, jadi approve dari Admin Tasks masuk jalur override. Hasil akhirnya tetap Approved, tetapi <code>current_approval_id</code> diisi role pertama si admin dan log-nya APPROVE_OVERRIDE.</p>
+<pre class="json"><span class="jc">// POST /admin-tasks/41647  action=APPROVE  (misal oleh Naomi)</span>
+
+<span class="jc">// approval_requests (akan berubah)</span>
+{ "status": "Approved", "current_step": 2, "current_approval_id": "&lt;role pertama Naomi&gt;", "sendback_messages": null }
+
+<span class="jc">// approval_logs</span>
+{ "action": "APPROVE_OVERRIDE", "actor_employee_id": "01125050019", "step_from": 2, "step_to": 2,
+  "status_from": "Pending", "status_to": "Approved", "approver_from": "Admin HC Corp",
+  "meta_json": { "override": true, "final": true, … } }
+
+<span class="jc">// proposed_360_transactions (lewat finalize)</span>
+{ "status": "APPROVED" }</pre>
+      <p>Hasil akhir di <code>approval_layer_appraisals</code> untuk Metta. Baris inilah yang dipakai sebagai daftar rater saat Appraisal 360:</p>
+      <div class="scroll"><table>
+        <thead><tr><th>employee_id</th><th>layer_type</th><th>layer</th><th>approver_id</th><th>Perubahan</th></tr></thead>
+        <tbody>
+          <tr><td>01124040023</td><td>manager</td><td>1</td><td>01123070004 (Rolles)</td><td>tidak disentuh</td></tr>
+          <tr><td>01124040023</td><td>peers</td><td>1</td><td>01124090037 (Janice Olivia Limawan)</td><td>berubah, sebelumnya Muhammad Alif Afrizal</td></tr>
+          <tr><td>01124040023</td><td>peers</td><td>2</td><td>01126010024 (Fredian Simanjuntak)</td><td>sama, updated_by diisi</td></tr>
+          <tr><td>01124040023</td><td>peers</td><td>3</td><td>01126010010 (Dali Kewara)</td><td>sama, updated_by diisi</td></tr>
+          <tr><td>01124040023</td><td>calibrator</td><td>1–2</td><td>Rolles, Budi</td><td>tidak disentuh</td></tr>
+          <tr><td>01124040023</td><td>subordinate</td><td>–</td><td>–</td><td>tetap tidak ada (daftar kosong)</td></tr>
+        </tbody>
+      </table></div>
+    </div></div>
+  </div>
+
+  <h3>Jejak audit request #41647</h3>
+  <div class="scroll"><table>
+    <thead><tr><th>Waktu</th><th>action</th><th>Aktor</th><th>Step</th><th>Status</th><th>approver_from → approver_to</th></tr></thead>
+    <tbody>
+      <tr><td>20 Nov 03:42</td><td>OPEN_FORM</td><td>Rolles</td><td>– → 1</td><td>Draft → Pending</td><td>– → 01122100006</td></tr>
+      <tr><td>20 Nov 03:59</td><td>SEND_BACK</td><td>Budi</td><td>1 → 1</td><td>Pending → Sendback</td><td>01122100006 → 01122100006</td></tr>
+      <tr><td>20 Nov 08:00</td><td>RESUBMIT</td><td>Rolles</td><td>1 → 1</td><td>Sendback → PENDING</td><td>01122100006 → 01122100006</td></tr>
+      <tr><td><span class="pill sec">belum</span></td><td>APPROVE</td><td>Budi</td><td>1 → 2</td><td>Pending → Pending</td><td>01122100006 → Admin HC Corp</td></tr>
+      <tr><td><span class="pill sec">belum</span></td><td>APPROVE_OVERRIDE</td><td>Naomi / Nasya</td><td>2 → 2</td><td>Pending → Approved</td><td>Admin HC Corp → –</td></tr>
+    </tbody>
+  </table></div>
+  <p>Satu hal yang perlu diperhatikan: Dali Kewara diusulkan sebagai peers Metta dan juga pemegang role superadmin di step 2. Jika Dali punya akses Admin Tasks, Dali bisa menyetujui pengajuan yang menjadikan dirinya rater.</p>
+
+  <div class="real">
+    <h3>Contoh nyata di stage: jalur override</h3>
+    <p>Request <span class="mono">#23935</span> (flow 360_PTY_2025) dibuat 28 Nov 2025 dengan approver step 1 seorang karyawan. Pada 5 Jan 2026 user lain yang punya role menyetujuinya langsung dari step 1. Hasilnya:</p>
+<pre class="json">approval_requests   { "status": "Approved", "current_step": 2, "current_approval_id": "HCBU PTY" }   <span class="jc">// diisi nama role si pemberi approve</span>
+approval_logs       { "action": "APPROVE_OVERRIDE", "step_from": 1, "step_to": 2, "status_to": "Approved",
+                      "meta_json": { "override": true, "final": true } }
+proposed_360_trx    { "status": "APPROVED", "current_step": 1 }   <span class="jc">// current_step transaksi tidak pernah diperbarui</span></pre>
+    <p>Step 1 tidak pernah disetujui oleh approver yang ditunjuk, dan step 2 tidak pernah dijalankan. Di request lain (<span class="mono">#23217</span>) dua sendback dilakukan oleh user yang bukan approver, tercatat sebagai SEND_BACK_OVERRIDE.</p>
+  </div>
+</section>
+
+<section>
+  <h2>Catatan penting</h2>
+  <div class="notes">
+    <div class="note risk">
+      <h3>Override terlalu longgar</h3>
+      <p><code>hasOverridePrivilege()</code> bernilai benar untuk setiap user yang punya minimal satu role Spatie. Approver step 1 yang kebetulan punya role apa pun akan langsung membuat request Approved dan melewati step HC. Hal yang sama berlaku di Admin Tasks: pemegang role bisa menyetujui request yang masih di step 1. Di stage sudah ada 1 APPROVE_OVERRIDE dan 2 SEND_BACK_OVERRIDE.</p>
+    </div>
+    <div class="note">
+      <h3>Sendback tidak kembali ke step 1</h3>
+      <p>Sendback dari step 2 membuat request kembali ke pengusul; setelah Revise, request kembali ke role HC di step 2, bukan ke L1 Manager lagi.</p>
+    </div>
+    <div class="note">
+      <h3>Tidak ada notifikasi</h3>
+      <p>Tidak ada email atau badge untuk Propose 360 (badge di sidebar di-comment). Approver step 1 harus membuka menu sendiri; menu muncul karena ada request yang menunggunya.</p>
+    </div>
+    <div class="note">
+      <h3>Jalur lama masih terdaftar</h3>
+      <p>Route <code>POST /approval/{id}/action</code> (<code>ApprovalController::processAction</code>) masih menangani Proposed360 dengan konvensi lama (<code>current_approval_id</code> berupa JSON array). Tidak ada halaman yang memanggilnya.</p>
+    </div>
+    <div class="note">
+      <h3>Kolom managers tidak dipakai</h3>
+      <p>Kolom <code>managers</code> di transaksi selalu kosong; input dan sinkronisasi layer manager di-comment.</p>
+    </div>
+  </div>
+</section>
+
+<footer>Sumber: Proposed360Controller, Proposed360Service, ApprovalEngine, Propose360Assignment, AdminTasksController, resources/views/pages/proposed-360/app.blade.php, resources/js/proposed360.js, serta tabel flows, assignments, approval_flows dan approval_flow_steps di DB stage (hcispanel_hc_stage).</footer>
+</div>

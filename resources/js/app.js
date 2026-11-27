@@ -33,6 +33,7 @@ import 'datatables.net-buttons/js/buttons.html5.js';
 
 import './plugins/perfect-scrollbar.min.js';
 
+import { initializePopovers } from './popovers.js';
 import './script.js';
 import './quill.min.js';
 
@@ -46,6 +47,7 @@ import './layer-appraisal.js';
 import './rating.js';
 import './report.js';
 import './schedule.js';
+import './employee-pa.js';
 import './role.js';
 import './layer.js';
 import './admin-appraisal.js';
@@ -83,19 +85,16 @@ $(document).ready(() => {
 
         // Bootstrap Components
         function initComponents() {
-            // loader - Preloader
-            $(window).on("load", function () {
-                $("#status").fadeOut();
-                $("#preloader").delay(350).fadeOut("slow");
-            });
+            // loader - Preloader: ditutup di script.js saat DOMContentLoaded.
+            // (Dulu di sini menunggu window.load + delay 350ms + fadeOut
+            // "slow" 600ms, sehingga overlay tetap tampil ~1 detik setelah
+            // semua gambar/font selesai, padahal konten sudah siap.)
 
-            // Popovers
-            const popoverTriggerList = document.querySelectorAll(
-                '[data-bs-toggle="popover"]'
-            );
-            const popoverList = [...popoverTriggerList].map(
-                (popoverTriggerEl) => new bootstrap.Popover(popoverTriggerEl)
-            );
+            // Popovers — dipasang sekali lewat delegasi di popovers.js.
+            // Loop per-elemen di sini dulu membuat satu instance Popover untuk
+            // SETIAP elemen saat halaman dimuat; di Team Goals itu 1.415
+            // instance sekaligus.
+            initializePopovers();
 
             // Tooltips
             const tooltipTriggerList = document.querySelectorAll(
@@ -295,6 +294,19 @@ $(document).ready(() => {
                             .parent();
                         if (!upperLevelParent.is("body"))
                             upperLevelParent.addClass("menuitem-active");
+
+                        // Rantai .parent() di atas hanya menjangkau 3 level menu.
+                        // Menu yang lebih dalam (mis. Admin Settings > Performance
+                        // Appraisal > Proposed 360 > Flow Builder > Flows) juga
+                        // harus membuka semua induknya.
+                        $(this)
+                            .parents(".side-nav .collapse")
+                            .addClass("show")
+                            .siblings('a[data-bs-toggle="collapse"]')
+                            .attr("aria-expanded", "true");
+                        $(this)
+                            .parents(".side-nav li.side-nav-item")
+                            .addClass("menuitem-active");
                     }
                 });
 

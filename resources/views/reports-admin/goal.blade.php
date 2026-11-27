@@ -31,7 +31,7 @@
                     <tr>
                         <td><p class="m-0">{{ $row->employee->fullname }} <span class="text-muted">{{ $row->employee_id }}</span></p></td>
                         <td class="text-center">
-                            <a href="javascript:void(0)" class="btn btn-light btn-sm font-weight-medium" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $row->goal->id }}"><i class="ri-search-line"></i></a>
+                            <a href="javascript:void(0)" class="btn btn-light btn-sm font-weight-medium btn-goal-detail" data-detail-url="{{ route('admin.reports.goal-detail', $row->goal->id) }}"><i class="ri-search-line"></i></a>
                         </td>
                         <td class="text-center">
                             <span class="badge {{ $row->goal->form_status == 'Approved' ? 'bg-success' : ($row->goal->form_status == 'Draft' ? 'badge-outline-secondary' : 'bg-secondary')}} px-1">{{ $row->goal->form_status == 'Draft' ? 'Draft' : $row->goal->form_status }}</span>
@@ -44,89 +44,6 @@
                         <td>{{ $row->initiated->name }}<br>{{ $row->initiated->employee_id }}</td>
                         <td class="text-center">{{ $row->formatted_updated_at }}</td>
 
-                        <div class="modal fade" id="modalDetail{{ $row->goal->id }}" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-labelledby="staticBackdropLabel" aria-hidden="true">
-                        <div class="modal-dialog modal-dialog-centered modal-xl mt-2" role="document">
-                            <div class="modal-content">
-                                <div class="modal-header">
-                                    <h4 class="modal-title" id="viewFormEmployeeLabel">Goals</h4>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close">
-                                        </button>
-                                    <div class="input-group-md">
-                                        <input type="text" id="employee_name" class="form-control" placeholder="Search employee.." hidden>
-                                    </div>
-                            </div>
-                            <div class="modal-body bg-primary-subtle">
-                                <div class="container-fluid py-3">
-                                    <form action="" method="post">
-                                    <div class="row">
-                                        <div class="col">
-                                            <div class="d-sm-flex align-items-center mb-2">
-                                                    <h4 class="me-1">{{ $row->employee->fullname }}</h4><span class="text-muted h4">{{ $row->employee->employee_id }}</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                        <!-- Content Row -->
-                                        <div class="container-card">
-                                        @php
-                                            $formData = json_decode($row->goal->form_data, true) ?? [];
-                                        @endphp
-                                        @if ($formData)
-                                        @foreach ($formData as $index => $data)
-                                            <div class="card mb-2 border border-primary">
-                                                <div class="card-header pb-0 border-0 bg-white">
-                                                    <h4>{{ __('Goal') }} {{ $index + 1 }}</h4>
-                                                </div>
-                                                <div class="card-body">
-                                                    <div class="row">
-                                                        <div class="col-lg-5 mb-3">
-                                                            <div class="form-group">
-                                                                <label class="form-label" for="kpi">KPI</label>
-                                                                <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['kpi'] }}</p>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-lg-3 mb-3">
-                                                            <div class="form-group">
-                                                                <label class="form-label" for="target">{{ __('Target In UoM') }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</label>
-                                                                <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['target'] }}</p>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-lg-2 mb-3">
-                                                            <div class="form-group">
-                                                                <label class="form-label" for="weightage">{{ __('Weightage') }}</label>
-                                                                <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['weightage'] }}%</p>
-                                                            </div>
-                                                        </div>
-                                                        <div class="col-lg-2 mb-3">
-                                                            <div class="form-group">
-                                                                <label class="form-label" for="type">{{ __('Type') }}</label>
-                                                                <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['type'] }}</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                    <hr class="mt-0 mb-2">
-                                                    <div class="row">
-                                                        <div class="col-md mb-2">
-                                                            <div class="form-group
-                                                            ">
-                                                                <label class="form-label
-                                                                " for="description">Description</label>
-                                                                <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['description'] ?? '-' }}</p>
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        @endforeach
-                                        @else
-                                            <p>No form data available.</p>
-                                        @endif                
-                            </div>
-                                    </form>
-                                </div>
-                            </div>
-                            </div>
-                        </div>
-                        </div>
                     </tr>
                     @endforeach
                 </tbody>
@@ -135,3 +52,62 @@
       </div>
     </div>
 </div>
+
+{{-- Modal detail Goal — SATU shell, isinya dimuat lewat AJAX.
+
+     Dulu di sini ada satu modal lengkap per baris, di dalam <tr> (yang juga
+     HTML tidak valid). Pada report Goal 2026 itu 1.422 modal = 38 MB HTML.
+     Sekarang isinya diambil saat modal dibuka. --}}
+<div class="modal fade" id="modalGoalDetail" data-bs-backdrop="static" data-bs-keyboard="false" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl mt-2" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">Goals</h4>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body bg-primary-subtle" id="goalDetailBody">
+                <div class="p-5 text-center text-muted">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>{{ __('Loading') }}...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Blok ini di-inject lewat AJAX dan dieksekusi ulang setiap kali
+    // konten dimuat ulang. Tanpa penjaga ini, handler click menumpuk
+    // dan satu klik akan memicu beberapa request sekaligus.
+    if (!window.kpnAdminGoalDetailBound) {
+        window.kpnAdminGoalDetailBound = true;
+
+        // Isi modal dimuat saat dibuka, bukan di-render untuk semua baris.
+        document.addEventListener('click', function (e) {
+            const button = e.target.closest('.btn-goal-detail');
+            if (!button) {
+                return;
+            }
+
+            e.preventDefault();
+
+            const body = document.getElementById('goalDetailBody');
+            body.innerHTML = '<div class="p-5 text-center text-muted"><div class="spinner-border spinner-border-sm me-2" role="status"></div>{{ __('Loading') }}...</div>';
+
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalGoalDetail')).show();
+
+            fetch(button.dataset.detailUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error(response.status);
+                    }
+                    return response.text();
+                })
+                .then(function (html) {
+                    body.innerHTML = html;
+                })
+                .catch(function () {
+                    body.innerHTML = '<div class="p-5 text-center text-muted">{{ __('Failed to load goal details.') }}</div>';
+                });
+        });
+    }
+</script>

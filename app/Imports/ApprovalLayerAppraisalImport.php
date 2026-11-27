@@ -10,7 +10,9 @@ use App\Models\ApprovalLayerAppraisalBackup;
 use App\Models\Calibration;
 use App\Models\Employee;
 use App\Models\EmployeeAppraisal;
+use App\Models\MasterCalibration;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Maatwebsite\Excel\Concerns\ToCollection;
@@ -69,10 +71,92 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
         'calibrator_id_10', 'calibrator_name_10',
     ];
 
-    public function __construct($userId, $period)
+    /**
+     * Kolom opsional di akhir file untuk tabel kpi_units milik employee
+     * (dipakai saat employee tsb menjadi calibrator di halaman Rating).
+     * File lama tanpa kolom ini tetap bisa di-import.
+     *
+     *  - kpi_unit     grade Master Calibration periode tsb (maks. 5 karakter)
+     *  - keterangan   catatan (maks. 100 karakter)
+     *  - periode      tahun; kosong = periode appraisal berjalan
+     *  - status_aktif T / F; kosong = T untuk data baru, tidak diubah untuk data lama
+     *
+     * Semua kosong = KPI Unit tidak disentuh. Data lama (employee + periode)
+     * hanya diubah pada kolom yang diisi; data baru wajib punya kpi_unit.
+     */
+    public const KPI_UNIT_HEADERS = ['kpi_unit', 'keterangan', 'periode', 'status_aktif'];
+
+    /**
+     * Kolom opsional setelah employee_name: periode layer yang dituju file.
+     * Template mengisinya dengan periode berjalan; baris dengan periode lain
+     * ditolak supaya file lama tidak tertimpa ke periode yang salah.
+     * Kosong / file lama tanpa kolom ini = periode berjalan.
+     */
+    public const LAYER_PERIOD_HEADER = 'layer_period';
+
+    /**
+     * Grade Master Calibration per periode: [periode => [lowercase => grade asli]].
+     *
+     * @var array<int, array<string, string>>
+     */
+    protected $kpiUnitGrades = [];
+
+    /**
+     * KPI Unit yang akan disimpan, per "employee_id|periode".
+     *
+     * @var array<string, array{employee_id: string, periode: int, kpi_unit: ?string, keterangan: ?string, status_aktif: ?string}>
+     */
+    protected $kpiUnits = [];
+
+    /**
+     * Employee yang punya baris layer di file (bukan hanya baris KPI Unit).
+     * Hanya employee ini yang layer-nya ditimpa.
+     *
+     * @var array<int, string>
+     */
+    protected $layerEmployeeIds = [];
+
+    /**
+     * Boleh import kolom KPI Unit (lihat config/kpi_unit.php).
+     *
+     * @var bool
+     */
+    protected $allowKpiUnit;
+
+    /**
+     * Header template: header wajib (+ kolom KPI Unit bila diizinkan).
+     *
+     * @return array<int, string>
+     */
+    public static function templateHeaders(bool $withKpiUnit = true): array
+    {
+        $headers = (new static(0, null, false))->expectedHeaders;
+        array_splice($headers, array_search('employee_name', $headers, true) + 1, 0, [self::LAYER_PERIOD_HEADER]);
+
+        return $withKpiUnit ? array_merge($headers, self::KPI_UNIT_HEADERS) : $headers;
+    }
+
+    /**
+     * Apakah user boleh import KPI Unit. IMPORT_KPI_UNIT=adminemails membatasi
+     * ke email di IMPORT_KPI_UNIT_ADMIN_EMAILS; selain itu semua user boleh.
+     */
+    public static function canImportKpiUnit($user = null): bool
+    {
+        if (config('kpi_unit.import_mode') !== 'adminemails') {
+            return true;
+        }
+
+        $user = $user ?? Auth::user();
+        $email = strtolower(trim((string) ($user->email ?? '')));
+
+        return $email !== '' && in_array($email, config('kpi_unit.admin_emails', []), true);
+    }
+
+    public function __construct($userId, $period, ?bool $allowKpiUnit = null)
     {
         $this->userId = $userId;
         $this->period = $period;
+        $this->allowKpiUnit = $allowKpiUnit ?? self::canImportKpiUnit();
     }
 
     /**
@@ -170,6 +254,14 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
         $this->invalidEmployees = [];
         $this->invalidEmployeeIds = [];
 
+        // Baris pertama per employee menentukan layer. Baris berikutnya untuk
+        // employee yang sama (mis. KPI Unit periode lain) hanya membawa data
+        // KPI Unit: kolom layer-nya diabaikan dan tidak wajib diisi.
+        // Baris "KPI Unit saja" (semua kolom layer kosong, kolom KPI Unit diisi)
+        // tidak dihitung sebagai baris layer: layer employee tsb tidak disentuh.
+        $seenEmployees = [];
+        $this->layerEmployeeIds = [];
+
         foreach ($collection as $row) {
             $employeeId = trim((string)($row['employee_id'] ?? ''));
 
@@ -177,6 +269,43 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
                 // Kalau mau dipaksa error: bisa tambahkan addError di sini
                 continue;
             }
+
+            // Template berisi semua karyawan; baris yang kolom layer dan
+            // KPI Unit-nya kosong semua berarti "tidak diubah", bukan error.
+            if ($this->isBlankRow($row)) {
+                continue;
+            }
+
+            $layerPeriod = trim((string) ($row[self::LAYER_PERIOD_HEADER] ?? ''));
+            if ($layerPeriod !== '' && (int) $layerPeriod !== (int) $this->period) {
+                $this->addError($employeeId, '', '', '',
+                    "Layer period {$layerPeriod} does not match the current period {$this->period}. Only the current period can be imported.");
+                $this->invalidEmployeeIds[] = $employeeId;
+                continue;
+            }
+
+            if (!isset($seenEmployees[$employeeId]) && $this->isKpiUnitOnlyRow($row)) {
+                // Aturan keberadaan employee sama dengan baris layer di bawah
+                if (strlen($employeeId) !== 11 && !Employee::where('employee_id', $employeeId)->exists()) {
+                    $this->addError($employeeId, '', '', '', "Employee ID {$employeeId} does not exist.");
+                    $this->invalidEmployeeIds[] = $employeeId;
+                    continue;
+                }
+
+                if (!$this->validateKpiUnitColumns($row, $employeeId)) {
+                    $this->invalidEmployeeIds[] = $employeeId;
+                }
+                continue;
+            }
+
+            if (isset($seenEmployees[$employeeId])) {
+                if (!$this->validateKpiUnitColumns($row, $employeeId)) {
+                    $this->invalidEmployeeIds[] = $employeeId;
+                }
+                continue;
+            }
+            $seenEmployees[$employeeId] = true;
+            $this->layerEmployeeIds[] = $employeeId;
 
             $hasError = false;
 
@@ -294,12 +423,214 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
                 $hasFieldError = true;
             }
 
+            // KPI Unit (opsional): kpi_unit, keterangan, periode, status_aktif
+            if (!$this->validateKpiUnitColumns($row, $employeeId)) {
+                $hasFieldError = true;
+            }
+
             if ($hasFieldError) {
                 $this->invalidEmployeeIds[] = $employeeId;
             }
         }
 
         $this->invalidEmployeeIds = array_values(array_unique($this->invalidEmployeeIds));
+    }
+
+    /**
+     * Baris tanpa isian apa pun selain employee_id / employee_name.
+     */
+    protected function isBlankRow($row): bool
+    {
+        foreach ($row as $header => $value) {
+            if (in_array((string) $header, ['employee_id', 'employee_name', self::LAYER_PERIOD_HEADER], true)) {
+                continue;
+            }
+            if (trim((string) $value) !== '') {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Baris yang semua kolom layer-nya kosong tapi ada kolom KPI Unit terisi:
+     * hanya update KPI Unit, layer employee tidak divalidasi maupun diubah.
+     */
+    protected function isKpiUnitOnlyRow($row): bool
+    {
+        foreach ($row as $header => $value) {
+            if (preg_match('/^(manager|peers|subordinate|calibrator)_id_\d+$/', (string) $header)
+                && trim((string) $value) !== '') {
+                return false;
+            }
+        }
+
+        foreach (self::KPI_UNIT_HEADERS as $header) {
+            if (trim((string) ($row[$header] ?? '')) !== '') {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    /**
+     * Validasi kolom KPI Unit satu baris dan simpan hasilnya di $kpiUnits.
+     * Mengembalikan false bila ada error (baris ditolak seperti error layer lain).
+     */
+    protected function validateKpiUnitColumns($row, string $employeeId): bool
+    {
+        $kpiUnit = trim((string) ($row['kpi_unit'] ?? ''));
+        $keterangan = trim((string) ($row['keterangan'] ?? ''));
+        $periodeRaw = trim((string) ($row['periode'] ?? ''));
+        $status = strtoupper(trim((string) ($row['status_aktif'] ?? '')));
+
+        if ($kpiUnit === '' && $keterangan === '' && $periodeRaw === '' && $status === '') {
+            return true; // KPI Unit tidak disentuh
+        }
+
+        if (!$this->allowKpiUnit) {
+            $this->addError($employeeId, '', 'kpi_unit', '', 'You are not allowed to import KPI Unit. Leave kpi_unit, keterangan, periode and status_aktif empty.');
+
+            return false;
+        }
+
+        $errors = [];
+
+        // periode: tahun 4 digit; kosong = periode appraisal berjalan
+        $periode = (int) $this->period;
+        if ($periodeRaw !== '') {
+            if (!preg_match('/^\d{4}$/', $periodeRaw)) {
+                $errors[] = "periode {$periodeRaw} must be a 4-digit year.";
+            } else {
+                $periode = (int) $periodeRaw;
+            }
+        }
+
+        // kpi_unit: grade Master Calibration periode tsb, maks. 5 karakter
+        $grade = null;
+        if ($kpiUnit !== '' && empty($errors)) {
+            $grades = $this->kpiUnitGrades($periode);
+            $grade = $grades[mb_strtolower($kpiUnit)] ?? null;
+
+            if ($grade === null) {
+                $errors[] = "KPI Unit {$kpiUnit} is not a grade in Master Calibration for period {$periode}"
+                    . (empty($grades) ? ' (no grades set up for this period).' : ' (valid: ' . implode(', ', $grades) . ').');
+            } elseif (mb_strlen($grade) > 5) {
+                $errors[] = "KPI Unit {$grade} is longer than 5 characters and cannot be stored.";
+            }
+        }
+
+        // status_aktif: T / F
+        if ($status !== '' && !in_array($status, ['T', 'F'], true)) {
+            $errors[] = "status_aktif {$status} must be T or F.";
+        }
+
+        // keterangan: maks. 100 karakter
+        if (mb_strlen($keterangan) > 100) {
+            $errors[] = 'keterangan must be at most 100 characters.';
+        }
+
+        // Data baru wajib punya kpi_unit
+        if (empty($errors) && $kpiUnit === '') {
+            $exists = DB::table('kpi_units')
+                ->where('employee_id', $employeeId)
+                ->where('periode', $periode)
+                ->whereNull('deleted_at')
+                ->exists();
+            if (!$exists) {
+                $errors[] = "kpi_unit is required: employee has no KPI Unit for period {$periode} yet.";
+            }
+        }
+
+        foreach ($errors as $message) {
+            $this->addError($employeeId, '', 'kpi_unit', '', $message);
+        }
+
+        if (!empty($errors)) {
+            return false;
+        }
+
+        $this->kpiUnits[$employeeId . '|' . $periode] = [
+            'employee_id' => $employeeId,
+            'periode' => $periode,
+            'kpi_unit' => $grade,
+            'keterangan' => $keterangan !== '' ? $keterangan : null,
+            'status_aktif' => $status !== '' ? $status : null,
+        ];
+
+        return true;
+    }
+
+    /**
+     * Grade Master Calibration untuk satu periode (lowercase => grade asli).
+     *
+     * @return array<string, string>
+     */
+    protected function kpiUnitGrades(int $periode): array
+    {
+        if (!array_key_exists($periode, $this->kpiUnitGrades)) {
+            $this->kpiUnitGrades[$periode] = MasterCalibration::where('period', $periode)
+                ->whereNull('deleted_at')
+                ->pluck('grade')
+                ->filter(fn ($g) => $g !== null && $g !== '')
+                ->mapWithKeys(fn ($g) => [mb_strtolower(trim((string) $g)) => trim((string) $g)])
+                ->all();
+        }
+
+        return $this->kpiUnitGrades[$periode];
+    }
+
+    /**
+     * Simpan KPI Unit untuk employee valid: update baris employee + periode
+     * yang ada (hanya kolom yang diisi), atau buat baru. Lewat query builder
+     * karena kolom update di tabel ini bernama 'update_at'.
+     */
+    protected function saveKpiUnits(array $validEmployeeIds): void
+    {
+        $now = now();
+
+        foreach ($this->kpiUnits as $data) {
+            if (!in_array((string) $data['employee_id'], $validEmployeeIds, true)) {
+                continue;
+            }
+
+            $existing = DB::table('kpi_units')
+                ->where('employee_id', $data['employee_id'])
+                ->where('periode', $data['periode'])
+                ->whereNull('deleted_at')
+                ->orderByDesc('id')
+                ->first();
+
+            if ($existing) {
+                $changes = array_filter([
+                    'kpi_unit' => $data['kpi_unit'],
+                    'keterangan' => $data['keterangan'],
+                    'status_aktif' => $data['status_aktif'],
+                ], fn ($v) => $v !== null);
+
+                // hanya tulis bila benar-benar berubah
+                $changes = array_filter($changes, fn ($v, $k) => (string) $existing->{$k} !== (string) $v, ARRAY_FILTER_USE_BOTH);
+
+                if (!empty($changes)) {
+                    DB::table('kpi_units')->where('id', $existing->id)->update($changes + [
+                        'updated_by' => $this->userId,
+                        'update_at' => $now,
+                    ]);
+                }
+            } else {
+                DB::table('kpi_units')->insert([
+                    'employee_id' => $data['employee_id'],
+                    'kpi_unit' => $data['kpi_unit'],
+                    'keterangan' => $data['keterangan'],
+                    'periode' => $data['periode'],
+                    'status_aktif' => $data['status_aktif'] ?? 'T',
+                    'created_by' => $this->userId,
+                    'created_at' => $now,
+                ]);
+            }
+        }
     }
 
     /**
@@ -311,8 +642,11 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
     {
         DB::transaction(function () use ($collection, $validEmployeeIds) {
 
+            // Employee yang hanya punya baris KPI Unit: layer tidak disentuh
+            $layerEmployeeIds = array_values(array_intersect($validEmployeeIds, $this->layerEmployeeIds));
+
             // 1. Backup & delete semua manager + calibrator untuk employee valid
-            $managerCalibrator = ApprovalLayerAppraisal::whereIn('employee_id', $validEmployeeIds)
+            $managerCalibrator = ApprovalLayerAppraisal::whereIn('employee_id', $layerEmployeeIds)
                 ->whereIn('layer_type', ['manager', 'calibrator'])
                 ->get();
 
@@ -328,15 +662,22 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
             $clearedPeersSubs = [];
 
             // 2. Loop per row untuk insert data baru
+            // Layer hanya dari baris pertama tiap employee; dulu employee yang
+            // muncul di beberapa baris mendapat setiap layer berkali-kali.
+            $layersDone = [];
+
             foreach ($collection as $row) {
                 $employeeId = trim((string)($row['employee_id'] ?? ''));
 
                 if (
                     $employeeId === '' ||
-                    !in_array($employeeId, $validEmployeeIds, true)
+                    !in_array($employeeId, $layerEmployeeIds, true) ||
+                    isset($layersDone[$employeeId]) ||
+                    $this->isKpiUnitOnlyRow($row)
                 ) {
-                    continue; // skip employee invalid atau kosong
+                    continue; // skip employee invalid/kosong atau baris lanjutan
                 }
+                $layersDone[$employeeId] = true;
 
                 foreach ($row as $header => $value) {
                     if (!preg_match('/^(manager|peers|subordinate|calibrator)_id_(\d+)$/', $header, $matches)) {
@@ -398,6 +739,9 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
                     ]);
                 }
             }
+
+            // 3. KPI Unit (kolom opsional kpi_unit)
+            $this->saveKpiUnits($validEmployeeIds);
         });
     }
 
@@ -430,6 +774,7 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
             'approver_id' => $layer->approver_id,
             'layer_type'  => $layer->layer_type,
             'layer'       => $layer->layer,
+            'period'      => $layer->period,
             'created_by'  => $layer->created_by ?? 0,
             'created_at'  => $layer->created_at,
         ]);

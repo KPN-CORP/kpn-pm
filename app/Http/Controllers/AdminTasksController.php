@@ -135,7 +135,26 @@ class AdminTasksController extends Controller
             compact('parentLink','link','tasks','empMap','roleCandidates'));
     }
 
+    /**
+     * Hasil buildRoleCandidatesMap per kombinasi role, untuk satu request.
+     * Dipanggil per baris tabel dengan role yang hampir selalu sama, dan
+     * setiap panggilan butuh 4–6 query (termasuk Schema::hasTable).
+     *
+     * @var array<string, \Illuminate\Support\Collection>
+     */
+    private array $roleCandidatesCache = [];
+
     private function buildRoleCandidatesMap(array $roleNames)
+    {
+        $key = implode('|', array_map('strval', $roleNames));
+
+        $this->roleCandidatesCache[$key] ??= $this->resolveRoleCandidatesMap($roleNames);
+
+        // clone: pemanggil boleh mengubah map-nya tanpa mengotori cache.
+        return clone $this->roleCandidatesCache[$key];
+    }
+
+    private function resolveRoleCandidatesMap(array $roleNames)
     {
         $map = collect();
 

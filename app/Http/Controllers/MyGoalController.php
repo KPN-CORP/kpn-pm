@@ -89,12 +89,33 @@ class MyGoalController extends Controller
 
         $datas = $datasQuery->get();
 
-        $formattedData = $datas->map(function($item) {
+        // ---- Lookup bulk -------------------------------------------------
+        // Dulu tiga query per baris (appraisal exists, layer, achievement
+        // terakhir) plus satu getByGoal lagi di loop berikutnya. Sekarang
+        // masing-masing satu query untuk seluruh halaman.
+        $formIds = $datas->pluck('form_id')->filter()->unique();
 
-            $appraisalCheck = Appraisal::where('goals_id', $item->form_id)->exists();
+        $appraisedGoalIds = $formIds->isEmpty()
+            ? collect()
+            : Appraisal::whereIn('goals_id', $formIds)->pluck('goals_id')->flip();
 
+        $layerMap = ApprovalLayer::layerMapFor($datas->pluck('employee_id'));
 
-            $item->appraisalCheck = $appraisalCheck;
+        $latestAchievements = $formIds->isEmpty()
+            ? collect()
+            : KPIAchievement::with('approver')
+                ->whereIn('goal_id', $formIds)
+                ->orderBy('updated_at', 'DESC')
+                ->get()
+                ->groupBy('goal_id')
+                ->map->first();
+
+        $achievementsByGoal = KPIAchievementService::getByGoals($formIds);
+        // ------------------------------------------------------------------
+
+        $formattedData = $datas->map(function($item) use ($appraisedGoalIds, $layerMap, $latestAchievements) {
+
+            $item->appraisalCheck = $appraisedGoalIds->has($item->form_id);
 
             // Format created_at
             $createdDate = Carbon::parse($item->created_at);
@@ -119,15 +140,10 @@ class MyGoalController extends Controller
                 $item->approvalLayer = '';
             } else {
                 $item->name = $item->manager ? $item->manager->fullname . ' (' . $item->manager->employee_id . ')' : '';
-                $item->approvalLayer = ApprovalLayer::where('employee_id', $item->employee_id)
-                                                    ->where('approver_id', $item->current_approval_id)
-                                                    ->value('layer');
+                $item->approvalLayer = $layerMap[$item->employee_id.'-'.$item->current_approval_id] ?? null;
             }
 
-            $latestApproval = KPIAchievement::with('approver')
-                ->where('goal_id', $item->form_id)
-                ->latest('updated_at')
-                ->first();
+            $latestApproval = $latestAchievements[$item->form_id] ?? null;
 
             if ($latestApproval) {
                 $item->achievement_status = [
@@ -167,7 +183,7 @@ class MyGoalController extends Controller
             }
 
             // ambil achievement (harus sudah group by kpi_id)
-            $achievementData = KPIAchievementService::getByGoal($request->form_id) ?? [];
+            $achievementData = $achievementsByGoal[$request->form_id] ?? [];
             $isEmptyAchievement = empty($achievementData);
 
             // dd($formData);

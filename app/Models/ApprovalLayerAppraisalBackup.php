@@ -10,6 +10,6 @@ class ApprovalLayerAppraisalBackup extends Model
     use HasFactory;
 
     protected $fillable = [
-        'employee_id', 'approver_id', 'layer_type', 'layer', 'created_by'
+        'employee_id', 'approver_id', 'layer_type', 'layer', 'period', 'created_by'
     ];
 }

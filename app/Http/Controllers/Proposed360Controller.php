@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\ApprovalFlow;
+use App\Models\ApprovalLayerAppraisal;
 use App\Models\ApprovalLog;
 use App\Models\ApprovalRequest;
 use App\Models\Employee;
@@ -12,6 +13,8 @@ use App\Models\Proposed360;
 use App\Services\ApprovalEngine;
 use App\Services\AppService;
 use App\Services\Proposed360Service;
+use App\Support\AppraisalManagerResolver;
+use App\Support\Propose360Assignment;
 use Exception;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
@@ -43,110 +46,72 @@ class Proposed360Controller extends Controller
         /* ===========================================
         * 1) FLOW & SELF
         * =========================================== */
-        $flowRow       = Flow::where('module_transaction', 'Propose 360')->first();
-        $assignmentIds = $this->parseAssignmentIds($flowRow);
-        $teamRuleSets  = $this->loadTeamAssignments($assignmentIds);
-        $selfEnabled   = $this->flowAllowsSelf($flowRow);
+        // Assignment = karyawan yang perlu di-360 (target), dipakai untuk
+        // menyaring baris self & tim; bukan untuk akses menu.
+        $flowRow       = Propose360Assignment::flow();
+        $assignmentIds = Propose360Assignment::assignmentIds($flowRow);
+        $teamRuleSets  = Propose360Assignment::ruleSets($assignmentIds);
+        $selfAllowed   = Propose360Assignment::allowsSelf($flowRow);
 
-        $selfRow = EmployeeAppraisal::select(
-                'id','employee_id','fullname','designation_name',
-                'manager_l1_id','manager_l2_id'
-            )
-            ->with(['appraisalLayer' => fn($q) => $q->whereIn('layer_type',['peers','subordinate'])])
-            ->where('employee_id', $authEmpId)
-            ->first();
+        // Satu-satunya query employees_pa di halaman ini. Semua daftar
+        // (self, tim, bawahan, pending, anak, kandidat peers) diambil dari
+        // koleksi ini; kolom rule assignment ikut dimuat supaya filter
+        // assignment bisa dilakukan di memori.
+        $ruleColumns  = Propose360Assignment::ruleColumns();
+        $allEmployees = EmployeeAppraisal::select(array_values(array_unique(array_merge(
+                ['id','employee_id','fullname','designation_name','manager_l1_id','manager_l2_id'],
+                array_values($ruleColumns)
+            ))))
+            ->orderBy('id')
+            ->get()
+            ->keyBy('employee_id');
+
+        // Atasan L1/L2 di modul ini mengikuti Layer Setting appraisal
+        // (approval_layer_appraisals, layer_type 'manager'), bukan kolom
+        // employees_pa.manager_l1_id/l2_id yang tidak ikut ter-update.
+        AppraisalManagerResolver::applyToAll($allEmployees);
+
+        // Level user login terhadap tiap karyawan, dari hasil Layer Setting:
+        // 1 = user adalah L1 (atasan langsung), 2 = user adalah L2.
+        $levelOf = function ($emp) use ($authEmpId): ?int {
+            if ((string) $emp->manager_l1_id === $authEmpId) return 1;
+            if ((string) $emp->manager_l2_id === $authEmpId) return 2;
+            return null;
+        };
+
+        // Baris yang ditampilkan di-clone supaya atribut tambahan
+        // (subordinates, approval_request, ...) tidak menempel ke
+        // $allEmployees yang juga dipakai sebagai kandidat peers.
+        $pick = fn ($ids) => collect($ids)
+            ->map('strval')
+            ->sort(SORT_STRING)
+            ->map(fn ($id) => $allEmployees->get((string) $id))
+            ->filter()
+            ->map(fn ($e) => clone $e)
+            ->values();
 
         $self = collect();
-        $selfPeers = collect();
-
-        $allEmployees = EmployeeAppraisal::select(
-            'employee_id','fullname','designation_name',
-            'manager_l1_id','manager_l2_id'
-        )
-        ->get()
-        ->keyBy('employee_id');
-
-        if ($selfRow) {
-            $selfRow->peers       = $selfRow->appraisalLayer->where('layer_type','peers')->values();
-            $selfPeers            = $this->buildPeerCandidatesFor($selfRow->employee_id, $allEmployees);
-            $self                 = collect([$selfRow]);
-        }
+        $selfRow = $pick([$authEmpId])->first();
 
         /* ===========================================
-        * 2) TEAM (Manager L1)
+        * 2) TEAM (L1) & SUBORDINATES (L1 + L2)
         * =========================================== */
         $datas = collect();
         $subordinates = collect();
 
         if ($selfRow && !empty($teamRuleSets)) {
+            $datas = $pick($allEmployees
+                ->filter(fn ($e) => $levelOf($e) === 1
+                    && Propose360Assignment::matches($e, $teamRuleSets, $ruleColumns))
+                ->keys());
 
-            $datas = EmployeeAppraisal::select(
-                    'id','employee_id','fullname','designation_name','manager_l1_id','manager_l2_id'
-                )
-                ->with(['appraisalLayer'=>fn($q)=>$q->whereIn('layer_type',['peers','subordinate'])])
-                ->where('manager_l1_id', $authEmpId)
-                ->where(function ($outer) use ($teamRuleSets, $authEmpId) {
-                    foreach ($teamRuleSets as $rules) {
-                        $outer->orWhere(function ($q) use ($rules, $authEmpId) {
-                            $this->applySingleRuleToQuery($q, $rules, $authEmpId);
-                        });
-                    }
-                })
-                ->get();
-
-            $subordinates = EmployeeAppraisal::select(
-                    'id','employee_id','fullname','designation_name','manager_l1_id','manager_l2_id'
-                )
-                ->with(['appraisalLayer'=>fn($q)=>$q->whereIn('layer_type',['peers','subordinate'])])
-                ->where('manager_l2_id',$authEmpId)
-                ->orWhere('manager_l1_id',$authEmpId)
-                ->get();
-        }
-
-        /* ===========================================
-        * 3) TEAM SUBORDINATES
-        * =========================================== */
-        $teamIds = $datas->pluck('employee_id')->all();
-
-        $childrenRaw = EmployeeAppraisal::select(
-                'id','employee_id','fullname','designation_name',
-                'manager_l1_id','manager_l2_id'
-            )
-            ->where(function ($q) use ($teamIds) {
-                $q->whereIn('manager_l1_id', $teamIds)
-                ->orWhereIn('manager_l2_id', $teamIds);
-            })
-            ->get();
-
-        $children = collect();
-        foreach ($teamIds as $tid) {
-            $children[$tid] = $childrenRaw
-                ->where('manager_l1_id', $tid)
-                ->merge($childrenRaw->where('manager_l2_id', $tid))
-                ->unique('employee_id')
+            $subordinates = $allEmployees
+                ->filter(fn ($e) => $levelOf($e) !== null)
                 ->values();
         }
 
-        $allEmployees = EmployeeAppraisal::select(
-            'employee_id','fullname','designation_name',
-            'manager_l1_id','manager_l2_id'
-        )
-        ->get()
-        ->keyBy('employee_id');
-
-        // isi subordinate & peers untuk TEAM
-        $datas->transform(function ($emp) use ($children, $allEmployees) {
-            $emp->subordinates    = $children->get($emp->employee_id, collect());
-            $emp->peer_candidates = $this->buildPeerCandidatesFor($emp->employee_id, $allEmployees);
-            return $emp;
-        });
-
-        if ($selfRow) {
-            $selfRow->subordinates = $datas;
-        }
-
         /* ===========================================
-        * 4) MERGE PENDING APPROVAL EMPLOYEE
+        * 3) MERGE PENDING APPROVAL EMPLOYEE
         * =========================================== */
         $pendingRequests = ApprovalRequest::where('category','Proposed360')
             ->where('period', $period)
@@ -156,67 +121,75 @@ class Proposed360Controller extends Controller
             ->groupBy('employee_id')
             ->map->first();
 
-        $pendingEmployeeIds = $pendingRequests->keys()->map('strval')->all();
-        $existingIds        = $datas->pluck('employee_id')->map('strval')->all();
+        $missingIds = array_values(array_diff(
+            $pendingRequests->keys()->map('strval')->all(),
+            $datas->pluck('employee_id')->map('strval')->all()
+        ));
 
-        $missingIds = array_values(array_diff($pendingEmployeeIds, $existingIds));
-
-        $pendingEmployees = collect();
-
-        if (!empty($missingIds)) {
-            $pendingEmployees = EmployeeAppraisal::select(
-                    'id','employee_id','fullname','designation_name',
-                    'manager_l1_id','manager_l2_id'
-                )
-                ->with(['appraisalLayer'=>fn($q)=>$q->whereIn('layer_type',['peers','subordinate'])])
-                ->whereIn('employee_id', $missingIds)
-                ->get()
-                ->map(function ($emp) {
-                    // default kosong, nanti di rebuild
-                    $emp->subordinates    = collect();
-                    $emp->peer_candidates = collect();
-                    return $emp;
-                });
-        }
-
-        $datas = $datas->merge($pendingEmployees)->unique('employee_id')->values();
-
+        $datas = $datas->merge($pick($missingIds))->unique('employee_id')->values();
 
         /* ===========================================
-        * 5) REBUILD SUBORDINATES + PEERS UNTUK SEMUA DATAS
+        * 4) LAYER PEERS/SUBORDINATE (satu query untuk semua baris tampil)
         * =========================================== */
-        $allEmpIds = $datas->pluck('employee_id')->all();
+        $displayIds = $datas->pluck('employee_id')
+            ->when($selfRow, fn ($c) => $c->push($selfRow->employee_id))
+            ->map('strval')->unique()->values();
 
-        $childrenRaw = EmployeeAppraisal::select(
-                'id','employee_id','fullname','designation_name',
-                'manager_l1_id','manager_l2_id'
-            )
-            ->where(function ($q) use ($allEmpIds) {
-                $q->whereIn('manager_l1_id', $allEmpIds)
-                ->orWhereIn('manager_l2_id', $allEmpIds);
-            })
-            ->get();
+        $layerRows = $displayIds->isEmpty()
+            ? collect()
+            : ApprovalLayerAppraisal::whereIn('employee_id', $displayIds)
+                ->whereIn('layer_type', ['peers','subordinate'])
+                ->orderBy('id')
+                ->get()
+                ->groupBy(fn ($r) => (string) $r->employee_id);
 
-        $childrenMap = collect();
-        foreach ($allEmpIds as $eid) {
-            $childrenMap[$eid] = $childrenRaw
-                ->where('manager_l1_id', $eid)
-                ->merge($childrenRaw->where('manager_l2_id', $eid))
-                ->unique('employee_id')
-                ->values();
+        foreach ($datas->when($selfRow, fn ($c) => $c->concat([$selfRow])) as $emp) {
+            $emp->setRelation('appraisalLayer', $layerRows->get((string) $emp->employee_id, collect()));
+            // Admin sudah mengisi peers/subordinate periode ini di Layer Setting:
+            // bila belum ada pengajuan, baris tampil "Approved by Admin" dan
+            // manager tidak perlu (dan tidak bisa) propose.
+            $emp->admin_set_360 = $emp->appraisalLayer->isNotEmpty();
         }
 
-        $allEmployees = EmployeeAppraisal::select(
-            'employee_id','fullname','designation_name',
-            'manager_l1_id','manager_l2_id'
-        )
-        ->get()
-        ->keyBy('employee_id');
+        if ($selfRow) {
+            $selfRow->peers        = $selfRow->appraisalLayer->where('layer_type','peers')->values();
+            $selfRow->subordinates = $datas;
+            $self                  = collect([$selfRow]);
+        }
 
-        // final transform
-        $datas->transform(function ($emp) use ($childrenMap, $allEmployees) {
-            $emp->subordinates    = $childrenMap->get($emp->employee_id, collect());
-            $emp->peer_candidates = $this->buildPeerCandidatesFor($emp->employee_id, $allEmployees);
+        /* ===========================================
+        * 5) SUBORDINATES + PEERS UNTUK SEMUA DATAS
+        * =========================================== */
+        $byL1 = $allEmployees->groupBy(fn ($e) => (string) $e->manager_l1_id);
+        $byL2 = $allEmployees->groupBy(fn ($e) => (string) $e->manager_l2_id);
+
+        // Kandidat peers = semua karyawan dikurangi daftar exclude per target.
+        // Daftar karyawan dikirim sekali ke browser (#proposed360-peer-data),
+        // dropdown hanya membawa opsi terpilih; Select2 mencari & memaginasi
+        // di sisi client. Dulu tiap dropdown berisi ~semua karyawan, sehingga
+        // halaman approver bisa puluhan MB.
+        $peerExclude = [];
+        foreach ($datas->when($selfRow, fn ($c) => $c->concat([$selfRow])) as $emp) {
+            $eid = (string) $emp->employee_id;
+            $peerExclude[$eid] ??= $this->buildPeerExcludeFor($eid, $allEmployees, $byL1, $byL2);
+        }
+
+        $isPeerCandidate = fn ($targetId, $candidateId) => $candidateId !== null && $candidateId !== ''
+            && is_array($peerExclude[(string) $targetId] ?? null)
+            && $allEmployees->has((string) $candidateId)
+            && !in_array((string) $candidateId, $peerExclude[(string) $targetId], true);
+
+        $peerData = [
+            'employees' => $allEmployees->map(fn ($e) => [(string) $e->employee_id, (string) $e->fullname])->values(),
+            'exclude'   => $peerExclude,
+        ];
+
+        $datas->transform(function ($emp) use ($byL1, $byL2) {
+            $eid = (string) $emp->employee_id;
+            $emp->subordinates = $byL1->get($eid, collect())->sortBy('employee_id', SORT_STRING)
+                ->merge($byL2->get($eid, collect())->sortBy('employee_id', SORT_STRING))
+                ->unique('employee_id')
+                ->values();
             return $emp;
         });
 
@@ -289,6 +262,14 @@ class Proposed360Controller extends Controller
             $selfRow->my_approval      = $pendingRequests->get((string)$selfRow->employee_id);
         }
 
+        // Baris self hanya kalau flow mengizinkan initiator 'self' DAN user
+        // sendiri termasuk assignment (perlu di-360). Pengajuan self yang
+        // sudah ada tetap ditampilkan supaya statusnya bisa dilihat.
+        $selfEnabled = $selfAllowed && $selfRow && (
+            Propose360Assignment::matches($selfRow, $teamRuleSets, $ruleColumns)
+            || !empty($selfRow->approval_request)
+        );
+
 
         /* ===========================================
         * 7) PREFILL PROPOSED360 (PEERS & SUBORDINATES)
@@ -343,7 +324,8 @@ class Proposed360Controller extends Controller
         $peers      = collect();
 
         return view('pages.proposed-360.app', compact(
-            'parentLink','link','datas','peers','subordinates','self','selfPeers','period','selfEnabled'
+            'parentLink','link','datas','peers','subordinates','self','period','selfEnabled',
+            'allEmployees','peerData','isPeerCandidate'
         ));
     }
 
@@ -385,226 +367,75 @@ private function getRoleNameByStep(int|string $flowId, string $stepName)
     });
 }
 
-private function buildPeerCandidatesFor(string $targetEmpId, Collection $allEmp)
+/**
+ * Daftar employee_id yang TIDAK boleh jadi peers untuk target:
+ * - target sendiri, L1 & L2 target, L1 & L2 dari L1 target
+ * - bawahan target (target sebagai L1 atau L2)
+ * - L1/L2 dari karyawan yang L2-nya = target
+ * Kandidat peers = semua karyawan di $allEmp dikurangi daftar ini.
+ * null = target tidak ada di employees_pa (tidak ada kandidat).
+ *
+ * @return array<int, string>|null
+ */
+private function buildPeerExcludeFor(string $targetEmpId, Collection $allEmp, Collection $byL1, Collection $byL2): ?array
 {
     if (!$allEmp->has($targetEmpId)) {
-        return collect();
+        return null;
     }
 
-    $target = $allEmp[$targetEmpId];
-
+    $target   = $allEmp[$targetEmpId];
     $targetL1 = (string) ($target->manager_l1_id ?? '');
     $targetL2 = (string) ($target->manager_l2_id ?? '');
 
-    // Ambil L1 row utk dapatkan L1 L1 / L2 L1
-    $targetL1Row = $targetL1 && $allEmp->has($targetL1)
-        ? $allEmp[$targetL1]
-        : null;
+    $targetL1Row = $targetL1 !== '' ? $allEmp->get($targetL1) : null;
 
-    $targetL1_L1 = $targetL1Row ? (string) ($targetL1Row->manager_l1_id ?? '') : null;
-    $targetL1_L2 = $targetL1Row ? (string) ($targetL1Row->manager_l2_id ?? '') : null;
+    $exclude = [$targetEmpId, $targetL1, $targetL2];
 
-    // Semua employees sebagai koleksi
-    $all = $allEmp->values();
-
-    // === direct reportees of target
-    $directReportees = $all->filter(function ($emp) use ($targetEmpId) {
-        return $emp->manager_l1_id == $targetEmpId || $emp->manager_l2_id == $targetEmpId;
-    })->pluck('employee_id')->all();
-
-    // === L1 under target (target as L2)
-    $l1UnderTarget = $all->filter(function ($emp) use ($targetEmpId) {
-        return (string) $emp->manager_l2_id === $targetEmpId;
-    });
-
-    $superiorsOfL1s = collect();
-    foreach ($l1UnderTarget as $emp) {
-        if (!empty($emp->manager_l1_id)) $superiorsOfL1s->push((string) $emp->manager_l1_id);
-        if (!empty($emp->manager_l2_id)) $superiorsOfL1s->push((string) $emp->manager_l2_id);
+    if ($targetL1Row) {
+        $exclude[] = (string) ($targetL1Row->manager_l1_id ?? '');
+        $exclude[] = (string) ($targetL1Row->manager_l2_id ?? '');
     }
 
-    // === Exclusion list
-    $exclude = collect();
+    // bawahan target (target sebagai L1 atau L2)
+    foreach ($byL1->get($targetEmpId, collect()) as $emp) {
+        $exclude[] = (string) $emp->employee_id;
+    }
 
-    $exclude->push($targetEmpId);
+    // target sebagai L2: karyawannya + atasan-atasan mereka
+    foreach ($byL2->get($targetEmpId, collect()) as $emp) {
+        $exclude[] = (string) $emp->employee_id;
+        $exclude[] = (string) ($emp->manager_l1_id ?? '');
+        $exclude[] = (string) ($emp->manager_l2_id ?? '');
+    }
 
-    if ($targetL1) $exclude->push($targetL1);
-    if ($targetL2) $exclude->push($targetL2);
-    if ($targetL1_L1) $exclude->push($targetL1_L1);
-    if ($targetL1_L2) $exclude->push($targetL1_L2);
-
-    $exclude
-        ->push(...$directReportees)
-        ->push(...$l1UnderTarget->pluck('employee_id')->all())
-        ->push(...$superiorsOfL1s->all());
-
-    $exclude = $exclude->filter()->unique()->values()->all();
-
-    // === peers = allEmp MINUS exclude
-    return $allEmp
-        ->reject(fn($e) => in_array($e->employee_id, $exclude))
-        ->values();
+    return array_values(array_unique(array_filter($exclude, fn ($v) => $v !== '')));
 }
 
 
 
-
-    private function flowAllowsSelf(?\App\Models\Flow $flow): bool
-    {
-        if (!$flow) return false;
-        $json = $flow->initiator ?? $flow->initiators ?? '[]';
-        $arr  = json_decode($json, true);
-        if (!is_array($arr)) return false;
-
-        return collect($arr)->contains(function ($it) {
-            return strtolower((string)data_get($it, 'type')) === 'state'
-                && strtolower((string)data_get($it, 'state_key')) === 'self';
-        });
-    }
     /**
-     * Ambil daftar assignment id dari kolom json di table flows.
+     * Hasil buildRoleCandidatesMap per kombinasi role, untuk satu request.
+     * Dipanggil per baris tabel dengan role yang hampir selalu sama, dan
+     * setiap panggilan butuh 4–6 query (termasuk Schema::hasTable).
+     *
+     * @var array<string, \Illuminate\Support\Collection>
      */
-    private function parseAssignmentIds(?Flow $flow): array
+    private array $roleCandidatesCache = [];
+
+    private function buildRoleCandidatesMap(array $roleNames)
     {
-        if (!$flow) return [];
-        $raw = $flow->assignment_ids ?? $flow->assignments ?? $flow->assignment ?? '[]';
-        $arr = json_decode($raw, true);
-        if (!is_array($arr)) return [];
-        return collect($arr)->map(fn($v)=>(string)$v)->filter()->unique()->values()->all();
+        $key = implode('|', array_map('strval', $roleNames));
+
+        $this->roleCandidatesCache[$key] ??= $this->resolveRoleCandidatesMap($roleNames);
+
+        // clone: pemanggil boleh mengubah map-nya tanpa mengotori cache.
+        return clone $this->roleCandidatesCache[$key];
     }
-
-    /**
-     * Load rule-set ONLY untuk TEAM (manager_l1_id scope).
-     * Return: array of rule-set; tiap rule-set akan di-OR pada query.
-     */
-    private function loadTeamAssignments(array $assignmentIds): array
-    {
-        if (empty($assignmentIds)) return [];
-
-        // Ambil hanya kolom yang dipakai + skip soft-deleted
-        $rows = DB::table('assignments')
-            ->whereIn('id', $assignmentIds)
-            ->whereNull('deleted_at')
-            ->get(['id','restriction']);
-
-        $ruleSets = [];
-
-        foreach ($rows as $r) {
-            $json = $r->restriction ?? '{}';
-
-            // Decode aman
-            $arr = json_decode($json, true);
-            if (!is_array($arr)) {
-                // fallback kecil (jika ada string tunggal)
-                $arr = [];
-            }
-
-            // Normalisasi: semua nilai jadi array string unik (trim)
-            $norm = [];
-            foreach ($arr as $key => $val) {
-                if (is_array($val)) {
-                    $norm[$key] = array_values(array_unique(array_map(
-                        fn($v) => (string) trim((string) $v),
-                        $val
-                    )));
-                } elseif ($val !== null && $val !== '') {
-                    $norm[$key] = [(string) trim((string) $val)];
-                }
-            }
-
-            if (!empty($norm)) {
-                $ruleSets[] = $norm;
-            }
-        }
-
-        // Contoh ruleSets: [
-        //   ['group_company'=>['KPN Corporation'], 'job_level'=>['4A','4B','7A',...]],
-        //   ['department_id'=>['10','11']]
-        // ]
-        return $ruleSets;
-    }
-
-
-    /**
-     * Terapkan satu rule-set (AND di dalamnya) ke query EmployeeAppraisal.
-     * Digunakan di dalam orWhere wrapper (OR antar rule-set).
-     */
-    private function applySingleRuleToQuery($q, array $rules, string $initiatorEmpId): void
-    {
-        // 1) Hanya bawahan langsung inisiator (TEAM scope)
-        $q->where('manager_l1_id', $initiatorEmpId);
-
-        // Helper: cache hasColumn untuk tabel employee_appraisal
-        $table = 'employees_pa';
-        $hasCol = (function() use ($table) {
-            static $cache = [];
-            return function(string $col) use ($table, &$cache): bool {
-                if (!array_key_exists($col, $cache)) {
-                    $cache[$col] = Schema::hasColumn($table, $col);
-                }
-                return $cache[$col];
-            };
-        })();
-
-        // Utility: normalisasi array nilai -> string, unik, non-kosong
-        $norm = function($arr): array {
-            if (!is_array($arr)) return [];
-            $vals = array_map(static fn($v) => trim((string)$v), $arr);
-            $vals = array_filter($vals, static fn($v) => $v !== '');
-            return array_values(array_unique($vals));
-        };
-
-        // 3) Helper umum: pilih nilai dari beberapa key rule, terapkan ke kolom pertama yang tersedia
-        $applySet = function(array $candidateCols, array $ruleKeys) use ($q, $rules, $norm, $hasCol) {
-            // ambil nilai pertama yang tersedia di rules
-            $vals = [];
-            foreach ($ruleKeys as $k) {
-                if (!empty($rules[$k]) && is_array($rules[$k])) {
-                    $vals = $norm($rules[$k]);
-                    if (!empty($vals)) break;
-                }
-            }
-            if (empty($vals)) return;
-
-            // pilih kolom pertama yang eksis di tabel employee_appraisal
-            foreach ($candidateCols as $col) {
-                if ($hasCol($col)) {
-                    $q->whereIn($col, $vals);
-                    break;
-                }
-            }
-        };
-
-        // Designation/Title
-        $applySet(
-            ['designation_code','designation_name'],
-            ['designation_code','designation_name']
-        );
-
-        // Location
-        $applySet(
-            ['work_area_code'],
-            ['work_area_code']
-        );
-
-        // Group Company (contoh restriction: "group_company": ["KPN Corporation"])
-        $applySet(
-            ['group_company','group_company_code'],
-            ['group_company','group_company_code']
-        );
-
-        // Job Level (contoh restriction: "job_level": ["4A","4B",...])
-        $applySet(
-            ['job_level'],
-            ['job_level']
-        );
-    }
-
 
     /**
      * Bangun map kandidat approver untuk role (fullname (employee_id)).
      */
-    private function buildRoleCandidatesMap(array $roleNames)
+    private function resolveRoleCandidatesMap(array $roleNames)
     {
         $map = collect();
 
@@ -752,7 +583,8 @@ private function buildPeerCandidatesFor(string $targetEmpId, Collection $allEmp)
         } catch (Throwable $e) {
             DB::rollBack();
             Log::error('proposed360.store.error', ['trace'=>$trace,'message'=>$e->getMessage(),'code'=>$e->getCode(),'line'=>$e->getLine()]);
-            return back()->withInput()->withErrors(['error'=>'Gagal mengirim pengajuan']);
+            $msg = $this->userErrorMessage($e, 'Gagal mengirim pengajuan');
+            return back()->withInput()->withErrors(['error'=>$msg])->with('error', $msg);
         }
     }
 
@@ -783,8 +615,24 @@ private function buildPeerCandidatesFor(string $targetEmpId, Collection $allEmp)
         } catch (Throwable $e) {
             DB::rollBack();
             Log::error('proposed360.action.error', ['trace'=>$trace,'form_id'=>$data['form_id'],'action'=>$data['action'],'message'=>$e->getMessage(),'code'=>$e->getCode(),'line'=>$e->getLine()]);
-            return back()->withErrors(['error'=>'Gagal memproses approval']);
+            $msg = $this->userErrorMessage($e, 'Gagal memproses approval');
+            return back()->withErrors(['error'=>$msg])->with('error', $msg);
         }
+    }
+
+    /**
+     * Pesan error untuk user: pesan validasi ditampilkan apa adanya (mis.
+     * karyawan tidak termasuk assignment, atasan tidak ada di Layer Setting),
+     * error lain tetap pesan umum (detailnya di log). Halaman menampilkan
+     * session('error'), bukan $errors, jadi controller mengisi keduanya.
+     */
+    private function userErrorMessage(Throwable $e, string $fallback): string
+    {
+        if ($e instanceof ValidationException) {
+            return $fallback.': '.collect($e->errors())->flatten()->implode(' ');
+        }
+
+        return $fallback;
     }
 
     public function resubmit(Request $request, ApprovalEngine $engine)

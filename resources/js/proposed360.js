@@ -216,6 +216,80 @@ import bootstrap from 'bootstrap/dist/js/bootstrap.bundle.min.js';
   document.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => new bootstrap.Tooltip(el));
 })();
 
+// Dropdown peers: opsi tidak di-render server (dulu ~semua karyawan per
+// dropdown → halaman puluhan MB). Daftar karyawan dikirim sekali di
+// #proposed360-peer-data; Select2 mencari & memaginasi di memori.
+//
+// Semua Select2 di halaman ini di-init dengan width:'100%'. Default Select2
+// ('resolve') mengukur lebar tiap <select> → reflow paksa per dropdown;
+// dengan ~100 dropdown itu ±1,5 detik JS yang memblokir halaman.
+(function () {
+  if (!document.getElementById('proposed360-page')) return;
+
+  const BASE = { width: '100%', placeholder: 'Please select', allowClear: true, theme: 'bootstrap-5' };
+
+  let data = {};
+  const dataEl = document.getElementById('proposed360-peer-data');
+  if (dataEl) {
+    try { data = JSON.parse(dataEl.textContent) || {}; } catch (e) { data = {}; }
+  }
+
+  const employees  = Array.isArray(data.employees) ? data.employees : []; // [[employee_id, fullname], ...]
+  const excludeMap = data.exclude || {};
+  const PAGE_SIZE  = 50;
+  const cache      = {};
+
+  function candidatesFor(target) {
+    if (cache[target]) return cache[target];
+    const ex = excludeMap[target];
+    if (!Array.isArray(ex)) return (cache[target] = []); // target tidak dikenal → tidak ada kandidat
+    const skip = new Set(ex.map(String));
+    return (cache[target] = employees.filter(([id]) => !skip.has(String(id))));
+  }
+
+  function normalize(s) {
+    return String(s).normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  }
+
+  function init(el) {
+    const target = String(el.dataset.peerTarget || '');
+    const paren  = el.dataset.peerLabel === 'paren';
+    const label  = (id, name) => (paren ? `${name} (${id})` : `${name} ${id}`);
+
+    $(el).select2({
+      ...BASE,
+      ajax: {
+        delay: 150,
+        transport: function (params, success) {
+          const term = normalize((params.data && params.data.term) || '').trim();
+          const page = (params.data && params.data.page) || 1;
+
+          let list = candidatesFor(target);
+          if (term) list = list.filter(([id, name]) => normalize(label(id, name)).includes(term));
+
+          const slice = list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+          success({
+            results: slice.map(([id, name]) => ({ id: String(id), text: label(id, name) })),
+            pagination: { more: page * PAGE_SIZE < list.length },
+          });
+          return { abort() {} };
+        },
+        processResults: (res) => res,
+      },
+    });
+  }
+
+  $(function () {
+    document.querySelectorAll('select.select360-sub').forEach((el) => $(el).select2(BASE));
+    document.querySelectorAll('select.select360-peer[data-peer-target]').forEach(init);
+
+    // Data sudah tampil; jangan tunggu window.load (gambar, font, dll.)
+    // untuk menutup preloader.
+    if (typeof window.hideLoader === 'function') window.hideLoader();
+    else $('#preloader').hide();
+  });
+})();
+
 (function () {
   // Toast kanan atas
   const Toast = Swal.mixin({

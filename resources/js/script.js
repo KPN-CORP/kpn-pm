@@ -138,6 +138,20 @@ function hideLoader() {
 
 window.hideLoader = hideLoader;
 
-window.onload = function () {
+// Preloader awal ditutup begitu DOM siap (DOMContentLoaded), bukan menunggu
+// window.load. window.load menunggu SEMUA gambar & font (logo, bendera,
+// avatar, icon font, Google Fonts) selesai diunduh, padahal konten halaman
+// sudah tampil di balik overlay transparan — itu yang membuat loader terasa
+// lama. Halaman yang masih memuat data (DataTables ajax, dll.) memanggil
+// showLoader()/hideLoader() sendiri seperti sebelumnya.
+if (document.readyState === "complete") {
     hideLoader();
-};
+} else {
+    document.addEventListener("DOMContentLoaded", hideLoader);
+}
+
+// Tombol Back: halaman bisa dipulihkan dari bfcache dalam keadaan loader
+// masih tampil (showLoader() dipanggil sebelum pindah halaman). Tutup lagi.
+window.addEventListener("pageshow", function (event) {
+    if (event.persisted) hideLoader();
+});

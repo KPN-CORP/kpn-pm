@@ -6,13 +6,8 @@ import bootstrap from "bootstrap/dist/js/bootstrap.bundle.min.js";
 
 import { GoogleGenAI } from "@google/genai";
 
-document.addEventListener('DOMContentLoaded', function () {
-    // Initialize all popovers on the page
-    const popoverTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="popover"]'));
-    const popoverList = popoverTriggerList.map(function (popoverTriggerEl) {
-        return new bootstrap.Popover(popoverTriggerEl);
-    });
-});
+// Popover kini dipasang sekali lewat delegasi di popovers.js (di-import oleh
+// app.js), jadi loop per-elemen di sini tidak diperlukan lagi.
 
 function initSelect2($element) {
     $element.select2({

@@ -28,6 +28,7 @@ use Maatwebsite\Excel\Facades\Excel;
 use RealRashid\SweetAlert\Facades\Alert;
 use stdClass;
 use App\Services\AppService;
+use App\Services\KPIService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
@@ -69,6 +70,9 @@ class MyAppraisalController extends Controller
         $filterYear = $request->input('filterYear');
         $accessMenu = [];
 
+        // Layer appraisal ikut periode yang dilihat.
+        \App\Support\AppraisalLayerPeriod::view($filterYear ?: $period);
+
         $employee = EmployeeAppraisal::where('employee_id', $user)->first();
         if ($employee) {
             $accessMenu = json_decode($employee->access_menu, true);
@@ -96,7 +100,10 @@ class MyAppraisalController extends Controller
 
             $datas = $datasQuery->get();
             
-            $formattedData = $datas->map(function($item) {
+            // Satu query layer untuk semua baris, bukan satu query per baris.
+            $layerMap = ApprovalLayerAppraisal::layerMapFor($datas->pluck('employee_id'));
+
+            $formattedData = $datas->map(function($item) use ($layerMap) {
                 $item->formatted_created_at = $this->appService->formatDate($item->appraisal->created_at);
 
                 $item->formatted_updated_at = $this->appService->formatDate($item->appraisal->updated_at);
@@ -106,9 +113,7 @@ class MyAppraisalController extends Controller
                     $item->approvalLayer = '';
                 } else {
                     $item->name = $item->manager->fullname . ' (' . $item->manager->employee_id . ')';
-                    $item->approvalLayer = ApprovalLayerAppraisal::where('employee_id', $item->employee_id)
-                                                        ->where('approver_id', $item->current_approval_id)
-                                                        ->value('layer');
+                    $item->approvalLayer = $layerMap[$item->employee_id.'-'.$item->current_approval_id] ?? null;
                 }
                 return $item;
             });
@@ -230,9 +235,19 @@ class MyAppraisalController extends Controller
                     $dataItem->finalRating = $finalRating;
                     $dataItem->formData = $formData;
                     $dataItem->appraisalData = $appraisalData;
+                    // Tracking achievement bulanan untuk kartu KPI (sama dengan popup detail On Behalf)
+                    $dataItem->kpiTracking = $request->appraisal->goal
+                        ? KPIService::achievementTracking($request->appraisal->goal, $appraisalData['formData'] ?? [])
+                        : [];
+                    $dataItem->kpiFiles = $request->appraisal->goal
+                        ? KPIService::achievementFiles($request->appraisal->goal, $appraisalData['formData'] ?? [])
+                        : [];
                     $data[] = $dataItem;
                 }
             }
+
+            // Urutkan list: appraisal yang terakhir di-update tampil paling atas.
+            usort($data, fn ($a, $b) => strtotime($b->request->appraisal->updated_at ?? 0) <=> strtotime($a->request->appraisal->updated_at ?? 0));
 
             $mergedResults = [];
 
@@ -333,6 +348,8 @@ class MyAppraisalController extends Controller
         // check goals
         if ($goalChecked) {
             $goalData = is_array($goal->form_data) ? $goal->form_data : json_decode($goal->form_data, true);
+            // Achievement tracking default dari goal achievement, bisa diedit di form appraisal
+            $goalData = KPIService::withAchievementTracking($goalData, KPIService::achievementTracking($goal), KPIService::achievementFiles($goal));
         } else {
             Session::flash('error', "Your Goal for $period are not found.");
             return redirect()->route('appraisals');
@@ -406,7 +423,8 @@ class MyAppraisalController extends Controller
                 'formData'      => 'required|array',
                 'attachment'    => 'nullable|array',
                 'attachment.*'  => 'file|mimes:pdf,doc,docx,xls,xlsx,ppt,pptx,jpg,jpeg,png|max:10240',
-            ]);
+                ...KPIService::MONTHLY_FILE_RULES,
+            ], KPIService::MONTHLY_FILE_MESSAGES);
 
             $formGroupName = $validatedData['formGroupName'];
             $formData = $validatedData['formData'];
@@ -420,15 +438,15 @@ class MyAppraisalController extends Controller
                 return back()->withErrors(['message' => 'Goal not found for selected employee and period.']);
             }
 
+            // Achievement KPI dihitung dari tracking bulanan yang diisi user (default goal achievement)
+            $tracking = KPIService::achievementTracking($goals, $formData);
+            $achFiles = KPIService::monthlyAchievementFiles($request, $goals, [], $tracking, $validatedData['employee_id'], $period);
+            $formData = KPIService::applyAchievementTracking($formData, $goals, $tracking, $achFiles);
+
             $datas = [
                 'formGroupName' => $formGroupName,
                 'formData' => $formData,
             ];
-
-            $contributorCheck = AppraisalContributor::select('appraisal_id')
-                ->where('employee_id', $validatedData['employee_id'])
-                ->where('period', $period)
-                ->first();
 
             $employeeId = $validatedData['employee_id'];
             $timestamp  = Carbon::now()->format('His');
@@ -457,7 +475,10 @@ class MyAppraisalController extends Controller
 
             // Simpan appraisal
             $appraisal = new Appraisal;
-            $appraisal->id = $contributorCheck->appraisal_id ?? Str::uuid();
+            // Selalu UUID baru: id milik contributor bisa menunjuk appraisal yang sudah dihapus
+            // (soft delete) sehingga insert bentrok primary key. Review 360 yang sudah ada
+            // ditautkan lewat relinkOrphans setelah save.
+            $appraisal->id = Str::uuid();
             $appraisal->goals_id = $goals->id;
             $appraisal->employee_id = $validatedData['employee_id'];
             $appraisal->form_group_id = $validatedData['form_group_id'];
@@ -468,6 +489,8 @@ class MyAppraisalController extends Controller
             $appraisal->created_by = Auth::user()->id;
             $appraisal->file = empty($paths) ? null : json_encode($paths);
             $appraisal->save();
+
+            AppraisalContributor::relinkOrphans($validatedData['employee_id'], $period, $appraisal->id);
 
             // Simpan snapshot
             $snapshot = new ApprovalSnapshots;
@@ -602,23 +625,14 @@ class MyAppraisalController extends Controller
             $data = json_decode($appraisal->form_data, true);
 
             
-            $selfReviewData = [];
-            foreach ($formData['formData'] as $item) {
-                if ($item['formName'] === 'KPI') {
-                    $selfReviewData = array_slice($item, 1);
-                    break;
-                }
-            }
 
             
-            // Add the achievements to the goalData
-            foreach ($goalData as $index => &$goal) {
-                if (isset($selfReviewData[$index])) {
-                    $goal['actual'] = $selfReviewData[$index]['achievement'];
-                } else {
-                    $goal['actual'] = [];
-                }
-            }
+            // Achievement tracking dari appraisal yang tersimpan, fallback ke goal achievement
+            $goalData = KPIService::withAchievementTracking(
+                $goalData,
+                KPIService::achievementTracking($goal, $formData['formData'] ?? []),
+                KPIService::achievementFiles($goal, $formData['formData'] ?? [])
+            );
 
             
             foreach ($formData['formData'] as &$form) {                
@@ -722,7 +736,8 @@ class MyAppraisalController extends Controller
             // daftar file lama yang dipertahankan
             'keep_files'    => 'nullable|array',
             'keep_files.*'  => 'string',
-        ]);
+            ...KPIService::MONTHLY_FILE_RULES,
+        ], KPIService::MONTHLY_FILE_MESSAGES);
 
         // Normalisasi formData (sesuai logic kamu)
         $formData = $validated['formData'];
@@ -750,6 +765,16 @@ class MyAppraisalController extends Controller
         unset($form); // keluar dari reference
 
         $appraisal = Appraisal::findOrFail($validated['id']);
+
+        // Achievement KPI dihitung dari tracking bulanan yang diisi user (default goal achievement)
+        $goal = Goal::where('employee_id', $appraisal->employee_id)->where('period', $appraisal->period)->first();
+        if ($goal) {
+            $tracking = KPIService::achievementTracking($goal, $formData);
+            // File bulanan dasar = yang tersimpan di appraisal ini, lalu terapkan hapus/upload dari request
+            $savedForms = (json_decode($appraisal->form_data ?? '', true) ?: [])['formData'] ?? [];
+            $achFiles = KPIService::monthlyAchievementFiles($request, $goal, $savedForms, $tracking, $appraisal->employee_id, $appraisal->period);
+            $formData = KPIService::applyAchievementTracking($formData, $goal, $tracking, $achFiles);
+        }
 
         $dataPayload = [
             'formGroupName' => $validated['formGroupName'],

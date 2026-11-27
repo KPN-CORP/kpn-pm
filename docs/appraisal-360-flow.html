@@ -1,0 +1,421 @@
+<title>Alur Appraisal 360</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap">
+<style>
+/* Layout: dokumen teknis satu kolom, diagram lebar boleh scroll sendiri. */
+:root{
+  --bg:#f6f6f4; --surface:#ffffff; --fg:#1d2126; --muted:#5d6570; --line:#d5d8dc;
+  --accent:#ab2f2b; --accent-soft:#f6e4e2;
+  --lane-p:#eef3fa; --lane-s:#f3f3f1; --lane-a1:#fbf3e6; --lane-a2:#e9f5f2;
+  --stroke-p:#3b6db3; --stroke-a1:#b07417; --stroke-a2:#1f8a78; --stroke-s:#7a828c;
+  --edge:#4a525c; --bad:#c0392b; --tag:#fff7d6;
+  --font-body:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#15181c; --surface:#1d2127; --fg:#e7e9ec; --muted:#9aa2ad; --line:#353b44;
+  --accent:#e2766f; --accent-soft:#3a2221;
+  --lane-p:#18212d; --lane-s:#1a1d21; --lane-a1:#2a2216; --lane-a2:#142622;
+  --stroke-p:#7ea6e0; --stroke-a1:#e0a64a; --stroke-a2:#4cc3ac; --stroke-s:#8d96a1;
+  --edge:#aab2bc; --bad:#ef6b5d; --tag:#3a3418; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#15181c; --surface:#1d2127; --fg:#e7e9ec; --muted:#9aa2ad; --line:#353b44;
+  --accent:#e2766f; --accent-soft:#3a2221;
+  --lane-p:#18212d; --lane-s:#1a1d21; --lane-a1:#2a2216; --lane-a2:#142622;
+  --stroke-p:#7ea6e0; --stroke-a1:#e0a64a; --stroke-a2:#4cc3ac; --stroke-s:#8d96a1;
+  --edge:#aab2bc; --bad:#ef6b5d; --tag:#3a3418; color-scheme:dark}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-body);font-size:15px;line-height:1.6;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1140px;margin:0 auto;padding-block:40px 64px;display:flex;flex-direction:column;gap:44px}
+header{display:flex;flex-direction:column;gap:10px;max-width:760px}
+.eyebrow{font-family:var(--font-mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--accent)}
+h1{font-size:34px;line-height:1.15;margin:0;font-weight:700;text-wrap:balance}
+h2{font-size:22px;margin:0;font-weight:600;text-wrap:balance}
+h3{font-size:16px;margin:0;font-weight:600}
+p{margin:0}
+.lead{color:var(--muted);font-size:16px}
+section{display:flex;flex-direction:column;gap:16px;min-width:0}
+section>p,section>ul,section>ol{max-width:780px}
+code,.mono{font-family:var(--font-mono);font-size:.88em}
+code{background:var(--accent-soft);padding:1px 5px;border-radius:4px}
+ul,ol{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
+.kv{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:12px}
+.kv div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.kv dt{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.05em}
+.kv dd{margin:0;font-weight:500;overflow-wrap:anywhere}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+figure{margin:0;display:flex;flex-direction:column;gap:10px}
+figcaption{color:var(--muted);font-size:14px;max-width:780px}
+svg.flow{display:block;width:100%;min-width:900px;height:auto;color:var(--edge);font-family:var(--font-body)}
+svg.state{display:block;width:100%;min-width:760px;height:auto;color:var(--edge);font-family:var(--font-body)}
+.lane{stroke:none}.lp{fill:var(--lane-p)}.ls{fill:var(--lane-s)}.la1{fill:var(--lane-a1)}.la2{fill:var(--lane-a2)}
+.lh{font-size:13px;font-weight:600;fill:var(--fg);text-anchor:middle;letter-spacing:.02em}
+.lhs{font-size:11px;fill:var(--muted);text-anchor:middle}
+.box{fill:var(--surface);stroke-width:1.5}
+.p{stroke:var(--stroke-p)}.s{stroke:var(--stroke-s)}.a1{stroke:var(--stroke-a1)}.a2{stroke:var(--stroke-a2)}
+.bad{fill:var(--surface);stroke:var(--bad);stroke-width:1.5}
+.tagbox{fill:var(--tag);stroke:var(--stroke-a1);stroke-dasharray:4 3}
+.endbox{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+.t{font-size:13px;font-weight:600;fill:var(--fg);text-anchor:middle}
+.st{font-size:11px;fill:var(--muted);text-anchor:middle}
+.e{fill:none;stroke:var(--edge);stroke-width:1.4}
+.ov{fill:none;stroke:var(--accent);stroke-width:1.5;stroke-dasharray:6 4}
+.el{font-size:11px;fill:var(--muted)}
+.elr{font-size:11px;fill:var(--accent);font-weight:500}
+.mid{text-anchor:middle}.end{text-anchor:end}
+.arrowhead{fill:var(--edge)}.arrowhead-r{fill:var(--accent)}
+table{border-collapse:collapse;width:100%;font-size:14px;min-width:640px}
+th,td{text-align:left;vertical-align:top;padding:10px 14px;border-bottom:1px solid var(--line)}
+th{font-size:12px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);font-weight:600;background:var(--lane-s)}
+tr:last-child td{border-bottom:0}
+td:first-child{font-weight:500;white-space:nowrap}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:16px}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px 18px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.pill{display:inline-block;font-family:var(--font-mono);font-size:12px;padding:1px 8px;border-radius:999px;border:1px solid var(--line);white-space:nowrap}
+.pill.warn{border-color:var(--stroke-a1);color:var(--stroke-a1)}
+.pill.ok{border-color:var(--stroke-a2);color:var(--stroke-a2)}
+.pill.sec{color:var(--muted)}
+.notes{display:flex;flex-direction:column;gap:12px;max-width:860px}
+.note{border-left:3px solid var(--line);padding:4px 0 4px 14px;display:flex;flex-direction:column;gap:4px}
+.note.risk{border-left-color:var(--accent)}
+.note h3{font-size:15px}
+.cast{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.cast div{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.cast b{font-weight:600}.cast span{font-size:13px;color:var(--muted)}
+.role{font-family:var(--font-mono);font-size:11px;text-transform:uppercase;letter-spacing:.06em}
+.role.p{color:var(--stroke-p)}.role.a1{color:var(--stroke-a1)}.role.a2{color:var(--stroke-a2)}.role.t{color:var(--accent)}.role.o{color:var(--muted)}
+.steps{display:flex;flex-direction:column;gap:28px}
+.step{display:grid;grid-template-columns:56px minmax(0,1fr);gap:14px}
+.step-no{font-family:var(--font-mono);font-size:13px;color:var(--accent);border:1px solid var(--accent);border-radius:999px;height:30px;display:flex;align-items:center;justify-content:center}
+.step-body{display:flex;flex-direction:column;gap:12px;min-width:0}
+.step-body h3{font-size:17px}
+.step-body .who{font-size:13px;color:var(--muted)}
+pre.json{margin:0;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:12px 14px;overflow-x:auto;font-family:var(--font-mono);font-size:12.5px;line-height:1.55}
+.jk{color:var(--stroke-p)}.jv{color:var(--stroke-a2)}.jc{color:var(--muted)}
+.mock{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:14px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.mock-head{display:flex;flex-wrap:wrap;gap:12px 32px;align-items:flex-start}
+.mock-kv{display:grid;grid-template-columns:96px 10px minmax(0,1fr);font-size:13.5px;row-gap:2px}
+.mock-kv span:nth-child(3n+1){color:var(--muted)}
+.mock-actions{margin-left:auto;display:flex;gap:8px;flex-wrap:wrap}
+.btn{font-size:12.5px;padding:4px 10px;border-radius:5px;border:1px solid var(--accent);color:var(--accent);background:transparent;white-space:nowrap}
+.btn.solid{background:var(--accent);color:var(--surface)}
+.btn.warn{border-color:var(--stroke-a1);color:var(--stroke-a1)}
+.mock-sel{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;background:var(--lane-s);border-radius:6px;padding:10px}
+.mock-sel div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.mock-sel b{font-size:12.5px}
+.sel{font-size:12.5px;border:1px solid var(--line);border-radius:5px;padding:5px 8px;background:var(--surface);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sel.off{color:var(--muted);background:var(--lane-s)}
+.rev{border:1px solid var(--stroke-a1);background:var(--lane-a1);border-radius:6px;padding:8px 12px;font-size:13.5px}
+.tip{font-size:12.5px;color:var(--muted)}
+.real{border:1px dashed var(--accent);border-radius:10px;padding:14px 16px;display:flex;flex-direction:column;gap:8px;max-width:860px}
+@media (max-width:600px){.mock-sel{grid-template-columns:minmax(0,1fr)}.step{grid-template-columns:minmax(0,1fr)}.step-no{width:56px}}
+footer{color:var(--muted);font-size:13px;border-top:1px solid var(--line);padding-top:16px}
+@media (max-width:600px){h1{font-size:27px}.wrap{padding-block:24px 48px;gap:36px}}
+</style>
+
+<div class="wrap">
+<header>
+  <span class="eyebrow">kpn-pm · Performance Management</span>
+  <h1>Alur Appraisal 360</h1>
+  <p class="lead">Bagaimana peers dan subordinate memberi penilaian 360 untuk seorang karyawan, di mana datanya disimpan, dan bagaimana nilainya digabung dengan self appraisal dan penilaian manager sampai menjadi suggested rating di layar Rating. Disusun dari kode di branch <code>development</code> dan data DB stage per 25 Nov 2026.</p>
+</header>
+
+<section>
+  <h2>Konfigurasi yang berlaku</h2>
+  <dl class="kv">
+    <div><dt>Periode appraisal</dt><dd>2026 · jadwal PA 2–30 Nov 2026</dd></div>
+    <div><dt>Form 360</dt><dd>"Appraisal Form 360": Culture (5 indikator × 3 item) dan Leadership (4 indikator × 3 item). Tanpa KPI.</dd></div>
+    <div><dt>Skala skor</dt><dd>1 Poor · 2 Need Improvement · 3 Meet Expectation · 4 Exceed Expectation · 5 Exceptional</dd></div>
+    <div><dt>Bobot komponen (KPN Corporation, 5A)</dt><dd>KPI 70% · Culture 20% · Leadership 10%</dd></div>
+    <div><dt>Bobot 360 di master</dt><dd>employee 4 · manager 45 · peers 21 · subordinate 30 (tersimpan, tapi tidak dipakai di nilai akhir)</dd></div>
+    <div><dt>Data di stage</dt><dd>2025: 121 form peers dan 128 form subordinate terkirim, 6 masih draft. 2026: belum ada.</dd></div>
+  </dl>
+</section>
+
+<section>
+  <h2>Hubungan dengan Propose 360</h2>
+  <p>Propose 360 menentukan <em>siapa</em> raternya. Setelah pengajuan disetujui, rater tertulis di <code>approval_layer_appraisals</code> sebagai baris <code>peers</code> dan <code>subordinate</code> layer 1–3. Appraisal 360 adalah tahap rater tersebut <em>mengisi</em> penilaian. Baris peers/subordinate juga bisa berasal dari import Layer Setting, bukan hanya dari Propose 360.</p>
+</section>
+
+<section>
+  <h2>Kapan tugas 360 muncul untuk rater</h2>
+  <p>Di menu <strong>Task Box → tab Appraisal 360</strong> (<code>AppraisalTaskController::get360Data</code>), seorang karyawan muncul di daftar rater jika ketiganya terpenuhi:</p>
+  <ol>
+    <li>Ada baris <code>approval_layer_appraisals</code> dengan <code>approver_id</code> = rater dan <code>layer_type</code> = <code>peers</code> atau <code>subordinate</code>.</li>
+    <li><code>access_menu</code> karyawan yang dinilai berisi <code>accesspa = 1</code>.</li>
+    <li>Karyawan itu sudah punya <code>approval_requests</code> kategori Appraisal untuk periode yang dipilih. Request dibuat saat self appraisal disimpan, termasuk saat masih draft, atau saat manager melakukan Initiate.</li>
+  </ol>
+  <p>Tidak ada approval untuk form 360. Rater tidak perlu menunggu manager selesai review; dua jalur ini berjalan paralel.</p>
+</section>
+
+<section>
+  <h2>Flowchart end-to-end</h2>
+  <figure>
+    <div class="scroll">
+    <svg class="flow" viewBox="0 0 1110 790" role="img" aria-label="Flowchart Appraisal 360: self appraisal atau initiate manager membuat appraisal dan approval request; manager mereview per layer sampai Approved dan masuk kalibrasi; secara paralel peers dan subordinate mengisi form 360 yang disimpan di appraisal_contributors; layar Rating menggabungkan semua penilaian menjadi suggested rating.">
+      <defs>
+        <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="arrowhead" d="M0,0 L10,5 L0,10 z"/></marker>
+      </defs>
+      <rect class="lane lp" x="20" y="20" width="210" height="755"/>
+      <rect class="lane ls" x="230" y="20" width="360" height="755"/>
+      <rect class="lane la1" x="590" y="20" width="250" height="755"/>
+      <rect class="lane la2" x="840" y="20" width="250" height="755"/>
+      <text class="lh" x="125" y="40">KARYAWAN</text><text class="lhs" x="125" y="55">yang dinilai</text>
+      <text class="lh" x="410" y="40">SISTEM</text><text class="lhs" x="410" y="55">Controller · AppService</text>
+      <text class="lh" x="715" y="40">MANAGER</text><text class="lhs" x="715" y="55">tab Team di Task Box</text>
+      <text class="lh" x="965" y="40">RATER 360</text><text class="lhs" x="965" y="55">peers · subordinate</text>
+
+      <!-- r1 -->
+      <rect class="box p" x="35" y="78" width="180" height="44" rx="22"/>
+      <text class="t" x="125" y="104">Isi self appraisal</text>
+      <path class="e" d="M215,100 H260" marker-end="url(#ah)"/>
+      <rect class="box s" x="260" y="68" width="300" height="72" rx="6"/>
+      <text class="t" x="410" y="90">Simpan appraisal</text>
+      <text class="st" x="410" y="108">appraisals · approval_requests · snapshot</text>
+      <text class="st" x="410" y="124">Initiate manager: langsung Approved</text>
+      <rect class="box a1" x="615" y="78" width="200" height="44" rx="22"/>
+      <text class="t" x="715" y="98">Initiate</text>
+      <text class="st" x="715" y="113">jika karyawan belum isi</text>
+      <path class="e" d="M615,100 H560" marker-end="url(#ah)"/>
+      <text class="el" x="588" y="92" text-anchor="middle">atau</text>
+
+      <!-- fork -->
+      <path class="e" d="M410,140 V165 H965 V195" marker-end="url(#ah)"/>
+      <path class="e" d="M715,165 V195" marker-end="url(#ah)"/>
+      <circle cx="715" cy="165" r="3" class="arrowhead"/>
+      <text class="el" x="840" y="158" text-anchor="middle">dua jalur paralel</text>
+
+      <!-- manager track -->
+      <rect class="box a1" x="615" y="195" width="200" height="60" rx="6"/>
+      <text class="t" x="715" y="220">Review di tab Team</text>
+      <text class="st" x="715" y="238">manager layer 1 → n</text>
+      <path class="e" d="M715,255 V290" marker-end="url(#ah)"/>
+      <polygon class="box a1" points="715,290 810,330 715,370 620,330"/>
+      <text class="t" x="715" y="326">Ada layer</text><text class="t" x="715" y="341">berikutnya?</text>
+      <path class="e" d="M810,330 H828 V225 H815" marker-end="url(#ah)"/>
+      <text class="el" x="822" y="352" text-anchor="middle">ya</text>
+      <path class="e" d="M620,330 H560" marker-end="url(#ah)"/>
+      <text class="el" x="590" y="322" text-anchor="middle">tidak</text>
+      <rect class="box s" x="260" y="300" width="300" height="60" rx="6"/>
+      <text class="t" x="410" y="325">Appraisal Approved</text>
+      <text class="st" x="410" y="343">baris calibrations untuk calibrator layer 1</text>
+
+      <!-- rater track -->
+      <rect class="box a2" x="865" y="195" width="200" height="60" rx="6"/>
+      <text class="t" x="965" y="220">Muncul di tab 360</text>
+      <text class="st" x="965" y="238">status "-" · tombol Review</text>
+      <path class="e" d="M965,255 V290" marker-end="url(#ah)"/>
+      <rect class="box a2" x="865" y="290" width="200" height="80" rx="6"/>
+      <text class="t" x="965" y="314">Isi form 360</text>
+      <text class="st" x="965" y="332">Culture &amp; Leadership</text>
+      <text class="st" x="965" y="348">skala 1–5</text>
+      <text class="st" x="965" y="362">terisi awal skor self</text>
+      <path class="e" d="M965,370 V410" marker-end="url(#ah)"/>
+      <polygon class="box a2" points="965,410 1060,450 965,490 870,450"/>
+      <text class="t" x="965" y="446">Save draft</text><text class="t" x="965" y="461">atau Submit</text>
+      <path class="e" d="M870,450 H560" marker-end="url(#ah)"/>
+      <text class="el" x="715" y="442" text-anchor="middle">POST /appraisals-task/submitReview</text>
+      <rect class="box s" x="260" y="420" width="300" height="60" rx="6"/>
+      <text class="t" x="410" y="445">Simpan appraisal_contributors</text>
+      <text class="st" x="410" y="463">peers/subordinate · Draft atau Approved</text>
+      <path class="e" d="M965,490 V540" marker-end="url(#ah)"/>
+      <rect class="tagbox" x="865" y="540" width="200" height="50" rx="6"/>
+      <text class="st" x="965" y="560">Revise / lanjutkan draft</text>
+      <text class="st" x="965" y="576">selama kalibrasi belum Approved</text>
+      <path class="e" d="M1065,565 H1078 V330 H1065" marker-end="url(#ah)"/>
+
+      <!-- join -->
+      <path class="e" d="M260,330 H245 V600 H260" marker-end="url(#ah)"/>
+      <path class="e" d="M410,480 V560" marker-end="url(#ah)"/>
+      <rect class="box s" x="260" y="560" width="300" height="80" rx="6"/>
+      <text class="t" x="410" y="583">Rating: suggestedRating()</text>
+      <text class="st" x="410" y="601">gabung self + manager + peers + subordinate</text>
+      <text class="st" x="410" y="617">KPI hanya dari manager</text>
+      <text class="st" x="410" y="632">Culture/Leadership rata-rata per tipe</text>
+      <path class="e" d="M410,640 V690" marker-end="url(#ah)"/>
+      <rect class="endbox" x="290" y="690" width="240" height="44" rx="22"/>
+      <text class="t" x="410" y="717">Kalibrasi → rating akhir</text>
+
+      <rect class="tagbox" x="35" y="560" width="180" height="58" rx="6"/>
+      <text class="st" x="125" y="582">Hasil 360 tidak</text>
+      <text class="st" x="125" y="597">ditampilkan di</text>
+      <text class="st" x="125" y="612">My Appraisal karyawan</text>
+    </svg>
+    </div>
+    <figcaption>Jalur manager dan jalur rater dimulai bersamaan begitu appraisal karyawan tersimpan. Form 360 tidak punya approval: yang disimpan hanya baris kontributor, lalu dibaca saat layar Rating menghitung suggested rating.</figcaption>
+  </figure>
+</section>
+
+<section>
+  <h2>Status dan tombol di tab Appraisal 360</h2>
+  <div class="scroll"><table>
+    <thead><tr><th>Kondisi</th><th>Status tampil</th><th>Tanggal</th><th>Tombol</th></tr></thead>
+    <tbody>
+      <tr><td>Belum diisi</td><td><span class="pill sec">-</span></td><td>-</td><td>Review</td></tr>
+      <tr><td>Disimpan draft</td><td><span class="pill warn">Draft</span></td><td>tanggal simpan</td><td>Revise</td></tr>
+      <tr><td>Sudah submit</td><td><span class="pill ok">Submitted</span> (di DB tersimpan <code>Approved</code>)</td><td>tanggal simpan</td><td>Revise, Details</td></tr>
+      <tr><td>Kalibrasi karyawan sudah Approved</td><td>sama seperti di atas</td><td></td><td>Revise hilang, Details tetap</td></tr>
+      <tr><td>Periode lalu (filter tahun)</td><td>sama seperti di atas</td><td></td><td>Details saja</td></tr>
+    </tbody>
+  </table></div>
+  <p>Kolom tabel: Employee ID, Name, Designation, Office, Status, Initiated Date, Action. Badge merah di tab menghitung karyawan yang appraisal-nya sudah ada tapi belum dinilai rater ini.</p>
+</section>
+
+<section>
+  <h2>Data yang tampil dan ditulis</h2>
+  <div class="grid2">
+    <div class="panel">
+      <h3>Halaman Review (rater)</h3>
+      <ul>
+        <li>Judul "Review Appraisal", identitas karyawan yang dinilai.</li>
+        <li>Form "Appraisal Form 360": Culture dan Leadership, tiap item diberi skor 1–5.</li>
+        <li>Jika rater belum pernah menyimpan, skor terisi awal dari self appraisal karyawan. Jika sudah, dari draft/submit rater sendiri.</li>
+        <li>Tombol Save Draft dan Submit.</li>
+      </ul>
+    </div>
+    <div class="panel">
+      <h3>Halaman Details</h3>
+      <p>Hanya bisa dibuka oleh rater pembuatnya (<code>contributor_id</code> = user). Menampilkan skor yang diberikan per indikator beserta judulnya. Karyawan yang dinilai dan manager tidak bisa membuka form 360 rater lewat link ini.</p>
+    </div>
+  </div>
+  <div class="scroll"><table>
+    <thead><tr><th>Tabel</th><th>Isi yang ditulis saat rater Save/Submit</th></tr></thead>
+    <tbody>
+      <tr><td>appraisal_contributors</td><td>updateOrCreate per (appraisal_id, employee_id, contributor_id, period): contributor_type <code>peers</code>/<code>subordinate</code>, form_data (JSON skor), rating (total skor kontributor), status <code>Draft</code> atau <code>Approved</code>, created_by</td></tr>
+      <tr><td>approval_snapshots</td><td>Baris baru setiap simpan: form_id = appraisal_id, form_data, employee_id, created_by</td></tr>
+      <tr><td>approval_requests, approval_logs</td><td>Tidak disentuh oleh form 360</td></tr>
+    </tbody>
+  </table></div>
+</section>
+
+<section>
+  <h2>Cara nilai 360 dihitung</h2>
+  <p>Layar Rating memanggil <code>AppService::suggestedRating()</code> untuk setiap appraisal:</p>
+  <ol>
+    <li>Kumpulkan semua baris <code>appraisal_contributors</code> dengan appraisal_id itu (manager, peers, subordinate), ditambah self appraisal (tipe <code>employee</code>) jika karyawan sendiri yang mengisinya. Appraisal hasil Initiate manager tidak punya komponen self.</li>
+    <li>Rata-ratakan rater dengan tipe yang sama (<code>averageScores</code>).</li>
+    <li>Untuk Culture dan Leadership: hitung rata-rata skor per tipe, lalu rata-rata sederhana antar tipe. Tiga tipe berarti masing-masing berbobot sepertiga.</li>
+    <li>KPI dihitung dari achievement versi manager: persen capaian dikonversi ke skor 1–5, dikali bobot tiap KPI.</li>
+    <li>Total = KPI × 70% + Culture × 20% + Leadership × 10% (bobot sesuai job level dan group company).</li>
+  </ol>
+</section>
+
+<section id="contoh">
+  <h2>Contoh kasus: Appraisal 360 untuk Metta Saputra</h2>
+  <p>Melanjutkan contoh Propose 360. Data periode 2026 diambil dari DB stage. Skor dari peers belum ada di stage, jadi di tahap 4 dipakai angka contoh yang ditandai jelas; perhitungannya dijalankan memakai fungsi asli <code>AppService</code>.</p>
+  <div class="cast">
+    <div><span class="role t">Dinilai</span><b>Metta Saputra</b><span>01124040023 · Product Specialist · 5A · Corporate Gama Tower · accesspa 1</span></div>
+    <div><span class="role a1">Manager L1</span><b>Rolles Herwin Sihombing</b><span>01123070004 · satu-satunya layer manager Metta</span></div>
+    <div><span class="role a2">Peers 1</span><b>Muhammad Alif Afrizal</b><span>01126010018 · Project - Business Process Analyst</span></div>
+    <div><span class="role a2">Peers 2</span><b>Fredian Simanjuntak</b><span>01126010024 · Software Engineer</span></div>
+    <div><span class="role a2">Peers 3</span><b>Dali Kewara</b><span>01126010010 · Software Engineer</span></div>
+    <div><span class="role o">Subordinate</span><b>Tidak ada</b><span>Metta tidak punya bawahan</span></div>
+  </div>
+
+  <div class="steps">
+    <div class="step"><div class="step-no">1</div><div class="step-body">
+      <h3>Rolles melakukan Initiate</h3>
+      <p class="who">19 Nov 2026 02:38 Initiate pertama · 19 Nov 09:24 di-revoke · 20 Nov 2026 02:51 Initiate ulang</p>
+      <p>Metta tidak mengisi self appraisal, jadi Rolles memakai tombol Initiate di tab Team. Appraisal pertama (<span class="mono">6defa209</span>) di-revoke pada hari yang sama, lalu Rolles melakukan Initiate lagi. Karena Rolles satu-satunya layer manager, appraisal langsung Approved dan masuk kalibrasi. Yang aktif sekarang:</p>
+<pre class="json"><span class="jc">// appraisals</span>
+{ "id": "6cba3693-3b78-4172-90fd-99186a5d6689", "employee_id": "01124040023", "period": 2026,
+  "form_status": "Approved", "created_by": 23915 }   <span class="jc">// users.id Rolles, bukan Metta</span>
+
+<span class="jc">// approval_requests #41646</span>
+{ "category": "Appraisal", "form_id": "6cba3693-…", "status": "Approved", "current_approval_id": "01123070004" }
+
+<span class="jc">// appraisal_contributors #8016</span>
+{ "contributor_id": "01123070004", "contributor_type": "manager", "status": "Approved", "rating": "3.14" }
+
+<span class="jc">// skor yang diisi Rolles (per indikator, 3 item)</span>
+Culture    : [5,4,5] [3,4,5] [5,4,5] [5,4,3] [4,3,3]   → rata-rata 4.133
+Leadership : [5,5,4] [4,3,5] [5,4,2] [5,4,4]           → rata-rata 4.167
+KPI        : achievement 2, 80, 4, 3, 1 terhadap target 2, 100, 4, 3, 1 → skor KPI 2.70</pre>
+    </div></div>
+
+    <div class="step"><div class="step-no">2</div><div class="step-body">
+      <h3>Tugas 360 muncul untuk Alif, Fredian, dan Dali</h3>
+      <p>Ketiganya punya baris peers untuk Metta, Metta punya <code>accesspa = 1</code>, dan request Appraisal Metta periode 2026 sudah ada. Tampilan tab Appraisal 360 di Task Box Fredian:</p>
+      <div class="scroll"><table>
+        <thead><tr><th>Employee ID</th><th>Name</th><th>Designation</th><th>Office</th><th>Status</th><th>Initiated Date</th><th>Action</th></tr></thead>
+        <tbody><tr><td>01124040023</td><td>Metta Saputra</td><td>Product Specialist</td><td>Corporate Gama Tower</td><td><span class="pill sec">-</span></td><td>-</td><td><span class="btn warn">Review</span></td></tr></tbody>
+      </table></div>
+    </div></div>
+
+    <div class="step"><div class="step-no">3</div><div class="step-body">
+      <h3>Fredian mengisi dan submit <span class="pill sec">belum terjadi</span></h3>
+      <p>Form terbuka dengan skor awal dari appraisal Metta. Fredian mengubah skor lalu Submit. Yang tersimpan:</p>
+<pre class="json"><span class="jc">// POST /appraisals-task/submitReview</span>
+employee_id=01124040023  approver_id=01126010024  submit_type=(selain submit_draft)
+formGroupName="Appraisal Form 360"  appraisal_id=6cba3693-…
+formData[0][formName]=Culture  formData[0][0][0][score]=4 …
+formData[1][formName]=Leadership  …
+
+<span class="jc">// appraisal_contributors (baris baru)</span>
+{ "appraisal_id": "6cba3693-…", "employee_id": "01124040023", "contributor_id": "01126010024",
+  "contributor_type": "peers", "status": "Approved", "period": 2026, "rating": "&lt;total skor Fredian&gt;" }
+
+<span class="jc">// approval_snapshots (baris baru)</span>
+{ "form_id": "6cba3693-…", "employee_id": "01124040023", "form_data": { … } }</pre>
+      <p>Di Task Box Fredian, status berubah menjadi <span class="pill ok">Submitted</span> dengan tombol Revise dan Details.</p>
+    </div></div>
+
+    <div class="step"><div class="step-no">4</div><div class="step-body">
+      <h3>Pengaruh ke suggested rating <span class="pill sec">simulasi</span></h3>
+      <p>Skor manager diambil dari data asli. Komponen self tidak ada, karena appraisal Metta dibuat lewat Initiate oleh Rolles. Peers memakai angka contoh: Alif memberi 3 di semua item, Fredian 4, Dali 5, sehingga rata-rata peers seharusnya 4.00.</p>
+      <div class="scroll"><table>
+        <thead><tr><th>Komponen</th><th>Sekarang (tanpa 360)</th><th>Dengan 3 peers (hasil kode)</th><th>Jika peers dirata-rata benar</th></tr></thead>
+        <tbody>
+          <tr><td>Culture: manager / peers</td><td>4.133 / –</td><td>4.133 / 3.200</td><td>4.133 / 4.000</td></tr>
+          <tr><td>Culture akhir (rata-rata antar tipe)</td><td>4.13</td><td>3.67</td><td>4.07</td></tr>
+          <tr><td>Leadership: manager / peers</td><td>4.167 / –</td><td>4.167 / 3.250</td><td>4.167 / 4.000</td></tr>
+          <tr><td>Leadership akhir</td><td>4.17</td><td>3.71</td><td>4.08</td></tr>
+          <tr><td>KPI (dari manager)</td><td>2.70</td><td>2.70</td><td>2.70</td></tr>
+          <tr><td>KPI × 70%</td><td>1.890</td><td>1.890</td><td>1.890</td></tr>
+          <tr><td>Culture × 20%</td><td>0.827</td><td>0.733</td><td>0.813</td></tr>
+          <tr><td>Leadership × 10%</td><td>0.417</td><td>0.371</td><td>0.408</td></tr>
+          <tr><td><strong>Suggested rating</strong></td><td><strong>3.13</strong></td><td><strong>2.99</strong></td><td><strong>3.11</strong></td></tr>
+        </tbody>
+      </table></div>
+      <p>Kolom pertama sama dengan hasil <code>suggestedRating()</code> untuk appraisal Metta di stage saat ini (3.13). Di kolom kedua nilai peers keluar 3.20 dan 3.25, bukan 4.00; penyebabnya ada di catatan pertama di bawah.</p>
+    </div></div>
+  </div>
+</section>
+
+<section>
+  <h2>Catatan penting</h2>
+  <div class="notes">
+    <div class="note risk">
+      <h3>Rata-rata antar rater hanya untuk indikator pertama</h3>
+      <p><code>averageScores()</code> hanya merata-ratakan indikator index 0. Indikator lain diambil dari rater pertama saja. Pada simulasi di atas, Culture "Synergized team" benar dirata-rata (4.00), tapi empat indikator Culture lainnya memakai skor Alif (3). Akibatnya nilai peers 3.20, bukan 4.00, dan hasilnya bergantung pada urutan baris di database.</p>
+    </div>
+    <div class="note risk">
+      <h3>Bobot 360 tidak dipakai</h3>
+      <p>Master weightage menyimpan bobot employee 4, manager 45, peers 21, subordinate 30, tapi nilai akhir Culture/Leadership memakai rata-rata sederhana antar tipe. Pada contoh Metta, manager dan peers masing-masing berbobot 50%, dan jika ada self appraisal, self berbobot sama dengan manager.</p>
+    </div>
+    <div class="note risk">
+      <h3>Draft dan rater lama tetap dihitung</h3>
+      <p><code>suggestedRating()</code> mengambil semua baris kontributor tanpa melihat status atau Layer Setting terbaru. Form 360 yang masih Draft ikut dihitung. Rater yang sudah diganti (misalnya Alif diganti Janice setelah Propose 360 #41647 disetujui) tetap dihitung jika sudah pernah menyimpan.</p>
+    </div>
+    <div class="note">
+      <h3>Revoke ikut menghapus form 360</h3>
+      <p>Revoke appraisal menghapus semua baris <code>appraisal_contributors</code> karyawan itu untuk periode berjalan, termasuk form peers dan subordinate. Setelah Initiate ulang, rater harus mengisi lagi dari awal.</p>
+    </div>
+    <div class="note">
+      <h3>Komponen self hanya ada jika karyawan mengisi sendiri</h3>
+      <p>Self appraisal dicari dari snapshot yang dibuat oleh karyawan itu sendiri. Appraisal hasil Initiate manager tidak punya komponen self, sehingga nilai akhirnya hanya dari manager dan rater 360. Di stage, hanya 654 dari 2.415 appraisal 2025 yang dibuat oleh karyawan sendiri.</p>
+    </div>
+    <div class="note">
+      <h3>Form rater terisi skor self karyawan</h3>
+      <p>Saat rater pertama kali membuka Review, skornya terisi dari self appraisal karyawan (atau isian manager jika lewat Initiate). Rater bisa langsung Submit tanpa mengubah apa pun, sehingga penilaian 360 bisa sama persis dengan self appraisal.</p>
+    </div>
+    <div class="note">
+      <h3>Tidak ada batas waktu khusus 360</h3>
+      <p>Rater bisa mengisi selama periode berjalan dan merevisi sampai kalibrasi karyawan Approved. Tombol Review untuk rater yang belum mengisi tetap tampil walau kalibrasi sudah Approved.</p>
+    </div>
+  </div>
+</section>
+
+<footer>Sumber: AppraisalTaskController (index, get360Data, review, storeReview, detail), MyAppraisalController, AppService (combineFormData, appraisalSummary, combineSummaryFormData, averageScores, suggestedRating), resources/views/components/action-buttons.blade.php, resources/js/appraisal-task.js, dan DB stage (hcispanel_hc_stage).</footer>
+</div>

@@ -198,76 +198,17 @@
                                     <p class="d-none d-md-inline me-1">Details</p><i class="ri-arrow-down-s-line"></i>
                                 </span>                               
                             </button>
+                            {{-- Culture/Leadership/KPI memakai partial yang sama dengan My Appraisal dan popup detail On Behalf --}}
                             @if ($item['formName'] == 'Leadership')
                             <div class="collapse" id="collapse-{{ $indexItem }}">
                                 <div class="card card-body mb-3">
-                                    @forelse($formData['formData'] as $form)
-                                        @if($form['formName'] === 'Leadership')
-                                            @foreach($form as $key => $item)
-                                                @if(is_numeric($key))
-                                                <div class="{{ $loop->last ? '':'border-bottom' }} mb-3">
-                                                    @if(isset($item['title']))
-                                                        <h5 class="mb-3"><u>{!! $item['title'] !!}</u></h5>
-                                                    @endif
-                                                    @foreach($item as $subKey => $subItem)
-                                                        @if(is_array($subItem))
-                                                        <ul class="ps-3">
-                                                            <li>
-                                                                <div>
-                                                                    @if(isset($subItem['formItem']))
-                                                                        <p class="mb-1">{!! $subItem['formItem'] !!}</p>
-                                                                    @endif
-                                                                    @if(isset($subItem['score']))
-                                                                        <p><strong>Score:</strong> {{ $subItem['score'] }}</p>
-                                                                    @endif
-                                                                </div>
-                                                            </li>
-                                                        </ul>
-                                                        @endif
-                                                    @endforeach
-                                                </div>
-                                                @endif
-                                            @endforeach
-                                        @endif
-                                    @empty
-                                        <p>No Data</p>
-                                    @endforelse
+                                    @include('partials.leadership-detail', ['formData' => $formData])
                                 </div>
                             </div>
                             @elseif($item['formName'] == 'Culture')
                             <div class="collapse" id="collapse-{{ $indexItem }}">
                                 <div class="card card-body mb-3">
-                                    @forelse($formData['formData'] as $form)
-                                        @if($form['formName'] === 'Culture')
-                                            @foreach($form as $key => $item)
-                                                @if(is_numeric($key))
-                                                <div class="{{ $loop->last ? '':'border-bottom' }} mb-3">
-                                                    @if(isset($item['title']))
-                                                        <h5 class="mb-3"><u>{!! $item['title'] !!}</u></h5>
-                                                    @endif
-                                                    @foreach($item as $subKey => $subItem)
-                                                        @if(is_array($subItem))
-                                                        <ul class="ps-3">
-                                                            <li>
-                                                                <div>
-                                                                    @if(isset($subItem['formItem']))
-                                                                        <p class="mb-1">{!! $subItem['formItem'] !!}</p>
-                                                                    @endif
-                                                                    @if(isset($subItem['score']))
-                                                                        <p><strong>Score:</strong> {{ $subItem['score'] }}</p>
-                                                                    @endif
-                                                                </div>
-                                                            </li>
-                                                        </ul>
-                                                        @endif
-                                                    @endforeach
-                                                </div>
-                                                @endif
-                                            @endforeach
-                                        @endif
-                                    @empty
-                                        <p>No Data</p>
-                                    @endforelse
+                                    @include('partials.culture-detail', ['formData' => $formData])
                                 </div>
                             </div>
                             @elseif($item['formName'] == 'Technical')
@@ -308,56 +249,13 @@
                             </div>
                             @else 
                             <div class="collapse" id="collapse-{{ $indexItem }}">
-                                <div class="card card-body mb-3 py-0">
+                                <div class="card card-body mb-3 p-2">
                                     @forelse ($formData['formData'] as $form)
-                                    @if ($form['formName'] === 'KPI')
-                                    <div class="table-responsive">
-                                        <table class="table">
-                                            <thead>
-                                                <tr>
-                                                    <th>#</th>
-                                                    <th>KPI</th>
-                                                    <th>{{ __('Type') }}</th>
-                                                    <th>{{ __('Weightage') }}</th>
-                                                    <th>Target</th>
-                                                    <th>{{ __('Actual') }}</th>
-                                                    <th>{{ __('Achievement') }}</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                            @foreach ($form as $key => $data)
-                                                @if (is_array($data))
-                                                <tr>
-                                                    <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
-                                                        <p class="mt-1 mb-0">{{ $key + 1 }}</p>
-                                                    </td>
-                                                    <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
-                                                        <p class="mt-1 mb-0 text-muted" @style('white-space: pre-line')>{{ $data['kpi'] }}</p>
-                                                    </td>
-                                                    <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
-                                                        <p class="mt-1 mb-0 text-muted">{{ $data['type'] }}</p>
-                                                    </td>
-                                                    <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
-                                                        <p class="mt-1 mb-0 text-muted">{{ $data['weightage'] }}%</p>
-                                                    </td>
-                                                    <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
-                                                        <p class="mt-1 mb-0 text-muted">{{ $data['target'] }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</p>
-                                                    </td>
-                                                    <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
-                                                        <p class="mt-1 mb-0 text-muted">{{ $data['achievement'] }} {{ is_null($data['custom_uom']) ? $data['uom']: $data['custom_uom'] }}</p>
-                                                    </td>
-                                                    <td class="{{ $loop->last ? 'border-0' : 'border-bottom-2 border-dashed' }}">
-                                                        <p class="mt-1 mb-0 text-muted">{{ isset($data['percentage']) ? round($data['percentage']) . '%' : '0%' }}</p>
-                                                    </td>
-                                                </tr>
-                                                @endif
-                                                @endforeach
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                    @endif
+                                        @if ($form['formName'] === 'KPI')
+                                            @include('pages.onbehalfs.partials.kpi-cards', ['form' => $form, 'tracking' => $kpiTracking ?? [], 'files' => $kpiFiles ?? []])
+                                        @endif
                                     @empty
-                                    <p>No form data available.</p>
+                                        <p>No form data available.</p>
                                     @endforelse
                                 </div>
                             </div>

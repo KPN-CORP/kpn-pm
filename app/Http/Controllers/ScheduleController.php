@@ -10,6 +10,7 @@ use App\Models\Employee;
 use App\Models\EmployeeAppraisal;
 use App\Models\Permission;
 use App\Models\RoleHasPermission;
+use Illuminate\Contracts\Encryption\DecryptException;
 use Illuminate\Support\Facades\Crypt;
 use Illuminate\Support\Facades\Log;
 use RealRashid\SweetAlert\Facades\Alert;
@@ -166,6 +167,7 @@ class ScheduleController extends Controller
         $link = "schedule";
         $today = date("Y-m-d");
         $userId = Auth::id();
+        $this->validateSchedule($req, $req->event_type, true);
         $review360 = isset($req->review_360) ? $req->review_360 : 0;
         // Delete previous same event_type if it exists
         if (
@@ -431,11 +433,20 @@ class ScheduleController extends Controller
     }
     function edit($encryptedId)
     {
-        $id = Crypt::decrypt($encryptedId);
+        try {
+            $id = Crypt::decrypt($encryptedId);
+        } catch (DecryptException $e) {
+            return redirect("schedules");
+        }
         $parentLink = "Setting";
         $link = "Schedules";
         $sublink = "Update";
         $model = Schedule::find($id);
+
+        if (!$model) {
+            return redirect("schedules");
+        }
+
         $today = Carbon::today();
         $schedulemasterpa = Schedule::where("event_type", "masterschedulepa")
             ->whereDate("start_date", "<=", $today)
@@ -460,10 +471,6 @@ class ScheduleController extends Controller
             $hidediv = 0;
         }
 
-        if (!$model) {
-            return redirect("schedules");
-        }
-
         return view("pages.schedules.edit", [
             "link" => $link,
             "sublink" => $sublink,
@@ -478,6 +485,12 @@ class ScheduleController extends Controller
     {
         $link = "schedule";
         $model = Schedule::find($req->id_schedule);
+
+        if (!$model) {
+            return redirect("schedules");
+        }
+
+        $this->validateSchedule($req, $model->event_type, false);
         $review360 = isset($req->review_360) ? $req->review_360 : 0;
 
         $model->schedule_name = $req->schedule_name;
@@ -702,6 +715,59 @@ class ScheduleController extends Controller
         Alert::success("Success");
         return redirect()->intended(route("schedules", absolute: false));
     }
+    /**
+     * Validasi input schedule sebelum disimpan, supaya field yang kosong
+     * tampil sebagai pesan error (bukan SQL error / undefined variable).
+     * - schedule_name & event_type: kolom NOT NULL (hanya dicek saat create, saat edit readonly)
+     * - start_date & end_date: dipakai untuk hitung akses menu
+     * - Schedule PA / Goals wajib punya minimal satu join date (createpa/doj dihitung dari situ)
+     */
+    private function validateSchedule(Request $req, ?string $eventType, bool $isCreate): void
+    {
+        $joinMessage = "Start Join Date or Last Join Date must be filled in.";
+
+        $rules = [
+            "start_date" => "required|date",
+            "end_date" => "required|date|after_or_equal:start_date",
+            "start_join_date" => "nullable|date",
+            "last_join_date" => "nullable|date",
+        ];
+
+        if ($isCreate) {
+            $rules["schedule_name"] = "required|string|max:100";
+            $rules["event_type"] =
+                "required|in:schedulepa,goals,masterschedulepa,masterschedulegoals";
+        }
+
+        if (in_array($eventType, ["schedulepa", "goals"], true)) {
+            $rules["start_join_date"] .= "|required_without:last_join_date";
+            $rules["last_join_date"] .= "|required_without:start_join_date";
+        }
+
+        if ($req->filled("start_join_date") && $req->filled("last_join_date")) {
+            $rules["last_join_date"] .= "|after_or_equal:start_join_date";
+        }
+
+        $req->validate(
+            $rules,
+            [
+                "start_join_date.required_without" => $joinMessage,
+                "last_join_date.required_without" => $joinMessage,
+                "end_date.after_or_equal" => "End Date must be on or after Start Date.",
+                "last_join_date.after_or_equal" =>
+                    "Last Join Date must be on or after Start Join Date.",
+            ],
+            [
+                "schedule_name" => "Schedule Name",
+                "event_type" => "Event Type",
+                "start_date" => "Start Date",
+                "end_date" => "End Date",
+                "start_join_date" => "Start Join Date",
+                "last_join_date" => "Last Join Date",
+            ],
+        );
+    }
+
     public function softDelete($id)
     {
         $today = date("Y-m-d");
@@ -958,11 +1024,21 @@ class ScheduleController extends Controller
                         );
                     }
 
-                    $query->where(
-                        "date_of_joining",
-                        "<=",
-                        $schedule->last_join_date,
-                    );
+                    // Filter join date sesuai yang diisi (start saja, last saja, atau keduanya)
+                    if (!empty($schedule->start_join_date)) {
+                        $query->where(
+                            "date_of_joining",
+                            ">=",
+                            $schedule->start_join_date,
+                        );
+                    }
+                    if (!empty($schedule->last_join_date)) {
+                        $query->where(
+                            "date_of_joining",
+                            "<=",
+                            $schedule->last_join_date,
+                        );
+                    }
 
                     $query->whereNotIn("job_level", ["9B", "10A", "10B"]);
 

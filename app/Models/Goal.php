@@ -33,7 +33,10 @@ class Goal extends Model
     }
     public function employeeAppraisal()
     {
-        return $this->belongsTo(EmployeeAppraisal::class, 'employee_id', 'employee_id');
+        return $this->belongsTo(EmployeeAppraisal::class, 'employee_id', 'employee_id')
+            // Data ini sudah milik satu periode: karyawan yang resign sesudahnya
+            // tetap harus termuat.
+            ->withTrashed();
     }
     public function appraisal()
     {

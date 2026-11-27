@@ -114,20 +114,25 @@
             </select>
             <div class="input-group input-group-sm shadow-sm" style="max-width: 300px;">
                 <span class="input-group-text bg-white border-end-0"><i class="ri-search-line text-muted"></i></span>
-                <input type="text" name="customsearch" id="customsearch" class="form-control border-start-0 shadow-none bg-white" placeholder="Search employee...">
+                <input type="search" name="customsearch" id="customsearch" value="{{ request('customsearch') }}" autocomplete="off" class="form-control border-start-0 shadow-none bg-white" placeholder="Search employee... (Enter)">
             </div>
+            {{-- Search dikerjakan server: Enter men-submit form ini. Filter status
+                 tiap tab dipertahankan, halaman kembali ke 1. --}}
+            <input type="hidden" name="goal_status" value="{{ $goalStatus }}">
+            <input type="hidden" name="ach_status" value="{{ $achStatus }}">
+            <input type="hidden" name="tab" id="teamGoalActiveTab" value="{{ $activeMainTab ?? 'goal' }}">
         </form>
     </div>
 
     <div class="tab-content">
         <div class="tab-pane fade show active" id="tab-goal" role="tabpanel">
             <ul class="nav mb-2 flex-wrap" id="goal-filters">
-                <li><button class="btn sub-tab-btn active" data-filter="all">All Task <span class="badge ms-1 count-all">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="draft">Draft <span class="badge ms-1 count-draft">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="not-initiated">Not Initiated <span class="badge ms-1 count-not-initiated">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="revision">Waiting for Revision <span class="badge ms-1 count-revision">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="pending">Waiting for Approval <span class="badge ms-1 count-pending">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="approved">Approved <span class="badge ms-1 count-approved">0</span></button></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['goal_status' => 'all', 'goal_page' => null, 'tab' => 'goal']) }}" class="btn sub-tab-btn {{ $goalStatus === 'all' ? 'active' : '' }}" data-filter="all">All Task <span class="badge ms-1 count-all">{{ $goalCounts['all'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['goal_status' => 'draft', 'goal_page' => null, 'tab' => 'goal']) }}" class="btn sub-tab-btn {{ $goalStatus === 'draft' ? 'active' : '' }}" data-filter="draft">Draft <span class="badge ms-1 count-draft">{{ $goalCounts['draft'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['goal_status' => 'not-initiated', 'goal_page' => null, 'tab' => 'goal']) }}" class="btn sub-tab-btn {{ $goalStatus === 'not-initiated' ? 'active' : '' }}" data-filter="not-initiated">Not Initiated <span class="badge ms-1 count-not-initiated">{{ $goalCounts['not-initiated'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['goal_status' => 'revision', 'goal_page' => null, 'tab' => 'goal']) }}" class="btn sub-tab-btn {{ $goalStatus === 'revision' ? 'active' : '' }}" data-filter="revision">Waiting for Revision <span class="badge ms-1 count-revision">{{ $goalCounts['revision'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['goal_status' => 'pending', 'goal_page' => null, 'tab' => 'goal']) }}" class="btn sub-tab-btn {{ $goalStatus === 'pending' ? 'active' : '' }}" data-filter="pending">Waiting for Approval <span class="badge ms-1 count-pending">{{ $goalCounts['pending'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['goal_status' => 'approved', 'goal_page' => null, 'tab' => 'goal']) }}" class="btn sub-tab-btn {{ $goalStatus === 'approved' ? 'active' : '' }}" data-filter="approved">Approved <span class="badge ms-1 count-approved">{{ $goalCounts['approved'] }}</span></a></li>
             </ul>
 
             <div class="card shadow-sm border-0">
@@ -181,8 +186,10 @@
                 </div>
                 @endif
                 <div class="card-body px-3 py-1" id="goal-container">
-                    @foreach ($tasks as $index => $task)
+                    @foreach ($goalList as $row)
+                        @if ($row->type === 'task')
                         @php
+                            $task = $row->item;
                             $subordinates = $task->subordinates;
                             $firstSubordinate = $subordinates->isNotEmpty() ? $subordinates->first() : null;
                             
@@ -254,7 +261,7 @@
                                 $popover = $status === 'Sendback' ? $employeeName : __($status);
                             }
                         @endphp
-                        <div class="task-row goal-item" data-status="{{ $rowStatus }}">
+                        <div class="task-row goal-item" data-status="{{ $row->status }}">
                             <div class="row align-items-start mx-0 w-100">
                                 <div class="col-md-3 mb-2 mb-md-0 px-1 pt-1">
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">Employee</span>
@@ -303,7 +310,9 @@
 
                                     @if ($period == $goalPeriod && $task->employee->employee_id == Auth::user()->employee_id || !$subordinates->isNotEmpty() || $formStatus == 'Draft')
                                         @if ($formStatus == 'submitted' || $formStatus == 'Approved' || $appraisalCheck)
-                                            <a href="javascript:void(0)" class="btn btn-light text-secondary border btn-sm rounded-pill px-2" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
+                                            <a href="javascript:void(0)" class="btn btn-light text-secondary border btn-sm rounded-pill px-2 btn-achievement-detail"
+                                                data-detail-url="{{ route('team-goals.achievement-detail', $goalId) }}"
+                                                data-detail-employee="{{ $task->employee->fullname ?? '' }}"><i class="ri-file-text-line"></i></a>
                                         @endif
                                         <a class="btn btn-sm btn-outline-primary fw-semibold rounded-pill px-3 {{ (Auth::user()->employee_id == ($firstSubordinate->initiated->employee_id ?? null)) ? '' : 'd-none' }}" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Edit') }}</a>
                                     @else
@@ -312,22 +321,28 @@
                                             
                                             @if ($status != 'Sendback' && Auth::user()->employee_id != ($firstSubordinate->initiated->employee_id ?? null) && !$appraisalCheck)
                                                 <a href="{{ route('team-goals.approval', $goalId) }}" class="btn btn-sm btn-primary fw-medium rounded-pill px-3" onclick="showLoader()">Approve Goal</a>
-                                                <a href="javascript:void(0)" class="btn btn-light text-secondary border btn-sm rounded-pill px-2" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
+                                                <a href="javascript:void(0)" class="btn btn-light text-secondary border btn-sm rounded-pill px-2 btn-achievement-detail"
+                                                data-detail-url="{{ route('team-goals.achievement-detail', $goalId) }}"
+                                                data-detail-employee="{{ $task->employee->fullname ?? '' }}"><i class="ri-file-text-line"></i></a>
                                             @endif
                                         @elseif ($period == $goalPeriod && $status === 'Approved' && !$appraisalCheck)
                                             {{-- <a class="btn btn-sm btn-outline-warning fw-semibold rounded-pill px-3" href="{{ route('team-goals.edit', $goalId) }}" onclick="showLoader()">{{ __('Revise Goal') }}</a> --}}
-                                            <a href="javascript:void(0)" class="btn btn-light text-secondary border btn-sm rounded-pill px-2" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
+                                            <a href="javascript:void(0)" class="btn btn-light text-secondary border btn-sm rounded-pill px-2 btn-achievement-detail"
+                                                data-detail-url="{{ route('team-goals.achievement-detail', $goalId) }}"
+                                                data-detail-employee="{{ $task->employee->fullname ?? '' }}"><i class="ri-file-text-line"></i></a>
                                         @else
-                                            <a href="javascript:void(0)" class="btn btn-light text-secondary border btn-sm rounded-pill px-2" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
+                                            <a href="javascript:void(0)" class="btn btn-light text-secondary border btn-sm rounded-pill px-2 btn-achievement-detail"
+                                                data-detail-url="{{ route('team-goals.achievement-detail', $goalId) }}"
+                                                data-detail-employee="{{ $task->employee->fullname ?? '' }}"><i class="ri-file-text-line"></i></a>
                                         @endif
                                     @endif
                                 </div>
                             </div>
                         </div>
-                    @endforeach
-
-                    @foreach ($notasks as $index => $notask)
+                        @else
                         @php
+                            $notask = $row->item;
+                            $index = $loop->index;
                             $managerL1 = $notask?->employee?->managerL1;
                             $employeeId = $notask->employee_id;
                             $accessMenu = json_decode($notask->employee->access_menu ?? '{}', true);
@@ -361,24 +376,30 @@
                                 </div>
                             </div>
                         </div>
+                        @endif
                     @endforeach
 
-                    <div id="goal-empty-state" class="py-5 text-center d-none">
+                    <div id="goal-empty-state" class="py-5 text-center {{ $goalList->isEmpty() ? '' : 'd-none' }}">
                         <i class="ri-folder-open-line text-muted d-block mb-2" style="font-size: 3rem;"></i>
                         <h6 class="text-muted fw-bold">No Goals Found</h6>
                     </div>
                 </div>
+                @if ($goalList->hasPages())
+                <div class="card-footer bg-white border-top pt-3 pb-0 small">
+                    {{ $goalList->onEachSide(1)->links('pagination::bootstrap-5') }}
+                </div>
+                @endif
             </div>
         </div>
 
         <div class="tab-pane fade" id="tab-achievement" role="tabpanel">
             <ul class="nav mb-2 flex-wrap" id="ach-filters">
-                <li><button class="btn sub-tab-btn active" data-filter="all">All Task <span class="badge ms-1 count-all">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="draft">Draft <span class="badge ms-1 count-draft">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="not-initiated">Not Initiated <span class="badge ms-1 count-not-initiated">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="revision">Waiting for Revision <span class="badge ms-1 count-revision">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="pending">Waiting for Approval <span class="badge ms-1 count-pending">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="approved">Approved <span class="badge ms-1 count-approved">0</span></button></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['ach_status' => 'all', 'ach_page' => null, 'tab' => 'ach']) }}" class="btn sub-tab-btn {{ $achStatus === 'all' ? 'active' : '' }}" data-filter="all">All Task <span class="badge ms-1 count-all">{{ $achCounts['all'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['ach_status' => 'draft', 'ach_page' => null, 'tab' => 'ach']) }}" class="btn sub-tab-btn {{ $achStatus === 'draft' ? 'active' : '' }}" data-filter="draft">Draft <span class="badge ms-1 count-draft">{{ $achCounts['draft'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['ach_status' => 'not-initiated', 'ach_page' => null, 'tab' => 'ach']) }}" class="btn sub-tab-btn {{ $achStatus === 'not-initiated' ? 'active' : '' }}" data-filter="not-initiated">Not Initiated <span class="badge ms-1 count-not-initiated">{{ $achCounts['not-initiated'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['ach_status' => 'revision', 'ach_page' => null, 'tab' => 'ach']) }}" class="btn sub-tab-btn {{ $achStatus === 'revision' ? 'active' : '' }}" data-filter="revision">Waiting for Revision <span class="badge ms-1 count-revision">{{ $achCounts['revision'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['ach_status' => 'pending', 'ach_page' => null, 'tab' => 'ach']) }}" class="btn sub-tab-btn {{ $achStatus === 'pending' ? 'active' : '' }}" data-filter="pending">Waiting for Approval <span class="badge ms-1 count-pending">{{ $achCounts['pending'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['ach_status' => 'approved', 'ach_page' => null, 'tab' => 'ach']) }}" class="btn sub-tab-btn {{ $achStatus === 'approved' ? 'active' : '' }}" data-filter="approved">Approved <span class="badge ms-1 count-approved">{{ $achCounts['approved'] }}</span></a></li>
             </ul>
 
             <div class="card shadow-sm border-0">
@@ -426,16 +447,13 @@
                     </div>
                 </div>
                 <div class="card-body px-3 py-1" id="ach-container">
-                    @foreach ($tasks as $index => $task)
+                    @foreach ($achList as $row)
+                        @if ($row->type === 'task')
                         @php
+                            $task = $row->item;
                             $subordinates = $task->subordinates;
-                            $firstSubordinate = $task->subordinates
-                            ->first(function ($subordinate) {
-                                return optional($subordinate->goal)->hasAchievement;
-                            });
-                            
-                            if(!$firstSubordinate) continue;
-                            if(!$firstSubordinate->isFirstLayer) continue;
+                            // Subordinate pertama yang punya achievement & layer 1 (dipilih di controller).
+                            $firstSubordinate = $row->subordinate;
 
                             $goalId = $firstSubordinate->goal->id;
                             $appraisalCheck = $firstSubordinate->appraisalCheck;
@@ -490,7 +508,7 @@
                                 $goalLabel = __($status);
                             }
                         @endphp
-                        <div class="task-row ach-item" data-status="{{ $achRowStatus }}">
+                        <div class="task-row ach-item" data-status="{{ $row->status }}">
                             <div class="row align-items-start w-100 mx-0">
                                 <div class="col-md-3 mb-2 mb-md-0 px-1 pt-1">
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">Employee</span>
@@ -517,15 +535,15 @@
                                             <button class="btn btn-sm btn-outline-secondary fw-medium rounded-pill px-3 opacity-50" type="button" disabled style="pointer-events: none;">Update Achievement</button>
                                         </span>
                                     @endif
-                                    <a href="javascript:void(0)" class="btn btn-light text-secondary border btn-sm rounded-pill px-2" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
+                                    <a href="javascript:void(0)" class="btn btn-light text-secondary border btn-sm rounded-pill px-2 btn-achievement-detail"
+                                                data-detail-url="{{ route('team-goals.achievement-detail', $goalId) }}"
+                                                data-detail-employee="{{ $task->employee->fullname ?? '' }}"><i class="ri-file-text-line"></i></a>
                                 </div>
                             </div>
                         </div>
-                    @endforeach
-
-                    @foreach ($noAchievements ?? [] as $index => $achievementList)
+                        @elseif ($row->type === 'noach')
                         @php
-                            if(!$achievementList->isFirstLayer) continue;
+                            $achievementList = $row->item;
 
                             $hasData = $achievementList ? true : false;
                             $isDraft = $achievementList?->goal?->form_status == 'Draft';
@@ -598,17 +616,17 @@
                                             </span>
                                         @endif
                                         @if($goalId)
-                                            <a href="javascript:void(0)" class="btn btn-light text-secondary border btn-sm rounded-pill px-2" data-bs-toggle="modal" data-bs-target="#modalDetail{{ $goalId }}"><i class="ri-file-text-line"></i></a>
+                                            <a href="javascript:void(0)" class="btn btn-light text-secondary border btn-sm rounded-pill px-2 btn-achievement-detail"
+                                                data-detail-url="{{ route('team-goals.achievement-detail', $goalId) }}"
+                                                data-detail-employee="{{ $achievementList?->employee?->fullname ?? '' }}"><i class="ri-file-text-line"></i></a>
                                         @endif
                                     @endif
                                 </div>
                             </div>
                         </div>
-                    @endforeach
-
-                    @foreach ($notasks as $index => $notask)
+                        @else
                         @php
-                            if (!$notask->isManager) continue;
+                            $notask = $row->item;
                             $employeeId = $notask->employee_id;
                         @endphp
                         <div class="task-row ach-item" data-status="not-initiated">
@@ -633,13 +651,19 @@
                                 </div>
                             </div>
                         </div>
+                        @endif
                     @endforeach
 
-                    <div id="ach-empty-state" class="py-5 text-center d-none">
+                    <div id="ach-empty-state" class="py-5 text-center {{ $achList->isEmpty() ? '' : 'd-none' }}">
                         <i class="ri-medal-line text-muted d-block mb-2" style="font-size: 3rem;"></i>
                         <h6 class="text-muted fw-bold">No Achievements Found</h6>
                     </div>
                 </div>
+                @if ($achList->hasPages())
+                <div class="card-footer bg-white border-top pt-3 pb-0 small">
+                    {{ $achList->onEachSide(1)->links('pagination::bootstrap-5') }}
+                </div>
+                @endif
             </div>
         </div>
     </div> 
@@ -661,210 +685,30 @@
     </div>
 </div>
 
-@foreach ($tasks as $task)
-    @php
-        $subordinates = $task->subordinates;
-        $firstSubordinate = $subordinates->isNotEmpty() ? $subordinates->first() : null;
-        if (!$firstSubordinate) continue;
-        $goalId = $firstSubordinate->goal->id;
-        $formDataArr = $firstSubordinate->goal->form_data_parsed ?? [];
-        $months = [1 => 'Jan', 2 => 'Feb', 3 => 'Mar', 4 => 'Apr', 5 => 'May', 6 => 'Jun', 7 => 'Jul', 8 => 'Aug', 9 => 'Sep', 10 => 'Oct', 11 => 'Nov', 12 => 'Dec'];
-        $appService = app(\App\Services\AppService::class);
-        $reviewPeriodOption = $reviewPeriodOption ?? [];
-        $calculationMethodOption = $calculationMethodOption ?? [];
-    @endphp
-    <div class="modal fade" id="modalDetail{{ $goalId }}" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-xl modal-dialog-scrollable">
-            <div class="modal-content border-0 shadow-lg">
-                <div class="modal-header bg-light border-bottom px-4 py-3">
-                    <h6 class="modal-title text-dark fw-bold mb-0"><i class="ri-file-list-3-line me-2 text-primary"></i>Achievement Details - {{ $task->employee->fullname }}</h6>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+{{-- Modal "Achievement Details" — SATU shell, isinya dimuat lewat AJAX.
+
+     Dulu di sini ada @foreach ($tasks as $task) yang merender satu modal
+     lengkap per baris: 43 modal x ~67 KB = 2,9 MB dari 3,75 MB halaman (77%),
+     padahal user paling banyak membuka satu. Sekarang isinya diambil saat
+     modal dibuka, sama seperti modalApprovalHistory di atas. --}}
+<div class="modal fade" id="modalAchievementDetail" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-scrollable">
+        <div class="modal-content border-0 shadow-lg">
+            <div class="modal-header bg-light border-bottom px-4 py-3">
+                <h6 class="modal-title text-dark fw-bold mb-0"><i class="ri-file-list-3-line me-2 text-primary"></i>Achievement Details<span id="achievementDetailEmployee"></span></h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0 bg-white" id="achievementDetailBody">
+                <div class="p-5 text-center text-muted">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>{{ __('Loading') }}...
                 </div>
-                <div class="modal-body p-0 bg-white">
-                    @if ($firstSubordinate->goal->achievement_status && $firstSubordinate->goal->achievement_status['approval_info'])
-                        <div class="alert alert-warning border-0 p-3 rounded-0 mb-0">
-                            <strong class="d-block mb-1" style="font-size: 0.85rem;"><i class="ri-feedback-line me-1"></i> Revision Notes:</strong>
-                            <span class="text-dark" style="font-size: 0.85rem;">{{ $firstSubordinate->goal->achievement_status['approval_info'] }}</span>
-                        </div>
-                    @endif
-                    @if(!empty($formDataArr) && is_array($formDataArr))
-                        @foreach ($formDataArr as $kpiIndex => $row)
-                        <div class="p-3 {{ $loop->last ? '' : 'border-bottom' }}">
-                            <div class="mb-3">
-                                <span class="badge bg-primary-subtle text-primary mb-2 px-2 py-1 fw-bold" style="font-size: 0.65rem;">KPI {{ $kpiIndex + 1 }}</span>
-                                <h6 class="fw-bold text-dark mb-1 lh-sm">{{ $row['kpi'] ?? '-' }}</h6>
-                                <p class="text-secondary mb-0" style="white-space: pre-line; font-size: 0.85rem; line-height: 1.5;">{{ $row['description'] ?? '-' }}</p>
-                            </div>
-                            
-                            <div class="row g-2 mb-3 bg-light p-2 rounded border border-light mx-0">
-                                <div class="col-6 col-md-2">
-                                    <span class="text-uppercase d-block mb-1 col-label fw-semibold">Target</span>
-                                    @php
-                                        // Target may be stored pre-formatted ("1,500", "1.000.000"),
-                                        // so normalise the separators before formatting it.
-                                        $rawTarget = trim((string) ($row['target'] ?? ''));
-                                        $targetValue = preg_match('/^\d[\d., ]*$/', $rawTarget)
-                                            ? $appService->normalizeTarget($rawTarget)
-                                            : null;
-                                    @endphp
-                                    <span class="fw-bold text-dark col-value">{{ $targetValue !== null
-                                                ? number_format(
-                                                    $targetValue,
-                                                    fmod($targetValue, 1) == 0 ? 0 : 2
-                                                )
-                                                : ($rawTarget !== '' ? $rawTarget : '-') }}</span>
-                                </div>
-                                <div class="col-6 col-md-2">
-                                    <span class="text-uppercase d-block mb-1 col-label fw-semibold">UoM</span>
-                                    <span class="fw-bold text-dark col-value">{{ (isset($row['uom']) && $row['uom'] !== 'Other') ? $row['uom'] : ($row['custom_uom'] ?? '-') }}</span>
-                                </div>
-                                <div class="col-6 col-md-2">
-                                    <span class="text-uppercase d-block mb-1 col-label fw-semibold">Weightage</span>
-                                    <span class="fw-bold text-dark col-value">{{ $row['weightage'] ?? '0' }}%</span>
-                                </div>
-                                <div class="col-6 col-md-3">
-                                    <span class="text-uppercase d-block mb-1 col-label fw-semibold">Type</span>
-                                    <span class="fw-bold text-dark col-value">{{ $row['type'] ?? '-' }}</span>
-                                </div>
-                                <div class="col-3 col-sm-3">
-
-                                    <small class="fw-bold text-uppercase d-block kpi-label mb-1">
-                                        Achievement
-                                    </small>
-
-                                    {{-- Actual Value --}}
-                                    <div class="mb-2">
-                                        <span class="fw-bold text-dark"
-                                            style="font-size:1rem;">
-                                            {{ is_numeric($row['actual'] ?? null)
-                                                ? number_format(
-                                                    (float)$row['actual'],
-                                                    str_contains((string)$row['actual'], '.')
-                                                        ? 2
-                                                        : 0
-                                                )
-                                                : ($row['actual'] ?? '-')
-                                            }}
-                                        </span>
-
-                                    </div>
-
-                                    @php
-                                        $achievement = (float)($row['achievement'] ?? 0);
-
-                                        $percent = max(
-                                            min($achievement,100),
-                                            0
-                                        );
-
-                                        $progressClass =
-                                            $achievement >= 100 ? 'bg-success'
-                                            : ($achievement >= 80 ? 'bg-primary'
-                                            : ($achievement >= 50 ? 'bg-warning'
-                                            : 'bg-danger'));
-                                    @endphp
-
-                                    <div class="mini-progress position-relative">
-
-                                        <div
-                                            class="mini-progress-bar bg-primary {{ $progressClass }}"
-                                            data-width="{{ $percent }}%">
-                                        </div>
-
-                                        <small class="mini-progress-text fw-semibold">
-
-                                            {{ number_format(
-                                                $achievement,
-                                                0
-                                            ) }}%
-
-                                        </small>
-
-                                    </div>
-
-                                </div>
-                                <div class="col-6 col-md-4 mt-2">
-                                    <span class="text-uppercase d-block mb-1 col-label fw-semibold">Review Period</span>
-                                    @php
-                                        $rv = $row['review_period'] ?? '';
-                                        $rvLabel = $rv ?: '-';
-                                        foreach ($reviewPeriodOption as $group) {
-                                            foreach ($group as $opt) {
-                                                if ((string)$rv === (string)($opt['value'] ?? '')) {
-                                                    $rvLabel = $opt['label'];
-                                                    break 2;
-                                                }
-                                            }
-                                        }
-                                    @endphp
-                                    <span class="fw-bold text-dark col-value">{{ $rvLabel }}</span>
-                                </div>
-                                <div class="col-12 col-md-8 mt-2">
-                                    <span class="text-uppercase d-block mb-1 col-label fw-semibold">Calc Method</span>
-                                    @php
-                                        $rvCalc = $row['calculation_method'] ?? '';
-                                        $rvCalcLabel = $rvCalc ?: '-';
-                                        foreach ($calculationMethodOption as $group) {
-                                            foreach ($group as $opt) {
-                                                if ((string)$rvCalc === (string)($opt['value'] ?? '')) {
-                                                    $rvCalcLabel = $opt['label'];
-                                                    break 2;
-                                                }
-                                            }
-                                        }
-                                    @endphp
-                                    <span class="fw-bold text-dark col-value">{{ $rvCalcLabel }}</span>
-                                </div>
-                            </div>
-
-                            <div>
-                                <h6 class="fw-bold text-uppercase mb-2 text-primary" style="font-size: 0.7rem; letter-spacing: 0.5px;"><i class="ri-bar-chart-box-line me-1"></i> Tracking</h6>
-                                <div class="month-tracking-container">
-                                    @foreach($months as $monthNum => $monthLabel)
-                                        @php
-                                            $value = $row['ach'][$monthNum] ?? null;
-                                            $file = $row['attachment'][$monthNum] ?? null;
-                                        @endphp
-                                        <div class="read-only-month {{ $value ? 'has-value' : '' }}">
-                                            <span class="text-uppercase fw-bold text-secondary d-block mb-1" style="font-size: 0.6rem;">{{ $monthLabel }}</span>
-                                            <span class="fw-bold text-dark d-block" style="font-size: 0.95rem;">
-                                                {{
-                                                    is_numeric($value ?? null)
-                                                        ? number_format(
-                                                            (float)$value,
-
-                                                            (
-                                                                fmod((float)$value, 1) == 0
-                                                            )
-                                                                ? 0
-                                                                : 2
-                                                        )
-                                                        : ($value ?? '-')
-                                                }}
-                                            </span>
-                                            @if($file)
-                                                <a href="{{ asset('storage/'.$file) }}" target="_blank" class="d-block mt-2 text-primary fw-bold border border-primary rounded text-decoration-none bg-white" style="font-size: 0.55rem; padding: 2px;">FILE</a>
-                                            @endif
-                                        </div>
-                                    @endforeach
-                                </div>
-                            </div>
-                        </div>
-                        @endforeach
-                    @else
-                        <div class="py-5 text-center text-muted">
-                            <i class="ri-inbox-2-line text-secondary opacity-50 d-block mb-2" style="font-size: 3rem;"></i>
-                            <h6 class="fw-bold text-secondary">No details available.</h6>
-                        </div>
-                    @endif
-                </div>
-                <div class="modal-footer bg-light border-top py-2">
-                    <button type="button" class="btn btn-sm btn-light border fw-medium px-4 text-secondary" data-bs-dismiss="modal">Close</button>
-                </div>
+            </div>
+            <div class="modal-footer bg-light border-top py-2">
+                <button type="button" class="btn btn-sm btn-light border fw-medium px-4 text-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
-@endforeach
+</div>
 
 <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -1098,75 +942,68 @@
     });
 </script>
 <script>
+    // Isi modal "Achievement Details" dimuat saat dibuka, bukan di-render
+    // untuk semua baris sekaligus. Pola & penanganan errornya sama persis
+    // dengan handler approval-history di atas.
+    document.addEventListener('click', function (e) {
+        const button = e.target.closest('.btn-achievement-detail');
+        if (!button) {
+            return;
+        }
+
+        e.preventDefault();
+
+        const body = document.getElementById('achievementDetailBody');
+        const employee = document.getElementById('achievementDetailEmployee');
+
+        employee.textContent = button.dataset.detailEmployee ? ' - ' + button.dataset.detailEmployee : '';
+        body.innerHTML = '<div class="p-5 text-center text-muted"><div class="spinner-border spinner-border-sm me-2" role="status"></div>{{ __('Loading') }}...</div>';
+
+        bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAchievementDetail')).show();
+
+        fetch(button.dataset.detailUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(function (response) {
+                if (!response.ok) {
+                    throw new Error(response.status);
+                }
+                return response.text();
+            })
+            .then(function (html) {
+                body.innerHTML = html;
+            })
+            .catch(function () {
+                body.innerHTML = '<div class="p-5 text-center text-muted">{{ __('Failed to load achievement details.') }}</div>';
+            });
+    });
+</script>
+<script>
 document.addEventListener("DOMContentLoaded", function () {
-    const tabs = document.querySelectorAll('#mainTab button[data-bs-toggle="tab"]');
-    tabs.forEach(tab => {
+    // Search, filter status dan pagination dikerjakan server
+    // (TeamGoalController::index). Script ini hanya mengatur tab utama
+    // Goals/Achievements: ?tab= dari link filter/pagination menang, kalau tidak
+    // ada pakai tab terakhir di localStorage. Input hidden "tab" di form search
+    // ikut diperbarui supaya search tetap di tab yang sedang dibuka.
+    const tabInput = document.getElementById('teamGoalActiveTab');
+    const tabButtonIds = { goal: 'tab-goal-btn', ach: 'tab-achievement-btn' };
+    const tabKeyById = { 'tab-goal-btn': 'goal', 'tab-achievement-btn': 'ach' };
+
+    document.querySelectorAll('#mainTab button[data-bs-toggle="tab"]').forEach(tab => {
         tab.addEventListener('shown.bs.tab', function (e) {
-            localStorage.setItem('activeTeamGoalTab', e.target.id);
+            try { localStorage.setItem('activeTeamGoalTab', e.target.id); } catch (err) {}
+            if (tabInput) tabInput.value = tabKeyById[e.target.id] || 'goal';
         });
     });
 
-    const savedTabId = localStorage.getItem('activeTeamGoalTab');
-    if (savedTabId) {
-        const savedTab = document.getElementById(savedTabId);
-        if (savedTab) {
-            const bsTab = new bootstrap.Tab(savedTab);
-            bsTab.show();
-        }
+    const serverTab = @json($activeMainTab);
+    let savedTabId = serverTab ? tabButtonIds[serverTab] : null;
+    if (!savedTabId) {
+        try { savedTabId = localStorage.getItem('activeTeamGoalTab'); } catch (err) {}
     }
-
-    function calculateAndRenderCounts(containerId, filterButtonsId, itemClass, emptyStateId) {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-        
-        const allItems = container.querySelectorAll('.' + itemClass);
-        const counts = { 'all': allItems.length, 'draft': 0, 'revision': 0, 'pending': 0, 'approved': 0, 'not-initiated': 0 };
-
-        allItems.forEach(item => {
-            const status = item.getAttribute('data-status');
-            if (counts[status] !== undefined) counts[status]++;
-        });
-
-        const filterWrapper = document.getElementById(filterButtonsId);
-        if (filterWrapper) {
-            Object.keys(counts).forEach(key => {
-                const badge = filterWrapper.querySelector(`.count-${key}`);
-                if (badge) badge.innerText = counts[key];
-            });
-        }
-
-        const filterBtns = filterWrapper.querySelectorAll('.sub-tab-btn');
-        filterBtns.forEach(btn => {
-            btn.addEventListener('click', function(e) {
-                e.preventDefault();
-                filterBtns.forEach(b => {
-                    b.classList.remove('active');
-                });
-                
-                this.classList.add('active');
-
-                const targetFilter = this.getAttribute('data-filter');
-                let visibleCount = 0;
-
-                allItems.forEach(item => {
-                    if (targetFilter === 'all' || item.getAttribute('data-status') === targetFilter) {
-                        item.style.display = 'flex';
-                        visibleCount++;
-                    } else {
-                        item.style.display = 'none';
-                    }
-                });
-
-                const emptyState = document.getElementById(emptyStateId);
-                if (emptyState) {
-                    emptyState.classList.toggle('d-none', visibleCount > 0);
-                }
-            });
-        });
+    const savedTab = savedTabId ? document.getElementById(savedTabId) : null;
+    if (savedTab) {
+        new bootstrap.Tab(savedTab).show();
+        if (tabInput) tabInput.value = tabKeyById[savedTabId] || 'goal';
     }
-
-    calculateAndRenderCounts('goal-container', 'goal-filters', 'goal-item', 'goal-empty-state');
-    calculateAndRenderCounts('ach-container', 'ach-filters', 'ach-item', 'ach-empty-state');
 
     document.querySelectorAll('.mini-progress-bar').forEach(function (el) {
         setTimeout(() => {

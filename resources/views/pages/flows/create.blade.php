@@ -164,9 +164,6 @@
 
 @push('scripts')
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        document.documentElement.setAttribute('data-sidenav-size', 'condensed');
-    });
     const approverRolesData = @json($approverRoles);
     const approvalFlowData = @json($approvalFlow);
 </script>

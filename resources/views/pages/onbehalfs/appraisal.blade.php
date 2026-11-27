@@ -1,0 +1,153 @@
+<div class="row">
+    <div class="col-md-12">
+      <div class="card shadow mb-4">
+        <div class="card-header">
+          <div class="row rounded">
+            <div class="col-md-auto text-center">
+                <button class="btn btn-outline-primary btn-sm px-2 my-1 me-1 filter-btn" data-id="all">{{ __('All Task') }}</button>
+                <button class="btn btn-outline-primary btn-sm px-2 my-1 me-1 filter-btn" data-id="draft">Draft</button>
+                <button class="btn btn-outline-primary btn-sm px-2 my-1 me-1 filter-btn" data-id="{{ __('Pending') }}">{{ __('Pending') }}</button>
+                <button class="btn btn-outline-primary btn-sm px-2 my-1 me-1 filter-btn" data-id="{{ __('Approved') }}">{{ __('Approved') }}</button>
+            </div>
+          </div>
+        </div>
+        <div class="card-body">
+            <table class="table table-sm table-hover align-middle activate-select dt-responsive nowrap w-100 fs-14" id="onBehalfTable" data-order='[[5, "desc"]]'>
+                <thead class="thead-light">
+                    <tr class="text-center">
+                        <th>Employees</th>
+                        <th>Appraisal</th>
+                        <th>Approval Status</th>
+                        <th>Initiated On</th>
+                        <th>{{ __('Initiated By') }}</th>
+                        <th>{{ __('Last Updated On') }}</th>
+                        <th>Updated By</th>
+                        <th class="sorting_1">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                  @foreach ($data as $row)
+                    @php $rowKey = $row->request->employee_id; @endphp
+                    <tr id="row-{{ $rowKey }}">
+                      <td>{{ $row->request->employee->fullname .' ('.$row->request->employee->employee_id.')'}}</td>
+                      <td class="text-center">
+                        <a href="javascript:void(0)" class="btn btn-outline-secondary rounded btn-sm btn-appraisal-detail {{ $row->request->appraisal->form_status === 'Draft' ? 'disabled' : '' }}" data-detail-url="{{ route('admin.onbehalf.appraisal-detail', $row->request->appraisal->id) }}"><i class="ri-file-text-line"></i></a>
+                      </td>
+                      <td class="text-center">
+                        <a href="javascript:void(0)" data-bs-id="{{ $row->request->employee_id }}" data-bs-toggle="popover" data-bs-trigger="hover focus" data-bs-content="{{ $row->request->approvalLayer ? 'Manager L'.$row->request->approvalLayer.' : '.$row->request->name : $row->request->name }}" class="badge py-1 px-2 rounded-pill {{ $row->request->appraisal->form_status == 'Draft' || $row->request->status == 'Sendback' ? 'bg-secondary' : ($row->request->status === 'Approved' ? 'bg-success' : 'bg-warning')}} ">
+                          {{ $row->request->appraisal->form_status == 'Draft' ? 'Draft': ($row->request->status == 'Pending' ? __('Pending') : ($row->request->status == 'Sendback' ? 'Waiting For Revision' : $row->request->status)) }}
+                        </a>
+                      </td>
+                      <td class="text-center" data-order="{{ optional($row->request->appraisal->created_at)->timestamp }}">{{ $row->request->formatted_created_at }}</td>
+                      <td>{{ $row->request->initiated?->name ? $row->request->initiated->name .' ('. $row->request->initiated->employee_id .')'  : '-' }}</td>
+                      <td class="text-center" data-order="{{ optional($row->request->appraisal->updated_at)->timestamp }}">{{ $row->request->formatted_updated_at }}</td>
+                      <td>{{ $row->request->updatedBy ? $row->request->updatedBy->name.' ('.$row->request->updatedBy->employee_id.')' : '-' }}</td>
+
+                      <td class="text-center sorting_1 px-1">
+                        @can('approvalonbehalf')
+                        <div class="btn-group dropstart">
+                          @php
+                            $hasCalibration = $row->request->calibration && $row->request->calibration->isNotEmpty();
+                            $canAct = $row->request->status != 'Sendback' && $row->request->appraisal->form_status != 'Draft';
+                            $selfData = auth()->user()->id === $row->request->employee->id;
+                          @endphp
+
+                          @if (!$selfData)
+                            @if ($canAct && $hasCalibration)
+                              <button class="btn btn-sm btn-light px-1 rounded" type="button"
+                                onclick="Swal.fire({ icon: 'info', title: 'Calibration Ongoing', text: 'Employee already in Calibration process.', confirmButtonText: 'OK', confirmButtonColor: '#AB2F2B' })">
+                                Action
+                              </button>
+                            @else
+                              <button class="btn btn-sm btn-primary px-1 rounded" type="button" data-bs-toggle="dropdown" aria-haspopup="true" aria-expanded="false" id="animated-preview" data-bs-offset="0,10">
+                                Action
+                              </button>
+                              <div class="dropdown-menu dropdown-menu-animated">
+                                @if ($row->request->status === 'Pending')
+                                  <a class="dropdown-item" href="{{ route('admin.create.approval.appraisal', [encrypt($row->request->employee_id), 'onbehalf']) }}">Approve</a>
+
+                                  {{-- REVOKE AJAX --}}
+                                  <button type="button"
+                                          class="dropdown-item js-revoke"
+                                          data-url="{{ route('admin.revoke.approval.appraisal', [encrypt($row->request->employee_id), 'onbehalf']) }}"
+                                          data-row="#row-{{ $rowKey }}"
+                                          data-emp="{{ $rowKey }}">
+                                    Revoke
+                                  </button>
+                                @else
+                                  <a class="dropdown-item" href="{{ route('admin.create.approval.appraisal', [encrypt($row->request->employee_id), 'onbehalf']) }}">Revise</a>
+                                @endif
+                              </div>
+                            @endif
+                          @else
+                            <button class="btn btn-sm btn-light px-1 rounded disabled" type="button">Action</button>
+                          @endif
+                        </div>
+                        @else
+                          {{ "-" }}
+                        @endcan
+                      </td>
+                    </tr>
+                  @endforeach
+                  </tbody>
+
+                </table>
+              </div>
+            </div>
+    </div>
+</div>
+
+{{-- Modal detail Appraisal — SATU shell, isinya dimuat lewat AJAX. --}}
+<div class="modal fade" id="modalAppraisalDetail" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Appraisal Detail</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body bg-primary-subtle" id="appraisalDetailBody">
+                <div class="p-5 text-center text-muted">
+                    <div class="spinner-border spinner-border-sm me-2" role="status"></div>{{ __('Loading') }}...
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    // Blok ini di-inject lewat AJAX dan dieksekusi ulang setiap kali
+    // konten dimuat ulang. Tanpa penjaga ini, handler click menumpuk
+    // dan satu klik akan memicu beberapa request sekaligus.
+    if (!window.kpnObAppraisalDetailBound) {
+        window.kpnObAppraisalDetailBound = true;
+
+        // Isi modal dimuat saat dibuka, bukan di-render untuk semua baris.
+        document.addEventListener('click', function (e) {
+            const button = e.target.closest('.btn-appraisal-detail');
+            if (!button || button.classList.contains('disabled')) {
+                return;
+            }
+
+            e.preventDefault();
+
+            const body = document.getElementById('appraisalDetailBody');
+            body.innerHTML = '<div class="p-5 text-center text-muted"><div class="spinner-border spinner-border-sm me-2" role="status"></div>{{ __('Loading') }}...</div>';
+
+            bootstrap.Modal.getOrCreateInstance(document.getElementById('modalAppraisalDetail')).show();
+
+            fetch(button.dataset.detailUrl, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (response) {
+                    if (!response.ok) {
+                        throw new Error(response.status);
+                    }
+                    return response.text();
+                })
+                .then(function (html) {
+                    body.innerHTML = html;
+                })
+                .catch(function () {
+                    body.innerHTML = '<div class="p-5 text-center text-muted">{{ __('Failed to load appraisal details.') }}</div>';
+                });
+        });
+    }
+</script>

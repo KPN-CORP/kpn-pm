@@ -36,7 +36,7 @@ function getPermissionData(id) {
         data: { roleId: id }, // Send serialized form data
         success: function (data) {
             subContent.html(data); // Update report content
-            $(".select2").select2({
+            subContent.find("select.select2").select2({
                 theme: "bootstrap-5",
             });
             $("#submitButton").on("click", function (e) {
@@ -109,7 +109,7 @@ function getAssignmentData(id) {
         data: { roleId: id }, // Send serialized form data
         success: function (data) {
             subContent.html(data); // Update report content
-            $(".select2").select2({
+            subContent.find("select.select2").select2({
                 theme: "bootstrap-5",
             });
             $("#submitButton").on("click", function (e) {
@@ -145,3 +145,14 @@ function getAssignmentData(id) {
 }
 
 window.getAssignmentData = getAssignmentData;
+
+// Searchable single-select dropdowns on the Manage Role / Assign Users pages
+$(function () {
+    $(".select2-searchable").each(function () {
+        $(this).select2({
+            theme: "bootstrap-5",
+            width: "100%",
+            placeholder: $(this).data("placeholder"),
+        });
+    });
+});

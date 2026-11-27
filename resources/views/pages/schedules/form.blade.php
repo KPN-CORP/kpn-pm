@@ -17,6 +17,19 @@
                 <div class="card-body" @style('overflow-y: auto;')>
                     <div class="container-fluid">
                         <form id="scheduleForm" method="post" action="{{ route('save-schedule') }}">@csrf
+                            @php
+                                // Error selain join date (join date punya pesan sendiri di bawah field-nya)
+                                $otherErrors = collect($errors->getMessages())->except(['start_join_date', 'last_join_date'])->flatten();
+                            @endphp
+                            @if ($otherErrors->isNotEmpty())
+                                <div class="alert alert-danger py-2">
+                                    <ul class="mb-0 ps-3">
+                                        @foreach ($otherErrors as $message)
+                                            <li>{{ $message }}</li>
+                                        @endforeach
+                                    </ul>
+                                </div>
+                            @endif
                             <div class="row g-2">
                                 <div class="mb-3 col-md-6">
                                     <label class="form-label" for="name">Schedule Name</label>
@@ -138,6 +151,9 @@
                                         <input type="date" name="last_join_date" id="last_join_date" class="form-control" placeholder="mm/dd/yyyy">
                                     </div>
                                 </div>
+                                <div class="col-12">
+                                    <div id="joinDateError" class="text-danger small" @if(!$errors->has('start_join_date') && !$errors->has('last_join_date')) style="display:none" @endif>{{ $errors->first('start_join_date') ?: $errors->first('last_join_date') ?: 'Start Join Date or Last Join Date must be filled in.' }}</div>
+                                </div>
                             </div>
                             <div class="row my-2">
                                 <div class="col-md-6">
@@ -232,6 +248,25 @@
 @endsection
 <!-- Tambahkan script JavaScript untuk mengumpulkan nilai repeat_days[] -->
 @push('scripts')
+<script>
+    // Schedule PA / Goals wajib isi minimal satu join date.
+    // Script terpisah supaya tetap jalan walaupun script di bawah error (mis. Quill belum ter-load).
+    document.getElementById('scheduleForm').addEventListener('submit', function(e) {
+        var type = document.getElementById('event_type').value;
+        var startJoin = document.getElementById('start_join_date').value;
+        var lastJoin = document.getElementById('last_join_date').value;
+        var errorBox = document.getElementById('joinDateError');
+
+        if ((type === 'schedulepa' || type === 'goals') && !startJoin && !lastJoin) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+            errorBox.style.display = 'block';
+            errorBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            return;
+        }
+        errorBox.style.display = 'none';
+    });
+</script>
 <script>
     var quill = new Quill('#editor-container', {
         theme: 'snow'

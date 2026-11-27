@@ -40,10 +40,9 @@
                   <label class="form-label" for="category">Select Category :</label>
                   <select name="category" id="category" onchange="changeCategory(this.value)" class="form-select border-dark-subtle" @style('width: 120px')>
                       <option value="">- select -</option>
-                      <option value="Goals">Goals</option>
-                      <option value="Achievement">Achievement</option>
-                      <option value="Appraisal">Appraisal</option>
-                      <option value="Rating">Rating</option>
+                      @foreach (['Goals', 'Achievement', 'Appraisal', 'Rating'] as $categoryOption)
+                      <option value="{{ $categoryOption }}" @selected(request('category') === $categoryOption)>{{ $categoryOption }}</option>
+                      @endforeach
                   </select>
                 </div>
               </div>
@@ -76,7 +75,15 @@
             <div class="col-md-12">
             <div class="card shadow mb-4">
                 <div class="card-body">
-                    {{ __('No Report Found. Please Select Report') }}
+                    @if (in_array(request('category'), ['Goals', 'Achievement', 'Appraisal', 'Rating'], true))
+                        {{-- Kategori sudah terpilih (kembali dari form) -> data langsung dimuat, tampilkan loading --}}
+                        <div class="d-flex align-items-center justify-content-center gap-2 py-4 text-muted">
+                            <div class="spinner-border spinner-border-sm text-primary" role="status" aria-hidden="true"></div>
+                            <span>{{ __('Loading') }}...</span>
+                        </div>
+                    @else
+                        {{ __('No Report Found. Please Select Report') }}
+                    @endif
                 </div>
             </div>
             </div>
@@ -146,6 +153,15 @@
     @endsection
       
 @push('scripts')
+ <script>
+// Kembali dari form on-behalf (?category=Appraisal dst): kategori sudah terpilih -> langsung muat datanya
+document.addEventListener('DOMContentLoaded', function () {
+  const categorySelect = document.getElementById('category');
+  if (categorySelect && categorySelect.value && typeof window.changeCategory === 'function') {
+    window.changeCategory(categorySelect.value);
+  }
+});
+</script>
  <script>
 (function(){
   const CSRF = '{{ csrf_token() }}';

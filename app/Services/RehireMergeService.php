@@ -23,7 +23,7 @@ use Illuminate\Support\Facades\Schema;
  *   selalu dipindah (orangnya sama).
  * - Tidak disentuh: approval_logs (audit trail, immutable), approval layer
  *   milik id lama (id baru sudah punya layer sendiri dari sync), baris
- *   employees / employees_pa / users id lama, created_by/updated_by (users.id),
+ *   employees / employee_pa_profiles / users id lama, created_by/updated_by (users.id),
  *   dan tabel aplikasi HCIS lain yang berbagi database.
  * - Setiap baris yang dipindah / ditinggal dicatat di employee_id_merges.
  *
@@ -46,6 +46,7 @@ class RehireMergeService
         'achievements' => 'period',
         'kpi_units' => 'periode',
         'proposed_360_transactions' => 'appraisal_year',
+        'employee_pa_period_exclusions' => 'period',
     ];
 
     // Kolom di mana id karyawan dipakai sebagai approver / kontributor / manager.
@@ -59,8 +60,8 @@ class RehireMergeService
         ['appraisal_contributors', 'contributor_id'],
         ['kpi_achievements', 'current_approver_employee_id'],
         ['proposed_360_transactions', 'proposer_employee_id'],
-        ['employees_pa', 'manager_l1_id'],
-        ['employees_pa', 'manager_l2_id'],
+        // employees_pa.manager_l1_id/l2_id tidak lagi di sini: employees_pa
+        // sekarang view, manager-nya langsung dari employees (sync HR).
     ];
 
     // Kolom JSON berisi array employee_id (current_approval_id di path 360

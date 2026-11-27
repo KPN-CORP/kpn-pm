@@ -6,6 +6,7 @@ use App\Models\ApprovalFlow;
 use App\Models\ApprovalLayerAppraisal;
 use App\Models\ApprovalRequest;
 use App\Models\EmployeeAppraisal;
+use App\Support\AppraisalManagerResolver;
 use App\Models\Flow;
 use App\Models\Proposed360;
 use App\Models\Role;
@@ -27,17 +28,35 @@ class Proposed360Service
                 throw ValidationException::withMessages(['scope' => 'Scope self hanya untuk diri sendiri']);
             }
 
-            $flowRow = Flow::where('module_transaction', 'Propose 360')->first();
+            $flowRow = Flow::forModule('Propose 360');
             if (!$flowRow) throw ValidationException::withMessages(['flow' => 'Flow Propose 360 tidak ditemukan']);
 
-            $initiators = json_decode($flowRow->initiator ?? $flowRow->initiators ?? '[]', true);
+            // Target harus termasuk assignment flow (karyawan yang perlu di-360).
+            if (!\App\Support\Propose360Assignment::employeeNeeds360((string) $targetId, $flowRow)) {
+                throw ValidationException::withMessages(['employee_id' => 'Karyawan ini tidak termasuk assignment Propose 360 (tidak perlu di-360).']);
+            }
+
+            // Admin sudah mengisi peers/subordinate di Layer Setting untuk
+            // periode ini => otomatis dianggap approved, tidak perlu propose.
+            $adminSet = \App\Support\AppraisalLayerPeriod::using((int) $data['appraisal_year'], fn () => ApprovalLayerAppraisal::where('employee_id', $targetId)
+                ->whereIn('layer_type', ['peers', 'subordinate'])
+                ->exists());
+            if ($adminSet) {
+                throw ValidationException::withMessages(['employee_id' => 'Peers/Subordinate karyawan ini sudah di-set oleh Admin (Approved by Admin), tidak perlu propose 360.']);
+            }
+
+            $initiators = \App\Support\Propose360Assignment::decodeJson($flowRow->getAttributes()['initiator'] ?? null);
             if (!is_array($initiators) || empty($initiators)) {
                 throw ValidationException::withMessages(['initiator' => 'Konfigurasi initiator tidak valid']);
             }
             
             $target = EmployeeAppraisal::select('employee_id','manager_l1_id','manager_l2_id')
             ->where('employee_id',$targetId)->firstOrFail();
-            
+
+            // Atasan diambil dari Layer Setting appraisal, sama dengan daftar
+            // tim di Proposed360Controller::index.
+            AppraisalManagerResolver::applyTo($target);
+
             $scopeKey = $this->scopeToStateKey($data['scope'] ?? 'self'); // 'self' | 'manager_l1_id'
             $matched  = $this->selectInitiator($initiators, $scopeKey, $target, $actor);
             
@@ -261,9 +280,13 @@ class Proposed360Service
             $subs  = collect($this->toArray($trx->subordinates))->filter()->unique()->values()->take(3)->all();
             $mgrs  = collect($this->toArray($trx->managers))->filter()->unique()->values()->take(3)->all();
 
-            // tulis ke approval_layer_appraisals per baris (manager/peers/subordinate, layer 1..3)
-            $this->syncRows($empId, 'peers',       $peers, $actorEmpId);
-            $this->syncRows($empId, 'subordinate', $subs,  $actorEmpId);
+            // tulis ke approval_layer_appraisals per baris (manager/peers/subordinate, layer 1..3),
+            // di periode pengajuan (bukan periode yang kebetulan berjalan saat approve).
+            $layerPeriod = $trx->appraisal_year ?: $req->period;
+            \App\Support\AppraisalLayerPeriod::using($layerPeriod, function () use ($empId, $peers, $subs, $actorEmpId) {
+                $this->syncRows($empId, 'peers',       $peers, $actorEmpId);
+                $this->syncRows($empId, 'subordinate', $subs,  $actorEmpId);
+            });
             // $this->syncRows($empId, 'manager',     $mgrs,  $actorEmpId);
 
             // tandai transaksi

@@ -16,6 +16,15 @@ class IntegrationEmployeeController extends Controller
      */
     public function index(Request $request): JsonResponse
     {
+        // Cek token dipindah dari closure di routes/api.php ke sini supaya
+        // seluruh route bisa di-cache (php artisan route:cache tidak bisa
+        // men-serialize closure).
+        $token = str_replace('Bearer ', '', (string) $request->header('Authorization'));
+
+        if (! hash_equals((string) config('services.integration.token_ga'), $token)) {
+            return response()->json(['message' => 'Unauthorized'], 401);
+        }
+
         $employees = Employee::select(
             'employee_id',
             'fullname',
