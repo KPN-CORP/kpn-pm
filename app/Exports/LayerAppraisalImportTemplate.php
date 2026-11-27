@@ -8,6 +8,8 @@ use Maatwebsite\Excel\Concerns\WithEvents;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Events\AfterSheet;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
@@ -37,7 +39,7 @@ class LayerAppraisalImportTemplate implements FromArray, WithHeadings, WithEvent
 
     /** Lebar kolom dari template lama; kolom lain memakai default. */
     private const WIDTHS = [
-        'employee_id' => 11.44, 'employee_name' => 14.66,
+        'employee_id' => 11.44, 'employee_name' => 14.66, 'layer_period' => 12.0,
         'manager_id_1' => 12.55, 'manager_name_1' => 15.78,
         'peers_id' => 9.89, 'peers_name' => 13.11,
         'subordinate_id' => 15.22, 'subordinate_name' => 18.44,
@@ -49,9 +51,25 @@ class LayerAppraisalImportTemplate implements FromArray, WithHeadings, WithEvent
     /** Sertakan kolom KPI Unit (hanya untuk user yang boleh import KPI Unit). */
     private bool $withKpiUnit;
 
-    public function __construct(bool $withKpiUnit = true)
+    /**
+     * Karyawan yang diisi di template (employee_id + nama), kolom layer
+     * dibiarkan kosong untuk diisi admin.
+     *
+     * @var array<int, array{0: string, 1: string}>
+     */
+    private array $employees;
+
+    /** Periode layer yang diisi di kolom layer_period tiap baris. */
+    private ?int $period;
+
+    public function __construct(bool $withKpiUnit = true, iterable $employees = [], ?int $period = null)
     {
         $this->withKpiUnit = $withKpiUnit;
+        $this->period = $period;
+        $this->employees = collect($employees)
+            ->map(fn ($e) => [(string) $e[0], (string) $e[1]])
+            ->values()
+            ->all();
     }
 
     public function headings(): array
@@ -90,6 +108,22 @@ class LayerAppraisalImportTemplate implements FromArray, WithHeadings, WithEvent
                         $sheet->getColumnDimension($col)->setWidth($width);
                     }
                 }
+
+                // employee_id ditulis sebagai teks supaya angka 0 di depan tidak hilang
+                $headers = $this->headings();
+                $idCol = Coordinate::stringFromColumnIndex(array_search('employee_id', $headers, true) + 1);
+                $nameCol = Coordinate::stringFromColumnIndex(array_search('employee_name', $headers, true) + 1);
+                $periodCol = Coordinate::stringFromColumnIndex(array_search(ApprovalLayerAppraisalImport::LAYER_PERIOD_HEADER, $headers, true) + 1);
+                $sheet->getStyle($idCol . ':' . $idCol)->getNumberFormat()->setFormatCode(NumberFormat::FORMAT_TEXT);
+
+                foreach ($this->employees as $i => [$id, $name]) {
+                    $row = $i + 2;
+                    $sheet->setCellValueExplicit($idCol . $row, $id, DataType::TYPE_STRING);
+                    $sheet->setCellValueExplicit($nameCol . $row, $name, DataType::TYPE_STRING);
+                    if ($this->period) {
+                        $sheet->setCellValueExplicit($periodCol . $row, $this->period, DataType::TYPE_NUMERIC);
+                    }
+                }
             },
         ];
     }
@@ -98,6 +132,10 @@ class LayerAppraisalImportTemplate implements FromArray, WithHeadings, WithEvent
     {
         if (in_array($header, ApprovalLayerAppraisalImport::KPI_UNIT_HEADERS, true)) {
             return self::KPI_UNIT_COLOR;
+        }
+
+        if ($header === ApprovalLayerAppraisalImport::LAYER_PERIOD_HEADER) {
+            return self::GROUP_COLORS['employee_'];
         }
 
         foreach (self::GROUP_COLORS as $prefix => $rgb) {

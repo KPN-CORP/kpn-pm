@@ -70,6 +70,9 @@ class MyAppraisalController extends Controller
         $filterYear = $request->input('filterYear');
         $accessMenu = [];
 
+        // Layer appraisal ikut periode yang dilihat.
+        \App\Support\AppraisalLayerPeriod::view($filterYear ?: $period);
+
         $employee = EmployeeAppraisal::where('employee_id', $user)->first();
         if ($employee) {
             $accessMenu = json_decode($employee->access_menu, true);

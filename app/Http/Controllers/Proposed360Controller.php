@@ -145,6 +145,10 @@ class Proposed360Controller extends Controller
 
         foreach ($datas->when($selfRow, fn ($c) => $c->concat([$selfRow])) as $emp) {
             $emp->setRelation('appraisalLayer', $layerRows->get((string) $emp->employee_id, collect()));
+            // Admin sudah mengisi peers/subordinate periode ini di Layer Setting:
+            // bila belum ada pengajuan, baris tampil "Approved by Admin" dan
+            // manager tidak perlu (dan tidak bisa) propose.
+            $emp->admin_set_360 = $emp->appraisalLayer->isNotEmpty();
         }
 
         if ($selfRow) {

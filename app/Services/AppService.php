@@ -705,7 +705,8 @@ class AppService
         try {
 
             $datasQuery = AppraisalContributor::with(['employee'])->where('appraisal_id', $formId);
-                $datas = $datasQuery->get();
+                // Penilaian 360 karyawan di luar assignment tidak ikut skor.
+                $datas = \App\Support\Propose360Assignment::dropIneligible360($datasQuery->get());
 
                 $checkSnapshot = ApprovalSnapshots::where('form_id', $formId)->where('created_by', $datas->first()->employee->id)
                     ->orderBy('created_at', 'desc');
@@ -977,6 +978,14 @@ class AppService
     {
         // Cari data pada ApprovalLayerAppraisal berdasarkan employee_id
         $approvalLayerAppraisals = ApprovalLayerAppraisal::with(['approver'])->where('employee_id', $employeeId)->where('layer_type', '!=', 'calibrator')->get();
+
+        // Karyawan di luar assignment Propose 360 (mis. job level di luar range)
+        // tidak ikut 360: peers/subordinate yang terlanjur diisi admin di Layer
+        // Setting tidak boleh membuat statusnya "Pending 360". Hanya penilaian
+        // manager yang tetap ditunggu.
+        if (\App\Support\Propose360Assignment::excludedFrom360((string) $employeeId)) {
+            $approvalLayerAppraisals = $approvalLayerAppraisals->where('layer_type', 'manager')->values();
+        }
 
         // access_menu milik karyawan yang dinilai (sama untuk semua layer). Relasi
         // ApprovalLayerAppraisal->employee tidak menyertakan karyawan soft-deleted
@@ -1281,7 +1290,11 @@ class AppService
             ->whereDoesntHave('contributors', function ($query) use ($user, $period) {
                 $query->where('contributor_id', $user)->where('period', $period);
             })
-            ->count();
+            ->pluck('employee_id');
+
+        // Karyawan di luar assignment Propose 360 tidak dihitung sebagai tugas 360.
+        $excluded360 = \App\Support\Propose360Assignment::excludedFrom360Ids($notif360);
+        $notif360 = $notif360->reject(fn ($id) => in_array((string) $id, $excluded360, true))->count();
 
         return $notifTeams + $notif360;
     }

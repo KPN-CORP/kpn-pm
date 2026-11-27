@@ -344,6 +344,7 @@ Route::middleware('auth', 'locale', 'notification')->group(function () {
         Route::get('/layer-appraisal/edit/{id}', [LayerController::class, 'layerAppraisalEdit'])->name('layer-appraisal.edit');
         Route::get('/layer-appraisal-template', [LayerController::class, 'layerAppraisalTemplate'])->name('layer-appraisal.template');
         Route::post('/layer-appraisal/import', [LayerController::class, 'layerAppraisalImport'])->name('layer-appraisal.import');
+        Route::post('/layer-appraisal/duplicate', [LayerController::class, 'layerAppraisalDuplicate'])->name('layer-appraisal.duplicate');
         Route::post('/layer-appraisal/update', [LayerController::class, 'layerAppraisalUpdate'])->name('layer-appraisal.update');
         Route::get('/export-invalid-layer-appraisal', [LayerController::class, 'exportInvalidLayerAppraisal'])->name('export.invalid.layer.appraisal');
         Route::get('/employee-layer-appraisal/details/{employeeId}', [LayerController::class, 'getEmployeeLayerDetails']);

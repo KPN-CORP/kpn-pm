@@ -18,6 +18,7 @@ use App\Models\Appraisal;
 use App\Models\AppraisalContributor;
 use App\Models\ApprovalLayerAppraisal;
 use App\Models\ApprovalLayerAppraisalBackup;
+use App\Support\AppraisalLayerPeriod;
 use Illuminate\Support\Facades\Log;
 use App\Models\ApprovalLayerBackup;
 use App\Models\Calibration;
@@ -258,9 +259,9 @@ class LayerController extends Controller
      * app('request'), jadi request diganti sementara. null = gagal (tabel
      * tetap bisa memuat lewat AJAX).
      */
-    private function dataTableInitialPage(Request $request, array $columns, callable $endpoint, array $order = []): ?array
+    private function dataTableInitialPage(Request $request, array $columns, callable $endpoint, array $order = [], array $extra = []): ?array
     {
-        $params = [
+        $params = $extra + [
             'draw' => 1,
             'start' => 0,
             'length' => 25,
@@ -464,15 +465,93 @@ class LayerController extends Controller
         //
         // Halaman pertama (25 baris, tanpa search/urutan) ikut dikirim di HTML
         // supaya tabel langsung terisi tanpa menunggu request AJAX kedua.
+        // Layer Setting mengelola (edit/import/duplicate) layer periode
+        // appraisal berjalan; periode lain hanya bisa dilihat (?period=).
+        $layerPeriod = AppraisalLayerPeriod::active();
+        $available = AppraisalLayerPeriod::available();
+        $viewPeriod = $this->layerViewPeriod($request);
+
+        $periodOptions = collect($available)->push($layerPeriod)->unique()->sortDesc()->values()->all();
+
         return view('pages.layers.layer-appraisal', [
             'parentLink' => 'Settings',
             'link' => 'Layers',
-            'initialData' => $this->dataTableInitialPage($request, self::LAYER_APPRAISAL_COLUMNS, fn ($sub) => $this->layerAppraisalData($sub)),
+            'initialData' => $this->dataTableInitialPage($request, self::LAYER_APPRAISAL_COLUMNS, fn ($sub) => $this->layerAppraisalData($sub), [], ['period' => $viewPeriod]),
+            'layerPeriod' => $layerPeriod,
+            'viewPeriod' => $viewPeriod,
+            'isActivePeriod' => $viewPeriod === $layerPeriod,
+            'periodOptions' => $periodOptions,
+            // Peringatan "belum ada layer" mengacu ke layer manager; baris
+            // peers/subordinate hasil Propose 360 saja belum cukup.
+            'layerPeriodFilled' => ApprovalLayerAppraisal::where('layer_type', 'manager')->exists(),
+            'sourcePeriods' => array_values(array_filter($available, fn ($p) => $p < $layerPeriod)),
         ]);
+    }
+
+    /**
+     * Periode layer yang dilihat dari ?period=. Hanya periode yang punya
+     * layer atau periode berjalan; selain itu kembali ke periode berjalan.
+     */
+    private function layerViewPeriod(Request $request): ?int
+    {
+        $active = AppraisalLayerPeriod::active();
+        $requested = (int) $request->input('period');
+
+        return $requested && in_array($requested, AppraisalLayerPeriod::available(), true) ? $requested : $active;
+    }
+
+    /**
+     * Salin layer dari periode sebelumnya ke periode appraisal berjalan,
+     * hanya untuk karyawan yang dicentang di tabel. Jenis layer yang sudah
+     * ada di periode berjalan dilewati.
+     */
+    public function layerAppraisalDuplicate(Request $request)
+    {
+        $to = AppraisalLayerPeriod::active();
+
+        $validated = $request->validate([
+            'from_period' => ['required', 'integer', 'lt:'.$to],
+            'layer_types' => ['required', 'array', 'min:1'],
+            'layer_types.*' => ['in:manager,peers,subordinate,calibrator'],
+            'employee_ids' => ['required', 'array', 'min:1'],
+            'employee_ids.*' => ['string'],
+        ], [
+            'layer_types.required' => 'Select at least one layer type to duplicate.',
+            'employee_ids.required' => 'Select at least one employee to duplicate.',
+        ]);
+
+        // Hanya karyawan yang boleh dikelola user ini (restriction role).
+        $employeeIds = $this->layerAppraisalQuery()
+            ->whereIn('employee_id', array_values(array_unique(array_map('strval', $validated['employee_ids']))))
+            ->pluck('employee_id')
+            ->all();
+
+        if (empty($employeeIds)) {
+            return redirect()->route('layer-appraisal')->with('error', 'None of the selected employees can be duplicated.');
+        }
+
+        $from = (int) $validated['from_period'];
+        $result = ApprovalLayerAppraisal::duplicatePeriod($from, $to, $validated['layer_types'], Auth::id(), $employeeIds);
+
+        Log::channel('audit')->info('layer_appraisal.duplicate_period', [
+            'from_period' => $from,
+            'to_period' => $to,
+            'layer_types' => $validated['layer_types'],
+            'selected_employee_ids' => $employeeIds,
+            'employees' => $result['employees'],
+            'rows' => $result['rows'],
+            'actor_user_id' => Auth::id(),
+            'actor_employee_id' => Auth::user()?->employee_id,
+        ]);
+
+        return redirect()->route('layer-appraisal')->with('success',
+            "Duplicated {$result['rows']} layer rows for {$result['employees']} of " . count($employeeIds) . " selected employees from period {$from} to {$to}."
+            . ($result['employees'] < count($employeeIds) ? ' Employees without layers in that period, or whose selected layer types were already set, were skipped.' : ''));
     }
 
     /** Kolom tabel Layer Appraisal, sama urutannya dengan layer-appraisal.js. */
     private const LAYER_APPRAISAL_COLUMNS = [
+        ['data' => 'select', 'name' => 'select', 'searchable' => 'false', 'orderable' => 'false'],
         ['data' => 'DT_RowIndex', 'name' => 'DT_RowIndex', 'searchable' => 'false', 'orderable' => 'false'],
         ['data' => 'employee', 'name' => 'fullname', 'searchable' => 'true', 'orderable' => 'true'],
         ['data' => 'company_name', 'name' => 'company_name', 'searchable' => 'true', 'orderable' => 'true'],
@@ -524,13 +603,25 @@ class LayerController extends Controller
         $period = $this->appService->appraisalPeriod();
 
         $searchable = ['fullname', 'employee_id', 'company_name', 'office_area', 'group_company'];
-        $orderable  = [1 => 'fullname', 2 => 'company_name', 3 => 'office_area', 4 => 'group_company'];
+        // Indeks kolom tabel (kolom 0 = checkbox, 1 = nomor).
+        $orderable  = [2 => 'fullname', 3 => 'company_name', 4 => 'office_area', 5 => 'group_company'];
+        $layerPeriod = $this->layerViewPeriod($request);
+        $isActivePeriod = $layerPeriod === AppraisalLayerPeriod::active();
+
+        // Seluruh query (termasuk withCount layer) membaca periode yang dilihat.
+        return AppraisalLayerPeriod::using($layerPeriod, fn () => $this->layerAppraisalDataTable($request, $period, $searchable, $orderable, $layerPeriod, $isActivePeriod));
+    }
+
+    private function layerAppraisalDataTable(Request $request, $period, array $searchable, array $orderable, ?int $layerPeriod, bool $isActivePeriod)
+    {
 
         $query = $this->layerAppraisalQuery()
             ->select('id', 'fullname', 'employee_id', 'group_company', 'company_name', 'office_area')
             ->withCount(['calibration as approved_calibration_count' => function ($q) use ($period) {
                 $q->where('status', 'Approved')->where('period', $period);
-            }]);
+            }])
+            // layer periode berjalan (relasi kena global scope periode)
+            ->withCount(['appraisalLayer as current_layer_count']);
 
         return DataTables::eloquent($query)
             ->addIndexColumn()
@@ -552,16 +643,28 @@ class LayerController extends Controller
                 }
                 $q->orderBy('id');
             })
-            ->addColumn('employee', fn ($row) => e($row->fullname) . ' <span class="text-muted">' . e($row->employee_id) . '</span>')
-            ->addColumn('action', function ($row) {
+            // Checkbox duplicate hanya untuk periode berjalan.
+            ->addColumn('select', fn ($row) => $isActivePeriod
+                ? '<input type="checkbox" class="form-check-input layer-select" value="' . e($row->employee_id) . '" aria-label="Select ' . e($row->fullname) . '">'
+                : '')
+            ->addColumn('employee', fn ($row) => e($row->fullname) . ' <span class="text-muted">' . e($row->employee_id) . '</span>'
+                . ($row->current_layer_count ? '' : ' <span class="badge bg-warning-subtle text-warning ms-1" title="No appraisal layer has been set for period ' . e($layerPeriod) . '">Layer not set</span>'))
+            ->addColumn('action', function ($row) use ($isActivePeriod, $layerPeriod) {
+                $view = '<button type="button" class="btn btn-sm rounded btn-outline-info me-1" data-bs-toggle="modal" data-bs-target="#detailModal" data-bs-id="' . e($row->employee_id) . '" data-period="' . e($layerPeriod) . '"><i class="ri-eye-line fs-16"></i></button>';
+
+                // Periode lalu hanya bisa dilihat, tidak diedit.
+                if (! $isActivePeriod) {
+                    return $view;
+                }
+
                 $edit = $row->approved_calibration_count
                     ? '<button type="button" onclick="alert(\'Cannot changes layer, This employee already on calibration proccess.\')" class="btn btn-sm rounded btn-light me-1"><i class="ri-edit-box-line fs-16"></i></button>'
                     : '<a href="' . e(route('layer-appraisal.edit', $row->employee_id)) . '" class="btn btn-sm rounded btn-outline-warning me-1"><i class="ri-edit-box-line fs-16"></i></a>';
 
-                return $edit . '<button type="button" class="btn btn-sm rounded btn-outline-info me-1" data-bs-toggle="modal" data-bs-target="#detailModal" data-bs-id="' . e($row->employee_id) . '"><i class="ri-eye-line fs-16"></i></button>';
+                return $edit . $view;
             })
-            ->only(['DT_RowIndex', 'employee', 'company_name', 'office_area', 'group_company', 'action'])
-            ->rawColumns(['employee', 'action'])
+            ->only(['select', 'DT_RowIndex', 'employee', 'company_name', 'office_area', 'group_company', 'action'])
+            ->rawColumns(['select', 'employee', 'action'])
             ->toJson();
     }
 
@@ -593,7 +696,7 @@ class LayerController extends Controller
             }
         }
 
-        $datas = EmployeeAppraisal::select('fullname', 'employee_id', 'date_of_joining', 'group_company', 'company_name', 'unit', 'designation', 'office_area')->with(['appraisalLayer' => function($query) {
+        $datas = EmployeeAppraisal::select('fullname', 'employee_id', 'date_of_joining', 'group_company', 'company_name', 'unit', 'designation', 'office_area', 'manager_l1_id')->with(['appraisalLayer' => function($query) {
             $query->with(['approver' => function($subquery) {
                 $subquery->select('fullname', 'employee_id', 'designation');
             }])->select('employee_id', 'approver_id', 'layer_type', 'layer');
@@ -614,8 +717,12 @@ class LayerController extends Controller
         // Approver tersimpan per jenis & nomor layer (peers[2] = Peers 2),
         // supaya tiap dropdown menampilkan layer yang benar walau ada yang
         // kosong di tengah. Manager hanya satu.
+        // Belum ada layer manager di periode berjalan: usulkan atasan dari
+        // data HR (employees.manager_l1_id), sama dengan Propose 360.
+        $layerManager = optional($groupLayers['manager'] ?? collect())->first()?->approver_id;
+        $managerFromEmployee = ! $layerManager && $datas->manager_l1_id;
         $selectedLayers = [
-            'manager' => [1 => optional($groupLayers['manager'] ?? collect())->first()?->approver_id],
+            'manager' => [1 => $layerManager ?: ($datas->manager_l1_id ?: null)],
         ];
         foreach (['peers', 'subordinate'] as $type) {
             foreach ($groupLayers[$type] ?? [] as $layer) {
@@ -628,7 +735,7 @@ class LayerController extends Controller
         // semua employees_pa, sehingga approver yang dipilih lewat pencarian
         // tapi tidak ada di employees_pa (mis. karyawan baru) tampil kosong
         // saat halaman dibuka lagi, dan hilang bila disimpan ulang.
-        $approverIds = $datas->appraisalLayer->pluck('approver_id')->filter()->map('strval')->unique()->values();
+        $approverIds = $datas->appraisalLayer->pluck('approver_id')->push($selectedLayers['manager'][1])->filter()->map('strval')->unique()->values();
         $approverNames = Employee::whereIn('employee_id', $approverIds)->pluck('fullname', 'employee_id')->all()
             + EmployeeAppraisal::withTrashed()->whereIn('employee_id', $approverIds)->pluck('fullname', 'employee_id')->all();
 
@@ -640,6 +747,7 @@ class LayerController extends Controller
             'groupLayers' => $groupLayers,
             'selectedLayers' => $selectedLayers,
             'approverNames' => $approverNames,
+            'managerFromEmployee' => $managerFromEmployee,
         ]);
     }
 
@@ -827,6 +935,7 @@ class LayerController extends Controller
                 'approver_id' => $layer->approver_id,
                 'layer_type'  => $layer->layer_type,
                 'layer'       => $layer->layer,
+                'period'      => $layer->period,
                 'created_by'  => $userId ?? 0,
             ]);
         }
@@ -970,7 +1079,13 @@ class LayerController extends Controller
     {
         $withKpiUnit = ApprovalLayerAppraisalImport::canImportKpiUnit();
 
-        return Excel::download(new \App\Exports\LayerAppraisalImportTemplate($withKpiUnit), 'template_import_appraisal_layer.xlsx');
+        // Isi employee_id + nama karyawan yang boleh dikelola admin ini
+        $employees = $this->layerAppraisalQuery()
+            ->orderBy('fullname')
+            ->get(['employee_id', 'fullname'])
+            ->map(fn ($e) => [$e->employee_id, trim((string) $e->fullname)]);
+
+        return Excel::download(new \App\Exports\LayerAppraisalImportTemplate($withKpiUnit, $employees, AppraisalLayerPeriod::active()), 'template_import_appraisal_layer.xlsx');
     }
 
     public function exportInvalidLayerAppraisal()
@@ -1001,8 +1116,12 @@ class LayerController extends Controller
 
             $doj = Carbon::parse($employee->date_of_joining);
 
-            // Fetch history (you can also cache this if necessary)
-            $history = ApprovalLayerAppraisal::with(['approver', 'createBy', 'updateBy'])->where('employee_id', $employeeId)->get();
+            // Layer periode yang sedang dilihat di tabel (?period=).
+            $history = AppraisalLayerPeriod::using($this->layerViewPeriod(request()), fn () => ApprovalLayerAppraisal::with(['approver', 'createBy', 'updateBy'])
+                ->where('employee_id', $employeeId)
+                ->orderByRaw("FIELD(layer_type, 'manager', 'peers', 'subordinate', 'calibrator')")
+                ->orderByRaw('CAST(layer AS UNSIGNED)')
+                ->get());
 
             // Relasi approver hanya mencari di employees_pa; approver yang
             // hanya ada di employees (mis. karyawan baru) diambil namanya dari
@@ -1028,8 +1147,12 @@ class LayerController extends Controller
                         'layer' => $entry->layer,
                         'fullname' => $entry->approver?->fullname ?? $fallbackNames[$entry->approver_id] ?? $entry->approver_id,
                         'employee_id' => $entry->approver?->employee_id ?? $entry->approver_id,
-                        'updated_by' => $entry->createBy ? $entry->createBy->fullname.' ('. $entry->createBy->employee_id .')' : ($entry->updateBy ? $entry->updateBy->fullname.' ('. $entry->updateBy->employee_id .')' : 'System') ,
-                        'updated_at' => $entry->updated_at ? $entry->updated_at->format('Y-m-d H:i:s') : null,
+                        // Perubahan terakhir: update bila pernah diubah, selain itu
+                        // saat dibuat (baris baru hanya mengisi created_*).
+                        'updated_by' => ($entry->updated_at && $entry->updateBy)
+                            ? $entry->updateBy->fullname.' ('. $entry->updateBy->employee_id .')'
+                            : ($entry->createBy ? $entry->createBy->fullname.' ('. $entry->createBy->employee_id .')' : 'System'),
+                        'updated_at' => ($entry->updated_at ?? $entry->created_at)?->format('Y-m-d H:i:s'),
                     ];
                 }),
             ];

@@ -4,6 +4,7 @@ namespace App\Exports;
 
 use App\Models\Appraisal;
 use App\Models\AppraisalContributor;
+use App\Support\Propose360Assignment;
 use App\Models\ApprovalRequest;
 use App\Models\ApprovalSnapshots;
 use App\Models\MasterWeightage;
@@ -94,8 +95,11 @@ class AppraisalDetailExport implements FromGenerator, WithHeadings, WithMapping,
         ])
         ->where('period', $this->period)
         ->whereIn('employee_id', $employeeIds)
-        ->get()
-        ->groupBy('employee_id');
+        ->get();
+        // Penilaian 360 periode berjalan untuk karyawan di luar assignment
+        // tidak diexport dan tidak ikut summary.
+        $contributorsGroupedByEmployee = Propose360Assignment::dropIneligible360($contributorsGroupedByEmployee)
+            ->groupBy('employee_id');
 
         // Baris "self" dulu meng-query ulang appraisal ini (dengan employee
         // lengkap + snapshot) per baris. Sekarang ikut di-preload di sini,
@@ -230,7 +234,8 @@ class AppraisalDetailExport implements FromGenerator, WithHeadings, WithMapping,
         $this->contributorsByAppraisal = AppraisalContributor::with(['employee', 'appraisal.goal'])
             ->whereIn('appraisal_id', $appraisalIds)
             ->orderBy('id')
-            ->get()
+            ->get();
+        $this->contributorsByAppraisal = Propose360Assignment::dropIneligible360($this->contributorsByAppraisal)
             ->groupBy('appraisal_id');
 
         $this->snapshotsByForm = ApprovalSnapshots::with('employee')
@@ -592,7 +597,7 @@ class AppraisalDetailExport implements FromGenerator, WithHeadings, WithMapping,
     private function getFormDataSummary(AppraisalContributor $contributor): array
     {
         $datas = $this->contributorsByAppraisal?->get($contributor->appraisal_id)
-            ?? AppraisalContributor::with(['employee', 'appraisal.goal'])->where('appraisal_id', $contributor->appraisal_id)->orderBy('id')->get();
+            ?? Propose360Assignment::dropIneligible360(AppraisalContributor::with(['employee', 'appraisal.goal'])->where('appraisal_id', $contributor->appraisal_id)->orderBy('id')->get());
 
         // If the appraisal itself is Draft, skip and return empty structure
         $appraisalModel = $this->resolveAppraisal($contributor->appraisal_id);

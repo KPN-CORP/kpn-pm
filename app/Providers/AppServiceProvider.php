@@ -18,7 +18,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        // You could bind services here if needed.
+        // Periode layer appraisal (override halaman riwayat) per request/job.
+        $this->app->scoped(\App\Support\AppraisalLayerPeriod::class);
     }
 
     /**

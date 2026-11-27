@@ -115,6 +115,9 @@
                                                 @include('pages.layers.partials.selected-employee-option', ['id' => $selectedLayers['manager'][1] ?? null])
                                             </select>
                                             <div class="text-danger error-message fs-14"></div>
+                                            @if (!empty($managerFromEmployee))
+                                                <div class="form-text">Pre-filled from employee data (Manager L1). Save to set it as the appraisal layer.</div>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>

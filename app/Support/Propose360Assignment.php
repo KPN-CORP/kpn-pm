@@ -211,6 +211,81 @@ class Propose360Assignment
         return self::matches($emp, $ruleSets);
     }
 
+    /** @var array<int, array>|null rule-set flow aktif, cache per request */
+    private static ?array $activeRuleSetsCache = null;
+
+    /**
+     * Karyawan TIDAK termasuk assignment 360 (mis. job level di luar range),
+     * sehingga peers/subordinate di Layer Setting tidak perlu menilai dia.
+     * Bila flow tidak punya assignment sama sekali => false (perilaku lama,
+     * 360 tidak dibatasi), supaya tidak mematikan 360 untuk semua karyawan.
+     */
+    public static function excludedFrom360(string $employeeId): bool
+    {
+        return in_array($employeeId, self::excludedFrom360Ids([$employeeId]), true);
+    }
+
+    /**
+     * Versi batch excludedFrom360: employee_id dari $employeeIds yang di luar
+     * assignment 360 (satu query per 500 id).
+     *
+     * @return array<int, string>
+     */
+    public static function excludedFrom360Ids(iterable $employeeIds): array
+    {
+        self::$activeRuleSetsCache ??= self::ruleSets(self::assignmentIds(self::flow()));
+
+        $ids = collect($employeeIds)->map(fn ($id) => (string) $id)->filter()->unique()->values();
+        if (empty(self::$activeRuleSetsCache) || $ids->isEmpty()) {
+            return [];
+        }
+
+        $columns = array_values(array_unique(array_merge(['employee_id'], array_values(self::ruleColumns()))));
+        $excluded = [];
+
+        foreach ($ids->chunk(500) as $chunk) {
+            $rows = EmployeeAppraisal::withTrashed()->select($columns)->whereIn('employee_id', $chunk->all())->get();
+            foreach ($rows as $emp) {
+                if (! self::matches($emp, self::$activeRuleSetsCache)) {
+                    $excluded[] = (string) $emp->employee_id;
+                }
+            }
+        }
+
+        return $excluded;
+    }
+
+    /**
+     * Buang penilaian peers/subordinate PERIODE BERJALAN untuk karyawan di
+     * luar assignment 360, supaya tidak ikut skor/summary. Data tidak
+     * dihapus: kalau karyawan masuk assignment lagi, penilaiannya terhitung
+     * lagi. Periode lalu tidak disentuh (assignment tidak terikat periode,
+     * jadi menerapkannya ke riwayat akan mengubah report lama).
+     *
+     * @param  \Illuminate\Support\Collection  $contributors  AppraisalContributor (employee_id, contributor_type, period)
+     */
+    public static function dropIneligible360(\Illuminate\Support\Collection $contributors): \Illuminate\Support\Collection
+    {
+        $current = (string) app(\App\Services\AppService::class)->appraisalPeriod();
+
+        $is360Now = fn ($c) => in_array($c->contributor_type, ['peers', 'subordinate'], true)
+            && (string) $c->period === $current;
+
+        $candidates = $contributors->filter($is360Now);
+        if ($candidates->isEmpty()) {
+            return $contributors;
+        }
+
+        $excluded = self::excludedFrom360Ids($candidates->pluck('employee_id'));
+        if (empty($excluded)) {
+            return $contributors;
+        }
+
+        return $contributors
+            ->reject(fn ($c) => $is360Now($c) && in_array((string) $c->employee_id, $excluded, true))
+            ->values();
+    }
+
     /**
      * Boleh buka menu/route Propose 360? Lihat docblock class.
      */

@@ -10,7 +10,10 @@ use Illuminate\Support\Collection;
  * Atasan L1/L2 untuk modul appraisal (dipakai Propose 360).
  *
  * Sumber utama adalah Layer Setting appraisal: approval_layer_appraisals
- * dengan layer_type = 'manager' dan layer = 1 (satu baris per karyawan).
+ * dengan layer_type = 'manager' dan layer = 1 (satu baris per karyawan),
+ * periode berjalan saja. Karyawan yang belum punya layer di periode itu
+ * (admin belum import/duplicate) memakai data HR: employees_pa (view atas
+ * employees) manager_l1_id / manager_l2_id — keputusan user 2026-11-27.
  * Kolom employees_pa.manager_l1_id / manager_l2_id tidak pernah disinkron
  * ulang setelah baris dimuat, jadi sering tertinggal dari struktur yang
  * diatur admin di Layer Setting.

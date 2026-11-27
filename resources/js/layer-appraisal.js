@@ -46,6 +46,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 }
                 initialData = null;
 
+                // Periode layer yang dilihat (filter Layer Period).
+                data.period = $layerAppraisalTable.data("period");
                 $.ajax({ url: $layerAppraisalTable.data("url"), data: data, dataType: "json" })
                     .done(callback)
                     .fail(function (xhr) {
@@ -59,6 +61,7 @@ document.addEventListener("DOMContentLoaded", function () {
                     });
             },
             columns: [
+                { data: "select", name: "select", orderable: false, searchable: false, className: "text-center" },
                 { data: "DT_RowIndex", name: "DT_RowIndex", orderable: false, searchable: false },
                 { data: "employee", name: "fullname" },
                 { data: "company_name", name: "company_name" },
@@ -67,6 +70,59 @@ document.addEventListener("DOMContentLoaded", function () {
                 { data: "action", name: "action", orderable: false, searchable: false, className: "sorting_1 text-center" },
             ],
         });
+
+        // ---- Pilihan karyawan untuk "Duplicate from Previous Period" ----
+        // Disimpan di Set supaya tetap terpilih saat pindah halaman / search
+        // (tabel server-side merender ulang checkbox tiap draw).
+        const selectedIds = new Set();
+
+        const refreshSelection = () => {
+            $(".js-selected-count").text(selectedIds.size);
+            $("#duplicateSelectedButton").prop("disabled", selectedIds.size === 0);
+
+            const $rowBoxes = $layerAppraisalTable.find("input.layer-select");
+            const checkedOnPage = $rowBoxes.filter(":checked").length;
+            $(".layer-select-page")
+                .prop("checked", $rowBoxes.length > 0 && checkedOnPage === $rowBoxes.length)
+                .prop("indeterminate", checkedOnPage > 0 && checkedOnPage < $rowBoxes.length);
+        };
+
+        layerAppraisalTable.on("draw", function () {
+            $layerAppraisalTable.find("input.layer-select").each(function () {
+                this.checked = selectedIds.has(this.value);
+            });
+            refreshSelection();
+        });
+
+        $layerAppraisalTable.on("change", "input.layer-select", function () {
+            this.checked ? selectedIds.add(this.value) : selectedIds.delete(this.value);
+            refreshSelection();
+        });
+
+        // Header checkbox ada di header hasil clone scrollX, jadi pakai delegasi.
+        $(document).on("change", ".layer-select-page", function () {
+            const checked = this.checked;
+            $layerAppraisalTable.find("input.layer-select").each(function () {
+                this.checked = checked;
+                checked ? selectedIds.add(this.value) : selectedIds.delete(this.value);
+            });
+            refreshSelection();
+        });
+
+        // Kirim employee_ids[] terpilih bersama form duplicate.
+        // Event Bootstrap 5 berupa event native, bukan event jQuery.
+        document.getElementById("duplicateModal")?.addEventListener("show.bs.modal", function (e) {
+            if (selectedIds.size === 0) {
+                e.preventDefault();
+                return;
+            }
+            const $holder = $("#duplicateEmployeeInputs").empty();
+            selectedIds.forEach((id) => {
+                $("<input>", { type: "hidden", name: "employee_ids[]", value: id }).appendTo($holder);
+            });
+        });
+
+        refreshSelection();
 
         // Kosongkan juga kotak search (browser bisa mengisi ulang nilai lama
         // saat tombol Back) supaya selalu sama dengan tabel.
@@ -437,13 +493,14 @@ document.addEventListener('DOMContentLoaded', function () {
         detailModal.addEventListener('show.bs.modal', async function (event) {
             const button = event.relatedTarget;
             const employeeId = button.getAttribute('data-bs-id');
+            const period = button.getAttribute('data-period') || '';
             
             // Show loading state before fetching data
             showLoadingState();
     
             try {
                 // Fetch the employee details using async/await
-                const data = await fetchEmployeeDetails(employeeId);
+                const data = await fetchEmployeeDetails(employeeId, period);
                 
                 // Populate the modal with the retrieved data
                 populateModal(data);
@@ -461,8 +518,8 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     // Function to fetch employee details from the backend
-    async function fetchEmployeeDetails(employeeId) {
-        const response = await fetch(`/employee-layer-appraisal/details/${employeeId}`);
+    async function fetchEmployeeDetails(employeeId, period) {
+        const response = await fetch(`/employee-layer-appraisal/details/${employeeId}?period=${encodeURIComponent(period)}`);
                 
         if (!response.ok) {
             throw new Error('Network response was not ok');

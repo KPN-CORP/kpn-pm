@@ -19,6 +19,8 @@ use App\Models\MasterCalibration;
 use App\Models\Schedule;
 use App\Services\AppService;
 use App\Services\KPIService;
+use App\Support\AppraisalLayerPeriod;
+use App\Support\Propose360Assignment;
 use Carbon\Carbon;
 use Exception;
 use DomainException;
@@ -68,6 +70,7 @@ class AppraisalTaskController extends Controller
 
             // Get dataTeams and filter contributors in one pass
             $isCurrentPeriod = !$filterYear || $filterYear == $this->appService->appraisalPeriod();
+            AppraisalLayerPeriod::view($period); // layer ikut periode yang dilihat
 
             $dataTeams = ApprovalLayerAppraisal::with([
                     'approver',
@@ -124,6 +127,10 @@ class AppraisalTaskController extends Controller
             ->get()
             ->filter(fn($item) => $item->appraisal !== null && $item->contributors->isEmpty());
 
+            // Karyawan di luar assignment Propose 360 tidak jadi tugas 360.
+            $excluded360 = Propose360Assignment::excludedFrom360Ids($data360->pluck('employee_id'));
+            $data360 = $data360->reject(fn ($item) => in_array((string) $item->employee_id, $excluded360, true));
+
             $notifData360 = $data360->count();
 
             // Pluck contributors data
@@ -167,6 +174,7 @@ public function getTeamData(Request $request)
         }
 
         $isCurrentPeriod = !$filterYear || $filterYear == $this->appService->appraisalPeriod();
+        AppraisalLayerPeriod::view($period); // layer ikut periode yang dilihat
 
         $datas = ApprovalLayerAppraisal::with([
             'employee' => function ($query) use ($isCurrentPeriod, $period) {
@@ -307,6 +315,7 @@ public function getTeamData(Request $request)
         if ($filterYear && $filterYear != '') {
             $period = $filterYear;
         }
+        AppraisalLayerPeriod::view($period); // layer ikut periode yang dilihat
 
         $datas = ApprovalLayerAppraisal::with([
             'employee' => function ($query) use ($period) {
@@ -334,6 +343,14 @@ public function getTeamData(Request $request)
         ->whereIn('layer_type', ['peers', 'subordinate'])
         ->has('approvalRequest')
         ->get();
+
+        // Periode berjalan: karyawan di luar assignment Propose 360 tidak
+        // tampil di 360 Task walau admin sudah mengisi peers/subordinate.
+        // Periode lalu dibiarkan apa adanya (riwayat).
+        if ($isCurrentPeriod) {
+            $excluded360 = Propose360Assignment::excludedFrom360Ids($datas->pluck('employee_id'));
+            $datas = $datas->reject(fn ($item) => in_array((string) $item->employee_id, $excluded360, true))->values();
+        }
 
         // Dulu satu query Calibration::exists() per baris; sekarang sekali
         // untuk semua karyawan di tabel ini.
@@ -601,6 +618,14 @@ public function getTeamData(Request $request)
         $manager = ApprovalLayerAppraisal::where('employee_id', $id)->where('approver_id', $approverId )->where('layer_type', 'manager')->first();
 
         $approval = ApprovalLayerAppraisal::with('approver')->where('employee_id', $id)->where('approver_id', $approverId )->where('layer_type', '!=', 'calibrator')->first();
+
+        // Peers/subordinate tidak boleh membuka form 360 karyawan di luar
+        // assignment Propose 360 (mis. lewat URL langsung).
+        if ($approval && in_array($approval->layer_type, ['peers', 'subordinate'], true)
+            && Propose360Assignment::excludedFrom360((string) $id)) {
+            Session::flash('error', 'This employee is not eligible for 360 review.');
+            return redirect()->back();
+        }
 
         // Relasi approver hanya mencari di employees_pa; untuk reviewer yang
         // hanya ada di employees (mis. karyawan baru) nama untuk judul

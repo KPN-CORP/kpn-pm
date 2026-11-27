@@ -87,6 +87,16 @@
             $initiatorClass = ($isInitiator && $statusText == 'sendback') || $statusText == 'draft' ? 'select360' : '';
         }
 
+        // Peers/subordinate sudah di-set Admin di Layer Setting (periode ini)
+        // dan belum ada pengajuan: otomatis approved, tidak perlu propose.
+        $adminSet = !$hasApproval && !empty($row->admin_set_360);
+        if ($adminSet) {
+            $statusText     = 'approved by admin';
+            $statusClass    = 'success';
+            $tooltip        = 'Peers/Subordinate already set by Admin in Layer Setting';
+            $initiator      = 'disabled';
+            $initiatorClass = '';
+        }
     @endphp
     @if (!empty($selfEnabled) && $selfEnabled)
         
@@ -170,7 +180,7 @@
                                             </div>
                                             <div class="col">
                                                 <span class="badge bg-{{ $statusClass }}"
-                                                    @if($hasApproval)
+                                                    @if($tooltip)
                                                         data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $tooltip }}"
                                                     @endif>
                                                     {{ $statusText }}
@@ -193,7 +203,7 @@
                                                     {{ __('Revise') }}
                                                 </button>                                                    
                                             @endif
-                                        @else
+                                        @elseif (!$adminSet)
                                             {{-- Proposer view: Propose atau Revise --}}
                                             <button type="submit"
                                                     form="form-propose-self-{{ $row->employee_id }}"
@@ -233,7 +243,7 @@
                                                             @php $needsPeerData = !empty($needsPeerData) || !empty($initiatorClass); @endphp
                                                             <select name="peers[]" id="peer1" class="form-select {{ $initiatorClass ? 'select360-peer' : '' }}" data-peer-target="{{ $row->employee_id }}" data-peer-label="paren" required {{ $initiator }}>
                                                                 <option value="">- Please Select -</option>
-                                                                @if ($isPeerCandidate($row->employee_id, $pref))
+                                                                @if ($isPeerCandidate($row->employee_id, $pref) || ($adminSet && $pref && isset($allEmployees[(string) $pref])))
                                                                     <option value="{{ $pref }}" selected>
                                                                         {{ $allEmployees[(string) $pref]->fullname }} ({{ $pref }})
                                                                     </option>
@@ -252,7 +262,7 @@
                                                             @endphp
                                                             <select name="peers[]" id="peer2" class="form-select {{ $initiatorClass ? 'select360-peer' : '' }}" data-peer-target="{{ $row->employee_id }}" data-peer-label="paren" {{ $initiator }}>
                                                                 <option value="">- Please Select -</option>
-                                                                @if ($isPeerCandidate($row->employee_id, $pref))
+                                                                @if ($isPeerCandidate($row->employee_id, $pref) || ($adminSet && $pref && isset($allEmployees[(string) $pref])))
                                                                     <option value="{{ $pref }}" selected>
                                                                         {{ $allEmployees[(string) $pref]->fullname }} ({{ $pref }})
                                                                     </option>
@@ -271,7 +281,7 @@
                                                             @endphp
                                                             <select name="peers[]" id="peer3" class="form-select {{ $initiatorClass ? 'select360-peer' : '' }}" data-peer-target="{{ $row->employee_id }}" data-peer-label="paren" {{ $initiator }}>
                                                                 <option value="">- Please Select -</option>
-                                                                @if ($isPeerCandidate($row->employee_id, $pref))
+                                                                @if ($isPeerCandidate($row->employee_id, $pref) || ($adminSet && $pref && isset($allEmployees[(string) $pref])))
                                                                     <option value="{{ $pref }}" selected>
                                                                         {{ $allEmployees[(string) $pref]->fullname }} ({{ $pref }})
                                                                     </option>
@@ -435,6 +445,16 @@
                     // Enable inputs for the initiator only when status is 'draft' or 'sendback'
                     $initiator = ($isInitiator && $statusText == 'sendback') || $statusText == 'draft' ? '' : 'disabled';
                     $initiatorClass = ($isInitiator && $statusText == 'sendback') || $statusText == 'draft' ? 'select360' : '';
+                    // Peers/subordinate sudah di-set Admin di Layer Setting (periode ini)
+                    // dan belum ada pengajuan: otomatis approved, tidak perlu propose.
+                    $adminSet = !$hasApproval && !empty($row->admin_set_360);
+                    if ($adminSet) {
+                        $statusText     = 'approved by admin';
+                        $statusClass    = 'success';
+                        $tooltip        = 'Peers/Subordinate already set by Admin in Layer Setting';
+                        $initiator      = 'disabled';
+                        $initiatorClass = '';
+                    }
                 @endphp
                 <div class="row mt-3">
                     <div class="col">
@@ -483,7 +503,7 @@
 
                                             <div class="col">
                                                 <span class="badge bg-{{ $statusClass }}"
-                                                    @if($hasApproval)
+                                                    @if($tooltip)
                                                         data-bs-toggle="tooltip" data-bs-placement="top" title="{{ $tooltip }}"
                                                     @endif>
                                                     {{ $statusText }}
@@ -534,7 +554,7 @@
                                                         {{ __('Revise') }}
                                                     </button>                                                    
                                                 @endif
-                                            @else
+                                            @elseif (!$adminSet)
                                                 {{-- Proposer view: Propose atau Revise --}}
                                                 <button type="submit"
                                                         form="form-propose-team-{{ $row->employee_id }}"
@@ -573,7 +593,7 @@
                                                         @php $needsPeerData = !empty($needsPeerData) || !empty($initiatorClass); @endphp
                                                         <select name="peers[]" id="peer1_{{ $id }}" class="form-select {{ $initiatorClass ? 'select360-peer' : '' }}" data-peer-target="{{ $row->employee_id }}" data-peer-label="plain" required {{ $initiator }}>
                                                             <option value="">- Please Select -</option>
-                                                            @if ($isPeerCandidate($row->employee_id, $pref))
+                                                            @if ($isPeerCandidate($row->employee_id, $pref) || ($adminSet && $pref && isset($allEmployees[(string) $pref])))
                                                                 <option value="{{ $pref }}" selected>
                                                                     {{ $allEmployees[(string) $pref]->fullname }} {{ $pref }}
                                                                 </option>
@@ -590,7 +610,7 @@
                                                         @endphp
                                                         <select name="peers[]" id="peer2_{{ $id }}" class="form-select {{ $initiatorClass ? 'select360-peer' : '' }}" data-peer-target="{{ $row->employee_id }}" data-peer-label="plain" {{ $initiator }}>
                                                             <option value="">- Please Select -</option>
-                                                            @if ($isPeerCandidate($row->employee_id, $pref))
+                                                            @if ($isPeerCandidate($row->employee_id, $pref) || ($adminSet && $pref && isset($allEmployees[(string) $pref])))
                                                                 <option value="{{ $pref }}" selected>
                                                                     {{ $allEmployees[(string) $pref]->fullname }} {{ $pref }}
                                                                 </option>
@@ -608,7 +628,7 @@
                                                         @endphp
                                                         <select name="peers[]" id="peer3_{{ $id }}" class="form-select {{ $initiatorClass ? 'select360-peer' : '' }}" data-peer-target="{{ $row->employee_id }}" data-peer-label="plain" {{ $initiator }}>
                                                             <option value="">- Please Select -</option>
-                                                            @if ($isPeerCandidate($row->employee_id, $pref))
+                                                            @if ($isPeerCandidate($row->employee_id, $pref) || ($adminSet && $pref && isset($allEmployees[(string) $pref])))
                                                                 <option value="{{ $pref }}" selected>
                                                                     {{ $allEmployees[(string) $pref]->fullname }} {{ $pref }}
                                                                 </option>

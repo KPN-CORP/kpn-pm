@@ -58,7 +58,7 @@ class AppraisalController extends Controller
     $criteria = $this->buildCriteria($restrictionData);
     
     $period = $filterInputs['period'] ?? $this->appService->appraisalPeriod();
-
+    \App\Support\AppraisalLayerPeriod::view($period); // layer ikut periode yang dilihat
 
     /** ================================
      * PRELOAD MASTER RATING (1 QUERY)
@@ -400,12 +400,23 @@ private function getGroupCompanies()
     {
         $id = explode('_', decrypt($request->id))[0];
         $period = explode('_', decrypt($request->id))[1] ? explode('_', decrypt($request->id))[1] : $this->appService->appraisalPeriod();
+        \App\Support\AppraisalLayerPeriod::view($period); // layer ikut periode yang dilihat
 
         $data = EmployeeAppraisal::with(['appraisalLayer' => function ($query) {
             $query->where('layer_type', '!=', 'calibrator');
         }, 'appraisal' => function ($query) use ($period) {
             $query->where('period', $period);
         }])->inPeriod($period)->where('employee_id', $id)->get();
+
+        // Periode berjalan: kolom peers/subordinate tidak ditampilkan untuk
+        // karyawan di luar assignment 360 (penilaiannya juga tidak ikut skor).
+        if ((string) $period === (string) $this->appService->appraisalPeriod()
+            && \App\Support\Propose360Assignment::excludedFrom360((string) $id)) {
+            $data->each(fn ($item) => $item->setRelation(
+                'appraisalLayer',
+                $item->appraisalLayer->reject(fn ($l) => in_array($l->layer_type, ['peers', 'subordinate'], true))->values()
+            ));
+        }
 
 
         try {
@@ -500,7 +511,8 @@ private function getGroupCompanies()
 
             if ($id == 'summary') {
                 $datasQuery = AppraisalContributor::with(['employee'])->where('appraisal_id', $formId);
-                $datas = $datasQuery->get();
+                // Penilaian 360 karyawan di luar assignment tidak ikut summary.
+                $datas = \App\Support\Propose360Assignment::dropIneligible360($datasQuery->get());
 
                 $checkSnapshot = ApprovalSnapshots::where('form_id', $formId)->where('created_by', $datas->first()->employee->id)
                     ->orderBy('created_at', 'desc');

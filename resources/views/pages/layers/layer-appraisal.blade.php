@@ -20,10 +20,25 @@
         <div class="row">
             <div class="col-lg">
                 <div class="mb-3 text-end">
+                    @if ($isActivePeriod && !empty($sourcePeriods))
+                    <button type="button" class="btn btn-outline-primary me-1" id="duplicateSelectedButton" data-bs-toggle="modal" data-bs-target="#duplicateModal" title="Tick employees in the table first" disabled>Duplicate from Previous Period (<span class="js-selected-count">0</span>)</button>
+                    @endif
+                    @if ($isActivePeriod)
                     <button type="button" class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#importModal" title="Import">Import Layer</button>
+                    @endif
                 </div>
             </div>
-        </div>    
+        </div>
+        @if ($isActivePeriod && !$layerPeriodFilled)
+        <div class="alert alert-warning">
+            No manager layers have been set for period <strong>{{ $layerPeriod }}</strong> yet.
+            @if (!empty($sourcePeriods))
+                Import a new layer file or duplicate the layers from a previous period.
+            @else
+                Import a new layer file.
+            @endif
+        </div>
+        @endif
         <div class="row">
             <div class="col-md-auto">
               <div class="mb-3">
@@ -35,6 +50,19 @@
                 </div>
               </div>
             </div>
+            <div class="col-md-auto">
+                {{-- Filter periode: ganti periode = muat ulang halaman dengan ?period=. Periode lalu hanya bisa dilihat. --}}
+                <form method="GET" action="{{ route('layer-appraisal') }}" class="mb-3">
+                    <div class="input-group">
+                        <label class="input-group-text bg-white border-dark-subtle" for="layerPeriodFilter">Period</label>
+                        <select class="form-select border-dark-subtle" id="layerPeriodFilter" name="period" onchange="this.form.submit()">
+                            @foreach ($periodOptions as $p)
+                                <option value="{{ $p }}" @selected($p === $viewPeriod)>{{ $p }}{{ $p === $layerPeriod ? ' (current)' : '' }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+                </form>
+            </div>
         </div>
         <!-- Content Row -->
         <div class="row">
@@ -42,9 +70,10 @@
             <div class="card shadow mb-4">
               <div class="card-body">
                 {{-- Baris dimuat server-side dari route layer-appraisal.data (lihat layer-appraisal.js) --}}
-                <table class="table table-sm activate-select dt-responsive nowrap w-100 fs-14 align-middle" id="layerAppraisalTable" data-url="{{ route('layer-appraisal.data') }}">
+                <table class="table table-sm activate-select dt-responsive nowrap w-100 fs-14 align-middle" id="layerAppraisalTable" data-url="{{ route('layer-appraisal.data') }}" data-period="{{ $viewPeriod }}">
                     <thead class="thead-light">
                         <tr class="text-center">
+                        <th>@if ($isActivePeriod)<input type="checkbox" class="form-check-input layer-select-page" title="Select all on this page" aria-label="Select all on this page">@endif</th>
                         <th>#</th>
                         <th>Employee Name</th>
                         <th>Company</th>
@@ -80,6 +109,7 @@
                         <div class="alert alert-info">
                             <strong>Notes:</strong>
                             <ul class="mb-0">
+                                <li>Layers are imported into period <strong>{{ $layerPeriod }}</strong> (current appraisal period).</li>
                                 <li><strong>Managers</strong> are limited to <strong>1 layer</strong>.</li>
                                 <li><strong>Peers</strong> and <strong>Subordinates</strong> are allowed a maximum of <strong>3 layers</strong> each.</li>
                                 <li><strong>Calibrators</strong> can have up to <strong>10 layers</strong>.</li>
@@ -118,12 +148,57 @@
     </div>
 </div>
 
+@if (!empty($sourcePeriods))
+<!-- duplicateModal -->
+<div class="modal fade" id="duplicateModal" role="dialog" tabindex="-1" aria-labelledby="duplicateModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <form class="modal-content" action="{{ route('layer-appraisal.duplicate') }}" method="POST" onsubmit="this.querySelector('button[type=submit]').disabled = true;">
+            @csrf
+            <div class="modal-header">
+                <h4 class="modal-title" id="duplicateModalLabel">Duplicate Layer to Period {{ $layerPeriod }}</h4>
+                <div id="duplicateEmployeeInputs"></div>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <ul class="mb-0">
+                        <li>Only the <strong><span class="js-selected-count">0</span> employee(s) ticked</strong> in the table are duplicated.</li>
+                        <li>Layers of the selected period are copied into period <strong>{{ $layerPeriod }}</strong>.</li>
+                        <li>Layer types an employee already has in period {{ $layerPeriod }} are skipped, so imported or edited layers are kept.</li>
+                        <li>Resigned employees are not copied.</li>
+                        <li>Copying <strong>Peers / Subordinate</strong> marks Propose 360 for those employees as <strong>Approved by Admin</strong>; managers then cannot propose 360 for them.</li>
+                    </ul>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="duplicateFrom">From Period</label>
+                    <select class="form-select" id="duplicateFrom" name="from_period" required>
+                        @foreach ($sourcePeriods as $p)
+                            <option value="{{ $p }}">{{ $p }}</option>
+                        @endforeach
+                    </select>
+                </div>
+                <label class="form-label">Layer Types</label>
+                @foreach (['manager' => 'Manager', 'calibrator' => 'Calibrator', 'peers' => 'Peers', 'subordinate' => 'Subordinate'] as $type => $label)
+                <div class="form-check">
+                    <input class="form-check-input" type="checkbox" name="layer_types[]" value="{{ $type }}" id="dup_{{ $type }}" @checked(in_array($type, ['manager', 'calibrator']))>
+                    <label class="form-check-label" for="dup_{{ $type }}">{{ $label }}</label>
+                </div>
+                @endforeach
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-outline-secondary me-2" data-bs-dismiss="modal">Cancel</button>
+                <button type="submit" class="btn btn-primary">Duplicate</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endif
+
 <!-- view detail -->
 <div class="modal fade" id="detailModal" role="dialog" aria-labelledby="detailModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-xl modal-full-width-md-down" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <h4 class="modal-title" id="detailModalLabel">View Detail</h4>
+                <h4 class="modal-title" id="detailModalLabel">View Detail <span class="text-muted fs-14">(Period {{ $viewPeriod }})</span></h4>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">

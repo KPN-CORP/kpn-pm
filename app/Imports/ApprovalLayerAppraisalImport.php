@@ -87,6 +87,14 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
     public const KPI_UNIT_HEADERS = ['kpi_unit', 'keterangan', 'periode', 'status_aktif'];
 
     /**
+     * Kolom opsional setelah employee_name: periode layer yang dituju file.
+     * Template mengisinya dengan periode berjalan; baris dengan periode lain
+     * ditolak supaya file lama tidak tertimpa ke periode yang salah.
+     * Kosong / file lama tanpa kolom ini = periode berjalan.
+     */
+    public const LAYER_PERIOD_HEADER = 'layer_period';
+
+    /**
      * Grade Master Calibration per periode: [periode => [lowercase => grade asli]].
      *
      * @var array<int, array<string, string>>
@@ -123,6 +131,7 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
     public static function templateHeaders(bool $withKpiUnit = true): array
     {
         $headers = (new static(0, null, false))->expectedHeaders;
+        array_splice($headers, array_search('employee_name', $headers, true) + 1, 0, [self::LAYER_PERIOD_HEADER]);
 
         return $withKpiUnit ? array_merge($headers, self::KPI_UNIT_HEADERS) : $headers;
     }
@@ -258,6 +267,20 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
 
             if ($employeeId === '') {
                 // Kalau mau dipaksa error: bisa tambahkan addError di sini
+                continue;
+            }
+
+            // Template berisi semua karyawan; baris yang kolom layer dan
+            // KPI Unit-nya kosong semua berarti "tidak diubah", bukan error.
+            if ($this->isBlankRow($row)) {
+                continue;
+            }
+
+            $layerPeriod = trim((string) ($row[self::LAYER_PERIOD_HEADER] ?? ''));
+            if ($layerPeriod !== '' && (int) $layerPeriod !== (int) $this->period) {
+                $this->addError($employeeId, '', '', '',
+                    "Layer period {$layerPeriod} does not match the current period {$this->period}. Only the current period can be imported.");
+                $this->invalidEmployeeIds[] = $employeeId;
                 continue;
             }
 
@@ -411,6 +434,23 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
         }
 
         $this->invalidEmployeeIds = array_values(array_unique($this->invalidEmployeeIds));
+    }
+
+    /**
+     * Baris tanpa isian apa pun selain employee_id / employee_name.
+     */
+    protected function isBlankRow($row): bool
+    {
+        foreach ($row as $header => $value) {
+            if (in_array((string) $header, ['employee_id', 'employee_name', self::LAYER_PERIOD_HEADER], true)) {
+                continue;
+            }
+            if (trim((string) $value) !== '') {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /**
@@ -734,6 +774,7 @@ class ApprovalLayerAppraisalImport implements ToCollection, WithHeadingRow
             'approver_id' => $layer->approver_id,
             'layer_type'  => $layer->layer_type,
             'layer'       => $layer->layer,
+            'period'      => $layer->period,
             'created_by'  => $layer->created_by ?? 0,
             'created_at'  => $layer->created_at,
         ]);
