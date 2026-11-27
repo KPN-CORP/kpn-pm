@@ -226,7 +226,20 @@ class TeamGoalController extends Controller
         $noAchievements = $tasks->flatMap(fn($t) => $t->subordinates)
             ->filter(fn($s) => $s->goal->hasAchievement === false)
             ->collect();
-        
+
+        // ---- Search, filter status & pagination (server-side) -----------
+        // Dulu semua baris dirender sekaligus lalu difilter di browser; untuk
+        // approver dengan 300+ anak buah HTML-nya bisa 1–2 MB. Sekarang status
+        // tiap baris dihitung di sini (aturan sama persis dengan yang dulu ada
+        // di Blade), lalu search + filter + paginate, dan view hanya merender
+        // satu halaman. Badge tiap tab dihitung dari hasil search.
+        $search = Str::lower(trim((string) $request->input('customsearch', '')));
+        $goalRows = $this->buildGoalRows($tasks, $notasks);
+        $achRows = $this->buildAchievementRows($tasks, $noAchievements, $notasks);
+
+        [$goalList, $goalCounts, $goalStatus] = $this->filterAndPaginateRows($request, $goalRows, $search, 'goal');
+        [$achList, $achCounts, $achStatus] = $this->filterAndPaginateRows($request, $achRows, $search, 'ach');
+
         $path = base_path('resources/goal.json');
 
         // Check if the JSON file exists
@@ -258,8 +271,145 @@ class TeamGoalController extends Controller
         ->orderBy('period', 'ASC')
         ->get();
 
-        return view('pages.goals.team-goal', compact('data', 'tasks', 'notasks', 'noAchievements', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'reviewPeriodOption', 'calculationMethodOption', 'selectYear', 'period', 'activePeriod'));
-       
+        $activeMainTab = in_array($request->input('tab'), ['goal', 'ach'], true) ? $request->input('tab') : null;
+
+        return view('pages.goals.team-goal', compact('data', 'tasks', 'notasks', 'noAchievements', 'link', 'parentLink', 'formData', 'uomOption', 'typeOption', 'reviewPeriodOption', 'calculationMethodOption', 'selectYear', 'period', 'activePeriod', 'goalList', 'goalCounts', 'goalStatus', 'achList', 'achCounts', 'achStatus', 'activeMainTab'));
+
+    }
+
+    public const TASK_BOX_PER_PAGE = 20;
+
+    public const TASK_BOX_STATUSES = ['all', 'draft', 'not-initiated', 'revision', 'pending', 'approved'];
+
+    /**
+     * Baris tab Goals: semua $tasks (sudah punya goal) lalu $notasks.
+     * Aturan status = yang dulu ada di Blade ($rowStatus).
+     */
+    private function buildGoalRows($tasks, $notasks)
+    {
+        $rows = collect();
+
+        foreach ($tasks as $task) {
+            $first = $task->subordinates->first();
+            $formStatus = $first?->goal?->form_status;
+            $status = $first?->status;
+
+            $rowStatus = 'approved';
+            if ($formStatus == 'Draft') {
+                $rowStatus = 'draft';
+            } elseif ($status == 'Sendback') {
+                $rowStatus = 'revision';
+            } elseif ($status == 'Pending' || ($first?->appraisalCheck)) {
+                $rowStatus = 'pending';
+            }
+
+            $rows->push($this->taskBoxRow('task', $task, $task->employee, $rowStatus));
+        }
+
+        foreach ($notasks as $notask) {
+            $rows->push($this->taskBoxRow('notask', $notask, $notask->employee, 'not-initiated'));
+        }
+
+        return $rows;
+    }
+
+    /**
+     * Baris tab Achievements: $tasks yang punya achievement (layer 1 saja),
+     * lalu goal tanpa achievement (layer 1), lalu $notasks yang layer 1.
+     * Aturan status = yang dulu ada di Blade ($achRowStatus).
+     */
+    private function buildAchievementRows($tasks, $noAchievements, $notasks)
+    {
+        $rows = collect();
+
+        foreach ($tasks as $task) {
+            $first = $task->subordinates->first(fn ($s) => optional($s->goal)->hasAchievement);
+            if (! $first || ! $first->isFirstLayer) {
+                continue;
+            }
+
+            $achievementStatus = ($first->goal->achievement_status ?? [])['approval_status'] ?? null;
+
+            $rowStatus = 'draft';
+            if ($achievementStatus == 'Approved') {
+                $rowStatus = 'approved';
+            } elseif ($achievementStatus == 'Pending') {
+                $rowStatus = 'pending';
+            } elseif ($achievementStatus == 'Rejected' || $achievementStatus == 'Sendback') {
+                $rowStatus = 'revision';
+            }
+
+            $row = $this->taskBoxRow('task', $task, $task->employee, $rowStatus);
+            $row->subordinate = $first;
+            $rows->push($row);
+        }
+
+        foreach ($noAchievements as $subordinate) {
+            if (! $subordinate->isFirstLayer) {
+                continue;
+            }
+            $rows->push($this->taskBoxRow('noach', $subordinate, $subordinate->employee, 'not-initiated'));
+        }
+
+        foreach ($notasks as $notask) {
+            if (! $notask->isManager) {
+                continue;
+            }
+            $rows->push($this->taskBoxRow('notask', $notask, $notask->employee, 'not-initiated'));
+        }
+
+        return $rows;
+    }
+
+    private function taskBoxRow(string $type, $item, $employee, string $status): object
+    {
+        return (object) [
+            'type' => $type,
+            'item' => $item,
+            'status' => $status,
+            'search' => Str::lower(($employee->fullname ?? '').' '.($employee->employee_id ?? '')),
+        ];
+    }
+
+    /**
+     * Search (nama / employee ID) -> hitung badge per status -> filter status
+     * -> paginate. Parameter query per tab: {prefix}_status, {prefix}_page.
+     */
+    private function filterAndPaginateRows(Request $request, $rows, string $search, string $prefix): array
+    {
+        if ($search !== '') {
+            $rows = $rows->filter(fn ($row) => str_contains($row->search, $search))->values();
+        }
+
+        $counts = array_fill_keys(self::TASK_BOX_STATUSES, 0);
+        $counts['all'] = $rows->count();
+        foreach ($rows as $row) {
+            $counts[$row->status]++;
+        }
+
+        $status = $request->input($prefix.'_status', 'all');
+        if (! in_array($status, self::TASK_BOX_STATUSES, true)) {
+            $status = 'all';
+        }
+        if ($status !== 'all') {
+            $rows = $rows->where('status', $status)->values();
+        }
+
+        $pageName = $prefix.'_page';
+        $page = max(1, (int) $request->input($pageName, 1));
+        $lastPage = max(1, (int) ceil($rows->count() / self::TASK_BOX_PER_PAGE));
+        $page = min($page, $lastPage);
+
+        $paginator = new \Illuminate\Pagination\LengthAwarePaginator(
+            $rows->forPage($page, self::TASK_BOX_PER_PAGE)->values(),
+            $rows->count(),
+            self::TASK_BOX_PER_PAGE,
+            $page,
+            ['path' => $request->url(), 'pageName' => $pageName]
+        );
+        $paginator->appends(array_merge($request->except($pageName), ['tab' => $prefix]));
+
+        return [$paginator, $counts, $status];
     }
     
     function create($id) {

@@ -114,20 +114,25 @@
             </select>
             <div class="input-group input-group-sm shadow-sm" style="max-width: 300px;">
                 <span class="input-group-text bg-white border-end-0"><i class="ri-search-line text-muted"></i></span>
-                <input type="text" name="customsearch" id="customsearch" value="{{ request('customsearch') }}" autocomplete="off" class="form-control border-start-0 shadow-none bg-white" placeholder="Search employee...">
+                <input type="search" name="customsearch" id="customsearch" value="{{ request('customsearch') }}" autocomplete="off" class="form-control border-start-0 shadow-none bg-white" placeholder="Search employee... (Enter)">
             </div>
+            {{-- Search dikerjakan server: Enter men-submit form ini. Filter status
+                 tiap tab dipertahankan, halaman kembali ke 1. --}}
+            <input type="hidden" name="goal_status" value="{{ $goalStatus }}">
+            <input type="hidden" name="ach_status" value="{{ $achStatus }}">
+            <input type="hidden" name="tab" id="teamGoalActiveTab" value="{{ $activeMainTab ?? 'goal' }}">
         </form>
     </div>
 
     <div class="tab-content">
         <div class="tab-pane fade show active" id="tab-goal" role="tabpanel">
             <ul class="nav mb-2 flex-wrap" id="goal-filters">
-                <li><button class="btn sub-tab-btn active" data-filter="all">All Task <span class="badge ms-1 count-all">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="draft">Draft <span class="badge ms-1 count-draft">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="not-initiated">Not Initiated <span class="badge ms-1 count-not-initiated">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="revision">Waiting for Revision <span class="badge ms-1 count-revision">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="pending">Waiting for Approval <span class="badge ms-1 count-pending">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="approved">Approved <span class="badge ms-1 count-approved">0</span></button></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['goal_status' => 'all', 'goal_page' => null, 'tab' => 'goal']) }}" class="btn sub-tab-btn {{ $goalStatus === 'all' ? 'active' : '' }}" data-filter="all">All Task <span class="badge ms-1 count-all">{{ $goalCounts['all'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['goal_status' => 'draft', 'goal_page' => null, 'tab' => 'goal']) }}" class="btn sub-tab-btn {{ $goalStatus === 'draft' ? 'active' : '' }}" data-filter="draft">Draft <span class="badge ms-1 count-draft">{{ $goalCounts['draft'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['goal_status' => 'not-initiated', 'goal_page' => null, 'tab' => 'goal']) }}" class="btn sub-tab-btn {{ $goalStatus === 'not-initiated' ? 'active' : '' }}" data-filter="not-initiated">Not Initiated <span class="badge ms-1 count-not-initiated">{{ $goalCounts['not-initiated'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['goal_status' => 'revision', 'goal_page' => null, 'tab' => 'goal']) }}" class="btn sub-tab-btn {{ $goalStatus === 'revision' ? 'active' : '' }}" data-filter="revision">Waiting for Revision <span class="badge ms-1 count-revision">{{ $goalCounts['revision'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['goal_status' => 'pending', 'goal_page' => null, 'tab' => 'goal']) }}" class="btn sub-tab-btn {{ $goalStatus === 'pending' ? 'active' : '' }}" data-filter="pending">Waiting for Approval <span class="badge ms-1 count-pending">{{ $goalCounts['pending'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['goal_status' => 'approved', 'goal_page' => null, 'tab' => 'goal']) }}" class="btn sub-tab-btn {{ $goalStatus === 'approved' ? 'active' : '' }}" data-filter="approved">Approved <span class="badge ms-1 count-approved">{{ $goalCounts['approved'] }}</span></a></li>
             </ul>
 
             <div class="card shadow-sm border-0">
@@ -181,8 +186,10 @@
                 </div>
                 @endif
                 <div class="card-body px-3 py-1" id="goal-container">
-                    @foreach ($tasks as $index => $task)
+                    @foreach ($goalList as $row)
+                        @if ($row->type === 'task')
                         @php
+                            $task = $row->item;
                             $subordinates = $task->subordinates;
                             $firstSubordinate = $subordinates->isNotEmpty() ? $subordinates->first() : null;
                             
@@ -254,7 +261,7 @@
                                 $popover = $status === 'Sendback' ? $employeeName : __($status);
                             }
                         @endphp
-                        <div class="task-row goal-item" data-status="{{ $rowStatus }}" data-search="{{ \Illuminate\Support\Str::lower(($task->employee->fullname ?? '').' '.($task->employee->employee_id ?? '')) }}">
+                        <div class="task-row goal-item" data-status="{{ $row->status }}">
                             <div class="row align-items-start mx-0 w-100">
                                 <div class="col-md-3 mb-2 mb-md-0 px-1 pt-1">
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">Employee</span>
@@ -332,16 +339,16 @@
                                 </div>
                             </div>
                         </div>
-                    @endforeach
-
-                    @foreach ($notasks as $index => $notask)
+                        @else
                         @php
+                            $notask = $row->item;
+                            $index = $loop->index;
                             $managerL1 = $notask?->employee?->managerL1;
                             $employeeId = $notask->employee_id;
                             $accessMenu = json_decode($notask->employee->access_menu ?? '{}', true);
                             $goals = $accessMenu['goals'] ?? null;
                         @endphp
-                        <div class="task-row goal-item" data-status="not-initiated" data-search="{{ \Illuminate\Support\Str::lower(($notask->employee->fullname ?? '').' '.($notask->employee->employee_id ?? '')) }}">
+                        <div class="task-row goal-item" data-status="not-initiated">
                             <div class="row align-items-start mx-0 w-100">
                                 <div class="col-md-3 mb-2 mb-md-0 px-1 pt-1">
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">Employee</span>
@@ -369,24 +376,30 @@
                                 </div>
                             </div>
                         </div>
+                        @endif
                     @endforeach
 
-                    <div id="goal-empty-state" class="py-5 text-center d-none">
+                    <div id="goal-empty-state" class="py-5 text-center {{ $goalList->isEmpty() ? '' : 'd-none' }}">
                         <i class="ri-folder-open-line text-muted d-block mb-2" style="font-size: 3rem;"></i>
                         <h6 class="text-muted fw-bold">No Goals Found</h6>
                     </div>
                 </div>
+                @if ($goalList->hasPages())
+                <div class="card-footer bg-white border-top pt-3 pb-0 small">
+                    {{ $goalList->onEachSide(1)->links('pagination::bootstrap-5') }}
+                </div>
+                @endif
             </div>
         </div>
 
         <div class="tab-pane fade" id="tab-achievement" role="tabpanel">
             <ul class="nav mb-2 flex-wrap" id="ach-filters">
-                <li><button class="btn sub-tab-btn active" data-filter="all">All Task <span class="badge ms-1 count-all">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="draft">Draft <span class="badge ms-1 count-draft">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="not-initiated">Not Initiated <span class="badge ms-1 count-not-initiated">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="revision">Waiting for Revision <span class="badge ms-1 count-revision">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="pending">Waiting for Approval <span class="badge ms-1 count-pending">0</span></button></li>
-                <li><button class="btn sub-tab-btn" data-filter="approved">Approved <span class="badge ms-1 count-approved">0</span></button></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['ach_status' => 'all', 'ach_page' => null, 'tab' => 'ach']) }}" class="btn sub-tab-btn {{ $achStatus === 'all' ? 'active' : '' }}" data-filter="all">All Task <span class="badge ms-1 count-all">{{ $achCounts['all'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['ach_status' => 'draft', 'ach_page' => null, 'tab' => 'ach']) }}" class="btn sub-tab-btn {{ $achStatus === 'draft' ? 'active' : '' }}" data-filter="draft">Draft <span class="badge ms-1 count-draft">{{ $achCounts['draft'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['ach_status' => 'not-initiated', 'ach_page' => null, 'tab' => 'ach']) }}" class="btn sub-tab-btn {{ $achStatus === 'not-initiated' ? 'active' : '' }}" data-filter="not-initiated">Not Initiated <span class="badge ms-1 count-not-initiated">{{ $achCounts['not-initiated'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['ach_status' => 'revision', 'ach_page' => null, 'tab' => 'ach']) }}" class="btn sub-tab-btn {{ $achStatus === 'revision' ? 'active' : '' }}" data-filter="revision">Waiting for Revision <span class="badge ms-1 count-revision">{{ $achCounts['revision'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['ach_status' => 'pending', 'ach_page' => null, 'tab' => 'ach']) }}" class="btn sub-tab-btn {{ $achStatus === 'pending' ? 'active' : '' }}" data-filter="pending">Waiting for Approval <span class="badge ms-1 count-pending">{{ $achCounts['pending'] }}</span></a></li>
+                <li><a href="{{ request()->fullUrlWithQuery(['ach_status' => 'approved', 'ach_page' => null, 'tab' => 'ach']) }}" class="btn sub-tab-btn {{ $achStatus === 'approved' ? 'active' : '' }}" data-filter="approved">Approved <span class="badge ms-1 count-approved">{{ $achCounts['approved'] }}</span></a></li>
             </ul>
 
             <div class="card shadow-sm border-0">
@@ -434,16 +447,13 @@
                     </div>
                 </div>
                 <div class="card-body px-3 py-1" id="ach-container">
-                    @foreach ($tasks as $index => $task)
+                    @foreach ($achList as $row)
+                        @if ($row->type === 'task')
                         @php
+                            $task = $row->item;
                             $subordinates = $task->subordinates;
-                            $firstSubordinate = $task->subordinates
-                            ->first(function ($subordinate) {
-                                return optional($subordinate->goal)->hasAchievement;
-                            });
-                            
-                            if(!$firstSubordinate) continue;
-                            if(!$firstSubordinate->isFirstLayer) continue;
+                            // Subordinate pertama yang punya achievement & layer 1 (dipilih di controller).
+                            $firstSubordinate = $row->subordinate;
 
                             $goalId = $firstSubordinate->goal->id;
                             $appraisalCheck = $firstSubordinate->appraisalCheck;
@@ -498,7 +508,7 @@
                                 $goalLabel = __($status);
                             }
                         @endphp
-                        <div class="task-row ach-item" data-status="{{ $achRowStatus }}" data-search="{{ \Illuminate\Support\Str::lower(($task->employee->fullname ?? '').' '.($task->employee->employee_id ?? '')) }}">
+                        <div class="task-row ach-item" data-status="{{ $row->status }}">
                             <div class="row align-items-start w-100 mx-0">
                                 <div class="col-md-3 mb-2 mb-md-0 px-1 pt-1">
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">Employee</span>
@@ -531,11 +541,9 @@
                                 </div>
                             </div>
                         </div>
-                    @endforeach
-
-                    @foreach ($noAchievements ?? [] as $index => $achievementList)
+                        @elseif ($row->type === 'noach')
                         @php
-                            if(!$achievementList->isFirstLayer) continue;
+                            $achievementList = $row->item;
 
                             $hasData = $achievementList ? true : false;
                             $isDraft = $achievementList?->goal?->form_status == 'Draft';
@@ -575,7 +583,7 @@
                                 $popover = 'Approved';
                             }
                         @endphp
-                        <div class="task-row ach-item" data-status="not-initiated" data-search="{{ \Illuminate\Support\Str::lower(($achievementList?->employee?->fullname ?? '').' '.($achievementList?->employee?->employee_id ?? '')) }}">
+                        <div class="task-row ach-item" data-status="not-initiated">
                             <div class="row align-items-start w-100 mx-0">
                                 <div class="col-md-3 mb-2 mb-md-0 px-1 pt-1">
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">Employee</span>
@@ -610,20 +618,18 @@
                                         @if($goalId)
                                             <a href="javascript:void(0)" class="btn btn-light text-secondary border btn-sm rounded-pill px-2 btn-achievement-detail"
                                                 data-detail-url="{{ route('team-goals.achievement-detail', $goalId) }}"
-                                                data-detail-employee="{{ $task->employee->fullname ?? '' }}"><i class="ri-file-text-line"></i></a>
+                                                data-detail-employee="{{ $achievementList?->employee?->fullname ?? '' }}"><i class="ri-file-text-line"></i></a>
                                         @endif
                                     @endif
                                 </div>
                             </div>
                         </div>
-                    @endforeach
-
-                    @foreach ($notasks as $index => $notask)
+                        @else
                         @php
-                            if (!$notask->isManager) continue;
+                            $notask = $row->item;
                             $employeeId = $notask->employee_id;
                         @endphp
-                        <div class="task-row ach-item" data-status="not-initiated" data-search="{{ \Illuminate\Support\Str::lower(($notask->employee->fullname ?? '').' '.($notask->employee->employee_id ?? '')) }}">
+                        <div class="task-row ach-item" data-status="not-initiated">
                             <div class="row align-items-start w-100 mx-0">
                                 <div class="col-md-3 mb-2 mb-md-0 px-1 pt-1">
                                     <span class="text-uppercase d-block mb-1 col-label fw-semibold">Employee</span>
@@ -645,13 +651,19 @@
                                 </div>
                             </div>
                         </div>
+                        @endif
                     @endforeach
 
-                    <div id="ach-empty-state" class="py-5 text-center d-none">
+                    <div id="ach-empty-state" class="py-5 text-center {{ $achList->isEmpty() ? '' : 'd-none' }}">
                         <i class="ri-medal-line text-muted d-block mb-2" style="font-size: 3rem;"></i>
                         <h6 class="text-muted fw-bold">No Achievements Found</h6>
                     </div>
                 </div>
+                @if ($achList->hasPages())
+                <div class="card-footer bg-white border-top pt-3 pb-0 small">
+                    {{ $achList->onEachSide(1)->links('pagination::bootstrap-5') }}
+                </div>
+                @endif
             </div>
         </div>
     </div> 
@@ -966,95 +978,31 @@
 </script>
 <script>
 document.addEventListener("DOMContentLoaded", function () {
-    const tabs = document.querySelectorAll('#mainTab button[data-bs-toggle="tab"]');
-    tabs.forEach(tab => {
+    // Search, filter status dan pagination dikerjakan server
+    // (TeamGoalController::index). Script ini hanya mengatur tab utama
+    // Goals/Achievements: ?tab= dari link filter/pagination menang, kalau tidak
+    // ada pakai tab terakhir di localStorage. Input hidden "tab" di form search
+    // ikut diperbarui supaya search tetap di tab yang sedang dibuka.
+    const tabInput = document.getElementById('teamGoalActiveTab');
+    const tabButtonIds = { goal: 'tab-goal-btn', ach: 'tab-achievement-btn' };
+    const tabKeyById = { 'tab-goal-btn': 'goal', 'tab-achievement-btn': 'ach' };
+
+    document.querySelectorAll('#mainTab button[data-bs-toggle="tab"]').forEach(tab => {
         tab.addEventListener('shown.bs.tab', function (e) {
-            localStorage.setItem('activeTeamGoalTab', e.target.id);
+            try { localStorage.setItem('activeTeamGoalTab', e.target.id); } catch (err) {}
+            if (tabInput) tabInput.value = tabKeyById[e.target.id] || 'goal';
         });
     });
 
-    const savedTabId = localStorage.getItem('activeTeamGoalTab');
-    if (savedTabId) {
-        const savedTab = document.getElementById(savedTabId);
-        if (savedTab) {
-            const bsTab = new bootstrap.Tab(savedTab);
-            bsTab.show();
-        }
+    const serverTab = @json($activeMainTab);
+    let savedTabId = serverTab ? tabButtonIds[serverTab] : null;
+    if (!savedTabId) {
+        try { savedTabId = localStorage.getItem('activeTeamGoalTab'); } catch (err) {}
     }
-
-    // Filter tab status + kotak search digabung di satu tempat. Search hanya
-    // mencocokkan nama & employee ID (data-search), bukan seluruh teks baris
-    // (mis. "by <updater>" atau popover approver). Badge tiap tab dihitung
-    // dari baris yang lolos search, jadi angkanya selalu sama dengan isi tab.
-    // Catatan: handler search lama di resources/js/team-goal.js mengincar
-    // .task-card yang sudah tidak ada di view ini, sehingga tidak berefek.
-    const searchInput = document.getElementById('customsearch');
-    const getSearchTerm = () => (searchInput ? searchInput.value : '').toLowerCase().trim();
-    const listControllers = [];
-
-    function setupFilterableList(containerId, filterButtonsId, itemClass, emptyStateId) {
-        const container = document.getElementById(containerId);
-        const filterWrapper = document.getElementById(filterButtonsId);
-        if (!container || !filterWrapper) return;
-
-        const allItems = Array.from(container.querySelectorAll('.' + itemClass));
-        const filterBtns = filterWrapper.querySelectorAll('.sub-tab-btn');
-        const emptyState = document.getElementById(emptyStateId);
-        let activeFilter = 'all';
-
-        function render() {
-            const term = getSearchTerm();
-            const counts = { 'all': 0, 'draft': 0, 'revision': 0, 'pending': 0, 'approved': 0, 'not-initiated': 0 };
-            let visibleCount = 0;
-
-            allItems.forEach(item => {
-                const status = item.getAttribute('data-status');
-                const matchesSearch = term === '' || (item.getAttribute('data-search') || '').includes(term);
-
-                if (matchesSearch) {
-                    counts.all++;
-                    if (counts[status] !== undefined) counts[status]++;
-                }
-
-                const visible = matchesSearch && (activeFilter === 'all' || status === activeFilter);
-                item.style.display = visible ? 'flex' : 'none';
-                if (visible) visibleCount++;
-            });
-
-            Object.keys(counts).forEach(key => {
-                const badge = filterWrapper.querySelector(`.count-${key}`);
-                if (badge) badge.innerText = counts[key];
-            });
-
-            if (emptyState) {
-                emptyState.classList.toggle('d-none', visibleCount > 0);
-            }
-        }
-
-        filterBtns.forEach(btn => {
-            btn.addEventListener('click', function (e) {
-                e.preventDefault();
-                filterBtns.forEach(b => b.classList.remove('active'));
-                this.classList.add('active');
-                activeFilter = this.getAttribute('data-filter');
-                render();
-            });
-        });
-
-        listControllers.push(render);
-        render();
-    }
-
-    setupFilterableList('goal-container', 'goal-filters', 'goal-item', 'goal-empty-state');
-    setupFilterableList('ach-container', 'ach-filters', 'ach-item', 'ach-empty-state');
-
-    if (searchInput) {
-        searchInput.addEventListener('input', () => listControllers.forEach(render => render()));
-        // Enter di input ini men-submit form tahun (GET) dan me-reload halaman;
-        // search cukup di client, jadi cegah reload-nya.
-        searchInput.addEventListener('keydown', function (e) {
-            if (e.key === 'Enter') e.preventDefault();
-        });
+    const savedTab = savedTabId ? document.getElementById(savedTabId) : null;
+    if (savedTab) {
+        new bootstrap.Tab(savedTab).show();
+        if (tabInput) tabInput.value = tabKeyById[savedTabId] || 'goal';
     }
 
     document.querySelectorAll('.mini-progress-bar').forEach(function (el) {

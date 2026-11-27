@@ -85,11 +85,10 @@ $(document).ready(() => {
 
         // Bootstrap Components
         function initComponents() {
-            // loader - Preloader
-            $(window).on("load", function () {
-                $("#status").fadeOut();
-                $("#preloader").delay(350).fadeOut("slow");
-            });
+            // loader - Preloader: ditutup di script.js saat DOMContentLoaded.
+            // (Dulu di sini menunggu window.load + delay 350ms + fadeOut
+            // "slow" 600ms, sehingga overlay tetap tampil ~1 detik setelah
+            // semua gambar/font selesai, padahal konten sudah siap.)
 
             // Popovers — dipasang sekali lewat delegasi di popovers.js.
             // Loop per-elemen di sini dulu membuat satu instance Popover untuk
